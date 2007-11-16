@@ -606,11 +606,9 @@ drawbar(void) {
 		dc.w = textw(tags[i]);
 		if(seltags[i]) {
 			drawtext(tags[i], dc.sel);
-			drawsquare(sel && sel->tags[i], isoccupied(i), dc.sel);
 		}
 		else {
 			drawtext(tags[i], dc.norm);
-			drawsquare(sel && sel->tags[i], isoccupied(i), dc.norm);
 		}
 		dc.x += dc.w;
 	}
@@ -624,15 +622,15 @@ drawbar(void) {
 		dc.w = sw - x;
 	}
 	drawtext(stext, dc.norm);
-	if((dc.w = dc.x - x) > bh) {
+	/* if((dc.w = dc.x - x) > bh) {
 		dc.x = x;
 		if(sel) {
 			drawtext(sel->name, dc.sel);
-			drawsquare(sel->ismax, sel->isfloating, dc.sel);
 		}
 		else
 			drawtext(NULL, dc.norm);
 	}
+    */
 	XCopyArea(dpy, dc.drawable, barwin, dc.gc, 0, 0, sw, bh, 0, 0);
 	XSync(dpy, False);
 }
@@ -1752,7 +1750,7 @@ tile(void) {
 void
 togglebar(const char *arg) {
 	if(bpos == BarOff)
-		bpos = (BARPOS == BarOff) ? BarTop : BARPOS;
+		bpos = (BARPOS == BarOff) ? BarBot : BARPOS;
 	else
 		bpos = BarOff;
 	updatebarpos();
@@ -1887,14 +1885,14 @@ updatebarpos(void) {
 	wah = sh;
 	waw = sw;
 	switch(bpos) {
-	default:
+    default:
+		wah -= bh;
+		XMoveWindow(dpy, barwin, sx, sy + wah);
+		break;
+    case BarTop:
 		wah -= bh;
 		way += bh;
 		XMoveWindow(dpy, barwin, sx, sy);
-		break;
-	case BarBot:
-		wah -= bh;
-		XMoveWindow(dpy, barwin, sx, sy + wah);
 		break;
 	case BarOff:
 		XMoveWindow(dpy, barwin, sx, sy - bh);
