@@ -77,6 +77,7 @@ typedef struct {
 	int x, y, w, h;
 	unsigned long norm[ColLast];
 	unsigned long sel[ColLast];
+	unsigned long btn[ColLast];
 	Drawable drawable;
 	GC gc;
 	struct {
@@ -129,7 +130,7 @@ void detach(Client *c);
 void detachstack(Client *c);
 void drawbar(void);
 void drawsquare(Bool filled, Bool empty, unsigned long col[ColLast]);
-void drawtext(const char *text, unsigned long col[ColLast]);
+void drawtext(const char *text, unsigned long col[ColLast], Bool center);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
@@ -194,6 +195,8 @@ int xerrorstart(Display *dsply, XErrorEvent *ee);
 void zoom(const char *arg);
 
 /* variables */
+Bool spos = True;
+int usw;
 char **cargv;
 char **environ;
 char stext[256];
@@ -597,8 +600,8 @@ detachstack(Client *c) {
 	*tc = c->snext;
 }
 
-void
-drawbar(void) {
+/* void
+drawbarr(void) {
 	int i, x;
 
 	dc.x = dc.y = 0;
@@ -622,7 +625,7 @@ drawbar(void) {
 		dc.w = sw - x;
 	}
 	drawtext(stext, dc.norm);
-	/* if((dc.w = dc.x - x) > bh) {
+	if((dc.w = dc.x - x) > bh) {
 		dc.x = x;
 		if(sel) {
 			drawtext(sel->name, dc.sel);
@@ -630,11 +633,158 @@ drawbar(void) {
 		else
 			drawtext(NULL, dc.norm);
 	}
-    */
 	XCopyArea(dpy, dc.drawable, barwin, dc.gc, 0, 0, sw, bh, 0, 0);
 	XSync(dpy, False);
 }
+*/
+int 
+nvisible(void) {
+    int n=0;
+    Client *c;
+    for (c = clients; c; c = c->next)
+      {
+          if(isvisible(c))
+            n++;
+      }
+    return n;
+}
+void
+drawtext(const char *text, unsigned long col[ColLast], Bool center) {
+	int x, y, w, h;
+	static char buf[256];
+	unsigned int len, olen;
+	XRectangle r = { dc.x, 1, dc.w, dc.h - 3 };
 
+	XSetForeground(dpy, dc.gc, col[ColBG]);
+	XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
+	if(!text)
+		return;
+	w = 0;
+	olen = len = strlen(text);
+	if(len >= sizeof buf)
+		len = sizeof buf - 1;
+	memcpy(buf, text, len);
+	buf[len] = 0;
+	h = dc.font.ascent + dc.font.descent;
+	y = dc.y + (dc.h / 2) - (h / 2) + dc.font.ascent;
+		/* shorten text if necessary */
+	while(len && (w = textnw(buf, len)) > dc.w - h)
+		buf[--len] = 0;
+	if(len < olen) {
+		if(len > 1)
+			buf[len - 1] = '.';
+		if(len > 2)
+			buf[len - 2] = '.';
+		if(len > 3)
+			buf[len - 3] = '.';
+	}
+	if(w > dc.w)
+		return; /* too long */
+        if(center)
+                x = dc.x + dc.w/2 - w/2;
+        else 
+                x = dc.x + h/2;
+        while(x <= 0)
+                x = dc.x++;
+	XSetForeground(dpy, dc.gc, col[ColFG]);
+	if(dc.font.set)
+		XmbDrawString(dpy, dc.drawable, dc.font.set, dc.gc, x, y, buf, len);
+	else
+		XDrawString(dpy, dc.drawable, dc.gc, x, y, buf, len);
+	XSetForeground(dpy, dc.gc, dc.btn[ColBorder]);
+	XDrawRectangles(dpy, dc.drawable, dc.gc, &r, 1);
+}
+void
+drawbar(void) {
+        int i, x, bx;
+        int n = nvisible();
+        int w;
+        Client *c;
+        int ntags = LENGTH(tags);
+        dc.x = dc.y = 0;
+        XRectangle r = { dc.x, dc.y, sw, dc.h };
+        XSetForeground(dpy, dc.gc, dc.btn[ColBG]);
+        XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
+        w = textw(stext);
+        for(i = ntags-1 ; i >= 0; i--) {
+                    if(seltags[i]) {
+                        w += textw(tags[i]);
+                    }
+        }
+        dc.x = dc.y = 0;
+        for(i = 0; i < LENGTH(tags); i++) {
+
+            if(seltags[i]) {
+                dc.w = textw(tags[i]);
+                drawtext(tags[i], dc.sel, False);
+                dc.x += dc.w;
+            }
+        }
+        x = dc.x;
+        dc.w = textw(stext);
+
+        if(spos)
+        {
+            /*bx = 0;
+            dc.x = 0;
+            x = 0;
+            dc.w = w;
+            for(i = ntags-1 ; i >= 0; i--) {
+                    if(seltags[i]) {
+                            dc.w = textw(tags[i]);
+                            dc.x += dc.w;
+                            drawtext(tags[i], dc.sel, 0);
+                    }
+            }
+            */
+            /*x = bx;
+            dc.w = sw - dc.x;
+            */
+            drawtext(stext, dc.norm, 0);
+    }
+    else
+            usw = sw;
+    /*dc.x = 0;
+    x = 0;*/
+    /*
+    if(!sel)
+    {
+            XSetForeground(dpy, dc.gc, dc.btn[ColBorder]);
+            XDrawRectangle(dpy, dc.drawable, dc.gc, 0, 1, usw, dc.h - 3 );
+    }
+        for(c = clients; c; c = c->next)
+	  {
+                for(i = 0; i < ntags; i++)
+                {
+			if (seltags[i] && c->tags[i])
+			{
+                                dc.w = usw/n - 2;
+                                if(usw - dc.x > dc.w && usw - dc.x < 2 * dc.w)
+                                {
+                                        if(spos)
+                                          dc.w = usw - dc.x - 2;
+                                        else
+                                          dc.w = usw - dc.x;
+                                }
+
+				if(c==sel)
+					drawtext(c->name, dc.sel, 1);
+				else
+					drawtext(c->name, dc.norm, 1);
+				dc.x += dc.w;
+                                dc.x += 2;
+                                break;
+			}
+		}
+	}
+    */
+	XSetForeground(dpy, dc.gc, dc.btn[ColBorder]);
+    XDrawLine(dpy, dc.drawable, dc.gc, sw-2, 1, sw-2, dc.h-1); // right border
+	XCopyArea(dpy, dc.drawable, barwin, dc.gc, 0, 0, sw, bh, 0, 0);
+    if(bpos==BarBot)
+		XMoveResizeWindow(dpy, barwin, sw-w, sh - bh, w, bh);
+	XSync(dpy, False);
+}
 void
 drawsquare(Bool filled, Bool empty, unsigned long col[ColLast]) {
 	int x;
@@ -657,7 +807,7 @@ drawsquare(Bool filled, Bool empty, unsigned long col[ColLast]) {
 }
 
 void
-drawtext(const char *text, unsigned long col[ColLast]) {
+drawtextt(const char *text, unsigned long col[ColLast]) {
 	int x, y, w, h;
 	static char buf[256];
 	unsigned int len, olen;
@@ -1610,6 +1760,10 @@ setup(void) {
 	dc.sel[ColBorder] = getcolor(SELBORDERCOLOR);
 	dc.sel[ColBG] = getcolor(SELBGCOLOR);
 	dc.sel[ColFG] = getcolor(SELFGCOLOR);
+    dc.btn[ColBorder] = getcolor(BTNBORDERCOLOR);
+	dc.btn[ColBG] = getcolor(BTNBGCOLOR);
+	dc.btn[ColFG] = getcolor(BTNFGCOLOR);
+
 	initfont(FONT);
 	dc.h = bh = dc.font.height + 2;
 
@@ -1628,7 +1782,8 @@ setup(void) {
 	wa.override_redirect = 1;
 	wa.background_pixmap = ParentRelative;
 	wa.event_mask = ButtonPressMask | ExposureMask;
-	barwin = XCreateWindow(dpy, root, sx, sy, sw, bh, 0,
+	strcpy(stext, "fwm-"VERSION);
+	barwin = XCreateWindow(dpy, root, sw-textw(stext), sy, textw(stext), bh, 0,
 			DefaultDepth(dpy, screen), CopyFromParent, DefaultVisual(dpy, screen),
 			CWOverrideRedirect | CWBackPixmap | CWEventMask, &wa);
 	XDefineCursor(dpy, barwin, cursor[CurNormal]);
@@ -1879,6 +2034,7 @@ unmapnotify(XEvent *e) {
 void
 updatebarpos(void) {
 	XEvent ev;
+    int w,i;
 
 	wax = sx;
 	way = sy;
@@ -1886,8 +2042,14 @@ updatebarpos(void) {
 	waw = sw;
 	switch(bpos) {
     default:
-		wah -= bh;
-		XMoveWindow(dpy, barwin, sx, sy + wah);
+		//wah -= bh;
+        w = textw(stext);
+        for(i = LENGTH(tags)-1 ; i >= 0; i--) {
+                    if(seltags[i]) {
+                            w += textw(tags[i]);
+                    }
+            }
+		XMoveResizeWindow(dpy, barwin, sw-w, sh - bh, w, bh);
 		break;
     case BarTop:
 		wah -= bh;
