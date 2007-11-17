@@ -1,38 +1,27 @@
 /* See LICENSE file for copyright and license details. */
 #include <X11/XF86keysym.h>
-
-/* resources */
-#define RESNAME                        "dwm"
-#define RESCLASS               "Dwm"
-
 /* appearance */
-#define BARPOS			BarOff /* BarBot, BarOff */
-#define BORDERPX		4
-#define FONT			"-artwiz-snap-*-*-*-*-10-*-*-*-*-*-koi8-r"
-//#define NORMBORDERCOLOR		"#555753"
-#define NORMBGCOLOR		"#2e3436"
-#define NORMFGCOLOR		"#d3d7cf"
-//#define SELBORDERCOLOR		"#555753"
-//#define SELBORDERCOLOR		"#000000"
-//#define SELBORDERCOLOR		"#676365"
-#define SELBGCOLOR		"#3e4446"
-#define SELFGCOLOR		"#d3d7cf"
+#define BARPOS			BarOff /* BarTop, BarOff */
 
-//#define NORMBORDERCOLOR		"#9eeeee"
+/* border width */
+#define BORDERPX		"4"
+
+/* You can use
+ * Dwm.normal.border: #cccccc
+ * Dwm.selected.border: #ff0000
+ * Dwm.border: 4
+ * in Xresources instead
+ */
+
 #define SELBORDERCOLOR		"#55aaaa"
-#define NORMBORDERCOLOR		"#4E7878"
+#define NORMBORDERCOLOR		"#9eeeee"
 
-#define BTNBGCOLOR		"#2e3436"
-#define BTNFGCOLOR		"#3e4446"
-#define BTNBORDERCOLOR		"#676365"
+#define BARHEIGHT 13
 
 #define NMASTER 1
-#define NCOLS 2
-#define NROWS 1
 #define TERMINAL "aterm"
-#define ISTILE  isarrange(tile) || isarrange(ntile) || isarrange(dntile) || isarrange(tilecols)
 /* tagging */
-const char *tags[] = { "term", "www", "ncmpc", "gossip", "gimp", "htop", "mutt", "acme", "9" };
+const char *tags[] = { "main", "www", "ncmpc", "gossip", "gimp", "htop", "mutt", "acme", "9" };
 Bool seltags[LENGTH(tags)] = {[0] = True};
 Rule rules[] = {
 	/* class:instance:title regex	tags regex	isfloating */
@@ -91,7 +80,7 @@ Key keys[] = { \
 	{ MODKEY,		        XK_g,		focusview,	tags[4] }, \
 	{ MODKEY,		        XK_s,		focusview,	tags[5] }, \
 	{ MODKEY,		        XK_u,		focusview,	tags[6] }, \
-	{ MODKEY|ControlMask,		XK_8,		toggleview,	tags[7] }, \
+    { MODKEY,		        XK_a,		focusview,	tags[7] }, \
 	{ MODKEY|ControlMask,		XK_9,		toggleview,	tags[8] }, \
 	{ MODKEY|ShiftMask,		XK_0,		tag,		NULL }, \
 	{ MODKEY|ShiftMask,		XK_1,		tag,		tags[0] }, \
