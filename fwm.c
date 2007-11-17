@@ -43,13 +43,15 @@
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
+#include <X11/Xresource.h>
 
 /* macros */
 #define BUTTONMASK		(ButtonPressMask | ButtonReleaseMask)
 #define CLEANMASK(mask)		(mask & ~(numlockmask | LockMask))
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
 #define LENGTH(x)		(sizeof x / sizeof x[0])
-
+#define RESNAME                        "fwm"
+#define RESCLASS               "Fwm"
 
 /* enums */
 enum { BarTop, BarBot, BarOff };			/* bar position */
@@ -127,6 +129,8 @@ void drawbar(void);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
+void *erealloc(void *res, unsigned int size);
+char *estrdup(const char *s);
 void expose(XEvent *e);
 void floating(void); /* default floating layout */
 void focus(Client *c);
@@ -134,6 +138,7 @@ void focusnext(const char *arg);
 void focusprev(const char *arg);
 Client *getclient(Window w);
 unsigned long getcolor(const char *colstr);
+char *getresource(const char *resource, char *defval);
 long getstate(Window w);
 Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
 void grabbuttons(Client *c, Bool focused);
@@ -226,7 +231,7 @@ DC dc = {0};
 Layout *layout = NULL;
 Window root;
 Regs *regs = NULL;
-
+XrmDatabase xrdb;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -566,6 +571,21 @@ emallocz(unsigned int size) {
 		eprint("fatal: could not malloc() %u bytes\n", size);
 	return res;
 }
+void *
+erealloc(void *res, unsigned int size) {
+       if (!(res = res ? realloc(res, size) : malloc(size)))
+               eprint("fatal: could not realloc() 0 bytes", size);
+       return res;
+}
+
+char *
+estrdup(const char *s) {
+       char *t;
+       t = strdup(s);
+       if (!t)
+               eprint("fatal: strdup failed");
+       return t;
+}
 
 void
 enternotify(XEvent *e) {
@@ -724,6 +744,18 @@ getstate(Window w) {
 		result = *p;
 	XFree(p);
 	return result;
+}
+
+char *
+getresource(const char *resource, char *defval) {
+       static char name[256], class[256], *type;
+       XrmValue value;
+       snprintf(name, sizeof(name), ".", RESNAME, resource);
+       snprintf(class, sizeof(class), ".", RESCLASS, resource);
+       XrmGetResource(xrdb, name, class, &type, &value);
+       if(value.addr)
+               return value.addr;
+       return defval;
 }
 
 Bool
@@ -1336,6 +1368,7 @@ void
 setup(void) {
 	int d;
 	unsigned int i, j, mask;
+    char s;
 	Window w;
 	XModifierKeymap *modmap;
 	XSetWindowAttributes wa;
@@ -1378,6 +1411,12 @@ setup(void) {
 	XChangeWindowAttributes(dpy, root, CWEventMask | CWCursor, &wa);
 	XSelectInput(dpy, root, wa.event_mask);
 
+    /* init resource database */
+    XrmInitialize();
+    s = XResourceManagerString(dpy);
+    xrdb = XrmGetStringDatabase(s);
+    free(s);
+
 	/* grab keys */
 	keypress(NULL);
 
@@ -1385,12 +1424,8 @@ setup(void) {
 	compileregs();
 
 	/* init appearance */
-	dc.norm[ColBorder] = getcolor(NORMBORDERCOLOR);
-	dc.norm[ColBG] = getcolor(NORMBGCOLOR);
-	dc.norm[ColFG] = getcolor(NORMFGCOLOR);
-	dc.sel[ColBorder] = getcolor(SELBORDERCOLOR);
-	dc.sel[ColBG] = getcolor(SELBGCOLOR);
-	dc.sel[ColFG] = getcolor(SELFGCOLOR);
+    dc.norm[ColBorder] = getcolor(getresource("normal.border",NORMBORDERCOLOR));
+    dc.sel[ColBorder] = getcolor(getresource("selected.border", SELBORDERCOLOR));
 
     dc.h = bh = BARHEIGHT;
 
@@ -1404,6 +1439,9 @@ setup(void) {
 	updatebarpos();
 	dc.drawable = XCreatePixmap(dpy, root, sw, bh, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
+
+    /* free resource database */
+    XrmDestroyDatabase(xrdb);
 
 	/* multihead support */
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
