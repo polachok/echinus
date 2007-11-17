@@ -23,6 +23,9 @@
  *
  * To understand everything else, start reading main().
  */
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <locale.h>
 #include <stdarg.h>
@@ -77,16 +80,8 @@ typedef struct {
 	int x, y, w, h;
 	unsigned long norm[ColLast];
 	unsigned long sel[ColLast];
-	unsigned long btn[ColLast];
 	Drawable drawable;
 	GC gc;
-	struct {
-		int ascent;
-		int descent;
-		int height;
-		XFontSet set;
-		XFontStruct *xfont;
-	} font;
 } DC; /* draw context */
 
 typedef struct {
@@ -143,7 +138,6 @@ long getstate(Window w);
 Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
 void grabbuttons(Client *c, Bool focused);
 unsigned int idxoftag(const char *tag);
-void initfont(const char *fontstr);
 Bool isoccupied(unsigned int t);
 Bool isprotodel(Client *c);
 Bool isvisible(Client *c);
@@ -220,7 +214,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 Atom wmatom[WMLast], netatom[NetLast];
 Bool domwfact = True;
 Bool dozoom = True;
-Bool otherwm, readin;
+Bool otherwm;
 Bool running = True;
 Bool selscreen = True;
 Client *clients = NULL;
@@ -317,8 +311,6 @@ drawmouse(XEvent *e) {
 	XButtonPressedEvent *ev = &e->xbutton;
     XEvent ee;
 
-    XWindowAttributes wa;
-    XMapRequestEvent *evv;
 	ocx = nx = ev->x;
 	ocy = ny = ev->y;
 	if(XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
@@ -361,16 +353,38 @@ drawmouse(XEvent *e) {
 }
 void
 buttonpress(XEvent *e) {
-	unsigned int i, x, y;
 	Client *c;
 	XButtonPressedEvent *ev = &e->xbutton;
 
-        if(ev->window == root) {
-                if(ev->button == Button3) {
-                        XSetForeground(dpy, dc.gc, dc.sel[ColFG]);
-                        drawmouse(e);
-                }
-        }
+    if(ev->window == root) {
+            if(ev->button == Button3) {
+                    XSetForeground(dpy, dc.gc, dc.sel[ColFG]);
+                    drawmouse(e);
+            }
+    }
+    if((c = getclient(ev->window))) {
+		focus(c);
+		if(ev->button == Button1) {
+			if((layout->arrange == floating) || c->isfloating)
+				restack();
+			else
+				togglefloating(NULL);
+			movemouse(c);
+		}
+		else if(ev->button == Button2) {
+			if((floating != layout->arrange) && c->isfloating)
+				togglefloating(NULL);
+			else
+				zoom(NULL);
+		}
+		else if(ev->button == Button3 && !c->isfixed) {
+			if((floating == layout->arrange) || c->isfloating)
+				restack();
+			else
+				togglefloating(NULL);
+			resizemouse(c);
+		}
+	}
 }
 
 void
@@ -395,10 +409,6 @@ cleanup(void) {
 		unban(stack);
 		unmanage(stack);
 	}
-	if(dc.font.set)
-		XFreeFontSet(dpy, dc.font.set);
-	else
-		XFreeFont(dpy, dc.font.xfont);
 	XUngrabKey(dpy, AnyKey, AnyModifier, root);
 	XFreePixmap(dpy, dc.drawable);
 	XFreeGC(dpy, dc.gc);
@@ -542,8 +552,10 @@ detachstack(Client *c) {
 
 void drawbar()
 {
-    if(sel)
-        printf("%s\n", sel->name);
+    /*if(sel)
+        write(STDOUT_FILENO, sel->name, 100);
+        */
+    
 }
 
 void *
@@ -557,7 +569,6 @@ emallocz(unsigned int size) {
 
 void
 enternotify(XEvent *e) {
-	Client *c;
 	XCrossingEvent *ev = &e->xcrossing;
 
 	if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
@@ -580,9 +591,9 @@ eprint(const char *errstr, ...) {
 
 void
 expose(XEvent *e) {
-	XExposeEvent *ev = &e->xexpose;
+	/*XExposeEvent *ev = &e->xexpose;
 
-	/* if(ev->count == 0) {
+	if(ev->count == 0) {
 		if(ev->window == barwin)
 			drawbar();
 	}
@@ -784,48 +795,6 @@ idxoftag(const char *tag) {
 
 	for(i = 0; (i < LENGTH(tags)) && (tags[i] != tag); i++);
 	return (i < LENGTH(tags)) ? i : 0;
-}
-
-void
-initfont(const char *fontstr) {
-	char *def, **missing;
-	int i, n;
-
-	missing = NULL;
-	if(dc.font.set)
-		XFreeFontSet(dpy, dc.font.set);
-	dc.font.set = XCreateFontSet(dpy, fontstr, &missing, &n, &def);
-	if(missing) {
-		while(n--)
-			fprintf(stderr, "fwm: missing fontset: %s\n", missing[n]);
-		XFreeStringList(missing);
-	}
-	if(dc.font.set) {
-		XFontSetExtents *font_extents;
-		XFontStruct **xfonts;
-		char **font_names;
-		dc.font.ascent = dc.font.descent = 0;
-		font_extents = XExtentsOfFontSet(dc.font.set);
-		n = XFontsOfFontSet(dc.font.set, &xfonts, &font_names);
-		for(i = 0, dc.font.ascent = 0, dc.font.descent = 0; i < n; i++) {
-			if(dc.font.ascent < (*xfonts)->ascent)
-				dc.font.ascent = (*xfonts)->ascent;
-			if(dc.font.descent < (*xfonts)->descent)
-				dc.font.descent = (*xfonts)->descent;
-			xfonts++;
-		}
-	}
-	else {
-		if(dc.font.xfont)
-			XFreeFont(dpy, dc.font.xfont);
-		dc.font.xfont = NULL;
-		if(!(dc.font.xfont = XLoadQueryFont(dpy, fontstr))
-		&& !(dc.font.xfont = XLoadQueryFont(dpy, "fixed")))
-			eprint("error, cannot load font: '%s'\n", fontstr);
-		dc.font.ascent = dc.font.xfont->ascent;
-		dc.font.descent = dc.font.xfont->descent;
-	}
-	dc.font.height = dc.font.ascent + dc.font.descent;
 }
 
 Bool
@@ -1102,7 +1071,7 @@ propertynotify(XEvent *e) {
 
 void
 quit(const char *arg) {
-	readin = running = False;
+	running = False;
 }
 
 
@@ -1240,7 +1209,7 @@ restack(void) {
 
 void
 run(void) {
-	char *p;
+	//char *p;
 	fd_set rd;
 	int r, xfd;
 	XEvent ev;
@@ -1249,6 +1218,13 @@ run(void) {
 	XSync(dpy, False);
 	xfd = ConnectionNumber(dpy);
 	while(running) {
+        FD_ZERO(&rd);
+		FD_SET(xfd, &rd);
+		if(select(xfd + 1, &rd, NULL, NULL, NULL) == -1) {
+			if(errno == EINTR)
+				continue;
+			eprint("select failed\n");
+		}
 		while(XPending(dpy)) {
 			XNextEvent(dpy, &ev);
 			if(handler[ev.type])
@@ -1415,30 +1391,19 @@ setup(void) {
 	dc.sel[ColBorder] = getcolor(SELBORDERCOLOR);
 	dc.sel[ColBG] = getcolor(SELBGCOLOR);
 	dc.sel[ColFG] = getcolor(SELFGCOLOR);
-    dc.btn[ColBorder] = getcolor(BTNBORDERCOLOR);
-	dc.btn[ColBG] = getcolor(BTNBGCOLOR);
-	dc.btn[ColFG] = getcolor(BTNFGCOLOR);
 
-    bh = BARHEIGHT;
+    dc.h = bh = BARHEIGHT;
 
 	/* init layouts */
 	mwfact = MWFACT;
 	nmaster = NMASTER;
 	layout = &layouts[0];
-	for(blw = i = 0; i < LENGTH(layouts); i++) {
-		j = textw(layouts[i].symbol);
-		if(j > blw)
-			blw = j;
-	}
 
 	/* init bar */
 	bpos = BARPOS;
 	updatebarpos();
 	dc.drawable = XCreatePixmap(dpy, root, sw, bh, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
-	XSetLineAttributes(dpy, dc.gc, 1, LineSolid, CapButt, JoinMiter);
-	if(!dc.font.set)
-		XSetFont(dpy, dc.gc, dc.font.xfont->fid);
 
 	/* multihead support */
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
@@ -1478,22 +1443,6 @@ tag(const char *arg) {
 		sel->tags[i] = (NULL == arg);
 	sel->tags[idxoftag(arg)] = True;
 	arrange();
-}
-
-unsigned int
-textnw(const char *text, unsigned int len) {
-	XRectangle r;
-
-	if(dc.font.set) {
-		XmbTextExtents(dc.font.set, text, len, NULL, &r);
-		return r.width;
-	}
-	return XTextWidth(dc.font.xfont, text, len);
-}
-
-unsigned int
-textw(const char *text) {
-	return textnw(text, strlen(text)) + dc.font.height;
 }
 
 void
@@ -1678,7 +1627,7 @@ unmapnotify(XEvent *e) {
 void
 updatebarpos(void) {
 	XEvent ev;
-    int w,i;
+    //int w,i;
 
 	wax = sx;
 	way = sy;
