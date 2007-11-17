@@ -129,8 +129,6 @@ void drawbar(void);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
-void *erealloc(void *res, unsigned int size);
-char *estrdup(const char *s);
 void expose(XEvent *e);
 void floating(void); /* default floating layout */
 void focus(Client *c);
@@ -196,6 +194,7 @@ char **cargv;
 char **environ;
 double mwfact;
 int screen, sx, sy, sw, sh, wax, way, waw, wah;
+int borderpx;
 int cx, cy, cw, ch;
 unsigned int nmaster;
 int (*xerrorxlib)(Display *, XErrorEvent *);
@@ -571,21 +570,6 @@ emallocz(unsigned int size) {
 		eprint("fatal: could not malloc() %u bytes\n", size);
 	return res;
 }
-void *
-erealloc(void *res, unsigned int size) {
-       if (!(res = res ? realloc(res, size) : malloc(size)))
-               eprint("fatal: could not realloc() 0 bytes", size);
-       return res;
-}
-
-char *
-estrdup(const char *s) {
-       char *t;
-       t = strdup(s);
-       if (!t)
-               eprint("fatal: strdup failed");
-       return t;
-}
 
 void
 enternotify(XEvent *e) {
@@ -750,8 +734,8 @@ char *
 getresource(const char *resource, char *defval) {
        static char name[256], class[256], *type;
        XrmValue value;
-       snprintf(name, sizeof(name), ".", RESNAME, resource);
-       snprintf(class, sizeof(class), ".", RESCLASS, resource);
+       snprintf(name, sizeof(name), "%s.%s", RESNAME, resource);
+       snprintf(class, sizeof(class), "%s.%s", RESCLASS, resource);
        XrmGetResource(xrdb, name, class, &type, &value);
        if(value.addr)
                return value.addr;
@@ -967,7 +951,7 @@ manage(Window w, XWindowAttributes *wa) {
 			c->x = wax;
 		if(c->y < way)
 			c->y = way;
-		c->border = BORDERPX;
+		c->border = borderpx;
 	}
 	wc.border_width = c->border;
 	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
@@ -1354,7 +1338,7 @@ setnmaster(const char *arg) {
 		nmaster = NMASTER;
 	else {
 		i = atoi(arg);
-		if((nmaster + i) < 1 || wah / (nmaster + i) <= 2 * BORDERPX)
+		if((nmaster + i) < 1 || wah / (nmaster + i) <= 2 * borderpx)
 			return;
 		nmaster += i;
 	}
@@ -1368,7 +1352,7 @@ void
 setup(void) {
 	int d;
 	unsigned int i, j, mask;
-    char s;
+    char *s;
 	Window w;
 	XModifierKeymap *modmap;
 	XSetWindowAttributes wa;
@@ -1426,6 +1410,7 @@ setup(void) {
 	/* init appearance */
     dc.norm[ColBorder] = getcolor(getresource("normal.border",NORMBORDERCOLOR));
     dc.sel[ColBorder] = getcolor(getresource("selected.border", SELBORDERCOLOR));
+    borderpx = atoi(getresource("border", BORDERPX));
 
     dc.h = bh = BARHEIGHT;
 
