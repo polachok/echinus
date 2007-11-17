@@ -1,5 +1,10 @@
 /* See LICENSE file for copyright and license details. */
 #include <X11/XF86keysym.h>
+
+/* resources */
+#define RESNAME                        "dwm"
+#define RESCLASS               "Dwm"
+
 /* appearance */
 #define BARPOS			BarOff /* BarBot, BarOff */
 #define BORDERPX		4
@@ -17,18 +22,22 @@
 #define SELBORDERCOLOR		"#55aaaa"
 #define NORMBORDERCOLOR		"#4E7878"
 
+#define BTNBGCOLOR		"#2e3436"
+#define BTNFGCOLOR		"#3e4446"
+#define BTNBORDERCOLOR		"#676365"
+
 #define NMASTER 1
 #define NCOLS 2
 #define NROWS 1
 #define TERMINAL "aterm"
 #define ISTILE  isarrange(tile) || isarrange(ntile) || isarrange(dntile) || isarrange(tilecols)
 /* tagging */
-const char *tags[] = { "term", "www", "ncmpc", "gossip", "acme", "htop", "mutt", "8", "9" };
+const char *tags[] = { "term", "www", "ncmpc", "gossip", "gimp", "htop", "mutt", "acme", "9" };
 Bool seltags[LENGTH(tags)] = {[0] = True};
 Rule rules[] = {
 	/* class:instance:title regex	tags regex	isfloating */
 	{ "Firefox",			"www",		True },
-	{ "Gimp",			NULL,		True },
+	{ "Gimp",			"gimp",		True },
 	{ "MPlayer",			NULL,		True },
 	{ "Acroread",			NULL,		True },
 	{ "ncmpc",			"ncmpc",		True },
@@ -79,7 +88,7 @@ Key keys[] = { \
 	{ MODKEY,		        XK_w,		focusview,	tags[1] }, \
 	{ MODKEY,	        	XK_n,		focusview,	tags[2] }, \
         { MODKEY,		        XK_o,		focusview,	tags[3] }, \
-	{ MODKEY,		        XK_a,		focusview,	tags[4] }, \
+	{ MODKEY,		        XK_g,		focusview,	tags[4] }, \
 	{ MODKEY,		        XK_s,		focusview,	tags[5] }, \
 	{ MODKEY,		        XK_u,		focusview,	tags[6] }, \
 	{ MODKEY|ControlMask,		XK_8,		toggleview,	tags[7] }, \
