@@ -362,7 +362,7 @@ buttonpress(XEvent *e) {
 
     if(ev->window == root) {
             if(ev->button == Button3) {
-                    XSetForeground(dpy, dc.gc, dc.sel[ColFG]);
+                    XSetForeground(dpy, dc.gc, dc.sel[ColBorder]);
                     drawmouse(e);
             }
             return;
