@@ -552,10 +552,11 @@ detachstack(Client *c) {
 
 void drawbar()
 {
-    /*if(sel)
+    if(sel)
+    {
         write(STDOUT_FILENO, sel->name, 100);
-        */
-    
+        write(STDOUT_FILENO, "\n", 1);
+    }
 }
 
 void *
