@@ -361,14 +361,13 @@ buttonpress(XEvent *e) {
                     XSetForeground(dpy, dc.gc, dc.sel[ColFG]);
                     drawmouse(e);
             }
+            return;
     }
     if((c = getclient(ev->window))) {
 		focus(c);
 		if(ev->button == Button1) {
 			if((layout->arrange == floating) || c->isfloating)
 				restack();
-			else
-				togglefloating(NULL);
 			movemouse(c);
 		}
 		else if(ev->button == Button2) {
@@ -1212,7 +1211,7 @@ void
 run(void) {
 	//char *p;
 	fd_set rd;
-	int r, xfd;
+	int xfd;
 	XEvent ev;
 
 	/* main event loop, also reads status text from stdin */
