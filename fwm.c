@@ -560,7 +560,6 @@ void drawbar()
         write(STDOUT_FILENO, sel->name, 100);
         write(STDOUT_FILENO, "\n", 1);
     }
-    printf("test");
 }
 
 void *
