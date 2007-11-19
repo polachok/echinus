@@ -230,7 +230,7 @@ DC dc = {0};
 Layout *layout = NULL;
 Window root;
 Regs *regs = NULL;
-XrmDatabase xrdb;
+XrmDatabase xrdb = NULL;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -560,6 +560,7 @@ void drawbar()
         write(STDOUT_FILENO, sel->name, 100);
         write(STDOUT_FILENO, "\n", 1);
     }
+    printf("test");
 }
 
 void *
@@ -1398,8 +1399,10 @@ setup(void) {
     /* init resource database */
     XrmInitialize();
     s = XResourceManagerString(dpy);
-    xrdb = XrmGetStringDatabase(s);
-    free(s);
+    if(s) {
+        xrdb = XrmGetStringDatabase(s);
+        free(s);
+    }
 
 	/* grab keys */
 	keypress(NULL);
