@@ -66,6 +66,7 @@ struct Client {
 	char name[256];
 	int x, y, w, h;
 	int rx, ry, rw, rh; /* revert geometry */
+	int sfx, sfy, sfw, sfh; /* stored float geometry, used on mode revert */
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
 	int minax, maxax, minay, maxay;
 	long flags;
@@ -610,8 +611,14 @@ floating(void) { /* default floating layout */
 
 	domwfact = dozoom = False;
 	for(c = clients; c; c = c->next)
-		if(isvisible(c))
-			resize(c, c->x, c->y, c->w, c->h, False);
+ 		if(isvisible(c))
+ 		{
+ 			if(!c->isfloating)
+ 				/*restore last known float dimensions*/
+ 				resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
+ 			else
+ 				resize(c, c->x, c->y, c->w, c->h, False);
+ 		}
 }
 
 void
@@ -958,6 +965,10 @@ manage(Window w, XWindowAttributes *wa) {
 	XSetWindowBorder(dpy, w, dc.norm[ColBorder]);
 	configure(c); /* propagates border_width, if size doesn't change */
 	updatesizehints(c);
+	c->sfx = c->x;
+	c->sfy = c->y;
+	c->sfw = c->w;
+	c->sfh = c->h;
 	XSelectInput(dpy, w,
 		StructureNotifyMask | PropertyChangeMask | EnterWindowMask);
 	grabbuttons(c, False);
@@ -1491,6 +1502,10 @@ tile(void) {
 	nw = 0; /* gcc stupidity requires this */
 	for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
 		c->ismax = False;
+        c->sfx = c->x;
+        c->sfy = c->y;
+        c->sfw = c->w;
+        c->sfh = c->h;
 		if(i < nmaster) { /* master */
 			ny = way + i * mh;
 			nw = mw - 2 * c->border;
@@ -1536,7 +1551,15 @@ togglefloating(const char *arg) {
 		return;
 	sel->isfloating = !sel->isfloating;
 	if(sel->isfloating)
-		resize(sel, sel->x, sel->y, sel->w, sel->h, True);
+		/*restore last known float dimensions*/
+		resize(sel, sel->sfx, sel->sfy, sel->sfw, sel->sfh, True);
+	else {
+		/*save last known float dimensions*/
+		sel->sfx = sel->x;
+		sel->sfy = sel->y;
+		sel->sfw = sel->w;
+		sel->sfh = sel->h;
+	}
 	arrange();
 }
 
