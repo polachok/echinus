@@ -417,7 +417,10 @@ buttonpress(XEvent *e) {
 		else if(ev->button == Button3 && !c->isfixed) {
 			if((floating == layout->arrange) || c->isfloating)
 				restack();
-			else
+			else {
+                if(CLEANMASK(ev->state) != MODKEY)
+                    return;
+            }
 				togglefloating(NULL);
 			resizemouse(c);
 		}
@@ -636,7 +639,7 @@ int drawmenu(XEvent *e)
 				| CWBorderPixel
 				| CWEventMask,
 				&wa);
-    XSetWindowBorder(dpy, menuwin, dc.norm[ColBorder]);
+    XSetWindowBorder(dpy, menuwin, dc.sel[ColBorder]);
 
 	XSelectInput(dpy, menuwin, MenuMask);
 
@@ -663,7 +666,7 @@ int drawmenu(XEvent *e)
 			if(ev.xbutton.x < 0 || ev.xbutton.x > w)
             {
                 XDestroyWindow(dpy, menuwin);
-                return;
+                return -1;
             }
 			if(cur == old)
 				break;
@@ -684,6 +687,7 @@ int drawmenu(XEvent *e)
 			break;
 		}
 	}
+    return -1;
     XDestroyWindow(dpy,menuwin);
 }
 
