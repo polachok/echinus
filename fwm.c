@@ -205,6 +205,7 @@ Bool wasfloating = True;
 double mwfact;
 int screen, sx, sy, sw, sh, wax, way, waw, wah;
 int borderpx;
+int cur;
 int cx, cy, cw, ch;
 unsigned int nmaster;
 int (*xerrorxlib)(Display *, XErrorEvent *);
@@ -238,13 +239,15 @@ Cursor cursor[CurLast];
 Display *dpy;
 DC dc = {0};
 Layout *layout = NULL;
-Window root;
+Window root, menuwin;
 Regs *regs = NULL;
 XrmDatabase xrdb = NULL;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
 Bool prevtags[LENGTH(tags)];
+const char items[][10] = 
+  { "New", "Reshape", "Move", "Delete", "Hide", "LIST" };
 
 /* function implementations */
 int
@@ -570,6 +573,13 @@ void drawbar()
         write(STDOUT_FILENO, sel->name, 100);
         write(STDOUT_FILENO, "\n", 1);
     }
+}
+
+void drawmenu()
+{
+    drawtext("preved", dc.norm);
+	XCopyArea(dpy, dc.drawable, menuwin, dc.gc, 0, 0, sw, bh, 0, 0);
+	XSync(dpy, False);
 }
 
 void
@@ -1523,6 +1533,44 @@ setup(void) {
 	/* multihead support */
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
 }
+
+void
+setup_menu(int wide, int high)
+{
+	XSetWindowAttributes wa = { 0 };
+	int h;
+	int x, y, dummy;
+	Window wdummy;
+	
+	h = high * LENGTH(items);
+
+	XQueryPointer(dpy, root, &wdummy, &wdummy, &x, &y,
+				&dummy, &dummy, (unsigned int*)&dummy);
+	x -= wide / 2;
+	if(x < 0)
+		x = 0;
+	else if(x + wide > DisplayWidth(dpy, screen))
+		x = DisplayWidth(dpy, screen) - wide;
+
+	y -= cur * high + high / 2;
+	if(y < 0)
+		y = 0;
+	else if(y + h > DisplayHeight(dpy, screen))
+		y = DisplayHeight(dpy, screen) - h;
+
+	wa.override_redirect = True;
+	wa.background_pixel = dc.norm[ColBG];
+	menuwin = XCreateWindow(dpy, root, x, y, wide, h,
+				borderpx, DefaultDepth(dpy, screen), CopyFromParent,
+				DefaultVisual(dpy, screen),
+				  CWOverrideRedirect
+				| CWBackPixel
+				| CWBorderPixel
+				| CWEventMask,
+				&wa);
+    XSetWindowBorder(dpy, menuwin, dc.norm[ColBorder]);
+}
+
 
 void
 spawn(const char *arg) {
