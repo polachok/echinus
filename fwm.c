@@ -370,14 +370,20 @@ buttonpress(XEvent *e) {
                     drawmouse(e);
                     break;
                 case Button4:
-                    for(i=LENGTH(tags); i >= 1; i--)
-                        if(seltags[i]) 
-                            view(tags[i-1]);
+                    for(i=0; i <= LENGTH(tags); i++) {
+                        if(i && seltags[i]) {
+                                view(tags[i-1]);
+                                break;
+                        }
+                    }
                     break;
                 case Button5:
-                    for(i=0; i <= LENGTH(tags); i++)
-                        if(seltags[i]) 
+                    for(i=0; i < LENGTH(tags); i++) {
+                        if(seltags[i]) {
                             view(tags[i+1]);
+                            break;
+                        }
+                    }
                     break;
             }
             return;
@@ -1092,6 +1098,7 @@ propertynotify(XEvent *e) {
 void
 quit(const char *arg) {
 	running = False;
+    spawn("fwm");
 }
 
 
