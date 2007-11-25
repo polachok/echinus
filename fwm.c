@@ -79,12 +79,20 @@ struct Client {
 	Window win;
 };
 
+
 typedef struct {
 	int x, y, w, h;
 	unsigned long norm[ColLast];
 	unsigned long sel[ColLast];
 	Drawable drawable;
 	GC gc;
+	struct {
+		int ascent;
+		int descent;
+		int height;
+		XFontSet set;
+		XFontStruct *xfont;
+	} font;
 } DC; /* draw context */
 
 typedef struct {
@@ -564,6 +572,46 @@ void drawbar()
     }
 }
 
+void
+drawtext(const char *text, unsigned long col[ColLast]) {
+	int x, y, w, h;
+	static char buf[256];
+	unsigned int len, olen;
+	XRectangle r = { dc.x, dc.y, dc.w, dc.h };
+
+	XSetForeground(dpy, dc.gc, col[ColBG]);
+	XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
+	if(!text)
+		return;
+	w = 0;
+	olen = len = strlen(text);
+	if(len >= sizeof buf)
+		len = sizeof buf - 1;
+	memcpy(buf, text, len);
+	buf[len] = 0;
+	h = dc.font.ascent + dc.font.descent;
+	y = dc.y + (dc.h / 2) - (h / 2) + dc.font.ascent;
+	x = dc.x + (h / 2);
+	/* shorten text if necessary */
+	while(len && (w = textnw(buf, len)) > dc.w - h)
+		buf[--len] = 0;
+	if(len < olen) {
+		if(len > 1)
+			buf[len - 1] = '.';
+		if(len > 2)
+			buf[len - 2] = '.';
+		if(len > 3)
+			buf[len - 3] = '.';
+	}
+	if(w > dc.w)
+		return; /* too long */
+	XSetForeground(dpy, dc.gc, col[ColFG]);
+	if(dc.font.set)
+		XmbDrawString(dpy, dc.drawable, dc.font.set, dc.gc, x, y, buf, len);
+	else
+		XDrawString(dpy, dc.drawable, dc.gc, x, y, buf, len);
+}
+
 void *
 emallocz(unsigned int size) {
 	void *res = calloc(1, size);
@@ -798,6 +846,48 @@ idxoftag(const char *tag) {
 
 	for(i = 0; (i < LENGTH(tags)) && (tags[i] != tag); i++);
 	return (i < LENGTH(tags)) ? i : 0;
+}
+
+void
+initfont(const char *fontstr) {
+	char *def, **missing;
+	int i, n;
+
+	missing = NULL;
+	if(dc.font.set)
+		XFreeFontSet(dpy, dc.font.set);
+	dc.font.set = XCreateFontSet(dpy, fontstr, &missing, &n, &def);
+	if(missing) {
+		while(n--)
+			fprintf(stderr, "dwm: missing fontset: %s\n", missing[n]);
+		XFreeStringList(missing);
+	}
+	if(dc.font.set) {
+		XFontSetExtents *font_extents;
+		XFontStruct **xfonts;
+		char **font_names;
+		dc.font.ascent = dc.font.descent = 0;
+		font_extents = XExtentsOfFontSet(dc.font.set);
+		n = XFontsOfFontSet(dc.font.set, &xfonts, &font_names);
+		for(i = 0, dc.font.ascent = 0, dc.font.descent = 0; i < n; i++) {
+			if(dc.font.ascent < (*xfonts)->ascent)
+				dc.font.ascent = (*xfonts)->ascent;
+			if(dc.font.descent < (*xfonts)->descent)
+				dc.font.descent = (*xfonts)->descent;
+			xfonts++;
+		}
+	}
+	else {
+		if(dc.font.xfont)
+			XFreeFont(dpy, dc.font.xfont);
+		dc.font.xfont = NULL;
+		if(!(dc.font.xfont = XLoadQueryFont(dpy, fontstr))
+		&& !(dc.font.xfont = XLoadQueryFont(dpy, "fixed")))
+			eprint("error, cannot load font: '%s'\n", fontstr);
+		dc.font.ascent = dc.font.xfont->ascent;
+		dc.font.descent = dc.font.xfont->descent;
+	}
+	dc.font.height = dc.font.ascent + dc.font.descent;
 }
 
 Bool
@@ -1403,6 +1493,13 @@ setup(void) {
 	/* init appearance */
     dc.norm[ColBorder] = getcolor(getresource("normal.border",NORMBORDERCOLOR));
     dc.sel[ColBorder] = getcolor(getresource("selected.border", SELBORDERCOLOR));
+    dc.norm[ColBG] = getcolor(getresource("normal.bg",NORMBGCOLOR));
+	dc.norm[ColFG] = getcolor(getresource("normal.fg",NORMFGCOLOR));
+	dc.sel[ColBG] = getcolor(getresource("selected.bg",SELBGCOLOR));
+	dc.sel[ColFG] = getcolor(getresource("selected.fg",SELFGCOLOR));
+	initfont(FONT);
+	dc.h = bh = dc.font.height + 2;
+
     borderpx = atoi(getresource("border", BORDERPX));
 
     dc.h = bh = BARHEIGHT;
@@ -1417,6 +1514,8 @@ setup(void) {
 	updatebarpos();
 	dc.drawable = XCreatePixmap(dpy, root, sw, bh, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
+    if(!dc.font.set)
+		XSetFont(dpy, dc.gc, dc.font.xfont->fid);
 
     /* free resource database */
     XrmDestroyDatabase(xrdb);
@@ -1459,6 +1558,22 @@ tag(const char *arg) {
 		sel->tags[i] = (NULL == arg);
 	sel->tags[idxoftag(arg)] = True;
 	arrange();
+}
+
+unsigned int
+textnw(const char *text, unsigned int len) {
+	XRectangle r;
+
+	if(dc.font.set) {
+		XmbTextExtents(dc.font.set, text, len, NULL, &r);
+		return r.width;
+	}
+	return XTextWidth(dc.font.xfont, text, len);
+}
+
+unsigned int
+textw(const char *text) {
+	return textnw(text, strlen(text)) + dc.font.height;
 }
 
 void
