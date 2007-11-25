@@ -193,6 +193,7 @@ void zoom(const char *arg);
 /* variables */
 char **cargv;
 char **environ;
+Bool wasfloating = True;
 double mwfact;
 int screen, sx, sy, sw, sh, wax, way, waw, wah;
 int borderpx;
@@ -613,12 +614,13 @@ floating(void) { /* default floating layout */
 	for(c = clients; c; c = c->next)
  		if(isvisible(c))
  		{
- 			if(!c->isfloating)
+ 			if(!c->isfloating && !wasfloating)
  				/*restore last known float dimensions*/
  				resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
  			else
  				resize(c, c->x, c->y, c->w, c->h, False);
  		}
+    wasfloating = True;
 }
 
 void
@@ -653,20 +655,9 @@ focusnext(const char *arg) {
 
 	if(!sel)
 		return;
-
-	if(layout->arrange == floating)
-        {
-                for(c = sel->next; c && !isvisible(c); c = c->next);
-                if(!c)
-                        for(c = clients; c && !isvisible(c); c = c->next);
-        }
-        else
-        {
-                printf("fwm: l.a. != floating.\n");
-                for(c = nexttiled(sel->next); c && !isvisible(c) ; c = nexttiled(c->next));
-                if(!c)
-                        for(c = clients; c && !isvisible(c) && c->isfloating; c = nexttiled(c));
-        }
+	for(c = sel->next; c && !isvisible(c); c = c->next);
+	if(!c)
+		for(c = clients; c && !isvisible(c); c = c->next);
 	if(c) {
 		focus(c);
 		restack();
@@ -679,22 +670,11 @@ focusprev(const char *arg) {
 
 	if(!sel)
 		return;
-
-	if(layout->arrange == floating) {
-                for(c = sel->prev; c && !isvisible(c); c = c->prev);
-                if(!c) {
-                        for(c = clients; c && c->next; c = c->next);
-                        for(; c && !isvisible(c); c = c->prev);
-                }
-        }
-        else {
-                printf("fwm: l.a. != floating.\n");
-                for(c = prevtiled(sel->prev); c && !isvisible(c) ; c = prevtiled(c->prev));
-                if(!c){
-                        for(c = clients; c && c->next; c = c->next);
-                        for(; c && !isvisible(c) && c->isfloating; c = prevtiled(c));
-                }
-        }
+	for(c = sel->prev; c && !isvisible(c); c = c->prev);
+	if(!c) {
+		for(c = clients; c && c->next; c = c->next);
+		for(; c && !isvisible(c); c = c->prev);
+	}
 	if(c) {
 		focus(c);
 		restack();
@@ -1486,6 +1466,8 @@ tile(void) {
 	unsigned int i, n, nx, ny, nw, nh, mw, mh, th;
 	Client *c, *mc;
 
+    wasfloating = False;
+
 	domwfact = dozoom = True;
 	for(n = 0, c = nexttiled(clients); c; c = nexttiled(c->next))
 		n++;
@@ -1625,12 +1607,12 @@ focusview(const char *arg) {
 	if (!seltags[i])
 		return;
 	for(c = clients; c; c = c->next)
-		if (c->tags[i])
-                {
-			focus(c);
+    if (c->tags[i]) {
+            focus(c);
 			if((layout->arrange == floating) || c->isfloating)
-                                restack();
-                }
+                arrange();
+    }
+
 }
 void
 unban(Client *c) {
