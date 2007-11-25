@@ -1677,19 +1677,18 @@ unmapnotify(XEvent *e) {
 void
 updatebarpos(void) {
 	XEvent ev;
-    //int w,i;
 
 	wax = sx;
 	way = sy;
 	wah = sh;
 	waw = sw;
 	switch(bpos) {
-    default:
-		wah -= bh;
-		break;
-    case BarTop:
+	default:
 		wah -= bh;
 		way += bh;
+		break;
+	case BarBot:
+		wah -= bh;
 		break;
 	case BarOff:
 		break;
