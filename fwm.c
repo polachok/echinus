@@ -146,7 +146,7 @@ void destroynotify(XEvent *e);
 void detach(Client *c);
 void detachstack(Client *c);
 void drawbar(void);
-void drawmenu(XEvent *e);
+int drawmenu(XEvent *e);
 void drawtext(const char *text, unsigned long col[ColLast]);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
@@ -218,7 +218,7 @@ Bool wasfloating = True;
 double mwfact;
 int screen, sx, sy, sw, sh, wax, way, waw, wah;
 int borderpx;
-int cur;
+int cur = -1;
 int cx, cy, cw, ch;
 unsigned int nmaster;
 int (*xerrorxlib)(Display *, XErrorEvent *);
@@ -260,7 +260,7 @@ XrmDatabase xrdb = NULL;
 
 Bool prevtags[LENGTH(tags)];
 const char items[][10] = 
-  { "New", "Reshape", "Move", "Delete", "Hide", "LIST" };
+  { "New", "Reshape", "Move", "Delete", "Hide" };
 
 /* function implementations */
 int
@@ -341,6 +341,7 @@ drawmouse(XEvent *e) {
 	XButtonPressedEvent *ev = &e->xbutton;
     XEvent ee;
 
+    XSetForeground(dpy, dc.gc, dc.sel[ColBorder]);
 	ocx = nx = ev->x;
 	ocy = ny = ev->y;
 	if(XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
@@ -388,9 +389,15 @@ buttonpress(XEvent *e) {
 
     if(ev->window == root) {
             if(ev->button == Button3) {
-                    /*XSetForeground(dpy, dc.gc, dc.sel[ColBorder]);
-                    drawmouse(e);*/
-                drawmenu(e);
+                switch (cur) {
+                    case -1:
+                        cur=drawmenu(e);
+                        break;
+                    case 0:
+                        drawmouse(e);
+                        cur = -1;
+                        break;
+                }
             }
             return;
     }
@@ -588,58 +595,40 @@ void drawbar()
         write(STDOUT_FILENO, "\n", 1);
     }
 }
-/*
 void
-redraw(int h, int w)
+redraw()
 {
-	int tx, ty, i;
+	int i;
 
 	for(i = 0; i < LENGTH(items); i++) {
-		tx = (w - textw(items[i])) / 2;
-		ty = i*h + dc.font.height + 2 ;
+		dc.x = 0;
+		dc.y = i*dc.h + 2 ;
+        dc.w = textw(items[i]);
 		if(cur == i)
-			XSetForeground(dpy, dc.gc, dc.sel[ColBG]);
-		else
-			XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
-		XFillRectangle(dpy, menuwin, dc.gc, 0, i*h, w, high);
-		if(cur == i)
-			XSetForeground(dpy, dc.gc, dc.sel[ColFG]);
-		else
-			XSetForeground(dpy, dc.gc, dc.norm[ColFG]);
-		XDrawString(dpy, menuwin, dc.gc, tx, ty, items[i], strlen(items[i]));
+            drawtext(items[i], dc.sel);
+		else 
+            drawtext(items[i], dc.norm);
 	}
 }
-*/
-void drawmenu(XEvent *e)
+int drawmenu(XEvent *e)
 {
 	XSetWindowAttributes wa = { 0 };
-    XButtonPressedEvent *ev = &e->xbutton;
-    XEvent ee;
+    XButtonPressedEvent *ee = &e->xbutton;
+    XEvent ev;
     int x,y;
     int h,w;
+    int i,old;
 
 	dc.h = bh = dc.font.height + 2;
     h = dc.h * LENGTH(items);
-    w = textw(items[1]);
+    w = textw(items[1]) + 2;
 
-	x = ev->x;
-	y = ev->y;
-
-	x -= w / 2;
-	if(x < 0)
-		x = 0;
-	else if(x + w > DisplayWidth(dpy, screen))
-		x = DisplayWidth(dpy, screen) - w;
-
-	y -= cur * h + h / 2;
-	if(y < 0)
-		y = 0;
-	else if(y + h > DisplayHeight(dpy, screen))
-		y = DisplayHeight(dpy, screen) - h;
+	x = ee->x;
+	y = ee->y;
 
 	wa.override_redirect = True;
 	wa.background_pixel = dc.norm[ColBG];
-	menuwin = XCreateWindow(dpy, root, x, y, w, h,
+	menuwin = XCreateWindow(dpy, root, x-borderpx, y-borderpx, w, h,
 				borderpx, DefaultDepth(dpy, screen), CopyFromParent,
 				DefaultVisual(dpy, screen),
 				  CWOverrideRedirect
@@ -649,40 +638,39 @@ void drawmenu(XEvent *e)
 				&wa);
     XSetWindowBorder(dpy, menuwin, dc.norm[ColBorder]);
 
-/*	XSelectInput(dpy, menuwin, MenuMask); */
+	XSelectInput(dpy, menuwin, MenuMask);
 
 	XMapWindow(dpy, menuwin);
-
-    XSetForeground(dpy, dc.gc, dc.sel[ColBG]);
-    XFillRectangle(dpy, menuwin, dc.gc, 0, 0, w, bh);
-	XSetForeground(dpy, dc.gc, dc.norm[ColFG]);
-    XDrawString(dpy, menuwin, dc.gc, 0, 0, items[0], strlen(items[0]));
-
-/*
 	for(;;) {
 		XNextEvent(dpy, &ev);
 		switch (ev.type) {
+        default:
+            break;
 		case ButtonRelease:
-			i = ev.xbutton.y/h;
+			i = ev.xbutton.y/dc.h;
 			if(ev.xbutton.x < 0 || ev.xbutton.x > w)
 				return 0;
 			else if(i < 0 || i >= LENGTH(items))
 				return 0;
 			printf("%s\n", items[i]);
             XDestroyWindow(dpy,menuwin);
-			return i;
+            return i;
+            break;
 		case ButtonPress:
 		case MotionNotify:
 			old = cur;
-			cur = ev.xbutton.y/h;
+			cur = ev.xbutton.y/dc.h;
 			if(ev.xbutton.x < 0 || ev.xbutton.x > w)
-				cur = ~0;
+            {
+                XDestroyWindow(dpy, menuwin);
+                return;
+            }
 			if(cur == old)
 				break;
-			redraw(h, w);
+			redraw();
 			break;
 		case MapNotify:
-			redraw(h, w);
+			redraw();
 			if(XGrabPointer(dpy, menuwin,
 					False, MouseMask,
 					GrabModeAsync, GrabModeAsync,
@@ -690,14 +678,13 @@ void drawmenu(XEvent *e)
 				fprintf(stderr, "Failed to grab the mouse\n");
 			break;
 		case Expose:
-			redraw(h, w);
+			redraw();
 			break;
 		case MappingNotify:	
 			break;
 		}
 	}
     XDestroyWindow(dpy,menuwin);
-    */
 }
 
 void
@@ -705,10 +692,10 @@ drawtext(const char *text, unsigned long col[ColLast]) {
 	int x, y, w, h;
 	static char buf[256];
 	unsigned int len, olen;
-	XRectangle r = { dc.x, dc.y, dc.w, dc.h };
+	XRectangle r = { dc.x, dc.y, textw(items[1]) + 2, dc.h };
 
 	XSetForeground(dpy, dc.gc, col[ColBG]);
-	XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
+	XFillRectangles(dpy, menuwin, dc.gc, &r, 1);
 	if(!text)
 		return;
 	w = 0;
@@ -735,9 +722,9 @@ drawtext(const char *text, unsigned long col[ColLast]) {
 		return; /* too long */
 	XSetForeground(dpy, dc.gc, col[ColFG]);
 	if(dc.font.set)
-		XmbDrawString(dpy, dc.drawable, dc.font.set, dc.gc, x, y, buf, len);
+		XmbDrawString(dpy, menuwin, dc.font.set, dc.gc, x, y, buf, len);
 	else
-		XDrawString(dpy, dc.drawable, dc.gc, x, y, buf, len);
+		XDrawString(dpy, menuwin, dc.gc, x, y, buf, len);
 }
 
 void *
