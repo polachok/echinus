@@ -59,6 +59,17 @@ enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColLast };		/* color */
 enum { NetSupported, NetWMName, NetLast };		/* EWMH atoms */
 enum { WMProtocols, WMDelete, WMName, WMState, WMLast };/* default atoms */
+enum {
+	MouseMask = 
+		  ButtonPressMask
+		| ButtonReleaseMask
+		| ButtonMotionMask
+		| PointerMotionMask,
+	MenuMask =
+		  MouseMask
+		| StructureNotifyMask
+		| ExposureMask
+	};
 
 /* typedefs */
 typedef struct Client Client;
@@ -135,6 +146,8 @@ void destroynotify(XEvent *e);
 void detach(Client *c);
 void detachstack(Client *c);
 void drawbar(void);
+void drawmenu(XEvent *e);
+void drawtext(const char *text, unsigned long col[ColLast]);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
@@ -375,8 +388,9 @@ buttonpress(XEvent *e) {
 
     if(ev->window == root) {
             if(ev->button == Button3) {
-                    XSetForeground(dpy, dc.gc, dc.sel[ColBorder]);
-                    drawmouse(e);
+                    /*XSetForeground(dpy, dc.gc, dc.sel[ColBorder]);
+                    drawmouse(e);*/
+                drawmenu(e);
             }
             return;
     }
@@ -574,12 +588,116 @@ void drawbar()
         write(STDOUT_FILENO, "\n", 1);
     }
 }
-
-void drawmenu()
+/*
+void
+redraw(int h, int w)
 {
-    drawtext("preved", dc.norm);
-	XCopyArea(dpy, dc.drawable, menuwin, dc.gc, 0, 0, sw, bh, 0, 0);
-	XSync(dpy, False);
+	int tx, ty, i;
+
+	for(i = 0; i < LENGTH(items); i++) {
+		tx = (w - textw(items[i])) / 2;
+		ty = i*h + dc.font.height + 2 ;
+		if(cur == i)
+			XSetForeground(dpy, dc.gc, dc.sel[ColBG]);
+		else
+			XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
+		XFillRectangle(dpy, menuwin, dc.gc, 0, i*h, w, high);
+		if(cur == i)
+			XSetForeground(dpy, dc.gc, dc.sel[ColFG]);
+		else
+			XSetForeground(dpy, dc.gc, dc.norm[ColFG]);
+		XDrawString(dpy, menuwin, dc.gc, tx, ty, items[i], strlen(items[i]));
+	}
+}
+*/
+void drawmenu(XEvent *e)
+{
+	XSetWindowAttributes wa = { 0 };
+    XButtonPressedEvent *ev = &e->xbutton;
+    XEvent ee;
+    int x,y;
+    int h,w;
+
+	dc.h = bh = dc.font.height + 2;
+    h = dc.h * LENGTH(items);
+    w = textw(items[1]);
+
+	x = ev->x;
+	y = ev->y;
+
+	x -= w / 2;
+	if(x < 0)
+		x = 0;
+	else if(x + w > DisplayWidth(dpy, screen))
+		x = DisplayWidth(dpy, screen) - w;
+
+	y -= cur * h + h / 2;
+	if(y < 0)
+		y = 0;
+	else if(y + h > DisplayHeight(dpy, screen))
+		y = DisplayHeight(dpy, screen) - h;
+
+	wa.override_redirect = True;
+	wa.background_pixel = dc.norm[ColBG];
+	menuwin = XCreateWindow(dpy, root, x, y, w, h,
+				borderpx, DefaultDepth(dpy, screen), CopyFromParent,
+				DefaultVisual(dpy, screen),
+				  CWOverrideRedirect
+				| CWBackPixel
+				| CWBorderPixel
+				| CWEventMask,
+				&wa);
+    XSetWindowBorder(dpy, menuwin, dc.norm[ColBorder]);
+
+/*	XSelectInput(dpy, menuwin, MenuMask); */
+
+	XMapWindow(dpy, menuwin);
+
+    XSetForeground(dpy, dc.gc, dc.sel[ColBG]);
+    XFillRectangle(dpy, menuwin, dc.gc, 0, 0, w, bh);
+	XSetForeground(dpy, dc.gc, dc.norm[ColFG]);
+    XDrawString(dpy, menuwin, dc.gc, 0, 0, items[0], strlen(items[0]));
+
+/*
+	for(;;) {
+		XNextEvent(dpy, &ev);
+		switch (ev.type) {
+		case ButtonRelease:
+			i = ev.xbutton.y/h;
+			if(ev.xbutton.x < 0 || ev.xbutton.x > w)
+				return 0;
+			else if(i < 0 || i >= LENGTH(items))
+				return 0;
+			printf("%s\n", items[i]);
+            XDestroyWindow(dpy,menuwin);
+			return i;
+		case ButtonPress:
+		case MotionNotify:
+			old = cur;
+			cur = ev.xbutton.y/h;
+			if(ev.xbutton.x < 0 || ev.xbutton.x > w)
+				cur = ~0;
+			if(cur == old)
+				break;
+			redraw(h, w);
+			break;
+		case MapNotify:
+			redraw(h, w);
+			if(XGrabPointer(dpy, menuwin,
+					False, MouseMask,
+					GrabModeAsync, GrabModeAsync,
+					0, None, CurrentTime) != GrabSuccess)
+				fprintf(stderr, "Failed to grab the mouse\n");
+			break;
+		case Expose:
+			redraw(h, w);
+			break;
+		case MappingNotify:	
+			break;
+		}
+	}
+    XDestroyWindow(dpy,menuwin);
+    */
 }
 
 void
@@ -1512,8 +1630,6 @@ setup(void) {
 
     borderpx = atoi(getresource("border", BORDERPX));
 
-    dc.h = bh = BARHEIGHT;
-
 	/* init layouts */
 	mwfact = MWFACT;
 	nmaster = NMASTER;
@@ -1524,6 +1640,7 @@ setup(void) {
 	updatebarpos();
 	dc.drawable = XCreatePixmap(dpy, root, sw, bh, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
+	XSetLineAttributes(dpy, dc.gc, 1, LineSolid, CapButt, JoinMiter);
     if(!dc.font.set)
 		XSetFont(dpy, dc.gc, dc.font.xfont->fid);
 
@@ -1534,42 +1651,7 @@ setup(void) {
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
 }
 
-void
-setup_menu(int wide, int high)
-{
-	XSetWindowAttributes wa = { 0 };
-	int h;
-	int x, y, dummy;
-	Window wdummy;
-	
-	h = high * LENGTH(items);
 
-	XQueryPointer(dpy, root, &wdummy, &wdummy, &x, &y,
-				&dummy, &dummy, (unsigned int*)&dummy);
-	x -= wide / 2;
-	if(x < 0)
-		x = 0;
-	else if(x + wide > DisplayWidth(dpy, screen))
-		x = DisplayWidth(dpy, screen) - wide;
-
-	y -= cur * high + high / 2;
-	if(y < 0)
-		y = 0;
-	else if(y + h > DisplayHeight(dpy, screen))
-		y = DisplayHeight(dpy, screen) - h;
-
-	wa.override_redirect = True;
-	wa.background_pixel = dc.norm[ColBG];
-	menuwin = XCreateWindow(dpy, root, x, y, wide, h,
-				borderpx, DefaultDepth(dpy, screen), CopyFromParent,
-				DefaultVisual(dpy, screen),
-				  CWOverrideRedirect
-				| CWBackPixel
-				| CWBorderPixel
-				| CWEventMask,
-				&wa);
-    XSetWindowBorder(dpy, menuwin, dc.norm[ColBorder]);
-}
 
 
 void
