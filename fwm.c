@@ -598,6 +598,7 @@ emallocz(unsigned int size) {
 void
 enternotify(XEvent *e) {
 	XCrossingEvent *ev = &e->xcrossing;
+    Client *c;
 
 	if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
 		return;
