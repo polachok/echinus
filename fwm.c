@@ -150,6 +150,7 @@ void killclient(const char *arg);
 void leavenotify(XEvent *e);
 void manage(Window w, XWindowAttributes *wa);
 void mappingnotify(XEvent *e);
+void monocle(void);
 void maprequest(XEvent *e);
 void movemouse(Client *c);
 Client *nexttiled(Client *c);
@@ -1014,6 +1015,26 @@ maprequest(XEvent *e) {
 		return;
 	if(!getclient(ev->window))
 		manage(ev->window, &wa);
+}
+
+void
+monocle(void) {
+	Client *c;
+
+	for(c = clients; c; c = c->next)
+		if(isvisible(c)) {
+			unban(c);
+			if (c->isfloating)
+				continue;
+            if(bpos == BarOff) 
+                resize(c, wax-c->border, way-c->border, waw, wah, False);
+            else 
+                resize(c, wax, 0, waw - 2*c->border, wah-1, False);
+		}
+		else 
+			ban(c);
+	focus(NULL);
+	restack();
 }
 
 void
