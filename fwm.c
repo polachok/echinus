@@ -191,7 +191,6 @@ int xerrorstart(Display *dsply, XErrorEvent *ee);
 void zoom(const char *arg);
 
 /* variables */
-char stext[256];
 char **cargv;
 char **environ;
 Bool wasfloating = True;
@@ -221,7 +220,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 Atom wmatom[WMLast], netatom[NetLast];
 Bool domwfact = True;
 Bool dozoom = True;
-Bool otherwm, readin;
+Bool otherwm;
 Bool running = True;
 Bool selscreen = True;
 Client *clients = NULL;
@@ -390,7 +389,10 @@ buttonpress(XEvent *e) {
             return;
     }
     if((c = getclient(ev->window))) {
+        XAllowEvents(dpy, ReplayPointer, CurrentTime);
 		focus(c);
+        if(CLEANMASK(ev->state) != MODKEY)
+           return;
 		if(ev->button == Button1) {
 			if((layout->arrange == floating) || c->isfloating)
 				restack();
@@ -577,20 +579,11 @@ detachstack(Client *c) {
 
 void drawbar()
 {
-    int i;
-    for(i = 0; i < LENGTH(tags); i++) {
-		if(seltags[i]) {
-            printf("[%s] ", tags[i]);
-		}
-		else {
-            printf("%s ", tags[i]);
-		}
-		dc.x += dc.w;
-	}
     if(sel)
-        printf("%s\n", sel->name);
-    else
-        printf("\n");
+    {
+        write(STDOUT_FILENO, sel->name, 100);
+        write(STDOUT_FILENO, "\n", 1);
+    }
 }
 
 void *
@@ -608,6 +601,8 @@ enternotify(XEvent *e) {
 
 	if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
 		return;
+    if((c = getclient(ev->window)))
+        XGrabButton(dpy, AnyButton, AnyModifier, c->win, False, BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
 	else if(ev->window == root) {
 		selscreen = True;
 		focus(NULL);
@@ -1243,57 +1238,24 @@ restack(void) {
 	XSync(dpy, False);
 	while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
+
 void
 run(void) {
-	char *p;
-	char buf[sizeof stext];
+	//char *p;
 	fd_set rd;
-	int r, xfd;
-	unsigned int len, offset;
+	int xfd;
 	XEvent ev;
 
 	/* main event loop, also reads status text from stdin */
 	XSync(dpy, False);
 	xfd = ConnectionNumber(dpy);
-	readin = True;
-	offset = 0;
-	len = sizeof stext - 1;
-	buf[len] = stext[len] = '\0'; /* 0-terminator is never touched */
 	while(running) {
-		FD_ZERO(&rd);
-		if(readin)
-			FD_SET(STDIN_FILENO, &rd);
+        FD_ZERO(&rd);
 		FD_SET(xfd, &rd);
 		if(select(xfd + 1, &rd, NULL, NULL, NULL) == -1) {
 			if(errno == EINTR)
 				continue;
 			eprint("select failed\n");
-		}
-		if(FD_ISSET(STDIN_FILENO, &rd)) {
-			switch((r = read(STDIN_FILENO, buf + offset, len - offset))) {
-			case -1:
-				strncpy(stext, strerror(errno), len);
-				readin = False;
-				break;
-			case 0:
-				strncpy(stext, "EOF", 4);
-				readin = False;
-				break;
-			default:
-				for(p = buf + offset; r > 0; p++, r--, offset++)
-					if(*p == '\n' || *p == '\0') {
-						*p = '\0';
-						strncpy(stext, buf, len);
-						p += r - 1; /* p is buf + offset + r - 1 */
-						for(r = 0; *(p - r) && *(p - r) != '\n'; r++);
-						offset = r;
-						if(r)
-							memmove(buf, p - r + 1, r);
-						break;
-					}
-				break;
-			}
-			drawbar();
 		}
 		while(XPending(dpy)) {
 			XNextEvent(dpy, &ev);
