@@ -406,6 +406,8 @@ buttonpress(XEvent *e) {
     if((c = getclient(ev->window))) {
         XAllowEvents(dpy, ReplayPointer, CurrentTime);
 		focus(c);
+		if((layout->arrange == floating) || c->isfloating)
+				restack();
         if(CLEANMASK(ev->state) != MODKEY)
            return;
 		if(ev->button == Button1) {
@@ -429,10 +431,15 @@ buttonpress(XEvent *e) {
 	}
     else if(c = gettitle(ev->window)) {
 		if(ev->button == Button1) {
+            focus(c);
+			if((layout->arrange == floating) || c->isfloating)
+                restack();
 			movemouse(c);
+            drawclient(c);
 		}
 		else if(ev->button == Button3 && !c->isfixed) {
             resizemouse(c);
+            drawclient(c);
 		}
     }
 }
@@ -521,7 +528,7 @@ configurenotify(XEvent *e) {
 		sw = ev->width;
 		sh = ev->height;
 		XFreePixmap(dpy, dc.drawable);
-		dc.drawable = XCreatePixmap(dpy, root, sw, bh, DefaultDepth(dpy, screen));
+		dc.drawable = XCreatePixmap(dpy, root, sw, TITLEBARHEIGHT, DefaultDepth(dpy, screen));
 		updatebarpos();
 		arrange();
 	}
@@ -627,8 +634,8 @@ drawtext(const char *text, unsigned long col[ColLast], Bool center) {
 		len = sizeof buf - 1;
 	memcpy(buf, text, len);
 	buf[len] = 0;
-	h = bh;
-	y = bh-dc.font.height/2;
+	h = TITLEBARHEIGHT;
+	y = TITLEBARHEIGHT-dc.font.height/2+1;
 	x = dc.x+h/2;
 		/* shorten text if necessary */
 	while(len && (w = textnw(buf, len)) > dc.w)
@@ -651,24 +658,21 @@ drawtext(const char *text, unsigned long col[ColLast], Bool center) {
                 x = dc.x++;
 	XSetForeground(dpy, dc.gc, col[ColFG]);
     XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel ,dc.font.xftfont,x,y,buf,len);
-	XSetForeground(dpy, dc.gc, dc.sel[ColBorder]);
+	XSetForeground(dpy, dc.gc, col[ColBorder]);
 	XDrawRectangles(dpy, dc.drawable, dc.gc, &r, 1);
 }
 
 void drawclient(Client *c) {
 	int i;
 
-    puts(__func__);
     updatetitle(c);
     dc.x = dc.y = 0;
-    dc.w = c->w;
-    dc.h = bh;
-	drawtext(c->name, dc.norm, False);
+    dc.w = c->w+borderpx;
+    dc.h = c->th;
+	drawtext(c->name, c == sel ? dc.sel : dc.norm, False);
 	XCopyArea(dpy, dc.drawable, c->title, dc.gc,
-			0, 0, c->tw, c->th, 0, 0);
+			0, 0, c->tw, c->th+2*borderpx, 0, 0);
 	XFlush(dpy);
-    puts(__func__);
-
 	XMapWindow(dpy, c->title);
 }
 
@@ -711,10 +715,8 @@ void
 expose(XEvent *e) {
 	XExposeEvent *ev = &e->xexpose;
     Client *c;
-	if(ev->count == 0) {
-			if(c=getclient(ev->window))
-                drawclient(c);
-	}
+	if(c=gettitle(ev->window))
+        drawclient(c);
 }
 
 static void
@@ -766,6 +768,7 @@ focus(Client *c) {
 	if(!selscreen)
 		return;
 	if(c) {
+        drawclient(c);
 		XSetWindowBorder(dpy, c->win, dc.sel[ColBorder]);
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 	}
@@ -1004,8 +1007,7 @@ keypress(XEvent *e) {
 
 void
 killclient(const char *arg) {
-	XEvent ev;
-
+    XEvent ev;
 	if(!sel)
 		return;
 	if(isprotodel(sel)) {
@@ -1057,11 +1059,9 @@ manage(Window w, XWindowAttributes *wa) {
 	c->w = wa->width;
 	c->h = wa->height;
     }
-    c->th = bh;
+    c->th = TITLEBARHEIGHT;
 	c->tx = c->x = wa->x;
 	c->ty = c->y - c->th;
-	if(c->y < bh)
-		c->ty = c->y += bh;
 	c->tw = c->w = wa->width+2*borderpx;
 
 	c->oldborder = wa->border_width;
@@ -1188,6 +1188,7 @@ movemouse(Client *c) {
 			handler[ev.type](&ev);
 			break;
 		case MotionNotify:
+            drawclient(c);
 			XSync(dpy, False);
 			nx = ocx + (ev.xmotion.x - x1);
 			ny = ocy + (ev.xmotion.y - y1);
@@ -1356,6 +1357,7 @@ resizemouse(Client *c) {
 			resize(c, c->x, c->y, nw, nh, True);
 			break;
 		}
+    drawclient(c);
 	}
 }
 
@@ -1377,8 +1379,10 @@ restack(void) {
 	drawbar();
 	if(!sel)
 		return;
-	if(sel->isfloating || (layout->arrange == floating))
+	if(sel->isfloating || (layout->arrange == floating)){
 		XRaiseWindow(dpy, sel->win);
+		XRaiseWindow(dpy, sel->title);
+    }
 	if(layout->arrange != floating) {
 		wc.stack_mode = Below;
 		if(!sel->isfloating) {
@@ -1600,7 +1604,7 @@ setup(void) {
 	initfont(FONT);
     borderpx = atoi(getresource("border", BORDERPX));
 
-    dc.h = bh = BARHEIGHT;
+    dc.h = TITLEBARHEIGHT;
 
 	/* init layouts */
 	mwfact = MWFACT;
@@ -1610,7 +1614,7 @@ setup(void) {
 	/* init bar */
 	bpos = BARPOS;
 	updatebarpos();
-	dc.drawable = XCreatePixmap(dpy, root, sw, bh, DefaultDepth(dpy, screen));
+	dc.drawable = XCreatePixmap(dpy, root, sw, TITLEBARHEIGHT, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
 
     /* free resource database */
@@ -1836,7 +1840,7 @@ unban(Client *c) {
 void
 unmanage(Client *c) {
 	XWindowChanges wc;
-
+    XDestroyWindow(dpy, c->title);
 	wc.border_width = c->oldborder;
 	/* The server grab construct avoids race conditions. */
 	XGrabServer(dpy);
