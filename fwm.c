@@ -660,7 +660,7 @@ drawtext(const char *text, unsigned long col[ColLast], Bool center) {
 	XSetForeground(dpy, dc.gc, col[ColFG]);
     XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel ,dc.font.xftfont,x,y,(unsigned char*)buf,len);
 	XSetForeground(dpy, dc.gc, col[ColBorder]);
-	XDrawRectangles(dpy, dc.drawable, dc.gc, &r, 1);
+//	XDrawRectangles(dpy, dc.drawable, dc.gc, &r, 1);
 }
 
 void drawclient(Client *c) {
@@ -714,7 +714,7 @@ void
 expose(XEvent *e) {
 	XExposeEvent *ev = &e->xexpose;
     Client *c;
-	if((c=gettitle(ev->window)))
+	if((c=gettitle(ev->window))||(c=getclient(ev->window)))
         drawclient(c);
 }
 
@@ -756,6 +756,7 @@ focus(Client *c) {
 	if(sel && sel != c) {
 		grabbuttons(sel, False);
 		XSetWindowBorder(dpy, sel->win, dc.norm[ColBorder]);
+		XSetWindowBorder(dpy, sel->title, dc.norm[ColBorder]);
 	}
 	if(c) {
 		detachstack(c);
@@ -769,6 +770,7 @@ focus(Client *c) {
 	if(c) {
         drawclient(c);
 		XSetWindowBorder(dpy, c->win, dc.sel[ColBorder]);
+		XSetWindowBorder(dpy, c->title, dc.sel[ColBorder]);
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 	}
 	else
@@ -1095,11 +1097,15 @@ manage(Window w, XWindowAttributes *wa) {
     twa.override_redirect = 1;
 	twa.background_pixmap = ParentRelative;
 	twa.event_mask = ExposureMask | MOUSEMASK;
+	//twa.border_width = borderpx;
 
 	c->title = XCreateWindow(dpy, root, c->tx, c->ty, c->tw, c->th,
 			0, DefaultDepth(dpy, screen), CopyFromParent,
 			DefaultVisual(dpy, screen),
 			CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
+
+	XConfigureWindow(dpy, c->title, CWBorderWidth, &wc);
+	XSetWindowBorder(dpy, c->title, dc.norm[ColBorder]);
 
 	updatetitle(c);
 	if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
