@@ -148,6 +148,7 @@ void focus(Client *c);
 void focusnext(const char *arg);
 void focusprev(const char *arg);
 Client *getclient(Window w);
+Client *gettitle(Window w);
 unsigned long getcolor(const char *colstr);
 char *getresource(const char *resource, char *defval);
 long getstate(Window w);
@@ -426,6 +427,14 @@ buttonpress(XEvent *e) {
 			resizemouse(c);
 		}
 	}
+    else if(c = gettitle(ev->window)) {
+		if(ev->button == Button1) {
+			movemouse(c);
+		}
+		else if(ev->button == Button3 && !c->isfixed) {
+            resizemouse(c);
+		}
+    }
 }
 
 void
@@ -606,7 +615,7 @@ drawtext(const char *text, unsigned long col[ColLast], Bool center) {
 	int x, y, w, h;
 	static char buf[256];
 	unsigned int len, olen;
-	XRectangle r = { dc.x, 1, dc.w, dc.h - 3 };
+	XRectangle r = { dc.x, 0, dc.w, dc.h };
 
 	XSetForeground(dpy, dc.gc, col[ColBG]);
 	XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
@@ -802,6 +811,14 @@ getclient(Window w) {
 	Client *c;
 
 	for(c = clients; c && c->win != w; c = c->next);
+	return c;
+}
+
+Client *
+gettitle(Window w) {
+	Client *c;
+
+	for(c = clients; c && c->title != w; c = c->next);
 	return c;
 }
 
@@ -1040,12 +1057,13 @@ manage(Window w, XWindowAttributes *wa) {
 	c->w = wa->width;
 	c->h = wa->height;
     }
+    c->th = bh;
 	c->tx = c->x = wa->x;
-	c->ty = c->y = wa->y;
+	c->ty = c->y - c->th;
 	if(c->y < bh)
 		c->ty = c->y += bh;
-	c->tw = c->w = wa->width;
-    c->th = bh;
+	c->tw = c->w = wa->width+2*borderpx;
+
 	c->oldborder = wa->border_width;
 	if(c->w == sw && c->h == sh) {
 		c->x = sx;
@@ -1077,7 +1095,7 @@ manage(Window w, XWindowAttributes *wa) {
 	grabbuttons(c, False);
     twa.override_redirect = 1;
 	twa.background_pixmap = ParentRelative;
-	twa.event_mask = ExposureMask;
+	twa.event_mask = ExposureMask | MOUSEMASK;
 
 	c->title = XCreateWindow(dpy, root, c->tx, c->ty, c->tw, c->th,
 			0, DefaultDepth(dpy, screen), CopyFromParent,
@@ -1099,6 +1117,7 @@ manage(Window w, XWindowAttributes *wa) {
 	XMapWindow(dpy, c->win);
 	setclientstate(c, NormalState);
 	arrange();
+    drawclient(c);
 }
 
 void
@@ -1345,8 +1364,7 @@ void resizetitle(Client *c) {
 
 	c->tx = c->x;
 	c->ty = c->y-c->th;
-    c->tw = c->w;
-    c->th = bh;
+    c->tw = c->w+2*borderpx;
 	XMoveResizeWindow(dpy, c->title, c->tx, c->ty, c->tw, c->th);
 }
 
