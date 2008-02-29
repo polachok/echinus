@@ -65,6 +65,7 @@ typedef struct Client Client;
 struct Client {
 	char name[256];
 	int x, y, w, h;
+	int tx, ty, tw, th; /* title window */
 	int rx, ry, rw, rh; /* revert geometry */
 	int sfx, sfy, sfw, sfh; /* stored float geometry, used on mode revert */
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
@@ -77,6 +78,7 @@ struct Client {
 	Client *prev;
 	Client *snext;
 	Window win;
+	Window title;
 };
 
 typedef struct {
@@ -159,6 +161,7 @@ void propertynotify(XEvent *e);
 void quit(const char *arg);
 void resize(Client *c, int x, int y, int w, int h, Bool sizehints);
 void resizemouse(Client *c);
+void resizetitle(Client *c);
 void restack(void);
 void run(void);
 void scan(void);
@@ -580,6 +583,7 @@ detachstack(Client *c) {
 
 void drawbar()
 {
+    return;
     if(sel)
     {
         write(STDOUT_FILENO, sel->name, 100);
@@ -930,6 +934,7 @@ manage(Window w, XWindowAttributes *wa) {
 	Window trans;
 	Status rettrans;
 	XWindowChanges wc;
+	XSetWindowAttributes twa;
     Bool r = False;
 
 	c = emallocz(sizeof(Client));
@@ -949,6 +954,12 @@ manage(Window w, XWindowAttributes *wa) {
 	c->w = wa->width;
 	c->h = wa->height;
     }
+	c->tx = c->x = wa->x;
+	c->ty = c->y = wa->y;
+	if(c->y < bh)
+		c->ty = c->y += bh;
+	c->tw = c->w = wa->width;
+    c->th = bh;
 	c->oldborder = wa->border_width;
 	if(c->w == sw && c->h == sh) {
 		c->x = sx;
@@ -978,6 +989,15 @@ manage(Window w, XWindowAttributes *wa) {
 	XSelectInput(dpy, w,
 		StructureNotifyMask | PropertyChangeMask | EnterWindowMask);
 	grabbuttons(c, False);
+    twa.override_redirect = 1;
+	twa.background_pixmap = ParentRelative;
+	twa.event_mask = ExposureMask;
+
+	c->title = XCreateWindow(dpy, root, c->tx, c->ty, c->tw, c->th,
+			0, DefaultDepth(dpy, screen), CopyFromParent,
+			DefaultVisual(dpy, screen),
+			CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
+
 	updatetitle(c);
 	if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
 		for(t = clients; t && t->win != trans; t = t->next);
@@ -1231,6 +1251,21 @@ resizemouse(Client *c) {
 			break;
 		}
 	}
+}
+
+void resizetitle(Client *c) {
+	int i;
+
+	c->tw = 0;
+	for(i = 0; i < LENGTH(tags); i++)
+		if(c->tags[i])
+			c->tw += textw(c->tags[i]);
+	c->tw += textw(c->name);
+	if(c->tw > c->w)
+		c->tw = c->w + 2;
+	c->tx = c->x + c->w;
+	c->ty = c->y-c->th;
+	XMoveResizeWindow(dpy, c->title, c->tx, c->ty, c->tw, c->th);
 }
 
 void
@@ -1780,6 +1815,7 @@ void
 updatetitle(Client *c) {
 	if(!gettextprop(c->win, netatom[NetWMName], c->name, sizeof c->name))
 		gettextprop(c->win, wmatom[WMName], c->name, sizeof c->name);
+    resizetitle(c);
 }
 
 /* There's no way to check accesses to destroyed windows, thus those cases are
