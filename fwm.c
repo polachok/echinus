@@ -139,6 +139,7 @@ void destroynotify(XEvent *e);
 void detach(Client *c);
 void detachstack(Client *c);
 void drawbar(void);
+void drawclient(Client *c);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
@@ -429,7 +430,7 @@ buttonpress(XEvent *e) {
 			resizemouse(c);
 		}
 	}
-    else if(c = gettitle(ev->window)) {
+    else if((c = gettitle(ev->window))) {
 		if(ev->button == Button1) {
             focus(c);
 			if((layout->arrange == floating) || c->isfloating)
@@ -657,14 +658,12 @@ drawtext(const char *text, unsigned long col[ColLast], Bool center) {
         while(x <= 0)
                 x = dc.x++;
 	XSetForeground(dpy, dc.gc, col[ColFG]);
-    XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel ,dc.font.xftfont,x,y,buf,len);
+    XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel ,dc.font.xftfont,x,y,(unsigned char*)buf,len);
 	XSetForeground(dpy, dc.gc, col[ColBorder]);
 	XDrawRectangles(dpy, dc.drawable, dc.gc, &r, 1);
 }
 
 void drawclient(Client *c) {
-	int i;
-
     updatetitle(c);
     dc.x = dc.y = 0;
     dc.w = c->w+borderpx;
@@ -715,7 +714,7 @@ void
 expose(XEvent *e) {
 	XExposeEvent *ev = &e->xexpose;
     Client *c;
-	if(c=gettitle(ev->window))
+	if((c=gettitle(ev->window)))
         drawclient(c);
 }
 
@@ -727,7 +726,7 @@ initfont(const char *fontstr) {
     if(!dc.font.xftfont)
          eprint("error, cannot load font: '%s'\n", fontstr);
     dc.font.extents = malloc(sizeof(XGlyphInfo));
-    XftTextExtentsUtf8(dpy,dc.font.xftfont,fontstr, strlen(fontstr), dc.font.extents);
+    XftTextExtentsUtf8(dpy,dc.font.xftfont,(unsigned char*)fontstr, strlen(fontstr), dc.font.extents);
     dc.font.height = dc.font.extents->y+dc.font.extents->yOff;
     dc.font.width = (dc.font.extents->width)/strlen(fontstr);
 }
@@ -1362,8 +1361,6 @@ resizemouse(Client *c) {
 }
 
 void resizetitle(Client *c) {
-	int i;
-
 	c->tx = c->x;
 	c->ty = c->y-c->th;
     c->tw = c->w+2*borderpx;
@@ -1720,7 +1717,7 @@ tile(void) {
 }
 unsigned int
 textnw(const char *text, unsigned int len) {
-    XftTextExtentsUtf8(dpy,dc.font.xftfont,text, strlen(text), dc.font.extents);
+    XftTextExtentsUtf8(dpy,dc.font.xftfont,(unsigned char*)text, strlen(text), dc.font.extents);
     /*if(dc.font.extents->height > dc.font.height)
          dc.font.height = dc.font.extents->height;*/
     if(dc.font.extents->width/len > dc.font.width)
