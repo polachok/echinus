@@ -601,6 +601,69 @@ void drawbar()
     }
 }
 
+void
+drawtext(const char *text, unsigned long col[ColLast], Bool center) {
+	int x, y, w, h;
+	static char buf[256];
+	unsigned int len, olen;
+	XRectangle r = { dc.x, 1, dc.w, dc.h - 3 };
+
+	XSetForeground(dpy, dc.gc, col[ColBG]);
+	XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
+	if(!text)
+		return;
+	w = 0;
+	olen = len = strlen(text);
+	if(len >= sizeof buf)
+		len = sizeof buf - 1;
+	memcpy(buf, text, len);
+	buf[len] = 0;
+	h = bh;
+	y = bh-dc.font.height/2;
+	x = dc.x+h/2;
+		/* shorten text if necessary */
+	while(len && (w = textnw(buf, len)) > dc.w)
+		buf[--len] = 0;
+	if(len < olen) {
+		if(len > 1)
+			buf[len - 1] = '.';
+		if(len > 2)
+			buf[len - 2] = '.';
+		if(len > 3)
+			buf[len - 3] = '.';
+	}
+	if(w > dc.w)
+		return; /* too long */
+        if(center)
+                x = dc.x + dc.w/2 - w/2;
+        else 
+                x = dc.x + h/2;
+        while(x <= 0)
+                x = dc.x++;
+	XSetForeground(dpy, dc.gc, col[ColFG]);
+    XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel ,dc.font.xftfont,x,y,buf,len);
+	XSetForeground(dpy, dc.gc, dc.sel[ColBorder]);
+	XDrawRectangles(dpy, dc.drawable, dc.gc, &r, 1);
+}
+
+void drawclient(Client *c) {
+	int i;
+
+    puts(__func__);
+    updatetitle(c);
+    dc.x = dc.y = 0;
+    dc.w = c->w;
+    dc.h = bh;
+	drawtext(c->name, dc.norm, False);
+	XCopyArea(dpy, dc.drawable, c->title, dc.gc,
+			0, 0, c->tw, c->th, 0, 0);
+	XFlush(dpy);
+    puts(__func__);
+
+	XMapWindow(dpy, c->title);
+}
+
+
 void *
 emallocz(unsigned int size) {
 	void *res = calloc(1, size);
@@ -637,13 +700,12 @@ eprint(const char *errstr, ...) {
 
 void
 expose(XEvent *e) {
-	/*XExposeEvent *ev = &e->xexpose;
-
+	XExposeEvent *ev = &e->xexpose;
+    Client *c;
 	if(ev->count == 0) {
-		if(ev->window == barwin)
-			drawbar();
+			if(c=getclient(ev->window))
+                drawclient(c);
 	}
-    */
 }
 
 static void
@@ -667,6 +729,7 @@ floating(void) { /* default floating layout */
 	for(c = clients; c; c = c->next)
  		if(isvisible(c))
  		{
+            drawclient(c);
  			if(!c->isfloating && !wasfloating)
  				/*restore last known float dimensions*/
  				resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
@@ -1235,6 +1298,7 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
 		configure(c);
 		XSync(dpy, False);
 	}
+    resizetitle(c);
 }
 
 void
@@ -1279,15 +1343,10 @@ resizemouse(Client *c) {
 void resizetitle(Client *c) {
 	int i;
 
-	c->tw = 0;
-	for(i = 0; i < LENGTH(tags); i++)
-		if(c->tags[i])
-			c->tw += textw(c->tags[i]);
-	c->tw += textw(c->name);
-	if(c->tw > c->w)
-		c->tw = c->w + 2;
-	c->tx = c->x + c->w;
+	c->tx = c->x;
 	c->ty = c->y-c->th;
+    c->tw = c->w;
+    c->th = bh;
 	XMoveResizeWindow(dpy, c->title, c->tx, c->ty, c->tw, c->th);
 }
 
@@ -1538,6 +1597,9 @@ setup(void) {
 
     /* free resource database */
     XrmDestroyDatabase(xrdb);
+    dc.xftdrawable = XftDrawCreate(dpy, dc.drawable, DefaultVisual(dpy,screen),DefaultColormap(dpy,screen));
+    if(!dc.xftdrawable)
+         eprint("error, cannot create drawable\n");
 
 	/* multihead support */
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
