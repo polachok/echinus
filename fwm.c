@@ -44,6 +44,7 @@
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
 #include <X11/Xresource.h>
+#include <X11/Xft/Xft.h>
 
 /* macros */
 #define BUTTONMASK		(ButtonPressMask | ButtonReleaseMask)
@@ -85,8 +86,17 @@ typedef struct {
 	int x, y, w, h;
 	unsigned long norm[ColLast];
 	unsigned long sel[ColLast];
+    XftColor *xftnorm;
+    XftColor *xftsel;
 	Drawable drawable;
+    XftDraw *xftdrawable;
 	GC gc;
+	struct {
+       XftFont *xftfont;
+       XGlyphInfo *extents;
+	   int height;
+       int width;
+	} font;
 } DC; /* draw context */
 
 typedef struct {
@@ -634,6 +644,19 @@ expose(XEvent *e) {
 			drawbar();
 	}
     */
+}
+
+static void
+initfont(const char *fontstr) {
+    dc.font.xftfont = XftFontOpenXlfd(dpy,screen,fontstr);
+    if(!dc.font.xftfont)
+         dc.font.xftfont = XftFontOpenName(dpy,screen,fontstr);
+    if(!dc.font.xftfont)
+         eprint("error, cannot load font: '%s'\n", fontstr);
+    dc.font.extents = malloc(sizeof(XGlyphInfo));
+    XftTextExtentsUtf8(dpy,dc.font.xftfont,fontstr, strlen(fontstr), dc.font.extents);
+    dc.font.height = dc.font.extents->y+dc.font.extents->yOff;
+    dc.font.width = (dc.font.extents->width)/strlen(fontstr);
 }
 
 void
@@ -1483,8 +1506,21 @@ setup(void) {
 	compileregs();
 
 	/* init appearance */
-    dc.norm[ColBorder] = getcolor(getresource("normal.border",NORMBORDERCOLOR));
+	dc.norm[ColBorder] = getcolor(getresource("normal.border",NORMBORDERCOLOR));
+	dc.norm[ColBG] = getcolor(getresource("normal.bg",NORMBGCOLOR));
+	dc.norm[ColFG] = getcolor(getresource("normal.fg",NORMFGCOLOR));
+
     dc.sel[ColBorder] = getcolor(getresource("selected.border", SELBORDERCOLOR));
+	dc.sel[ColBG] = getcolor(getresource("selected.bg", SELBGCOLOR));
+	dc.sel[ColFG] = getcolor(getresource("selected.fg", SELFGCOLOR));
+
+    dc.xftsel=malloc(sizeof(XftColor));
+    dc.xftnorm=malloc(sizeof(XftColor));
+    XftColorAllocName(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen),SELFGCOLOR, dc.xftsel);
+    XftColorAllocName(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen),NORMFGCOLOR, dc.xftnorm);
+    if(!dc.xftnorm || !dc.xftnorm)
+         eprint("error, cannot allocate colors\n");
+	initfont(FONT);
     borderpx = atoi(getresource("border", BORDERPX));
 
     dc.h = bh = BARHEIGHT;
@@ -1597,6 +1633,19 @@ tile(void) {
 		if(n > nmaster && th != wah)
 			ny = c->y + c->h + 2 * c->border;
 	}
+}
+unsigned int
+textnw(const char *text, unsigned int len) {
+    XftTextExtentsUtf8(dpy,dc.font.xftfont,text, strlen(text), dc.font.extents);
+    /*if(dc.font.extents->height > dc.font.height)
+         dc.font.height = dc.font.extents->height;*/
+    if(dc.font.extents->width/len > dc.font.width)
+         dc.font.width = dc.font.extents->width/len;
+    return dc.font.extents->width;
+}
+unsigned int
+textw(const char *text) {
+	return textnw(text, strlen(text)) + 2*dc.font.width;
 }
 
 void
