@@ -1622,11 +1622,11 @@ setup(void) {
 
     /* init resource database */
     XrmInitialize();
-    s = XResourceManagerString(dpy);
-    if(s) {
-        xrdb = XrmGetStringDatabase(s);
-        free(s);
-    }
+    char conf[255];
+    sprintf(conf, "%s/%s",getenv("HOME"),".fwmrc");
+    xrdb = XrmGetFileDatabase(conf);
+    if(!xrdb)
+        eprint("fwm: cannot open configuration file\n");
 
 	/* grab keys */
 	keypress(NULL);
@@ -1645,8 +1645,8 @@ setup(void) {
 
     dc.xftsel=malloc(sizeof(XftColor));
     dc.xftnorm=malloc(sizeof(XftColor));
-    XftColorAllocName(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen),SELFGCOLOR, dc.xftsel);
-    XftColorAllocName(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen),NORMFGCOLOR, dc.xftnorm);
+    XftColorAllocName(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen),getresource("selected.fg", SELFGCOLOR), dc.xftsel);
+    XftColorAllocName(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen),getresource("normal.fg", SELFGCOLOR), dc.xftnorm);
     if(!dc.xftnorm || !dc.xftnorm)
          eprint("error, cannot allocate colors\n");
 	initfont(FONT);
