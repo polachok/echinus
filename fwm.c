@@ -202,6 +202,7 @@ void togglemax(const char *arg);
 void toggletag(const char *arg);
 void toggleview(const char *arg);
 void focusview(const char *arg);
+void saveconfig(Client *c);
 void unban(Client *c);
 void unmanage(Client *c);
 void unmapnotify(XEvent *e);
@@ -242,7 +243,8 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[PropertyNotify] = propertynotify,
 	[UnmapNotify] = unmapnotify
 };
-Atom wmatom[WMLast], netatom[NetLast];
+Atom wmatom[WMLast], netatom[NetLast], dwmconfig;
+static char prop[512];
 Bool domwfact = True;
 Bool dozoom = True;
 Bool otherwm;
@@ -785,10 +787,8 @@ void
 expose(XEvent *e) {
 	XExposeEvent *ev = &e->xexpose;
     Client *c;
-	if((c=gettitle(ev->window))||(c=getclient(ev->window))){
-        puts("sshittt");
+	if((c=gettitle(ev->window))||(c=getclient(ev->window)))
         drawclient(c);
-    }
 }
 
 static void
@@ -845,14 +845,17 @@ focus(Client *c) {
 		return;
 	if(c) {
         drawclient(c);
+        saveconfig(c);
 		XSetWindowBorder(dpy, c->win, dc.sel[ColBorder]);
 		XSetWindowBorder(dpy, c->title, dc.sel[ColBorder]);
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 	}
 	else
 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
-    if(o)
+    if(o){
         drawclient(o);
+        saveconfig(o);
+    }
 }
 
 void
@@ -1200,6 +1203,7 @@ manage(Window w, XWindowAttributes *wa) {
 	setclientstate(c, NormalState);
 	arrange();
     drawclient(c);
+    saveconfig(c);
 }
 
 void
@@ -1507,6 +1511,21 @@ run(void) {
 }
 
 void
+saveconfig(Client *c) {
+	unsigned int i;
+
+	for(i = 0; i < LENGTH(tags) && i < sizeof prop - 3; i++)
+		prop[i] = c->tags[i] ? '1' : '0';
+    prop[i++]='|';
+	if(i < sizeof prop - 2)
+		prop[i++] = isvisible(c) ? '1' : '0';
+    if(i < sizeof prop - 1)
+		prop[i++] = (c==sel) ? '1' : '0';
+	prop[i] = '\0';
+	XChangeProperty(dpy, c->win, dwmconfig, XA_STRING, 8,
+			PropModeReplace, (unsigned char *)prop, i);
+}
+void
 scan(void) {
 	unsigned int i, num;
 	Window *wins, d1, d2;
@@ -1615,6 +1634,7 @@ setup(void) {
 
 
 	/* init atoms */
+	dwmconfig = XInternAtom(dpy, "_DWM_CONFIG", False);
 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 	wmatom[WMName] = XInternAtom(dpy, "WM_NAME", False);
@@ -1744,6 +1764,7 @@ tag(const char *arg) {
 		sel->tags[i] = (NULL == arg);
 	sel->tags[idxoftag(arg)] = True;
 	arrange();
+    saveconfig(sel);
 }
 
 void
@@ -1841,6 +1862,7 @@ togglefloating(const char *arg) {
 		sel->sfh = sel->h;
 	}
 	arrange();
+    saveconfig(sel);
 }
 
 void
@@ -1883,6 +1905,7 @@ toggletag(const char *arg) {
 	if(j == LENGTH(tags))
 		sel->tags[i] = True; /* at least one tag must be enabled */
 	arrange();
+    saveconfig(sel);
 }
 
 void
