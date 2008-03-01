@@ -335,6 +335,7 @@ ban(Client *c) {
 	if(c->isbanned)
 		return;
 	XMoveWindow(dpy, c->win, c->x + 2 * sw, c->y);
+	XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
 	c->isbanned = True;
 }
 void
@@ -719,6 +720,8 @@ void drawbuttons(Client *c) {
 
 void drawclient(Client *c) {
     unsigned int opacity;
+    if(!isvisible(c))
+        return;
     XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
 	XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->tw, c->th);
     updatetitle(c);
@@ -782,8 +785,10 @@ void
 expose(XEvent *e) {
 	XExposeEvent *ev = &e->xexpose;
     Client *c;
-	if((c=gettitle(ev->window))||(c=getclient(ev->window)))
+	if((c=gettitle(ev->window))||(c=getclient(ev->window))){
+        puts("sshittt");
         drawclient(c);
+    }
 }
 
 static void
@@ -807,13 +812,14 @@ floating(void) { /* default floating layout */
 	for(c = clients; c; c = c->next)
  		if(isvisible(c))
  		{
-            drawclient(c);
  			if(!c->isfloating && !wasfloating)
  				/*restore last known float dimensions*/
  				resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
  			else
  				resize(c, c->x, c->y, c->w, c->h, False);
  		}
+        else
+            ban(c);
     wasfloating = True;
 }
 
@@ -1911,6 +1917,7 @@ unban(Client *c) {
 	if(!c->isbanned)
 		return;
 	XMoveWindow(dpy, c->win, c->x, c->y);
+	XMoveWindow(dpy, c->title, c->tx, c->ty);
 	c->isbanned = False;
 }
 
