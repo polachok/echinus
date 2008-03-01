@@ -1,5 +1,5 @@
 # fwm version
-VERSION = 0.3
+VERSION = 0.1
 
 # Customize below to fit your system
 

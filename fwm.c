@@ -1587,7 +1587,6 @@ void
 setup(void) {
 	int d;
 	unsigned int i, j, mask;
-    char *s;
 	Window w;
 	XModifierKeymap *modmap;
 	XSetWindowAttributes wa;
@@ -2084,7 +2083,7 @@ zoom(const char *arg) {
 int
 main(int argc, char *argv[]) {
 	if(argc == 2 && !strcmp("-v", argv[1]))
-		eprint("fwm-"VERSION", © 2006-2007 Anselm R. Garbe, Sander van Dijk, "
+		eprint("fwm-"VERSION", © 2006-2008 Anselm R. Garbe, Sander van Dijk, "
 		       "Jukka Salmi, Premysl Hruby, Szabolcs Nagy, Alexander Polakov\n");
 	else if(argc != 1)
 		eprint("usage: fwm [-v]\n");
