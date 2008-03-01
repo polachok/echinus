@@ -221,6 +221,7 @@ char **cargv;
 char **environ;
 Bool wasfloating = True;
 double mwfact;
+
 int screen, sx, sy, sw, sh, wax, way, waw, wah;
 int borderpx;
 int cx, cy, cw, ch;
@@ -888,6 +889,23 @@ focusprev(const char *arg) {
 		focus(c);
 		restack();
 	}
+}
+
+void
+incnmaster(const char *arg) {
+	int i;
+    if(layout->arrange != tile)
+		return;
+	if(!arg)
+		nmaster = NMASTER;
+	else {
+		i = atoi(arg);
+		if((nmaster + i) < 1 || wah / (nmaster + i) <= 2 * borderpx)
+			return;
+		nmaster += i;
+	}
+	if(sel)
+		arrange();
 }
 
 Client *
