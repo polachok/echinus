@@ -53,6 +53,8 @@
 #define LENGTH(x)		(sizeof x / sizeof x[0])
 #define RESNAME                        "fwm"
 #define RESCLASS               "Fwm"
+#define OPAQUE	0xffffffff
+#define OPACITY	"_NET_WM_WINDOW_OPACITY"
 
 /* enums */
 enum { BarTop, BarBot, BarOff };			/* bar position */
@@ -716,6 +718,7 @@ void drawbuttons(Client *c) {
 }
 
 void drawclient(Client *c) {
+    unsigned int opacity;
     XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
 	XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->tw, c->th);
     updatetitle(c);
@@ -726,6 +729,16 @@ void drawclient(Client *c) {
     drawbuttons(c);
 	XCopyArea(dpy, dc.drawable, c->title, dc.gc,
 			0, 0, c->tw, c->th+2*borderpx, 0, 0);
+    if (c==sel)
+      opacity = OPAQUE;
+    else
+      opacity = (unsigned int) (0.9 * OPAQUE);
+    if (opacity == OPAQUE)
+        XDeleteProperty (dpy, c->win, XInternAtom(dpy, OPACITY, False));
+    else
+        XChangeProperty(dpy, c->win, XInternAtom(dpy, OPACITY, False), 
+                XA_CARDINAL, 32, PropModeReplace, 
+                (unsigned char *) &opacity, 1L);
 	XFlush(dpy);
 	XMapWindow(dpy, c->title);
 }
@@ -1215,7 +1228,7 @@ monocle(void) {
 			if (c->isfloating)
 				continue;
             if(bpos == BarOff) 
-                resize(c, wax-c->border, way-c->border, waw, wah, False);
+                resize(c, wax-c->border, way-2*c->border, waw, wah, False);
             else 
                 resize(c, wax, 0, waw - 2*c->border, wah-1, False);
 		}
@@ -1413,6 +1426,7 @@ resizemouse(Client *c) {
 			break;
 		case MotionNotify:
 			XSync(dpy, False);
+            drawclient(c);
 			if((nw = ev.xmotion.x - ocx - 2 * c->border + 1) <= 0)
 				nw = 1;
 			if((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
@@ -1420,7 +1434,6 @@ resizemouse(Client *c) {
 			resize(c, c->x, c->y, nw, nh, True);
 			break;
 		}
-    drawclient(c);
 	}
 }
 
