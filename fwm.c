@@ -243,7 +243,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[PropertyNotify] = propertynotify,
 	[UnmapNotify] = unmapnotify
 };
-Atom wmatom[WMLast], netatom[NetLast], dwmconfig;
+Atom wmatom[WMLast], netatom[NetLast], dwmconfig,dwmfocus;
 static char prop[512];
 Bool domwfact = True;
 Bool dozoom = True;
@@ -1317,7 +1317,7 @@ propertynotify(XEvent *e) {
 	if((c = getclient(ev->window))) {
 		switch (ev->atom) {
 			default: break;
-			case XA_WM_TRANSIENT_FOR:
+            case XA_WM_TRANSIENT_FOR:
 				XGetTransientForHint(dpy, c->win, &trans);
 				if(!c->isfloating && (c->isfloating = (getclient(trans) != NULL)))
 					arrange();
@@ -1331,7 +1331,13 @@ propertynotify(XEvent *e) {
 			if(c == sel)
 				drawbar();
 		}
-	}
+        if(ev->atom == dwmfocus) {
+                if(sel!=c){
+                    focus(c);
+                    arrange();
+                }
+        }
+    }
 }
 
 void
@@ -1524,6 +1530,12 @@ saveconfig(Client *c) {
 	prop[i] = '\0';
 	XChangeProperty(dpy, c->win, dwmconfig, XA_STRING, 8,
 			PropModeReplace, (unsigned char *)prop, i);
+    if(sel==c){
+        XChangeProperty(dpy, c->win, dwmfocus, XA_STRING, 8,
+                PropModeReplace, (unsigned char *)'1', 0);
+    }
+    else
+        XDeleteProperty(dpy, c->win, dwmfocus);
 }
 void
 scan(void) {
@@ -1635,6 +1647,7 @@ setup(void) {
 
 	/* init atoms */
 	dwmconfig = XInternAtom(dpy, "_DWM_CONFIG", False);
+	dwmfocus = XInternAtom(dpy, "_DWM_FOCUS", False);
 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 	wmatom[WMName] = XInternAtom(dpy, "WM_NAME", False);

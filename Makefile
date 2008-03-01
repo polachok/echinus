@@ -7,7 +7,7 @@ SRC = fwm.c
 OBJ = ${SRC:.c=.o}
 HOM = `echo ${HOME}|sed 's.\/.\\\/.g'`
 
-all: options fwm
+all: options fwm tools
 
 options:
 	@echo fwm build options:
@@ -32,9 +32,19 @@ fwm: ${OBJ}
 	@echo CC -o $@
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 
+lsw: 
+	@echo CC -o $@
+	@${CC} -o $@ lsw.c ${LDFLAGS}
+
+setfocus:
+	@echo CC -o $@
+	@${CC} -o $@ setfocus.c ${LDFLAGS}
+
+tools: lsw setfocus
+
 clean:
 	@echo cleaning
-	@rm -f fwm ${OBJ} dwm-${VERSION}.tar.gz
+	@rm -f fwm setfocus lsw ${OBJ} dwm-${VERSION}.tar.gz
 
 dist: clean
 	@echo creating dist tarball
