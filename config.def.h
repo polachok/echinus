@@ -4,19 +4,27 @@
 #define BARPOS			BarOff /* BarTop, BarOff */
 
 /* border width */
-#define BORDERPX		"4"
-
+#define BORDERPX		"1"
+#define TITLEBARHEIGHT 12
 /* You can use
  * Dwm.normal.border: #cccccc
  * Dwm.selected.border: #ff0000
  * Dwm.border: 4
  * in Xresources instead
  */
+#define FONT            "-*-snap-*-*-*-*-11-*-*-*-*-*-iso10646-*"
+#define NORMBORDERCOLOR		"#262626"
+#define NORMBGCOLOR		"#262626"
+#define NORMFGCOLOR		"#d3d7cf"
+//#define SELBORDERCOLOR		"#555753"
+//#define SELBORDERCOLOR		"#000000"
+#define SELBORDERCOLOR		"#161616"
+#define SELBGCOLOR		"#262626"
+#define SELFGCOLOR		"#d3d7cf"
 
-#define SELBORDERCOLOR		"#55aaaa"
-#define NORMBORDERCOLOR		"#9eeeee"
 
-#define BARHEIGHT 13
+
+#define BARHEIGHT 17
 
 #define NMASTER 1
 #define TERMINAL "urxvt -e screen"
@@ -37,6 +45,7 @@ Rule rules[] = {
 	{ "htop",			"htop",		True },
 	{ "mutt",			"(mutt|3)",		True },
 	{ "stats",			"*",		True },
+    { "Database Locked", NULL, True },
 };
 
 /* layout(s) */
@@ -45,8 +54,8 @@ Rule rules[] = {
 #define SNAP			5	/* snap pixel */
 Layout layouts[] = {
 	/* symbol		function */
-	{ "><>",		floating },
-	{ "[]=",		tile }, /* first entry is default */
+	{ "floating",		floating },
+	{ "monocle",		monocle }, /* first entry is default */
 };
 
 /* key definitions */
