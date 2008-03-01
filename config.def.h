@@ -39,7 +39,7 @@
 #define NMASTER 1
 #define TERMINAL "urxvt -e screen"
 /* tagging */
-const char *tags[] = { "main", "web", "irc", "mail", "dev", "misc", "im", "gfx", NULL };
+const char *tags[] = { "main", "web", "irc", "mail", "dev", "misc", "im", "gfx" };
 Bool seltags[LENGTH(tags)] = {[0] = True};
 Rule rules[] = { \
 	/* class:instance:title regex	tags regex	isfloat */ \
@@ -65,9 +65,9 @@ Rule rules[] = { \
 #define SNAP			5	/* snap pixel */
 Layout layouts[] = {
 	/* symbol		function */
-	{ "floating",		floating },
-	{ "monocle",		monocle }, /* first entry is default */
-	{ "monocle",		tile }, /* first entry is default */
+	{ "~",		floating },
+	{ "=",		monocle }, /* first entry is default */
+	{ "#",		tile }, 
 };
 #define NMASTER 1
 /* key definitions */
@@ -90,7 +90,9 @@ Key keys[] = { \
     { MODKEY,                   XK_p,       spawn,                      "pmenu" }, \
     { MODKEY,                   XK_w,       spawn,                      "swarp 1280 900" }, \
     { MODKEY,                   XK_r,       spawn,                      "gajim-remote toggle_roster_appearance" }, \
-	{ MODKEY,		    XK_m,	setlayout,	NULL }, \
+	{ MODKEY,		    XK_f,	setlayout,	"~" }, \
+	{ MODKEY,		    XK_m,	setlayout,	"=" }, \
+	{ MODKEY,		    XK_r,	setlayout,	"#" }, \
     { MODKEY,		    XK_j,		focusnext,	    NULL  }, \
 	{ MODKEY,		    XK_k,		focusprev,	    NULL }, \
 	{ MODKEY,		    XK_Return,   	zoom,		    NULL }, \
