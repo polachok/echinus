@@ -122,7 +122,12 @@ typedef struct {
 	regex_t *tagregex;
 } Regs;
 
-Pixmap bmin, bmax, bclose;
+typedef struct {
+    Pixmap pm;
+    void (*action)(char);
+} button;
+
+
 int px, py;
 /* function declarations */
 int applyrules(Client *c);
@@ -247,6 +252,9 @@ Client *stack = NULL;
 Cursor cursor[CurLast];
 Display *dpy;
 DC dc = {0};
+button bleft = {0};
+button bcenter = {0};
+button bright = {0};
 Layout *layout = NULL;
 Window root;
 Regs *regs = NULL;
@@ -681,26 +689,29 @@ drawtext(const char *text, unsigned long col[ColLast], Bool center) {
 Pixmap initpixmap(const char *file) {
     Pixmap pmap;
     pmap = XCreatePixmap(dpy, root, 20, 20, 1);
-    int pw, ph;
+    unsigned int pw, ph;
     if(BitmapSuccess == XReadBitmapFile(dpy, root, file, &pw, &ph, &pmap, &px, &py))
-        puts("okay");
-    return pmap;
+        return pmap;
+    else
+        eprint("fwm: cannot load button pixmaps, check your ~/.fwmrc\n");
+    return 0;
 }
 
-void initpixmaps() {
+void initbuttons() {
     XSetForeground(dpy, dc.gc, dc.norm[ColFG]);
     XSetBackground(dpy, dc.gc, dc.norm[ColBG]);
-    bmin = initpixmap("iconify.xbm");
-    bclose = initpixmap("close.xbm");
-    bmax = initpixmap("max.xbm");
+    puts(__func__);
+    bleft.pm = initpixmap(getresource("button.left.pixmap", BLEFTPIXMAP));
+    bright.pm = initpixmap(getresource("button.right.pixmap", BRIGHTPIXMAP));
+    bcenter.pm = initpixmap(getresource("button.center.pixmap", BCENTERPIXMAP));
 }
 
 void drawbuttons(Client *c) {
-    XSetForeground(dpy, dc.gc, dc.norm[ColFG]);
-    XSetBackground(dpy, dc.gc, dc.norm[ColBG]);
-    XCopyPlane(dpy, bclose, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-c->th, 0, 1);
-    XCopyPlane(dpy, bmin, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-3*c->th, 0, 1);
-    XCopyPlane(dpy, bmax, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-2*c->th, 0, 1);
+    XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColFG] : dc.norm[ColFG]);
+    XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
+    XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-c->th, 0, 1);
+    XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-3*c->th, 0, 1);
+    XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-2*c->th, 0, 1);
     //XCopyArea(dpy, close, c->title, dc.gc, 0, 0, close_width,close_height, 10, 20);
 }
 
@@ -1665,6 +1676,9 @@ setup(void) {
 	dc.drawable = XCreatePixmap(dpy, root, sw, TITLEBARHEIGHT, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
 
+    /* buttons */
+    initbuttons();
+
     /* free resource database */
     XrmDestroyDatabase(xrdb);
     dc.xftdrawable = XftDrawCreate(dpy, dc.drawable, DefaultVisual(dpy,screen),DefaultColormap(dpy,screen));
@@ -1673,7 +1687,6 @@ setup(void) {
 
 	/* multihead support */
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
-    initpixmaps();
 }
 
 void

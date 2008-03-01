@@ -21,8 +21,9 @@
 #define SELBORDERCOLOR		"#161616"
 #define SELBGCOLOR		"#262626"
 #define SELFGCOLOR		"#d3d7cf"
-
-
+#define BLEFTPIXMAP "min.xbm"
+#define BRIGHTPIXMAP "min.xbm"
+#define BCENTERPIXMAP "min.xbm"
 
 #define BARHEIGHT 17
 

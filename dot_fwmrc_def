@@ -1,0 +1,10 @@
+Fwm*selected.border: blue
+Fwm*normal.border: red
+Fwm*selected.bg: blue
+Fwm*normal.bg: red
+Fwm*selected.fg: green
+Fwm*normal.fg: yellow
+Fwm*border: 2
+Fwm*button.left.pixmap: HOME/.fwm/iconify.xbm
+Fwm*button.center.pixmap: HOME/.fwm/max.xbm
+Fwm*button.right.pixmap: HOME/.fwm/close.xbm

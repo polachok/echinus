@@ -5,6 +5,7 @@ include config.mk
 
 SRC = fwm.c
 OBJ = ${SRC:.c=.o}
+HOM = `echo ${HOME}|sed 's.\/.\\\/.g'`
 
 all: options fwm
 
@@ -13,6 +14,7 @@ options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
+	@echo "CONFIG   = ${HOME}/.fwmrc"
 
 .c.o:
 	@echo CC $<
@@ -23,6 +25,8 @@ ${OBJ}: config.h config.mk
 config.h:
 	@echo creating $@ from config.def.h
 	@cp config.def.h $@
+	@echo creating dot_fwmrc from dot_fwmrc_def
+	@cat dot_fwmrc_def|sed "s/HOME/${HOM}/" > dot_fwmrc
 
 fwm: ${OBJ}
 	@echo CC -o $@
