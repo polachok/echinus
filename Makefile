@@ -4,6 +4,8 @@
 include config.mk
 
 SRC = fwm.c
+TOOLS = lsw. setfocus.c
+TOOLSOBJ = ${TOOLS:.c=.o}
 OBJ = ${SRC:.c=.o}
 HOM = `echo ${HOME}|sed 's.\/.\\\/.g'`
 
