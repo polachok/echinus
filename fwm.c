@@ -122,6 +122,8 @@ typedef struct {
 	regex_t *tagregex;
 } Regs;
 
+Pixmap bmin, bmax, bclose;
+int px, py;
 /* function declarations */
 int applyrules(Client *c);
 void arrange(void);
@@ -431,8 +433,21 @@ buttonpress(XEvent *e) {
 		}
 	}
     else if((c = gettitle(ev->window))) {
+        focus(c);
+        if((ev->x > c->tw-3*c->th) && (ev->x < c->tw-2*c->th)){
+            /* min, not implemented */
+            printf("minimize\n");
+        }
+        
+        if((ev->x > c->tw-2*c->th) && (ev->x < c->tw-c->th)){
+            /* max */
+            setlayout(NULL);
+        }
+        if((ev->x > c->tw-c->th) && (ev->x < c->tw)){
+            /* close */
+            killclient(NULL);
+        }
 		if(ev->button == Button1) {
-            focus(c);
 			if((layout->arrange == floating) || c->isfloating)
                 restack();
 			movemouse(c);
@@ -657,18 +672,47 @@ drawtext(const char *text, unsigned long col[ColLast], Bool center) {
                 x = dc.x + h/2;
         while(x <= 0)
                 x = dc.x++;
-	XSetForeground(dpy, dc.gc, col[ColFG]);
+//	XSetForeground(dpy, dc.gc, col[ColFG]);
     XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel ,dc.font.xftfont,x,y,(unsigned char*)buf,len);
-	XSetForeground(dpy, dc.gc, col[ColBorder]);
+//	XSetForeground(dpy, dc.gc, col[ColBorder]);
 //	XDrawRectangles(dpy, dc.drawable, dc.gc, &r, 1);
 }
 
+Pixmap initpixmap(const char *file) {
+    Pixmap pmap;
+    pmap = XCreatePixmap(dpy, root, 20, 20, 1);
+    int pw, ph;
+    if(BitmapSuccess == XReadBitmapFile(dpy, root, file, &pw, &ph, &pmap, &px, &py))
+        puts("okay");
+    return pmap;
+}
+
+void initpixmaps() {
+    XSetForeground(dpy, dc.gc, dc.norm[ColFG]);
+    XSetBackground(dpy, dc.gc, dc.norm[ColBG]);
+    bmin = initpixmap("iconify.xbm");
+    bclose = initpixmap("close.xbm");
+    bmax = initpixmap("max.xbm");
+}
+
+void drawbuttons(Client *c) {
+    XSetForeground(dpy, dc.gc, dc.norm[ColFG]);
+    XSetBackground(dpy, dc.gc, dc.norm[ColBG]);
+    XCopyPlane(dpy, bclose, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-c->th, 0, 1);
+    XCopyPlane(dpy, bmin, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-3*c->th, 0, 1);
+    XCopyPlane(dpy, bmax, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-2*c->th, 0, 1);
+    //XCopyArea(dpy, close, c->title, dc.gc, 0, 0, close_width,close_height, 10, 20);
+}
+
 void drawclient(Client *c) {
+    XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
+	XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->tw, c->th);
     updatetitle(c);
     dc.x = dc.y = 0;
     dc.w = c->w+borderpx;
     dc.h = c->th;
 	drawtext(c->name, c == sel ? dc.sel : dc.norm, False);
+    drawbuttons(c);
 	XCopyArea(dpy, dc.drawable, c->title, dc.gc,
 			0, 0, c->tw, c->th+2*borderpx, 0, 0);
 	XFlush(dpy);
@@ -1063,7 +1107,7 @@ manage(Window w, XWindowAttributes *wa) {
     c->th = TITLEBARHEIGHT;
 	c->tx = c->x = wa->x;
 	c->ty = c->y - c->th;
-	c->tw = c->w = wa->width+2*borderpx;
+	c->tw = c->w = wa->width;
 
 	c->oldborder = wa->border_width;
 	if(c->w == sw && c->h == sh) {
@@ -1369,7 +1413,7 @@ resizemouse(Client *c) {
 void resizetitle(Client *c) {
 	c->tx = c->x;
 	c->ty = c->y-c->th;
-    c->tw = c->w+2*borderpx;
+    c->tw = c->w;
 	XMoveResizeWindow(dpy, c->title, c->tx, c->ty, c->tw, c->th);
 }
 
@@ -1537,6 +1581,7 @@ setup(void) {
 	XModifierKeymap *modmap;
 	XSetWindowAttributes wa;
 
+
 	/* init atoms */
 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
@@ -1628,6 +1673,7 @@ setup(void) {
 
 	/* multihead support */
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
+    initpixmaps();
 }
 
 void
