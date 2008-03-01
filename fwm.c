@@ -806,6 +806,8 @@ floating(void) { /* default floating layout */
 
 void
 focus(Client *c) {
+    Client *o;
+    o = sel;
 	if((!c && selscreen) || (c && !isvisible(c)))
 		for(c = stack; c && !isvisible(c); c = c->snext);
 	if(sel && sel != c) {
@@ -830,7 +832,8 @@ focus(Client *c) {
 	}
 	else
 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
-
+    if(o)
+        drawclient(o);
 }
 
 void
