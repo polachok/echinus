@@ -1,0 +1,4 @@
+#define maximize_width 6
+#define maximize_height 6
+static unsigned char maximize_bits[] = {
+   0x3f, 0x21, 0x3f, 0x21, 0x21, 0x3f };
