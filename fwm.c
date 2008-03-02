@@ -848,7 +848,6 @@ focus(Client *c) {
 		return;
 	if(c) {
         drawclient(c);
-        saveconfig(c);
 		XSetWindowBorder(dpy, c->win, dc.sel[ColBorder]);
 		XSetWindowBorder(dpy, c->title, dc.sel[ColBorder]);
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
@@ -857,7 +856,6 @@ focus(Client *c) {
 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
     if(o){
         drawclient(o);
-        saveconfig(o);
     }
 }
 
@@ -1169,7 +1167,7 @@ manage(Window w, XWindowAttributes *wa) {
     
     c->th = TITLEBARHEIGHT;
 	c->tx = c->x = wa->x;
-	c->ty = c->y - c->th-borderpx;
+	c->ty = c->y - c->th;
 	c->tw = c->w = wa->width;
 
 	c->oldborder = wa->border_width;
@@ -1360,12 +1358,16 @@ propertynotify(XEvent *e) {
 				drawbar();
 		}
         if(ev->atom == dwmfocus) {
-            if(c!=sel){
-                    saveconfig(sel);
-                    saveconfig(c);
+                if(c!=sel){
+                    int i;
+                    puts("focus change requested");
+                    for(i=0; i<LENGTH(tags); i++)
+                        if(c->tags[i])
+                            seltags[i]=True;
                     focus(c);
                     arrange();
-            }
+                    XDeleteProperty(dpy, c->win, dwmfocus);
+                }
         }
     }
 }
@@ -1485,7 +1487,7 @@ resizemouse(Client *c) {
 
 void resizetitle(Client *c) {
 	c->tx = c->x;
-	c->ty = c->y-c->th-borderpx;
+	c->ty = c->y-c->th;
     c->tw = c->w;
 	XMoveResizeWindow(dpy, c->title, c->tx, c->ty, c->tw, c->th);
 }
@@ -1549,6 +1551,7 @@ run(void) {
 void
 saveconfig(Client *c) {
 	unsigned int i;
+    char name[255];
 
 	for(i = 0; i < LENGTH(tags) && i < sizeof prop - 3; i++)
 		prop[i] = c->tags[i] ? '1' : '0';
@@ -1560,12 +1563,6 @@ saveconfig(Client *c) {
 	prop[i] = '\0';
 	XChangeProperty(dpy, c->win, dwmconfig, XA_STRING, 8,
 			PropModeReplace, (unsigned char *)prop, i);
-    if(sel==c){
-        XChangeProperty(dpy, c->win, dwmfocus, XA_STRING, 8,
-                PropModeReplace, (unsigned char *)'1', 0);
-    }
-    else
-        XDeleteProperty(dpy, c->win, dwmfocus);
 }
 void
 scan(void) {
