@@ -15,7 +15,7 @@ static Atom dwmfocus;
 static Display *dpy;
 static Window root;
 
-static void
+static int 
 getname(Window w) {
 	char **list = NULL;
 	int n;
@@ -23,27 +23,23 @@ getname(Window w) {
 	XTextProperty name;
 
     name.nitems = 0;
-    printf("0x%0xd ", w);
-    if(XGetTextProperty(dpy, w, &name, dwmfocus)){
-        printf("this one focused");
-    }
+
+    XGetTextProperty(dpy, w, &name, dwmfocus);
     name.nitems = 0;
     XGetTextProperty(dpy, w, &name, dwmconfig);
 	if(name.nitems && name.encoding == XA_STRING) {
 			strncpy(buf, (char *)name.value, sizeof buf - 1);
 			buf[sizeof buf - 1] = '\0';
 			XFree(name.value);
-            puts(buf);
             for(n = 0;  n < sizeof buf - 2 && buf[n] != '\0' && buf[n] != '|'; n++){
-                if(buf[n] == '1')
-                    printf("tag[%d]", n);
+              //  if(buf[n] == '1')
+               //     printf("tag[%d]", n);
             }
             n++;
-            if(buf[n++] == '1')
-                printf("v");
-            if(buf[n++] == '1')
-                printf("f");
-            printf("\n");
+            if(buf[n++] != '1')
+                return 0;
+            /*printf("v");
+            printf("\n");*/
 
     }
     bzero(buf,1024);
@@ -53,7 +49,7 @@ getname(Window w) {
 	if(!prop.nitems)
 		XGetWMName(dpy, w, &prop);
 	if(!prop.nitems)
-		return;
+		return 0;
 	if(prop.encoding == XA_STRING)
 		strncpy(buf, (char *)prop.value, sizeof(buf));
 	else {
@@ -65,6 +61,7 @@ getname(Window w) {
 		}
 	}
 	XFree(prop.value);
+    return 1;
 }
 
 int
@@ -74,7 +71,7 @@ main(int argc, char *argv[]) {
 	XWindowAttributes wa;
 
 	if((argc > 1) && !strncmp(argv[1], "-v", 3)) {
-		/*fputs("lsw (C)opyright MMVI Anselm R. Garbe\n", stdout);*/
+		fputs("lsw (C)opyright MMVI Anselm R. Garbe\n", stdout);
 		exit(EXIT_SUCCESS);
 	}
 	if(!(dpy = XOpenDisplay(0))) {
@@ -91,9 +88,11 @@ main(int argc, char *argv[]) {
 				continue;
 			if(wa.override_redirect)
 				continue;
-			getname(wins[i]);
+			if(getname(wins[i])){
 			if(buf[0])
+                printf("0x%0xd ", wins[i]);
 				fprintf(stdout, "%s\n", buf);
+            }
 		}
 	}
 	if(wins)

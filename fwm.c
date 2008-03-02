@@ -343,6 +343,8 @@ ban(Client *c) {
 }
 void
 drawmouse(XEvent *e) {
+    /* it's ugly, i know */
+    /* TODO: look at 9wm */
 	int x1, y1, ocx, ocy, di, nx, ny, rx, ry, rx1, ry1;
 	unsigned int dui;
 	Window dummy;
@@ -821,8 +823,6 @@ floating(void) { /* default floating layout */
  			else
  				resize(c, c->x, c->y, c->w, c->h, False);
  		}
-        else
-            ban(c);
     wasfloating = True;
 }
 
@@ -1146,6 +1146,13 @@ manage(Window w, XWindowAttributes *wa) {
 	c = emallocz(sizeof(Client));
 	c->tags = emallocz(sizeof seltags);
 	c->win = w;
+    int di, dui;
+    if(!wa->x && !wa->y){
+        XQueryPointer(dpy, root, &trans, &trans, &wa->x, &wa->y, &di, &di, &dui);
+        wa->x-=wa->width/2 > sx ? wa->x-=wa->width/2: sx;
+        wa->y-=wa->height/2 > sy ? wa->y-=wa->height/2 : sy;
+    }
+
 	if(cx && cy && cw && ch) {
 		c->x = wa->x = cx;
 		c->y = wa->y = cy;
