@@ -6,7 +6,7 @@ fwm \- f(?) window manager
 .RB [ \-v ]
 .SH DESCRIPTION
 fwm is a lightweight window manager for X based on dwm's source code.
-It manages windows in maximized and floating layouts. Either layout
+It manages windows in maximized, floating and tiled layouts. Either layout
 can be applied dynamically, optimizing the environment for the
 application in use and the task performed.
 .P
@@ -36,7 +36,7 @@ focuses window and raises it on top of the stack
 resizes window
 .SS Keyboard commands
 .TP
-.B Mod1\-Shift\-Return
+.B Mod1\-t
 Start
 .BR xterm.
 .TP
@@ -62,7 +62,13 @@ Focus previous window.
 Increases the master area width about 5% (tiled layout only).
 .TP
 .B Mod1\-m
-Toggles maximization of current window.
+Enable maximized (monocle) mode.
+.TP
+.B Mod1\-r
+Enable tiled mode.
+.TP
+.B Mod1\-f
+Enable floating mode.
 .TP
 .B Mod1\-Shift\-[1..n]
 Apply
