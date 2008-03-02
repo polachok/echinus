@@ -74,7 +74,7 @@ main(int argc, char *argv[]) {
 	XWindowAttributes wa;
 
 	if((argc > 1) && !strncmp(argv[1], "-v", 3)) {
-		fputs("lsw (C)opyright MMVI Anselm R. Garbe\n", stdout);
+		/*fputs("lsw (C)opyright MMVI Anselm R. Garbe\n", stdout);*/
 		exit(EXIT_SUCCESS);
 	}
 	if(!(dpy = XOpenDisplay(0))) {

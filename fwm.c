@@ -788,7 +788,9 @@ void
 expose(XEvent *e) {
 	XExposeEvent *ev = &e->xexpose;
     Client *c;
-	if((c=gettitle(ev->window))||(c=getclient(ev->window)))
+    if(ev->count != 0)
+        return;
+	if((c=gettitle(ev->window)))
         drawclient(c);
 }
 
@@ -1151,16 +1153,16 @@ manage(Window w, XWindowAttributes *wa) {
 		c->h = wa->height = ch;
         cx = cy = cw = ch = 0;
     }
-	else
-    {
-	c->x = wa->x;
-	c->y = wa->y;
-	c->w = wa->width;
-	c->h = wa->height;
-    }
+	else {
+        c->w = wa->width;
+        c->h = wa->height;
+        c->x = wa->x;
+        c->y = wa->y;
+	}
+    
     c->th = TITLEBARHEIGHT;
 	c->tx = c->x = wa->x;
-	c->ty = c->y - c->th;
+	c->ty = c->y - c->th-borderpx;
 	c->tw = c->w = wa->width;
 
 	c->oldborder = wa->border_width;
@@ -1292,7 +1294,7 @@ movemouse(Client *c) {
 			handler[ev.type](&ev);
 			break;
 		case MotionNotify:
-            drawclient(c);
+            resizetitle(c);
 			XSync(dpy, False);
 			nx = ocx + (ev.xmotion.x - x1);
 			ny = ocy + (ev.xmotion.y - y1);
@@ -1330,6 +1332,7 @@ propertynotify(XEvent *e) {
 	Window trans;
 	XPropertyEvent *ev = &e->xproperty;
 
+    
 	if(ev->state == PropertyDelete)
 		return; /* ignore */
 	if((c = getclient(ev->window))) {
@@ -1350,10 +1353,12 @@ propertynotify(XEvent *e) {
 				drawbar();
 		}
         if(ev->atom == dwmfocus) {
-                if(sel!=c){
+            if(c!=sel){
+                    saveconfig(sel);
+                    saveconfig(c);
                     focus(c);
                     arrange();
-                }
+            }
         }
     }
 }
@@ -1460,7 +1465,7 @@ resizemouse(Client *c) {
 			break;
 		case MotionNotify:
 			XSync(dpy, False);
-            drawclient(c);
+            resizetitle(c);
 			if((nw = ev.xmotion.x - ocx - 2 * c->border + 1) <= 0)
 				nw = 1;
 			if((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
@@ -1473,7 +1478,7 @@ resizemouse(Client *c) {
 
 void resizetitle(Client *c) {
 	c->tx = c->x;
-	c->ty = c->y-c->th;
+	c->ty = c->y-c->th-borderpx;
     c->tw = c->w;
 	XMoveResizeWindow(dpy, c->title, c->tx, c->ty, c->tw, c->th);
 }
@@ -1949,6 +1954,7 @@ toggleview(const char *arg) {
 	if(j == LENGTH(tags))
 		seltags[i] = True; /* at least one tag must be viewed */
 	arrange();
+    saveconfig(sel);
 }
 void
 focusview(const char *arg) {
@@ -1958,11 +1964,13 @@ focusview(const char *arg) {
 	i = idxoftag(arg);
 	if (!seltags[i])
 		return;
-	for(c = clients; c; c = c->next)
-    if (c->tags[i]) {
-            focus(c);
-			if((layout->arrange == floating) || c->isfloating)
-                arrange();
+	for(c = clients; c; c = c->next){
+        if (c->tags[i]) {
+                focus(c);
+                if((layout->arrange == floating) || c->isfloating)
+                    arrange();
+                return;
+        }
     }
 
 }
