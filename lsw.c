@@ -90,7 +90,7 @@ main(int argc, char *argv[]) {
 				continue;
 			if(getname(wins[i])){
 			if(buf[0])
-                printf("0x%0xd ", wins[i]);
+                printf("0x%0x ", wins[i]);
 				fprintf(stdout, "%s\n", buf);
             }
 		}

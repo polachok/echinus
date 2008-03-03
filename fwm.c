@@ -251,6 +251,7 @@ Bool dozoom = True;
 Bool otherwm;
 Bool running = True;
 Bool selscreen = True;
+Bool notitles = False;
 Client *clients = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
@@ -727,9 +728,13 @@ void drawclient(Client *c) {
     unsigned int opacity;
     if(!isvisible(c))
         return;
+    if(notitles){
+        XLowerWindow(dpy,c->title);
+        return;
+    }
     XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
 	XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->tw, c->th);
-    updatetitle(c);
+    resizetitle(c);
     dc.x = dc.y = 0;
     dc.w = c->w+borderpx;
     dc.h = c->th;
@@ -748,7 +753,7 @@ void drawclient(Client *c) {
                 XA_CARDINAL, 32, PropModeReplace, 
                 (unsigned char *) &opacity, 1L);
 	XFlush(dpy);
-	XMapWindow(dpy, c->title);
+    XMapWindow(dpy, c->title);
 }
 
 
@@ -812,6 +817,7 @@ initfont(const char *fontstr) {
 void
 floating(void) { /* default floating layout */
 	Client *c;
+    notitles = False;
 
 	domwfact = dozoom = False;
 	for(c = clients; c; c = c->next)
@@ -1256,6 +1262,7 @@ maprequest(XEvent *e) {
 void
 monocle(void) {
 	Client *c;
+    notitles = True;
 
 	for(c = clients; c; c = c->next)
 		if(isvisible(c)) {
@@ -1264,8 +1271,9 @@ monocle(void) {
 				continue;
             if(bpos == BarOff) 
                 resize(c, wax-c->border, way-2*c->border, waw, wah, False);
-            else 
-                resize(c, wax, 0, waw - 2*c->border, wah-1, False);
+            else {
+                resize(c, wax, way, waw - 2*c->border, wah-1, False);
+            }
 		}
 		else 
 			ban(c);
@@ -1879,7 +1887,7 @@ textw(const char *text) {
 void
 togglebar(const char *arg) {
 	if(bpos == BarOff)
-		bpos = (BARPOS == BarOff) ? BarBot : BARPOS;
+		bpos = (BARPOS == BarOff) ? BarTop : BARPOS;
 	else
 		bpos = BarOff;
 	updatebarpos();
@@ -2029,11 +2037,11 @@ updatebarpos(void) {
 	waw = sw;
 	switch(bpos) {
 	default:
-		wah -= bh;
-		way += bh;
+		wah -= BARHEIGHT;
+		way += BARHEIGHT;
 		break;
 	case BarBot:
-		wah -= bh;
+		wah -= BARHEIGHT;
 		break;
 	case BarOff:
 		break;
@@ -2098,7 +2106,7 @@ void
 updatetitle(Client *c) {
 	if(!gettextprop(c->win, netatom[NetWMName], c->name, sizeof c->name))
 		gettextprop(c->win, wmatom[WMName], c->name, sizeof c->name);
-    resizetitle(c);
+    drawclient(c);
 }
 
 /* There's no way to check accesses to destroyed windows, thus those cases are
