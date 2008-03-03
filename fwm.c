@@ -1272,7 +1272,7 @@ monocle(void) {
             if(bpos == BarOff) 
                 resize(c, wax-c->border, way-2*c->border, waw, wah, False);
             else {
-                resize(c, wax, way, waw - 2*c->border, wah-1, False);
+                resize(c, wax-c->border, way, waw, wah, False);
             }
 		}
 		else 
