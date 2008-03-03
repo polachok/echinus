@@ -5,7 +5,6 @@
 
 /* border width */
 #define BORDERPX		"1"
-#define TITLEBARHEIGHT 12
 /* You can use
  * Dwm.normal.border: #cccccc
  * Dwm.selected.border: #ff0000
@@ -34,7 +33,8 @@
 #define BRIGHTPIXMAP "min.xbm"
 #define BCENTERPIXMAP "min.xbm"
 
-#define BARHEIGHT 17
+#define BARHEIGHT 12
+#define TITLEBARHEIGHT 17
 
 #define NMASTER 1
 #define TERMINAL "urxvt -e screen"
@@ -65,8 +65,8 @@ Rule rules[] = { \
 #define SNAP			5	/* snap pixel */
 Layout layouts[] = {
 	/* symbol		function */
-	{ "~",		floating },
 	{ "=",		monocle }, /* first entry is default */
+	{ "~",		floating },
 	{ "#",		tile }, 
 };
 #define NMASTER 1
