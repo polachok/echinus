@@ -75,7 +75,7 @@ struct Client {
 	int minax, maxax, minay, maxay;
 	long flags;
 	unsigned int border, oldborder;
-	Bool isbanned, isfixed, ismax, isfloating, wasfloating;
+	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isiconified, hidetitle;
 	Bool *tags;
 	Client *next;
 	Client *prev;
@@ -728,13 +728,9 @@ void drawclient(Client *c) {
     unsigned int opacity;
     if(!isvisible(c))
         return;
-    if(notitles){
-        XLowerWindow(dpy,c->title);
-        return;
-    }
+    resizetitle(c);
     XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
 	XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->tw, c->th);
-    resizetitle(c);
     dc.x = dc.y = 0;
     dc.w = c->w+borderpx;
     dc.h = c->th;
@@ -823,6 +819,8 @@ floating(void) { /* default floating layout */
 	for(c = clients; c; c = c->next)
  		if(isvisible(c))
  		{
+            c->hidetitle=(NOTITLES ? True : False);
+            drawclient(c);
  			if(!c->isfloating && !wasfloating)
  				/*restore last known float dimensions*/
  				resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
@@ -1150,7 +1148,8 @@ manage(Window w, XWindowAttributes *wa) {
 	c = emallocz(sizeof(Client));
 	c->tags = emallocz(sizeof seltags);
 	c->win = w;
-    int di, dui;
+    int di;
+    unsigned int dui;
     if(!wa->x && !wa->y){
         XQueryPointer(dpy, root, &trans, &trans, &wa->x, &wa->y, &di, &di, &dui);
         wa->x-=wa->width/2 > sx ? wa->x-=wa->width/2: sx;
@@ -1202,6 +1201,7 @@ manage(Window w, XWindowAttributes *wa) {
 	c->sfy = c->y;
 	c->sfw = c->w;
 	c->sfh = c->h;
+    c->hidetitle = (NOTITLES ? True : False);
 	XSelectInput(dpy, w,
 		StructureNotifyMask | PropertyChangeMask | EnterWindowMask);
 	grabbuttons(c, False);
@@ -1262,10 +1262,10 @@ maprequest(XEvent *e) {
 void
 monocle(void) {
 	Client *c;
-    notitles = True;
-
 	for(c = clients; c; c = c->next)
 		if(isvisible(c)) {
+            if(!c->isfloating)
+                c->hidetitle=True;
 			unban(c);
 			if (c->isfloating)
 				continue;
@@ -1497,6 +1497,10 @@ void resizetitle(Client *c) {
 	c->tx = c->x;
 	c->ty = c->y-c->th;
     c->tw = c->w;
+    if(c->hidetitle){
+        XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
+        return;
+    }
 	XMoveResizeWindow(dpy, c->title, c->tx, c->ty, c->tw, c->th);
 }
 
@@ -1559,7 +1563,6 @@ run(void) {
 void
 saveconfig(Client *c) {
 	unsigned int i;
-    char name[255];
 
 	for(i = 0; i < LENGTH(tags) && i < sizeof prop - 3; i++)
 		prop[i] = c->tags[i] ? '1' : '0';
