@@ -79,9 +79,6 @@ Key keys[] = { \
 	{ MODKEY,		    XK_t,	spawn,		            "osdexec urxvt -e screen -U" }, \
 	{ MODKEY,		    XK_n,	spawn,	                    "exec np" }, \
 	{ MODKEY,		    XK_b,	togglebar,	            NULL }, \
-	{ 0,                        XF86XK_AudioNext,          spawn,       "exec `player-control -f`" }, \
-        { 0,                        XF86XK_AudioPrev,          spawn,       "exec `player-control -r`" }, \
-        { 0,                        XF86XK_AudioPlay,          spawn,       "exec `player-control -t`" }, \
 	{ MODKEY,		    XK_l,	spawn,		            "sleep 3 ; slock" }, \
 	{ MODKEY,		    XK_u,	spawn,		            "killall unclutter||unclutter -idle 1" }, \
 	{ MODKEY|ControlMask,	    XK_Delete,	spawn,		            "exec sudo /sbin/reboot" }, \

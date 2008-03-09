@@ -454,6 +454,12 @@ buttonpress(XEvent *e) {
         if((ev->x > c->tw-3*c->th) && (ev->x < c->tw-2*c->th)){
             /* min, not implemented */
             printf("minimize\n");
+            if(applyrules(c)){
+                arrange();
+                ban(c);
+            }
+            else
+                tag(tags[8]);
         }
         
         if((ev->x > c->tw-2*c->th) && (ev->x < c->tw-c->th)){
@@ -642,12 +648,21 @@ detachstack(Client *c) {
 
 void drawbar()
 {
-    return;
+    int i;
+    for(i = 0; i < LENGTH(tags); i++) {
+		dc.w = textw(tags[i]);
+		if(seltags[i]) {
+            printf("^fg(#425c90)%s^fg() ", tags[i]);
+		}
+		else {
+            printf("%s ", tags[i]);
+		}
+	}
     if(sel)
-    {
-        write(STDOUT_FILENO, sel->name, 100);
-        write(STDOUT_FILENO, "\n", 1);
-    }
+        printf("| %s\n", sel->name);
+    else
+        printf("\n");
+    fflush(stdin);
 }
 
 void
@@ -1362,8 +1377,6 @@ propertynotify(XEvent *e) {
 		}
 		if(ev->atom == XA_WM_NAME || ev->atom == netatom[NetWMName]) {
 			updatetitle(c);
-			if(c == sel)
-				drawbar();
 		}
         if(ev->atom == dwmfocus) {
                 if(c!=sel){
@@ -2110,6 +2123,7 @@ updatetitle(Client *c) {
 	if(!gettextprop(c->win, netatom[NetWMName], c->name, sizeof c->name))
 		gettextprop(c->win, wmatom[WMName], c->name, sizeof c->name);
     drawclient(c);
+    drawbar();
 }
 
 /* There's no way to check accesses to destroyed windows, thus those cases are
