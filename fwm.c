@@ -1478,7 +1478,7 @@ resizemouse(Client *c) {
 			None, cursor[CurResize], CurrentTime) != GrabSuccess)
 		return;
 	c->ismax = False;
-	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->border - 1, c->h + c->border - 1);
+	//XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->border - 1, c->h + c->border - 1);
 	for(;;) {
 		XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask , &ev);
 		switch(ev.type) {
@@ -1495,7 +1495,6 @@ resizemouse(Client *c) {
 			break;
 		case MotionNotify:
 			XSync(dpy, False);
-            resizetitle(c);
 			if((nw = ev.xmotion.x - ocx - 2 * c->border + 1) <= 0)
 				nw = 1;
 			if((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
