@@ -1496,9 +1496,9 @@ resizemouse(Client *c) {
 		case MotionNotify:
 			XSync(dpy, False);
 			if((nw = ev.xmotion.x - ocx - 2 * c->border + 1) <= 0)
-				nw = 1;
+				nw = MINWIDTH;
 			if((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
-				nh = 1;
+				nh = MINHEIGHT;
 			resize(c, c->x, c->y, nw, nh, True);
 			break;
 		}

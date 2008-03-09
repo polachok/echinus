@@ -37,6 +37,9 @@
 #define BRIGHTPIXMAP "min.xbm"
 #define BCENTERPIXMAP "min.xbm"
 
+#define MINWIDTH 10
+#define MINHEIGHT 10
+
 #define BARHEIGHT 12
 #define TITLEBARHEIGHT 12
 
