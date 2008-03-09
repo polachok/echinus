@@ -1,8 +1,10 @@
 /* See LICENSE file for copyright and license details. */
+/* to use multimedia keys */
 #include <X11/XF86keysym.h>
 /* appearance */
 #define BARPOS			BarOff /* BarTop, BarOff */
-
+/* disable titles here */
+#define NOTITLES 0
 /* border width */
 #define BORDERPX		"1"
 /* You can use
@@ -36,8 +38,10 @@
 #define BARHEIGHT 12
 #define TITLEBARHEIGHT 17
 
+/* initial value of windows in master area */
 #define NMASTER 1
-#define TERMINAL "urxvt -e screen"
+/* terminal to run with right click on root window */
+#define TERMINAL "urxvt"
 /* tagging */
 const char *tags[] = { "main", "web", "irc", "mail", "dev", "misc", "im", "gfx" };
 Bool seltags[LENGTH(tags)] = {[0] = True};
@@ -65,28 +69,25 @@ Rule rules[] = { \
 #define SNAP			5	/* snap pixel */
 Layout layouts[] = {
 	/* symbol		function */
-	{ "=",		monocle }, /* first entry is default */
 	{ "~",		floating },
+	{ "=",		monocle }, /* first entry is default */
 	{ "#",		tile }, 
 };
 #define NMASTER 1
 /* key definitions */
-#define MODKEY			Mod1Mask
+#define MODKEY			Mod1Mask /* alt key */
 #define KEYS \
 Key keys[] = { \
 	/* modifier			key		function	arguments */ \
 	/* { MODKEY,		    XK_t,	spawn,		            "osdexec urxvt" }, \ */ \
-	{ MODKEY,		    XK_t,	spawn,		            "osdexec urxvt -e screen -U" }, \
-	{ MODKEY,		    XK_n,	spawn,	                    "exec np" }, \
+	{ MODKEY,		    XK_t,	spawn,		            "exec urxvt" }, \
 	{ MODKEY,		    XK_b,	togglebar,	            NULL }, \
+    {  MODKEY,			XK_p,		spawn, \
+		"exe=`dmenu_path | dmenu -fn '"FONT"' -nb '"NORMBGCOLOR"' -nf '"NORMFGCOLOR"'" \
+		" -sb '"SELBGCOLOR"' -sf '"SELFGCOLOR"'` && exec $exe" }, \
 	{ MODKEY,		    XK_l,	spawn,		            "sleep 3 ; slock" }, \
-	{ MODKEY,		    XK_u,	spawn,		            "killall unclutter||unclutter -idle 1" }, \
 	{ MODKEY|ControlMask,	    XK_Delete,	spawn,		            "exec sudo /sbin/reboot" }, \
-	{ MODKEY,		    XK_y,	spawn,		            "ymenu" }, \
-	{ MODKEY,		    XK_h,	spawn,		            "ssh-ui" }, \
-    { MODKEY,                   XK_p,       spawn,                      "pmenu" }, \
     { MODKEY,                   XK_w,       spawn,                      "swarp 1280 900" }, \
-    { MODKEY,                   XK_r,       spawn,                      "gajim-remote toggle_roster_appearance" }, \
 	{ MODKEY,		    XK_f,	setlayout,	"~" }, \
 	{ MODKEY,		    XK_m,	setlayout,	"=" }, \
 	{ MODKEY,		    XK_r,	setlayout,	"#" }, \
