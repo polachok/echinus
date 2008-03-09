@@ -31,20 +31,24 @@
 #define SELBGCOLOR		"#0066ff"
 #define SELFGCOLOR		"#ffffff"
 
+
+/* buttons */
 #define BLEFTPIXMAP "min.xbm"
 #define BRIGHTPIXMAP "min.xbm"
 #define BCENTERPIXMAP "min.xbm"
 
 #define BARHEIGHT 12
-#define TITLEBARHEIGHT 17
+#define TITLEBARHEIGHT 12
 
-/* initial value of windows in master area */
+/* initial value of windows in master area (tiling layout) */
 #define NMASTER 1
 /* terminal to run with right click on root window */
 #define TERMINAL "urxvt"
 /* tagging */
 const char *tags[] = { "main", "web", "irc", "mail", "dev", "misc", "im", "gfx" };
 Bool seltags[LENGTH(tags)] = {[0] = True};
+/* Query class:instance:title for regex matching info with following command:
+ * xprop | awk -F '"' '/^WM_CLASS/ { printf("%s:%s:",$4,$2) }; /^WM_NAME/ { printf("%s\n",$2) }' */
 Rule rules[] = { \
 	/* class:instance:title regex	tags regex	isfloat */ \
     { "Firefox.*",          "web",      False }, \
