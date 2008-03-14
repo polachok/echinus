@@ -95,7 +95,7 @@ typedef struct {
 	GC gc;
         struct {
            XftFont *xftfont;
-           xglyphInfo *extents;
+           XGlyphInfo *extents;
 	   int height;
            int width;
 	} font;
