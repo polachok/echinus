@@ -1287,7 +1287,7 @@ monocle(void) {
                             if (c->isfloating)
                                     continue;
                 if(bpos == BarOff) 
-                    resize(c, wax-c->border, way-2*c->border, waw+c->border, wah+2*c->border, False);
+                    resize(c, sx, sy, sw, sh, False);
                 else {
                     resize(c, wax-c->border, way, waw, wah, False);
                 }
