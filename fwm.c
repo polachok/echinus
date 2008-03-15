@@ -1258,7 +1258,6 @@ manage(Window w, XWindowAttributes *wa) {
         drawclient(c);
         saveconfig(c);
         ewmh_update_net_client_list();
-        ewmh_check_client_hints(c);
 }
 
 void

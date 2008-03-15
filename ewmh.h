@@ -16,10 +16,6 @@ static Atom net_desktop_names;
 static Atom net_active_window;
 Atom net_wm_name;
 static Atom utf8_string;
-static Atom net_wm_state;
-static Atom net_wm_state_skip_taskbar;
-static Atom net_wm_window_type;
-static Atom net_wm_window_type_normal;
 
 typedef struct
 {
@@ -37,10 +33,6 @@ static AtomItem AtomNames[] =
     { "_NET_DESKTOP_NAMES", &net_desktop_names },
     { "_NET_ACTIVE_WINDOW", &net_active_window },
     { "_NET_WM_NAME", &net_wm_name },
-    { "_NET_WM_STATE", &net_wm_state },
-    { "_NET_WM_STATE_SKIP_TASKBAR", &net_wm_state_skip_taskbar },
-    { "_NET_WM_WINDOW_TYPE", &net_wm_window_type },
-    { "_NET_WM_WINDOW_TYPE_NORMAL", &net_wm_window_type_normal },
     { "UTF8_STRING", &utf8_string },
 };
 
@@ -75,11 +67,6 @@ ewmh_set_supported_hints() {
     atom[i++] = net_desktop_names;
     atom[i++] = net_active_window;
     atom[i++] = net_wm_name;
-    atom[i++] = net_wm_state;
-    atom[i++] = net_wm_state_skip_taskbar;
-    atom[i++] = net_wm_window_type;
-    atom[i++] = net_wm_window_type_normal;
-
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     net_supported, XA_ATOM, 32,
@@ -87,18 +74,6 @@ ewmh_set_supported_hints() {
 
 }
  
-static void
-ewmh_process_state_atom(Client *c, Atom state, int set) {
-   if(state == net_wm_state_skip_taskbar) {
-        if(set == _NET_WM_STATE_REMOVE) {
-            c->border = borderpx;
-        }
-        else if(set == _NET_WM_STATE_ADD) {
-            c->border = 0;
-        }
-    }
-}
-
 void
 ewmh_update_net_client_list() {
     Window *wins;
@@ -179,50 +154,8 @@ void
 ewmh_process_client_message(XEvent *e)
 {
     XClientMessageEvent *ev = &e->xclient;
-    Client *c;
-
-   if(ev->message_type == net_wm_state) {
-        if((c = getclient(ev->window))) {
-            ewmh_process_state_atom(c, (Atom) ev->data.l[1], ev->data.l[0]);
-            if(ev->data.l[2])
-                ewmh_process_state_atom(c, (Atom) ev->data.l[2], ev->data.l[0]);
-        }
+    if(ev->message_type == net_active_window) {
+       puts("oh fuck, somebody requested to activate a window");
+       puts("but this is not implemented! what's a pity");
     }
 }
-
-static void
-ewmh_process_window_type_atom(Client *c, Atom state) {
-    if(state == net_wm_window_type_normal) {
-        /* do nothing. this is REALLY IMPORTANT */
-    }
-}
-
-void
-ewmh_check_client_hints(Client *c)
-{
-    int format;
-    Atom real, *state;
-    unsigned char *data = NULL;
-    unsigned long i, n, extra;
-
-    if(XGetWindowProperty(dpy, c->win, net_wm_state, 0L, LONG_MAX, False,
-                          XA_ATOM, &real, &format, &n, &extra,
-                          (unsigned char **) &data) == Success && data)  {
-        state = (Atom *) data;
-        for(i = 0; i < n; i++)
-            ewmh_process_state_atom(c, state[i], _NET_WM_STATE_ADD);
-        XFree(data);
-    }
-
-    if(XGetWindowProperty(dpy, c->win, net_wm_window_type, 0L, LONG_MAX, False,
-                          XA_ATOM, &real, &format, &n, &extra,
-                          (unsigned char **) &data) == Success && data) {
-        state = (Atom *) data;
-        for(i = 0; i < n; i++)
-            ewmh_process_window_type_atom(c, state[i]);
-
-        XFree(data);
-    }
-}
-
-
