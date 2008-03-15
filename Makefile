@@ -34,15 +34,7 @@ fwm: ${OBJ}
 	@echo CC -o $@
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 
-lsw: 
-	@echo CC -o $@
-	@${CC} -o $@ lsw.c ${LDFLAGS}
-
-setfocus:
-	@echo CC -o $@
-	@${CC} -o $@ setfocus.c ${LDFLAGS}
-
-tools: lsw setfocus
+tools: lsw setfocus inf
 
 clean:
 	@echo cleaning
