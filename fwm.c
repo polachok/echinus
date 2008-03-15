@@ -54,7 +54,6 @@
 #define RESNAME                        "fwm"
 #define RESCLASS               "Fwm"
 #define OPAQUE	0xffffffff
-#define OPACITY	"_NET_WM_WINDOW_OPACITY"
 
 /* enums */
 enum { BarTop, BarBot, BarOff };			/* bar position */
@@ -763,12 +762,7 @@ void drawclient(Client *c) {
       opacity = OPAQUE;
     else
       opacity = (unsigned int) (0.9 * OPAQUE);
-    if (opacity == OPAQUE)
-        XDeleteProperty (dpy, c->win, XInternAtom(dpy, OPACITY, False));
-    else
-        XChangeProperty(dpy, c->win, XInternAtom(dpy, OPACITY, False), 
-                XA_CARDINAL, 32, PropModeReplace, 
-                (unsigned char *) &opacity, 1L);
+    ewmh_set_window_opacity(c, opacity);
     XFlush(dpy);
     XMapWindow(dpy, c->title);
 }

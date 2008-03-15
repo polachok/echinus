@@ -14,6 +14,7 @@ static Atom net_number_of_desktops;
 static Atom net_current_desktop;
 static Atom net_desktop_names;
 static Atom net_active_window;
+static Atom net_window_opacity;
 Atom net_wm_name;
 static Atom utf8_string;
 
@@ -33,6 +34,7 @@ static AtomItem AtomNames[] =
     { "_NET_DESKTOP_NAMES", &net_desktop_names },
     { "_NET_ACTIVE_WINDOW", &net_active_window },
     { "_NET_WM_NAME", &net_wm_name },
+    { "_NET_WM_WINDOW_OPACITY", &net_window_opacity },
     { "UTF8_STRING", &utf8_string },
 };
 
@@ -151,11 +153,20 @@ ewmh_update_net_active_window() {
 }
 
 void
-ewmh_process_client_message(XEvent *e)
-{
+ewmh_process_client_message(XEvent *e) {
     XClientMessageEvent *ev = &e->xclient;
     if(ev->message_type == net_active_window) {
        puts("oh fuck, somebody requested to activate a window");
        puts("but this is not implemented! what's a pity");
     }
+}
+
+void 
+ewmh_set_window_opacity(Client *c, unsigned int opacity) {
+    if (opacity == OPAQUE)
+        XDeleteProperty (dpy, c->win, net_window_opacity);
+    else
+        XChangeProperty(dpy, c->win, net_window_opacity, 
+                XA_CARDINAL, 32, PropModeReplace, 
+                (unsigned char *) &opacity, 1L);
 }
