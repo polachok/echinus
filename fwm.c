@@ -73,7 +73,7 @@ struct Client {
 	int minax, maxax, minay, maxay;
 	long flags;
 	unsigned int border, oldborder;
-	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isiconified, hastitle;
+	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isiconified, hastitle, hadtitle;
 	Bool *tags;
 	Client *next;
 	Client *prev;
@@ -291,7 +291,7 @@ applyrules(Client *c) {
 	for(i = 0; i < LENGTH(rules); i++)
 		if(regs[i].propregex && !regexec(regs[i].propregex, buf, 1, &tmp, 0)) {
 			c->isfloating = rules[i].isfloating;
-			c->hastitle = rules[i].hastitle;
+			c->hadtitle = rules[i].hastitle;
 			for(j = 0; regs[i].tagregex && j < LENGTH(tags); j++) {
 				if(!regexec(regs[i].tagregex, tags[j], 1, &tmp, 0)) {
 					matched = True;
@@ -836,6 +836,7 @@ floating(void) { /* default floating layout */
 	domwfact = dozoom = False;
 	for(c = clients; c; c = c->next){
             if(isvisible(c)) {
+                    c->hastitle=c->hadtitle;
                     drawclient(c);
                     if(!c->isfloating && !wasfloating)
                             /*restore last known float dimensions*/
@@ -1168,6 +1169,7 @@ manage(Window w, XWindowAttributes *wa) {
 	c->tags = emallocz(sizeof seltags);
 	c->win = w;
         c->hastitle = True;
+        c->hadtitle = True;
         int di;
         unsigned int dui;
         if(!wa->x && !wa->y){
@@ -1394,10 +1396,12 @@ propertynotify(XEvent *e) {
 
 void
 quit(const char *arg) {
-	running = False;
-    spawn("fwm");
+    if(arg){
+	execvp(cargv[0], cargv);
+	eprint("Can't exec: %s\n", strerror(errno));
+    }
+    running = False;
 }
-
 
 void
 resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
