@@ -1861,6 +1861,7 @@ tile(void) {
 	ny = way;
 	nw = 0; /* gcc stupidity requires this */
 	for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
+                c->hastitle = False;
 		c->ismax = False;
                 c->sfx = c->x;
                 c->sfy = c->y;
@@ -1878,8 +1879,8 @@ tile(void) {
                 else {  /* tile window */
                         if(i == nmaster) {
                                 ny = way;
-                                nx += mc->w + 2 * mc->border;
-                                nw = waw - nx - 2 * c->border;
+                                nx += mc->w + mc->border;
+                                nw = waw - nx - c->border;
                         }
                         if(i + 1 == n) /* remainder */
                                 nh = (way + wah) - ny - 2 * c->border;
