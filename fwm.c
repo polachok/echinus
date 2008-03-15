@@ -230,20 +230,6 @@ int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int bh, bpos;
 unsigned int blw = 0;
 unsigned int numlockmask = 0;
-void (*handler[LASTEvent]) (XEvent *) = {
-	[ButtonPress] = buttonpress,
-	[ConfigureRequest] = configurerequest,
-	[ConfigureNotify] = configurenotify,
-	[DestroyNotify] = destroynotify,
-	[EnterNotify] = enternotify,
-	[LeaveNotify] = leavenotify,
-	[Expose] = expose,
-	[KeyPress] = keypress,
-	[MappingNotify] = mappingnotify,
-	[MapRequest] = maprequest,
-	[PropertyNotify] = propertynotify,
-	[UnmapNotify] = unmapnotify
-};
 Atom wmatom[WMLast], dwmconfig,dwmfocus;
 static char prop[512];
 Bool domwfact = True;
@@ -268,6 +254,24 @@ XrmDatabase xrdb = NULL;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 #include "ewmh.h"
+
+void (*handler[LASTEvent]) (XEvent *) = {
+	[ButtonPress] = buttonpress,
+	[ConfigureRequest] = configurerequest,
+	[ConfigureNotify] = configurenotify,
+	[DestroyNotify] = destroynotify,
+	[EnterNotify] = enternotify,
+	[LeaveNotify] = leavenotify,
+	[Expose] = expose,
+	[KeyPress] = keypress,
+	[MappingNotify] = mappingnotify,
+	[MapRequest] = maprequest,
+	[PropertyNotify] = propertynotify,
+	[UnmapNotify] = unmapnotify,
+        [ClientMessage] = ewmh_process_client_message,
+};
+
+
 Bool prevtags[LENGTH(tags)];
 
 /* function implementations */
@@ -302,7 +306,7 @@ applyrules(Client *c) {
 	if(!matched) {
 		memcpy(c->tags, seltags, sizeof seltags);
         return 0;
-    }
+        }
     else
         return 1;
 }
@@ -1166,6 +1170,7 @@ manage(Window w, XWindowAttributes *wa) {
 	c = emallocz(sizeof(Client));
 	c->tags = emallocz(sizeof seltags);
 	c->win = w;
+        c->hastitle = True;
         int di;
         unsigned int dui;
         if(!wa->x && !wa->y){
@@ -1253,6 +1258,7 @@ manage(Window w, XWindowAttributes *wa) {
         drawclient(c);
         saveconfig(c);
         ewmh_update_net_client_list();
+        ewmh_check_client_hints(c);
 }
 
 void
@@ -1357,7 +1363,6 @@ propertynotify(XEvent *e) {
 	Client *c;
 	Window trans;
 	XPropertyEvent *ev = &e->xproperty;
-
     
 	if(ev->state == PropertyDelete)
 		return; /* ignore */
@@ -2135,12 +2140,12 @@ xerrorstart(Display *dsply, XErrorEvent *ee) {
 void
 view(const char *arg) {
 	unsigned int i;
-
 	memcpy(prevtags, seltags, sizeof seltags);
 	for(i = 0; i < LENGTH(tags); i++)
 		seltags[i] = (NULL == arg);
 	seltags[idxoftag(arg)] = True;
 	arrange();
+        ewmh_update_net_current_desktop();
 }
 
 void

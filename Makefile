@@ -9,7 +9,7 @@ TOOLSOBJ = ${TOOLS:.c=.o}
 OBJ = ${SRC:.c=.o}
 HOM = `echo ${HOME}|sed 's.\/.\\\/.g'`
 
-all: options fwm tools
+all: clean options fwm tools
 
 options:
 	@echo fwm build options:
