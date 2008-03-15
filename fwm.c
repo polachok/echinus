@@ -148,6 +148,7 @@ void detach(Client *c);
 void detachstack(Client *c);
 void drawbar(void);
 void drawclient(Client *c);
+void drawtext(const char *text, unsigned long col[ColLast], Bool center);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
@@ -346,6 +347,7 @@ ban(Client *c) {
 	XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
 	c->isbanned = True;
 }
+
 void
 drawmouse(XEvent *e) {
     /* it's ugly, i know */
@@ -755,13 +757,14 @@ void drawclient(Client *c) {
     dc.w = c->w+borderpx;
     dc.h = c->th;
     drawtext(c->name, c == sel ? dc.sel : dc.norm, False);
-    drawbuttons(c);
+    if(c->tw>=6*c->th)
+        drawbuttons(c);
     XCopyArea(dpy, dc.drawable, c->title, dc.gc,
 			0, 0, c->tw, c->th+2*borderpx, 0, 0);
     if (c==sel)
       opacity = OPAQUE;
     else
-      opacity = (unsigned int) (0.9 * OPAQUE);
+      opacity = (unsigned int) (uf_opacity * OPAQUE);
     ewmh_set_window_opacity(c, opacity);
     XFlush(dpy);
     XMapWindow(dpy, c->title);
@@ -1768,7 +1771,7 @@ setup(void) {
         initfont(FONT);
         borderpx = atoi(getresource("border", BORDERPX));
         sprintf(tmp, "%s", getresource("opacity", NF_OPACITY));
-        uf_opacity = strtof(tmp,tmp+strlen(tmp));
+        uf_opacity = strtof(tmp,NULL);
 
         dc.h = TITLEBARHEIGHT;
 
