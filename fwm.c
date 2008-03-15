@@ -60,7 +60,6 @@
 enum { BarTop, BarBot, BarOff };			/* bar position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColLast };		/* color */
-enum { NetSupported, NetWMName, NetLast };		/* EWMH atoms */
 enum { WMProtocols, WMDelete, WMName, WMState, WMLast };/* default atoms */
 
 /* typedefs */
@@ -245,7 +244,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[PropertyNotify] = propertynotify,
 	[UnmapNotify] = unmapnotify
 };
-Atom wmatom[WMLast], netatom[NetLast], dwmconfig,dwmfocus;
+Atom wmatom[WMLast], dwmconfig,dwmfocus;
 static char prop[512];
 Bool domwfact = True;
 Bool dozoom = True;
@@ -268,7 +267,7 @@ Regs *regs = NULL;
 XrmDatabase xrdb = NULL;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
-
+#include "ewmh.h"
 Bool prevtags[LENGTH(tags)];
 
 /* function implementations */
@@ -864,6 +863,7 @@ focus(Client *c) {
 		grabbuttons(c, True);
 	}
 	sel = c;
+        ewmh_update_net_active_window();
 	drawbar();
 	if(!selscreen)
 		return;
@@ -1252,6 +1252,7 @@ manage(Window w, XWindowAttributes *wa) {
         arrange();
         drawclient(c);
         saveconfig(c);
+        ewmh_update_net_client_list();
 }
 
 void
@@ -1372,7 +1373,7 @@ propertynotify(XEvent *e) {
 				updatesizehints(c);
 				break;
 		}
-		if(ev->atom == XA_WM_NAME || ev->atom == netatom[NetWMName]) {
+		if(ev->atom == XA_WM_NAME || ev->atom == net_wm_name) {
 			updatetitle(c);
 		}
         if(ev->atom == dwmfocus) {
@@ -1572,6 +1573,7 @@ run(void) {
 void
 saveconfig(Client *c) {
 	unsigned int i;
+        ewmh_update_net_current_desktop();
 
 	for(i = 0; i < LENGTH(tags) && i < sizeof prop - 3; i++)
 		prop[i] = c->tags[i] ? '1' : '0';
@@ -1699,11 +1701,14 @@ setup(void) {
 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 	wmatom[WMName] = XInternAtom(dpy, "WM_NAME", False);
 	wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
-	netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
-	netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
-	XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32,
-			PropModeReplace, (unsigned char *) netatom, NetLast);
-
+	//netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
+	//netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
+	//XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32,
+	//		PropModeReplace, (unsigned char *) netatom, NetLast);
+        ewmh_init_atoms();
+        ewmh_set_supported_hints();
+        ewmh_update_net_numbers_of_desktop();
+        ewmh_update_net_desktop_names();
 	/* init cursors */
 	cursor[CurNormal] = XCreateFontCursor(dpy, XC_left_ptr);
 	cursor[CurResize] = XCreateFontCursor(dpy, XC_sizing);
@@ -2089,7 +2094,7 @@ updatesizehints(Client *c) {
 
 void
 updatetitle(Client *c) {
-	if(!gettextprop(c->win, netatom[NetWMName], c->name, sizeof c->name))
+	if(!gettextprop(c->win, net_wm_name, c->name, sizeof c->name))
 		gettextprop(c->win, wmatom[WMName], c->name, sizeof c->name);
         drawclient(c);
         drawbar();
