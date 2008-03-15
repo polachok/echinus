@@ -7,6 +7,8 @@
 #define NOTITLES 0
 /* border width */
 #define BORDERPX		"1"
+/* opacity for windows not in focus */
+#define NF_OPACITY "0.9"
 /* You can use
  * Dwm.normal.border: #cccccc
  * Dwm.selected.border: #ff0000

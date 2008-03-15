@@ -220,7 +220,7 @@ char **cargv;
 char **environ;
 Bool wasfloating = True;
 double mwfact;
-
+float uf_opacity;
 int screen, sx, sy, sw, sh, wax, way, waw, wah;
 int borderpx;
 int cx, cy, cw, ch;
@@ -1690,6 +1690,7 @@ setup(void) {
 	Window w;
 	XModifierKeymap *modmap;
 	XSetWindowAttributes wa;
+        char tmp[64];
 
 
 	/* init atoms */
@@ -1766,6 +1767,8 @@ setup(void) {
              eprint("error, cannot allocate colors\n");
         initfont(FONT);
         borderpx = atoi(getresource("border", BORDERPX));
+        sprintf(tmp, "%s", getresource("opacity", NF_OPACITY));
+        uf_opacity = strtof(tmp,tmp+strlen(tmp));
 
         dc.h = TITLEBARHEIGHT;
 

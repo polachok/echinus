@@ -8,3 +8,4 @@ Fwm*border: 1
 Fwm*button.left.pixmap: HOME/.fwm/iconify.xbm
 Fwm*button.center.pixmap: HOME/.fwm/max.xbm
 Fwm*button.right.pixmap: HOME/.fwm/close.xbm
+Fwm*opacity: 0.9
