@@ -16,6 +16,7 @@ static Atom net_desktop_names;
 static Atom net_active_window;
 static Atom net_window_opacity;
 Atom net_wm_name;
+Atom net_wm_desktop;
 static Atom utf8_string;
 
 typedef struct
@@ -34,6 +35,7 @@ static AtomItem AtomNames[] =
     { "_NET_DESKTOP_NAMES", &net_desktop_names },
     { "_NET_ACTIVE_WINDOW", &net_active_window },
     { "_NET_WM_NAME", &net_wm_name },
+    { "_NET_WM_DESKTOP", &net_wm_desktop },
     { "_NET_WM_WINDOW_OPACITY", &net_window_opacity },
     { "UTF8_STRING", &utf8_string },
 };
@@ -121,6 +123,21 @@ ewmh_update_net_current_desktop() {
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     net_current_desktop, XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &count, 1);
+}
+
+void
+ewmh_update_net_wm_desktop(Client *c) {
+    CARD32 count = 0;
+    int i;
+
+    for(i = 0; i < LENGTH(tags); i++)
+        if(c->tags[i]){
+            count=i;
+            break;
+        }
+
+    XChangeProperty(dpy, c->win,
+                    net_wm_desktop, XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &count, 1);
 }
 
 void

@@ -1579,6 +1579,7 @@ void
 saveconfig(Client *c) {
 	unsigned int i;
         ewmh_update_net_current_desktop();
+        ewmh_update_net_wm_desktop(c);
 
 	for(i = 0; i < LENGTH(tags) && i < sizeof prop - 3; i++)
 		prop[i] = c->tags[i] ? '1' : '0';
