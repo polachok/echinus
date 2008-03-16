@@ -206,7 +206,6 @@ void focusview(const char *arg);
 void saveconfig(Client *c);
 void unban(Client *c);
 void unmanage(Client *c);
-void unmapnotify(XEvent *e);
 void updatebarpos(void);
 void updatesizehints(Client *c);
 void updatetitle(Client *c);
@@ -231,8 +230,7 @@ int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int bh, bpos;
 unsigned int blw = 0;
 unsigned int numlockmask = 0;
-Atom wmatom[WMLast], dwmconfig,dwmfocus;
-static char prop[512];
+Atom wmatom[WMLast];
 Bool domwfact = True;
 Bool dozoom = True;
 Bool otherwm;
@@ -268,7 +266,6 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[MappingNotify] = mappingnotify,
 	[MapRequest] = maprequest,
 	[PropertyNotify] = propertynotify,
-	[UnmapNotify] = unmapnotify,
         [ClientMessage] = ewmh_process_client_message,
 };
 
@@ -1163,7 +1160,6 @@ manage(Window w, XWindowAttributes *wa) {
 	Status rettrans;
 	XWindowChanges wc;
 	XSetWindowAttributes twa;
-        Bool r = False;
 
 	c = emallocz(sizeof(Client));
 	c->tags = emallocz(sizeof seltags);
@@ -1245,19 +1241,19 @@ manage(Window w, XWindowAttributes *wa) {
 		for(t = clients; t && t->win != trans; t = t->next);
 	if(t)
 		memcpy(c->tags, t->tags, sizeof seltags);
-	r=applyrules(c);
+	applyrules(c);
 	if(!c->isfloating)
 		c->isfloating = (rettrans == Success) || c->isfixed;
 	attach(c);
 	attachstack(c);
 	XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h); /* some windows require this */
-	ban(c);
 	XMapWindow(dpy, c->win);
 	setclientstate(c, NormalState);
         arrange();
         drawclient(c);
-        saveconfig(c);
+	ban(c);
         ewmh_update_net_client_list();
+        ewmh_update_net_window_desktop(c);
 }
 
 void
@@ -1280,6 +1276,7 @@ maprequest(XEvent *e) {
 		return;
 	if(!getclient(ev->window))
 		manage(ev->window, &wa);
+        arrange();
 }
 
 void
@@ -1380,18 +1377,6 @@ propertynotify(XEvent *e) {
 		if(ev->atom == XA_WM_NAME || ev->atom == net_wm_name) {
 			updatetitle(c);
 		}
-        if(ev->atom == dwmfocus) {
-                if(c!=sel){
-                    int i;
-                    puts("focus change requested");
-                    for(i=0; i<LENGTH(tags); i++)
-                        if(c->tags[i])
-                            seltags[i]=True;
-                    focus(c);
-                    arrange();
-                    XDeleteProperty(dpy, c->win, dwmfocus);
-                }
-        }
     }
 }
 
@@ -1577,23 +1562,6 @@ run(void) {
 }
 
 void
-saveconfig(Client *c) {
-	unsigned int i;
-        ewmh_update_net_current_desktop();
-        ewmh_update_net_wm_desktop(c);
-
-	for(i = 0; i < LENGTH(tags) && i < sizeof prop - 3; i++)
-		prop[i] = c->tags[i] ? '1' : '0';
-        prop[i++]='|';
-	if(i < sizeof prop - 2)
-		prop[i++] = isvisible(c) ? '1' : '0';
-        if(i < sizeof prop - 1)
-		prop[i++] = (c==sel) ? '1' : '0';
-	prop[i] = '\0';
-	XChangeProperty(dpy, c->win, dwmconfig, XA_STRING, 8,
-			PropModeReplace, (unsigned char *)prop, i);
-}
-void
 scan(void) {
 	unsigned int i, num;
 	Window *wins, d1, d2;
@@ -1703,8 +1671,6 @@ setup(void) {
 
 
 	/* init atoms */
-	dwmconfig = XInternAtom(dpy, "_DWM_CONFIG", False);
-	dwmfocus = XInternAtom(dpy, "_DWM_FOCUS", False);
 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 	wmatom[WMName] = XInternAtom(dpy, "WM_NAME", False);
@@ -1838,7 +1804,7 @@ tag(const char *arg) {
 		sel->tags[i] = (NULL == arg);
 	sel->tags[idxoftag(arg)] = True;
 	arrange();
-        saveconfig(sel);
+        ewmh_update_net_window_desktop(sel);
 }
 
 void
@@ -1939,7 +1905,6 @@ togglefloating(const char *arg) {
 		sel->sfh = sel->h;
 	}
 	arrange();
-        saveconfig(sel);
 }
 
 void
@@ -1954,7 +1919,6 @@ toggletag(const char *arg) {
 	if(j == LENGTH(tags))
 		sel->tags[i] = True; /* at least one tag must be enabled */
 	arrange();
-        saveconfig(sel);
 }
 
 void
@@ -1967,7 +1931,6 @@ toggleview(const char *arg) {
 	if(j == LENGTH(tags))
 		seltags[i] = True; /* at least one tag must be viewed */
 	arrange();
-        saveconfig(sel);
 }
 void
 focusview(const char *arg) {
@@ -2018,12 +1981,6 @@ unmanage(Client *c) {
 	XSetErrorHandler(xerror);
 	XUngrabServer(dpy);
 	arrange();
-}
-
-void
-unmapnotify(XEvent *e) {
-	Client *c;
-	XUnmapEvent *ev = &e->xunmap;
 }
 
 void
