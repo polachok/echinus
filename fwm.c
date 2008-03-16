@@ -75,6 +75,7 @@ struct Client {
 	unsigned int border, oldborder;
 	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isiconified, hastitle, hadtitle;
 	Bool *tags;
+        Bool skip;
 	Client *next;
 	Client *prev;
 	Client *snext;
@@ -315,11 +316,12 @@ void
 arrange(void) {
 	Client *c;
 
-	for(c = clients; c; c = c->next)
+	for(c = clients; c; c = c->next){
 		if(isvisible(c))
 			unban(c);
 		else
 			ban(c);
+        }
 	layout->arrange();
 	focus(NULL);
 	restack();
@@ -343,8 +345,9 @@ void
 ban(Client *c) {
 	if(c->isbanned)
 		return;
-	XMoveWindow(dpy, c->win, c->x + 2 * sw, c->y);
-	XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
+        XUnmapWindow(dpy, c->win);
+        XUnmapWindow(dpy, c->title);
+        setclientstate(c, IconicState);
 	c->isbanned = True;
 }
 
@@ -836,6 +839,7 @@ floating(void) { /* default floating layout */
 	domwfact = dozoom = False;
 	for(c = clients; c; c = c->next){
             if(isvisible(c)) {
+                unban(c);
                     c->hastitle=c->hadtitle;
                     drawclient(c);
                     if(!c->isfloating && !wasfloating)
@@ -844,6 +848,8 @@ floating(void) { /* default floating layout */
  			else
                             resize(c, c->x, c->y, c->w, c->h, False);
             }
+            else
+                ban(c);
         }
     wasfloating = True;
 }
@@ -859,7 +865,7 @@ focus(Client *c) {
 		XSetWindowBorder(dpy, sel->win, dc.norm[ColBorder]);
 		XSetWindowBorder(dpy, sel->title, dc.norm[ColBorder]);
 	}
-	if(c) {
+	if(c && !c->skip) {
 		detachstack(c);
 		attachstack(c);
 		grabbuttons(c, True);
@@ -1214,6 +1220,7 @@ manage(Window w, XWindowAttributes *wa) {
 			c->y = way;
 		c->border = borderpx;
 	}
+        ewmh_process_window_type_atom(c);
 	wc.border_width = c->border;
 	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
 	XSetWindowBorder(dpy, w, dc.norm[ColBorder]);
@@ -1257,6 +1264,7 @@ manage(Window w, XWindowAttributes *wa) {
         drawclient(c);
         saveconfig(c);
         ewmh_update_net_client_list();
+
 }
 
 void
@@ -1990,8 +1998,9 @@ void
 unban(Client *c) {
 	if(!c->isbanned)
 		return;
-	XMoveWindow(dpy, c->win, c->x, c->y);
-	XMoveWindow(dpy, c->title, c->tx, c->ty);
+	XMapWindow(dpy, c->win);
+	XMapWindow(dpy, c->title);
+        setclientstate(c, NormalState);
 	c->isbanned = False;
 }
 
@@ -2022,9 +2031,6 @@ void
 unmapnotify(XEvent *e) {
 	Client *c;
 	XUnmapEvent *ev = &e->xunmap;
-
-	if((c = getclient(ev->window)))
-		unmanage(c);
 }
 
 void

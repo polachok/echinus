@@ -15,6 +15,8 @@ static Atom net_current_desktop;
 static Atom net_desktop_names;
 static Atom net_active_window;
 static Atom net_window_opacity;
+static Atom net_wm_window_type;
+static Atom net_wm_window_type_dock;
 Atom net_wm_name;
 Atom net_wm_desktop;
 static Atom utf8_string;
@@ -37,6 +39,8 @@ static AtomItem AtomNames[] =
     { "_NET_WM_NAME", &net_wm_name },
     { "_NET_WM_DESKTOP", &net_wm_desktop },
     { "_NET_WM_WINDOW_OPACITY", &net_window_opacity },
+    { "_NET_WM_WINDOW_TYPE", &net_wm_window_type },
+    { "_NET_WM_WINDOW_TYPE_DOCK", &net_wm_window_type_dock },
     { "UTF8_STRING", &utf8_string },
 };
 
@@ -71,6 +75,8 @@ ewmh_set_supported_hints() {
     atom[i++] = net_desktop_names;
     atom[i++] = net_active_window;
     atom[i++] = net_wm_name;
+    atom[i++] = net_wm_window_type;
+    atom[i++] = net_wm_window_type_dock;
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     net_supported, XA_ATOM, 32,
@@ -142,17 +148,16 @@ ewmh_update_net_wm_desktop(Client *c) {
 
 void
 ewmh_update_net_desktop_names() {
-    char buf[1024], *pos;
+    char buf[1024];
+    int pos=0;
     ssize_t len, curr_size;
     int i;
 
-    pos = buf;
+    //pos = buf;
     len = 0;
     for(i = 0; i < LENGTH(tags); i++) {
-        curr_size = strlen(tags[i]);
-        strncpy(pos, tags[i], strlen(tags[i])*sizeof(char));
-        pos += curr_size + 1;
-        len += curr_size + 1;
+        snprintf(buf+pos, strlen(tags[i]), "%s ", tags[i]);
+        pos += strlen(tags[i])+1;
     }
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
@@ -186,4 +191,27 @@ ewmh_set_window_opacity(Client *c, unsigned int opacity) {
         XChangeProperty(dpy, c->win, net_window_opacity, 
                 XA_CARDINAL, 32, PropModeReplace, 
                 (unsigned char *) &opacity, 1L);
+}
+
+
+static void
+ewmh_process_window_type_atom(Client *c)
+{
+    Atom real, *state;
+    int format;
+    unsigned char *data = NULL;
+    unsigned long i, n, extra;
+    if(XGetWindowProperty(dpy, c->win, net_wm_window_type, 0L, LONG_MAX, False,
+                          XA_ATOM, &real, &format, &n, &extra,
+                          (unsigned char **) &data) == Success && data)
+        state = (Atom *) data;
+        for(i = 0; i < n; i++){
+            if(state[i] == net_wm_window_type_dock)
+            {
+                c->border = 0;
+                c->skip = True;
+                c->isfixed = True;
+                c->isfloating = True;
+            }
+        }
 }
