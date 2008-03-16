@@ -156,6 +156,7 @@ void eprint(const char *errstr, ...);
 void expose(XEvent *e);
 void floating(void); /* default floating layout */
 void focus(Client *c);
+void focusin(XEvent *e);
 void focusnext(const char *arg);
 void focusprev(const char *arg);
 Client *getclient(Window w);
@@ -266,6 +267,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[MappingNotify] = mappingnotify,
 	[MapRequest] = maprequest,
 	[PropertyNotify] = propertynotify,
+	[FocusIn] = focusin,
         [ClientMessage] = ewmh_process_client_message,
 };
 
@@ -273,6 +275,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 Bool prevtags[LENGTH(tags)];
 
 /* function implementations */
+
 int
 applyrules(Client *c) {
 	static char buf[512];
@@ -398,6 +401,24 @@ drawmouse(XEvent *e) {
             }
     }
 }
+
+void
+focusin(XEvent *e) {
+    /* a hack to make pypanel work
+     * pypanel is EWMH incompliant
+     * but people want it (:
+     */
+
+    Client *c;
+    XFocusChangeEvent *ev = &e->xfocus;
+    if (ev->type == FocusIn){
+        c = getclient(ev->window);
+        if(c!=sel)
+            focus(c);
+        arrange();
+    }
+}
+
 void
 buttonpress(XEvent *e) {
     Client *c;
@@ -1221,7 +1242,7 @@ manage(Window w, XWindowAttributes *wa) {
 	c->sfw = c->w;
 	c->sfh = c->h;
 	XSelectInput(dpy, w,
-		StructureNotifyMask | PropertyChangeMask | EnterWindowMask);
+		StructureNotifyMask | PropertyChangeMask | EnterWindowMask | FocusChangeMask);
 	grabbuttons(c, False);
         twa.override_redirect = 1;
 	twa.background_pixmap = ParentRelative;
@@ -1674,14 +1695,12 @@ setup(void) {
 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 	wmatom[WMName] = XInternAtom(dpy, "WM_NAME", False);
 	wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
-	//netatom[NetSupported] = XInternAtom(dpy, "_NET_SUPPORTED", False);
-	//netatom[NetWMName] = XInternAtom(dpy, "_NET_WM_NAME", False);
-	//XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32,
-	//		PropModeReplace, (unsigned char *) netatom, NetLast);
+        /* init EWMH atoms */
         ewmh_init_atoms();
         ewmh_set_supported_hints();
         ewmh_update_net_numbers_of_desktop();
         ewmh_update_net_desktop_names();
+        ewmh_update_net_current_desktop();
 	/* init cursors */
 	cursor[CurNormal] = XCreateFontCursor(dpy, XC_left_ptr);
 	cursor[CurResize] = XCreateFontCursor(dpy, XC_sizing);
@@ -1768,6 +1787,7 @@ setup(void) {
 
 	/* multihead support */
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
+
 }
 
 void
