@@ -4,12 +4,10 @@
 include config.mk
 
 SRC = fwm.c
-TOOLS = lsw. setfocus.c
-TOOLSOBJ = ${TOOLS:.c=.o}
 OBJ = ${SRC:.c=.o}
 HOM = `echo ${HOME}|sed 's.\/.\\\/.g'`
 
-all: clean options fwm tools
+all: clean options fwm 
 
 options:
 	@echo fwm build options:
@@ -34,11 +32,9 @@ fwm: ${OBJ}
 	@echo CC -o $@
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 
-tools: lsw setfocus inf
-
 clean:
 	@echo cleaning
-	@rm -f fwm setfocus lsw ${OBJ} dwm-${VERSION}.tar.gz
+	@rm -f fwm ${OBJ} fwm-${VERSION}.tar.gz
 
 dist: clean
 	@echo creating dist tarball
