@@ -202,24 +202,20 @@ ewmh_set_window_opacity(Client *c, unsigned int opacity) {
 }
 
 
-static void
-ewmh_process_window_type_atom(Client *c)
+static int
+ewmh_process_window_type_atom(Window win)
 {
     Atom real, *state;
     int format;
     unsigned char *data = NULL;
     unsigned long i, n, extra;
-    if(XGetWindowProperty(dpy, c->win, net_wm_window_type, 0L, LONG_MAX, False,
+    if(XGetWindowProperty(dpy, win, net_wm_window_type, 0L, LONG_MAX, False,
                           XA_ATOM, &real, &format, &n, &extra,
                           (unsigned char **) &data) == Success && data)
         state = (Atom *) data;
         for(i = 0; i < n; i++){
             if(state[i] == net_wm_window_type_dock)
-            {
-                c->border = 0;
-                c->skip = True;
-                c->isfixed = True;
-                c->isfloating = True;
-            }
+                            return 0;
         }
+    return 1;
 }

@@ -9,7 +9,7 @@
  * Calls to fetch an X event from the event queue are blocking.  Due reading
  * status text from standard input, a select()-driven main loop has been
  * implemented which selects for reads on the X connection and STDIN_FILENO to
- * handle all data smoothly. The event handlers of fwm are organized in an
+ * handle all data smoothly. The event handlers of echinus are organized in an
  * array which is accessed whenever a new event has been fetched. This allows
  * event dispatching in O(1) time.
  *
@@ -51,7 +51,7 @@
 #define CLEANMASK(mask)		(mask & ~(numlockmask | LockMask))
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
 #define LENGTH(x)		(sizeof x / sizeof x[0])
-#define RESNAME                        "fwm"
+#define RESNAME                        "echinus"
 #define RESCLASS               "Fwm"
 #define OPAQUE	0xffffffff
 
@@ -515,7 +515,7 @@ checkotherwm(void) {
 	XSelectInput(dpy, root, SubstructureRedirectMask);
 	XSync(dpy, False);
 	if(otherwm)
-		eprint("fwm: another window manager is already running\n");
+		eprint("echinus: another window manager is already running\n");
 	XSync(dpy, False);
 	XSetErrorHandler(NULL);
 	xerrorxlib = XSetErrorHandler(xerror);
@@ -741,7 +741,7 @@ Pixmap initpixmap(const char *file) {
     if(BitmapSuccess == XReadBitmapFile(dpy, root, file, &pw, &ph, &pmap, &px, &py))
         return pmap;
     else
-        eprint("fwm: cannot load button pixmaps, check your ~/.fwmrc\n");
+        eprint("echinus: cannot load button pixmaps, check your ~/.echinusrc\n");
     return 0;
 }
 
@@ -1231,7 +1231,7 @@ manage(Window w, XWindowAttributes *wa) {
 			c->y = way;
 		c->border = borderpx;
 	}
-        ewmh_process_window_type_atom(c);
+        //ewmh_process_window_type_atom(c);
 	wc.border_width = c->border;
 	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
 	XSetWindowBorder(dpy, w, dc.norm[ColBorder]);
@@ -1294,8 +1294,12 @@ maprequest(XEvent *e) {
 		return;
 	if(wa.override_redirect)
 		return;
-	if(!getclient(ev->window))
+	if(!getclient(ev->window)){
+            if(ewmh_process_window_type_atom(ev->window))
 		manage(ev->window, &wa);
+            else
+                XMapWindow(dpy, ev->window); // _NET_WINDOW_TYPE_DOCK
+        }
         arrange();
 }
 
@@ -1732,10 +1736,10 @@ setup(void) {
         /* init resource database */
         XrmInitialize();
         char conf[255];
-        sprintf(conf, "%s/%s",getenv("HOME"),".fwmrc");
+        sprintf(conf, "%s/%s",getenv("HOME"),".echinusrc");
         xrdb = XrmGetFileDatabase(conf);
         if(!xrdb)
-            eprint("fwm: cannot open configuration file\n");
+            eprint("echinus: cannot open configuration file\n");
 
 	/* grab keys */
 	keypress(NULL);
@@ -1805,7 +1809,7 @@ spawn(const char *arg) {
 				close(ConnectionNumber(dpy));
 			setsid();
 			execl(shell, shell, "-c", arg, (char *)NULL);
-			fprintf(stderr, "fwm: execl '%s -c %s'", shell, arg);
+			fprintf(stderr, "echinus: execl '%s -c %s'", shell, arg);
 			perror(" failed");
 		}
 		exit(0);
@@ -2099,7 +2103,7 @@ xerror(Display *dpy, XErrorEvent *ee) {
 	|| (ee->request_code == X_GrabKey && ee->error_code == BadAccess)
 	|| (ee->request_code == X_CopyArea && ee->error_code == BadDrawable))
 		return 0;
-	fprintf(stderr, "fwm: fatal error: request code=%d, error code=%d\n",
+	fprintf(stderr, "echinus: fatal error: request code=%d, error code=%d\n",
 		ee->request_code, ee->error_code);
 	return xerrorxlib(dpy, ee); /* may call exit */
 }
@@ -2156,14 +2160,14 @@ zoom(const char *arg) {
 int
 main(int argc, char *argv[]) {
 	if(argc == 2 && !strcmp("-v", argv[1]))
-		eprint("fwm-"VERSION", © 2006-2008 Anselm R. Garbe, Sander van Dijk, "
+		eprint("echinus-"VERSION", © 2006-2008 Anselm R. Garbe, Sander van Dijk, "
 		       "Jukka Salmi, Premysl Hruby, Szabolcs Nagy, Alexander Polakov\n");
 	else if(argc != 1)
-		eprint("usage: fwm [-v]\n");
+		eprint("usage: echinus [-v]\n");
 
 	setlocale(LC_CTYPE, "");
 	if(!(dpy = XOpenDisplay(0)))
-		eprint("fwm: cannot open display\n");
+		eprint("echinus: cannot open display\n");
         cargv = argv;
 	screen = DefaultScreen(dpy);
 	root = RootWindow(dpy, screen);
