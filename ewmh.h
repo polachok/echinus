@@ -148,17 +148,21 @@ ewmh_update_net_wm_desktop(Client *c) {
 
 void
 ewmh_update_net_desktop_names() {
-    char buf[1024];
-    int pos=0;
+    char buf[1024], *pos;
     ssize_t len, curr_size;
     int i;
 
-    //pos = buf;
+    pos = buf;
     len = 0;
-    for(i = 0; i < LENGTH(tags); i++) {
-        snprintf(buf+pos, strlen(tags[i]), "%s ", tags[i]);
-        pos += strlen(tags[i])+1;
+    for(i = 0; i < LENGTH(tags); i++)
+    {
+        curr_size = strlen(tags[i]);
+        strcpy(pos, tags[i]);
+        pos += curr_size;
+        strcpy(pos, "\0");
+        pos++;
     }
+    len = pos - buf;
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     net_desktop_names, utf8_string, 8, PropModeReplace, (unsigned char *) buf, len);

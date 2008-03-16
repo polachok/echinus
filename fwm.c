@@ -839,7 +839,6 @@ floating(void) { /* default floating layout */
 	domwfact = dozoom = False;
 	for(c = clients; c; c = c->next){
             if(isvisible(c)) {
-                unban(c);
                     c->hastitle=c->hadtitle;
                     drawclient(c);
                     if(!c->isfloating && !wasfloating)
@@ -848,8 +847,6 @@ floating(void) { /* default floating layout */
  			else
                             resize(c, c->x, c->y, c->w, c->h, False);
             }
-            else
-                ban(c);
         }
     wasfloating = True;
 }
