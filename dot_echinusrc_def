@@ -1,0 +1,12 @@
+Echinus*selected.border: #0066ff
+Echinus*normal.border: #cccccc
+Echinus*selected.bg: #0066ff
+Echinus*normal.bg: #cccccc
+Echinus*selected.fg: #ffffff
+Echinus*normal.fg: #000000
+Echinus*border: 1
+Echinus*button.left.pixmap: HOME/.fwm/iconify.xbm
+Echinus*button.center.pixmap: HOME/.fwm/max.xbm
+Echinus*button.right.pixmap: HOME/.fwm/close.xbm
+Echinus*opacity: 0.9
+Echinus*terminal: xterm
