@@ -1,11 +1,11 @@
-.TH FWM 1 fwm\-VERSION
+.TH Echinus 1 echinus\-VERSION
 .SH NAME
-fwm \- f(?) window manager 
+echinus \- a window manager 
 .SH SYNOPSIS
-.B fwm
+.B echinus
 .RB [ \-v ]
 .SH DESCRIPTION
-fwm is a lightweight window manager for X based on dwm's source code.
+echinus is a lightweight window manager for X based on dwm's source code.
 It manages windows in maximized, floating and tiled layouts. Either layout
 can be applied dynamically, optimizing the environment for the
 application in use and the task performed.
@@ -18,14 +18,14 @@ regardless of the layout applied.
 Windows are grouped by tags. Each window can be tagged with one or multiple
 tags. Selecting certain tags displays all windows with these tags.
 .P
-fwm draws a small border around windows to indicate the focus state and
+echinus draws a small border around windows to indicate the focus state and
 an optional titlebar
 .SH OPTIONS
 .TP
 .B \-v
 prints version information to standard output, then exits.
 .SH USAGE
-After compiling check dot_fwmrc file and copy it to ~/.fwmrc, don't forget
+After compiling check dot_echinusrc file and copy it to ~/.echinusrc, don't forget
 to set up pathes to button pixmaps.
 .SS Title bar
 .TP
@@ -106,7 +106,7 @@ Add/remove all windows with
 tag to/from the view.
 .TP
 .B Mod1\-Shift\-q
-Quit fwm.
+Quit echinus.
 .SS Mouse commands
 .TP
 .B Mod1\-Button1
@@ -120,10 +120,13 @@ Resize current window while dragging. Tiled windows will be toggled to the float
 .TP
 .B Button3 on root window
 draws a rectangle to start a TERMINAL in it.
+.SH CONFORMING TO
+echinus is partially EWMH (NetWM) compliant, so you can use your favourite panel 
+or pager. Don't forget that pypanel (2.4) doesn't follows EWMH for its WM interaction.
 .SH CUSTOMIZATION
-fwm is customized by creating a custom config.h and (re)compiling the source
-code. This keeps it fast, secure and simple. It also supports ~/.fwmrc.
+echinus is customized by creating a custom config.h and (re)compiling the source
+code. This keeps it fast, secure and simple. It also supports ~/.echinusrc.
 .SH SEE ALSO
 .BR dmenu (1),\  dwm (1)
 .SH BUGS
-You should find lots of them. If you did please contact me, my mail is <polachok at gmail.com>
+You should find lots of them. If you did please contact me, my mail is <polachok at gmail dot com>

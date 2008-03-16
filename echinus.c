@@ -52,7 +52,7 @@
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
 #define LENGTH(x)		(sizeof x / sizeof x[0])
 #define RESNAME                        "echinus"
-#define RESCLASS               "Fwm"
+#define RESCLASS               "Echinus"
 #define OPAQUE	0xffffffff
 
 /* enums */
@@ -251,6 +251,9 @@ Layout *layout = NULL;
 Window root;
 Regs *regs = NULL;
 XrmDatabase xrdb = NULL;
+
+char terminal[255];
+
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 #include "ewmh.h"
@@ -372,7 +375,7 @@ drawmouse(XEvent *e) {
         switch (ee.type) {
             case ButtonRelease:
                     XUngrabPointer(dpy, CurrentTime);
-                    spawn(TERMINAL);
+                    spawn(terminal);
                     cx=ev->x;
                     cy=ev->y;
                     cw=abs(nx-ev->x);
@@ -408,14 +411,14 @@ focusin(XEvent *e) {
      * pypanel is EWMH incompliant
      * but people want it (:
      */
-
     Client *c;
     XFocusChangeEvent *ev = &e->xfocus;
     if (ev->type == FocusIn){
         c = getclient(ev->window);
-        if(c!=sel)
+        if(sel && c!=sel && c){
             focus(c);
-        arrange();
+            arrange();
+        }
     }
 }
 
@@ -1182,6 +1185,10 @@ manage(Window w, XWindowAttributes *wa) {
 	XWindowChanges wc;
 	XSetWindowAttributes twa;
 
+        if(!ewmh_process_window_type_atom(w)){ // check for a dock window
+            XMapWindow(dpy, w); // let it manage itself
+            return;
+        }
 	c = emallocz(sizeof(Client));
 	c->tags = emallocz(sizeof seltags);
 	c->win = w;
@@ -1294,12 +1301,8 @@ maprequest(XEvent *e) {
 		return;
 	if(wa.override_redirect)
 		return;
-	if(!getclient(ev->window)){
-            if(ewmh_process_window_type_atom(ev->window))
+	if(!getclient(ev->window))
 		manage(ev->window, &wa);
-            else
-                XMapWindow(dpy, ev->window); // _NET_WINDOW_TYPE_DOCK
-        }
         arrange();
 }
 
@@ -1691,8 +1694,6 @@ setup(void) {
 	Window w;
 	XModifierKeymap *modmap;
 	XSetWindowAttributes wa;
-        char tmp[64];
-
 
 	/* init atoms */
 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
@@ -1764,8 +1765,9 @@ setup(void) {
              eprint("error, cannot allocate colors\n");
         initfont(FONT);
         borderpx = atoi(getresource("border", BORDERPX));
-        sprintf(tmp, "%s", getresource("opacity", NF_OPACITY));
-        uf_opacity = strtof(tmp,NULL);
+        uf_opacity = strtof(getresource("opacity", NF_OPACITY),NULL);
+
+        strncpy(terminal, getresource("terminal", TERMINAL), 255);
 
         dc.h = TITLEBARHEIGHT;
 
@@ -1955,6 +1957,7 @@ toggleview(const char *arg) {
 		seltags[i] = True; /* at least one tag must be viewed */
 	arrange();
 }
+
 void
 focusview(const char *arg) {
 	Client *c;
