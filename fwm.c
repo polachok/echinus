@@ -463,12 +463,8 @@ buttonpress(XEvent *e) {
         if((ev->x > c->tw-3*c->th) && (ev->x < c->tw-2*c->th)){
             /* min, not implemented */
             printf("minimize\n");
-            if(applyrules(c)){
-                arrange();
-                ban(c);
-            }
-            else
-                tag(tags[8]);
+            ban(c);
+            arrange();
         }
         
         if((ev->x > c->tw-2*c->th) && (ev->x < c->tw-c->th)){
@@ -734,7 +730,6 @@ Pixmap initpixmap(const char *file) {
 void initbuttons() {
     XSetForeground(dpy, dc.gc, dc.norm[ColFG]);
     XSetBackground(dpy, dc.gc, dc.norm[ColBG]);
-    puts(__func__);
     bleft.pm = initpixmap(getresource("button.left.pixmap", BLEFTPIXMAP));
     bright.pm = initpixmap(getresource("button.right.pixmap", BRIGHTPIXMAP));
     bcenter.pm = initpixmap(getresource("button.center.pixmap", BCENTERPIXMAP));
@@ -847,6 +842,8 @@ floating(void) { /* default floating layout */
  			else
                             resize(c, c->x, c->y, c->w, c->h, False);
             }
+            else 
+                ban(c);
         }
     wasfloating = True;
 }
@@ -1261,7 +1258,6 @@ manage(Window w, XWindowAttributes *wa) {
         drawclient(c);
         saveconfig(c);
         ewmh_update_net_client_list();
-
 }
 
 void

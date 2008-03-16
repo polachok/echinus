@@ -181,9 +181,13 @@ ewmh_update_net_active_window() {
 void
 ewmh_process_client_message(XEvent *e) {
     XClientMessageEvent *ev = &e->xclient;
+
     if(ev->message_type == net_active_window) {
-       puts("oh fuck, somebody requested to activate a window");
-       puts("but this is not implemented! what's a pity");
+        focus(getclient(ev->window));
+        arrange();
+    }
+    if(ev->message_type == net_current_desktop) {
+        view(tags[ev->data.l[0]]);
     }
 }
 
