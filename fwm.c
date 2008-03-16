@@ -1251,7 +1251,6 @@ manage(Window w, XWindowAttributes *wa) {
 	setclientstate(c, NormalState);
         arrange();
         drawclient(c);
-	ban(c);
         ewmh_update_net_client_list();
         ewmh_update_net_window_desktop(c);
 }
