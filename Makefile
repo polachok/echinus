@@ -1,20 +1,20 @@
-# fwm - dynamic window manager
+# echinus wm - a window manager
 # © 2006-2007 Anselm R. Garbe, Sander van Dijk
 
 include config.mk
 
-SRC = fwm.c
+SRC = echinus.c
 OBJ = ${SRC:.c=.o}
 HOM = `echo ${HOME}|sed 's.\/.\\\/.g'`
 
-all: clean options fwm 
+all: clean options echinus 
 
 options:
-	@echo fwm build options:
+	@echo echinus build options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
-	@echo "CONFIG   = ${HOME}/.fwmrc"
+	@echo "CONFIG   = ${HOME}/.echinusrc"
 
 .c.o:
 	@echo CC $<
@@ -25,36 +25,36 @@ ${OBJ}: config.h config.mk
 config.h:
 	@echo creating $@ from config.def.h
 	@cp config.def.h $@
-	@echo creating dot_fwmrc from dot_fwmrc_def
-	@cat dot_fwmrc_def|sed "s/HOME/${HOM}/" > dot_fwmrc
+	@echo creating dot_echinusrc from dot_echinusrc_def
+	@cat dot_echinusrc_def|sed "s/HOME/${HOM}/" > dot_echinusrc
 
-fwm: ${OBJ}
+echinus: ${OBJ}
 	@echo CC -o $@
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 
 clean:
 	@echo cleaning
-	@rm -f fwm ${OBJ} fwm-${VERSION}.tar.gz
+	@rm -f echinus ${OBJ} echinus-${VERSION}.tar.gz
 
 dist: clean
 	@echo creating dist tarball
-	@mkdir -p fwm-${VERSION}
+	@mkdir -p echinus-${VERSION}
 	@cp -R LICENSE Makefile README config.def.h config.mk \
-		fwm.1 ${SRC} dwm-${VERSION}
-	@tar -cf fwm-${VERSION}.tar dwm-${VERSION}
-	@gzip fwm-${VERSION}.tar
-	@rm -rf fwm-${VERSION}
+		echinus.1 ${SRC} dwm-${VERSION}
+	@tar -cf echinus-${VERSION}.tar dwm-${VERSION}
+	@gzip echinus-${VERSION}.tar
+	@rm -rf echinus-${VERSION}
 
 install: all
 	@echo installing executable file to ${DESTDIR}${PREFIX}/bin
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
-	@cp -f fwm ${DESTDIR}${PREFIX}/bin
-	@chmod 755 ${DESTDIR}${PREFIX}/bin/fwm
+	@cp -f echinus ${DESTDIR}${PREFIX}/bin
+	@chmod 755 ${DESTDIR}${PREFIX}/bin/echinus
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
-	@rm -f ${DESTDIR}${PREFIX}/bin/fwm
+	@rm -f ${DESTDIR}${PREFIX}/bin/echinus
 	@echo removing manual page from ${DESTDIR}${MANPREFIX}/man1
-	@rm -f ${DESTDIR}${MANPREFIX}/man1/fwm.1
+	@rm -f ${DESTDIR}${MANPREFIX}/man1/echinus.1
 
 .PHONY: all options clean dist install uninstall
