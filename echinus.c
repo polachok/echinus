@@ -58,7 +58,7 @@
 /* enums */
 enum { BarTop, BarBot, BarOff };			/* bar position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
-enum { ColBorder, ColFG, ColBG, ColLast };		/* color */
+enum { ColBorder, ColFG, ColBG, ColButton, ColLast };		/* color */
 enum { WMProtocols, WMDelete, WMName, WMState, WMLast };/* default atoms */
 
 /* typedefs */
@@ -751,7 +751,8 @@ drawtext(const char *text, unsigned long col[ColLast], Bool center) {
 //	XDrawRectangles(dpy, dc.drawable, dc.gc, &r, 1);
 }
 
-Pixmap initpixmap(const char *file) {
+Pixmap
+initpixmap(const char *file) {
     Pixmap pmap;
     pmap = XCreatePixmap(dpy, root, 20, 20, 1);
     unsigned int pw, ph;
@@ -762,23 +763,26 @@ Pixmap initpixmap(const char *file) {
     return 0;
 }
 
-void initbuttons() {
-    XSetForeground(dpy, dc.gc, dc.norm[ColFG]);
+void
+initbuttons() {
+    XSetForeground(dpy, dc.gc, dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, dc.norm[ColBG]);
     bleft.pm = initpixmap(getresource("button.left.pixmap", BLEFTPIXMAP));
     bright.pm = initpixmap(getresource("button.right.pixmap", BRIGHTPIXMAP));
     bcenter.pm = initpixmap(getresource("button.center.pixmap", BCENTERPIXMAP));
 }
 
-void drawbuttons(Client *c) {
-    XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColFG] : dc.norm[ColFG]);
-    XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
+void
+drawbuttons(Client *c) {
+    XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
+    XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
     XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-c->th, 0, 1);
     XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-3*c->th, 0, 1);
     XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-2*c->th, 0, 1);
 }
 
-void drawclient(Client *c) {
+void
+drawclient(Client *c) {
     unsigned int opacity;
     if(!isvisible(c))
         return;
@@ -1774,10 +1778,12 @@ setup(void) {
 	dc.norm[ColBorder] = getcolor(getresource("normal.border",NORMBORDERCOLOR));
 	dc.norm[ColBG] = getcolor(getresource("normal.bg",NORMBGCOLOR));
 	dc.norm[ColFG] = getcolor(getresource("normal.fg",NORMFGCOLOR));
+	dc.norm[ColButton] = getcolor(getresource("normal.button",NORMBUTTONCOLOR));
 
         dc.sel[ColBorder] = getcolor(getresource("selected.border", SELBORDERCOLOR));
 	dc.sel[ColBG] = getcolor(getresource("selected.bg", SELBGCOLOR));
 	dc.sel[ColFG] = getcolor(getresource("selected.fg", SELFGCOLOR));
+	dc.sel[ColButton] = getcolor(getresource("selected.button", SELBUTTONCOLOR));
 
         dc.xftsel=malloc(sizeof(XftColor));
         dc.xftnorm=malloc(sizeof(XftColor));
