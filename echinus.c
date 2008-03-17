@@ -75,7 +75,6 @@ struct Client {
 	unsigned int border, oldborder;
 	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon, hastitle, hadtitle;
 	Bool *tags;
-        Bool skip;
 	Client *next;
 	Client *prev;
 	Client *snext;
@@ -270,7 +269,9 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[MappingNotify] = mappingnotify,
 	[MapRequest] = maprequest,
 	[PropertyNotify] = propertynotify,
+#ifdef PYPANELHACK
 	[FocusIn] = focusin,
+#endif
         [ClientMessage] = ewmh_process_client_message,
 };
 
@@ -417,16 +418,19 @@ focusin(XEvent *e) {
      * pypanel is EWMH incompliant
      * but people want it (:
      */
-    return;
+#ifdef PYPANELHACK
     Client *c;
     XFocusChangeEvent *ev = &e->xfocus;
     if (ev->type == FocusIn){
         c = getclient(ev->window);
+        unban(c);
+        return;
         if(sel && c!=sel && c){
             focus(c);
             arrange();
         }
     }
+#endif
 }
 
 void
@@ -776,6 +780,10 @@ void drawclient(Client *c) {
     unsigned int opacity;
     if(!isvisible(c))
         return;
+    if(c->isicon){
+        XUnmapWindow(dpy, c->title);
+        return;
+    }
     resizetitle(c);
     XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->tw, c->th);
@@ -792,11 +800,7 @@ void drawclient(Client *c) {
     else
       opacity = (unsigned int) (uf_opacity * OPAQUE);
     ewmh_set_window_opacity(c, opacity);
-    XFlush(dpy);
-    if(!c->isicon)
-        XMapWindow(dpy, c->title);
-    else
-        XUnmapWindow(dpy, c->title);
+    XMapWindow(dpy, c->title);
 }
 
 

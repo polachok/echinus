@@ -184,7 +184,7 @@ ewmh_process_client_message(XEvent *e) {
 
     if(ev->message_type == net_active_window) {
         focus(getclient(ev->window));
-        arrange();
+        restack();
     }
     if(ev->message_type == net_current_desktop) {
         view(tags[ev->data.l[0]]);

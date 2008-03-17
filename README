@@ -1,0 +1,90 @@
+echinus wm.
+
+1.Configuration file
+2.config.h header
+3.About panels and pagers
+
+1.Configuration file
+--------------------
+
+Name: ~/.echinusrc
+
+Color settings
+
+    Echinus*selected.border
+    Echinus*normal.border
+    Echinus*selected.bg
+    Echinus*normal.bg
+    Echinus*selected.fg
+    Echinus*normal.fg
+
+    border - color of a small border around each window
+    bg - titlebar background
+    fg - titlebar foreground
+
+    normal - unfocused window
+    selected - window in focus
+
+Border settings
+
+    Echinus*border
+
+    width of the border, in pixels
+
+Button settings
+
+    Echinus*button.left.pixmap
+    Echinus*button.center.pixmap
+    Echinus*button.right.pixmap
+
+    buttons in the titlebar, left iconifies window, center switch
+    to monocle (fullscreen) mode, right - close.
+    ~ are not allowed in pathnames.
+
+Opacity
+
+    Echinus*opacity
+
+    Opacity value for inactive windows, you need xcompmgr runned to
+    see the result.
+
+Terminal app
+    
+    Echinus*terminal
+
+    Preferred terminal to run with drawing rectangles on root window
+
+
+2.config.h header
+-----------------
+
+Is used to define keybindings and rules for placing windows on tags.
+Should be self-documenting.
+
+3.About panels and pagers
+-------------------------
+
+Echinus supports some parts of EWMH, so if the author of the pager knows
+what this magical letters mean it *should* work fine.
+
+Known to work:
+    fbpanel
+    ipager
+
+Known to cause problems:
+    fspanel
+    pypanel
+
+Quote [1]:
+    If a Client wants to activate another window, it MUST
+    send a _NET_ACTIVE_WINDOW client message to the root window: 
+        _NET_ACTIVE_WINDOW
+          window  = window to activate
+          message_type = _NET_ACTIVE_WINDOW
+          format = 32
+          data.l[0] = source indication 
+          data.l[1] = timestamp
+          data.l[2] = requestor's currently active window, 0 if none
+          other data.l[] elements = 0
+
+[1] http://standards.freedesktop.org/wm-spec/wm-spec-latest.html

@@ -82,6 +82,7 @@ Layout layouts[] = {
 	{ "=",		monocle }, /* first entry is default */
 	{ "#",		tile }, 
 };
+/* number of windows in master area */
 #define NMASTER 1
 /* key definitions */
 #define MODKEY			Mod1Mask /* alt key */
@@ -91,16 +92,16 @@ Key keys[] = { \
 	/* { MODKEY,		    XK_t,	spawn,		            "osdexec urxvt" }, \ */ \
 	{ MODKEY,		    XK_t,	spawn,		            "exec urxvt" }, \
 	{ MODKEY,		    XK_b,	togglebar,	            NULL }, \
-    {  MODKEY,			XK_p,		spawn, \
+        {  MODKEY,			XK_p,		spawn, \
 		"exe=`dmenu_path | dmenu -fn '"FONT"' -nb '"NORMBGCOLOR"' -nf '"NORMFGCOLOR"'" \
 		" -sb '"SELBGCOLOR"' -sf '"SELFGCOLOR"'` && exec $exe" }, \
 	{ MODKEY,		    XK_l,	spawn,		            "sleep 3 ; slock" }, \
 	{ MODKEY|ControlMask,	    XK_Delete,	spawn,		            "exec sudo /sbin/reboot" }, \
-    { MODKEY,                   XK_w,       spawn,                      "swarp 1280 900" }, \
+        { MODKEY,                   XK_w,       spawn,                      "swarp 1280 900" }, \
 	{ MODKEY,		    XK_f,	setlayout,	"~" }, \
 	{ MODKEY,		    XK_m,	setlayout,	"=" }, \
 	{ MODKEY,		    XK_r,	setlayout,	"#" }, \
-    { MODKEY,		    XK_j,		focusnext,	    NULL  }, \
+        { MODKEY,		    XK_j,		focusnext,	    NULL  }, \
 	{ MODKEY,		    XK_k,		focusprev,	    NULL }, \
 	{ MODKEY,		    XK_Return,   	zoom,		    NULL }, \
         { MODKEY,                   XK_minus,           setmwfact,         "-0.05" },\
@@ -115,7 +116,7 @@ Key keys[] = { \
 	{ MODKEY|ShiftMask,	    XK_3,		tag,		  tags[2] }, \
 	{ MODKEY|ShiftMask,	    XK_4,		tag,		  tags[3] }, \
 	{ MODKEY|ShiftMask,	    XK_5,		tag,		  tags[4] }, \
-    { MODKEY|ControlMask,	    XK_1,		toggletag,	  tags[0] }, \
+        { MODKEY|ControlMask,	    XK_1,		toggletag,	  tags[0] }, \
 	{ MODKEY|ControlMask,	    XK_2,		toggletag,	  tags[1] }, \
 	{ MODKEY|ControlMask,	    XK_3,		toggletag,	  tags[2] }, \
 	{ MODKEY|ControlMask,	    XK_4,		toggletag,	  tags[3] }, \
