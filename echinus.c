@@ -607,7 +607,7 @@ configurenotify(XEvent *e) {
 		sw = ev->width;
 		sh = ev->height;
 		XFreePixmap(dpy, dc.drawable);
-		dc.drawable = XCreatePixmap(dpy, root, sw, TITLEBARHEIGHT, DefaultDepth(dpy, screen));
+		dc.drawable = XCreatePixmap(dpy, root, sw, dc.h, DefaultDepth(dpy, screen));
 		updatebarpos();
 		arrange();
 	}
@@ -703,8 +703,8 @@ drawtext(const char *text, unsigned long col[ColLast], Bool center) {
 		len = sizeof buf - 1;
 	memcpy(buf, text, len);
 	buf[len] = 0;
-	h = TITLEBARHEIGHT;
-	y = TITLEBARHEIGHT-dc.font.height/2+1;
+	h = dc.h;
+	y = dc.h-dc.font.height/2+1;
 	x = dc.x+h/2;
 		/* shorten text if necessary */
 	while(len && (w = textnw(buf, len)) > dc.w)
@@ -1219,7 +1219,7 @@ manage(Window w, XWindowAttributes *wa) {
                 c->y = wa->y;
 	}
     
-        c->th = TITLEBARHEIGHT;
+        c->th = dc.h;
 	c->tx = c->x = wa->x;
 	c->ty = c->y - c->th;
 	c->tw = c->w = wa->width;
@@ -1728,13 +1728,13 @@ setup(void) {
         XftColorAllocName(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen),getresource("normal.fg", SELFGCOLOR), dc.xftnorm);
         if(!dc.xftnorm || !dc.xftnorm)
              eprint("error, cannot allocate colors\n");
-        initfont(FONT);
+        initfont(getresource("font",FONT));
         borderpx = atoi(getresource("border", BORDERPX));
         uf_opacity = strtof(getresource("opacity", NF_OPACITY),NULL);
 
         strncpy(terminal, getresource("terminal", TERMINAL), 255);
 
-        dc.h = TITLEBARHEIGHT;
+        dc.h = atoi(getresource("title", TITLEHEIGHT));
 
 	/* init layouts */
 	mwfact = MWFACT;
@@ -1744,7 +1744,7 @@ setup(void) {
 	/* init bar */
 	bpos = BARPOS;
 	updatebarpos();
-	dc.drawable = XCreatePixmap(dpy, root, sw, TITLEBARHEIGHT, DefaultDepth(dpy, screen));
+	dc.drawable = XCreatePixmap(dpy, root, sw, dc.h, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
 
         /* buttons */

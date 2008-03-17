@@ -1,13 +1,12 @@
 /* See LICENSE file for copyright and license details. */
-/* to use multimedia keys */
 #include <X11/XF86keysym.h>
 /* appearance */
-#define BARPOS			BarOff /* BarTop, BarOff */
-/* disable titles here */
-#define NOTITLES 0
+#define BARPOS			BarTop /* BarTop, BarOff */
+
 /* border width */
-#define BORDERPX		"1"
-/* opacity for windows not in focus */
+#define BORDERPX		"3"
+
+#define NOTITLES 0
 #define NF_OPACITY "0.9"
 /* You can use
  * Dwm.normal.border: #cccccc
@@ -27,49 +26,46 @@
 #define SELFGCOLOR		"#d3d7cf"
 #endif
 #define NORMBORDERCOLOR		"#cccccc"
+#define NORMBUTTONCOLOR		"#cccccc"
 #define NORMBGCOLOR		"#cccccc"
 #define NORMFGCOLOR		"#000000"
 #define SELBORDERCOLOR		"#0066ff"
+#define SELBUTTONCOLOR		"#0066ff"
 #define SELBGCOLOR		"#0066ff"
 #define SELFGCOLOR		"#ffffff"
 
-
-/* buttons */
 #define BLEFTPIXMAP "min.xbm"
 #define BRIGHTPIXMAP "min.xbm"
 #define BCENTERPIXMAP "min.xbm"
 
-#define MINWIDTH 10
-#define MINHEIGHT 10
+#define MINWIDTH 12
+#define MINHEIGHT 12
+
 
 #define BARHEIGHT 12
-#define TITLEBARHEIGHT 12
+#define TITLEHEIGHT 12
 
-/* initial value of windows in master area (tiling layout) */
 #define NMASTER 1
-/* terminal to run with right click on root window */
 #define TERMINAL "urxvt"
 /* tagging */
-const char *tags[] = { "main", "web", "irc", "mail", "dev", "misc", "im", "gfx" };
+const char *tags[] = { "main", "web", "irc", "mail", "dev", "gfx", "misc" };
 Bool seltags[LENGTH(tags)] = {[0] = True};
-/* Query class:instance:title for regex matching info with following command:
- * xprop | awk -F '"' '/^WM_CLASS/ { printf("%s:%s:",$4,$2) }; /^WM_NAME/ { printf("%s\n",$2) }' */
 Rule rules[] = { \
-	/* class:instance:title regex	tags regex	isfloat */ \
-    { "Firefox.*",          "web",      False }, \
-    { "Gajim*",            "im",       True }, \
-    { "Gossip.*",            "im",       True }, \
-    { "WeeChat.*",            "irc",       False }, \
-    { "Firefox-bin.*",          "web",      False }, \
-    { "Flock-bin.*",            "web",      False }, \
-    { "MPlayer.*",          NULL,       True}, \
-    { "gl2.*",          NULL,       True}, \
-    { "Sylpheed.*",      "mail", False }, \
-    { "mutt.*",      "mail", False }, \
-    { "Gimp.*",         "gfx",      True}, \
-    { "feh.*",         NULL,       True}, \
-    { "htop.*",     "misc",     True}, \
-    { "ncmpc.*",     "misc",     True}, \
+    /* class:instance:title regex	tags regex	floating titlebar */ \
+    { "Firefox.*",          "web",      False, True }, \
+    { "WeeChat.*",          "irc",      False, True }, \
+    { "Firefox-bin.*",      "web",      False, True }, \
+    { "Flock-bin.*",        "web",      False, True }, \
+    { "MPlayer.*",          NULL,       True, False}, \
+    { "gl2.*",              NULL,       True, False }, \
+    { "QEMU.*",             NULL,       True, True  }, \
+    { "Sylpheed.*",         "mail",     False, True }, \
+    { "mutt.*",             "mail",     False, True }, \
+    { "Gimp.*",             "gfx",      True, True}, \
+    { "feh.*",              NULL,       True, True}, \
+    { "htop.*",             "misc",     True, True}, \
+    { "ncmpc.*",            "misc",     True, True}, \
+    { ".*ager.*",            ".*",      True, False}, \
 };
 
 /* layout(s) */
@@ -82,35 +78,38 @@ Layout layouts[] = {
 	{ "=",		monocle }, /* first entry is default */
 	{ "#",		tile }, 
 };
-/* number of windows in master area */
 #define NMASTER 1
 /* key definitions */
-#define MODKEY			Mod1Mask /* alt key */
+#define MODKEY			Mod1Mask
 #define KEYS \
 Key keys[] = { \
 	/* modifier			key		function	arguments */ \
-	/* { MODKEY,		    XK_t,	spawn,		            "osdexec urxvt" }, \ */ \
-	{ MODKEY,		    XK_t,	spawn,		            "exec urxvt" }, \
+	/* { MODKEY,		    XK_t,	spawn,		            "exec urxvt" }, \ */ \
+	{ MODKEY,		    XK_t,	spawn,		            "exec urxvt -e screen -U" }, \
+	{ MODKEY,		    XK_n,	spawn,	                    "exec np" }, \
 	{ MODKEY,		    XK_b,	togglebar,	            NULL }, \
-        {  MODKEY,			XK_p,		spawn, \
-		"exe=`dmenu_path | dmenu -fn '"FONT"' -nb '"NORMBGCOLOR"' -nf '"NORMFGCOLOR"'" \
-		" -sb '"SELBGCOLOR"' -sf '"SELFGCOLOR"'` && exec $exe" }, \
 	{ MODKEY,		    XK_l,	spawn,		            "sleep 3 ; slock" }, \
+	{ MODKEY,		    XK_u,	spawn,		            "killall unclutter||unclutter -idle 1" }, \
 	{ MODKEY|ControlMask,	    XK_Delete,	spawn,		            "exec sudo /sbin/reboot" }, \
+	{ MODKEY,		    XK_y,	spawn,		            "ymenu" }, \
+	{ MODKEY,		    XK_h,	spawn,		            "ssh-ui" }, \
+        { MODKEY,                   XK_p,       spawn,                      "pmenu" }, \
         { MODKEY,                   XK_w,       spawn,                      "swarp 1280 900" }, \
+        { MODKEY,                   XK_r,       spawn,                      "gajim-remote toggle_roster_appearance" }, \
 	{ MODKEY,		    XK_f,	setlayout,	"~" }, \
 	{ MODKEY,		    XK_m,	setlayout,	"=" }, \
 	{ MODKEY,		    XK_r,	setlayout,	"#" }, \
+	{ MODKEY,		    XK_F12,	setlayout,	"." }, \
         { MODKEY,		    XK_j,		focusnext,	    NULL  }, \
 	{ MODKEY,		    XK_k,		focusprev,	    NULL }, \
 	{ MODKEY,		    XK_Return,   	zoom,		    NULL }, \
         { MODKEY,                   XK_minus,           setmwfact,         "-0.05" },\
         { MODKEY,                   XK_equal,           setmwfact,         "+0.05" }, \
-	{ MODKEY,		XK_d,		incnmaster,	"-1" }, \
-	{ MODKEY,		XK_i,		incnmaster,	"1" }, \
+	{ MODKEY,		    XK_d,		incnmaster,	"-1" }, \
+	{ MODKEY,		    XK_i,		incnmaster,	"1" }, \
 	{ MODKEY|ShiftMask,	    XK_c,		killclient,	 NULL  }, \
         { MODKEY,                   XK_space,           togglefloating,  NULL, }, \
-        { MODKEY|ShiftMask,	    XK_q,		quit,		 NULL  }, \
+        { MODKEY|ShiftMask,	    XK_q,		quit,		 "fwm"  }, \
 	{ MODKEY|ShiftMask,	    XK_1,		tag,		  tags[0] }, \
 	{ MODKEY|ShiftMask,	    XK_2,		tag,		  tags[1] }, \
 	{ MODKEY|ShiftMask,	    XK_3,		tag,		  tags[2] }, \
@@ -132,8 +131,7 @@ Key keys[] = { \
 	{ MODKEY|ShiftMask,	    XK_F3,		toggleview,	  tags[2] }, \
 	{ MODKEY|ShiftMask,	    XK_F4,		toggleview,	  tags[3] }, \
 	{ MODKEY|ShiftMask,	    XK_F5,		toggleview,	  tags[4] }, \
-	{ MODKEY,       	    XK_s,		focusview,	  tags[5] }, \
-	{ MODKEY,       	    XK_o,		focusview,	  tags[6] }, \
+	{ MODKEY,       	    XK_s,		focusview,	  tags[6] }, \
 };
 
 
