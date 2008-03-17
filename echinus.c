@@ -207,6 +207,7 @@ void saveconfig(Client *c);
 void unban(Client *c);
 void unmanage(Client *c);
 void updatebarpos(void);
+void unmapnotify(XEvent *e);
 void updatesizehints(Client *c);
 void updatetitle(Client *c);
 void view(const char *arg);
@@ -272,6 +273,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 #ifdef PYPANELHACK
 	[FocusIn] = focusin,
 #endif
+	[UnmapNotify] = unmapnotify,
         [ClientMessage] = ewmh_process_client_message,
 };
 
@@ -2051,6 +2053,19 @@ updatebarpos(void) {
 	}
 	XSync(dpy, False);
 	while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+}
+
+void
+unmapnotify(XEvent *e) {
+	Client *c;
+	XUnmapEvent *ev = &e->xunmap;
+
+	if((c = getclient(ev->window))) {
+            if(c->isicon)
+                iconify(c);
+            else
+                ban(c);
+        }
 }
 
 void
