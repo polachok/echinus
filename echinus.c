@@ -146,7 +146,6 @@ void configurerequest(XEvent *e);
 void destroynotify(XEvent *e);
 void detach(Client *c);
 void detachstack(Client *c);
-void drawbar(void);
 void drawclient(Client *c);
 void drawtext(const char *text, unsigned long col[ColLast], Bool center);
 void *emallocz(unsigned int size);
@@ -187,7 +186,7 @@ void resizetitle(Client *c);
 void restack(void);
 void run(void);
 void scan(void);
-void setclientstate(Client *c, long state, Bool seticon);
+void setclientstate(Client *c, long state);
 void setlayout(const char *arg);
 void setmwfact(const char *arg);
 void setnmaster(const char *arg);
@@ -360,7 +359,8 @@ ban(Client *c) {
 void
 iconify(Client *c) {
         ban(c);
-        setclientstate(c, IconicState, 1);
+        setclientstate(c, IconicState);
+        c->isicon = True;
 }
 
 void
@@ -470,8 +470,7 @@ buttonpress(XEvent *e) {
         focus(c);
         if((layout->arrange == floating) || c->isfloating)
                         restack();
-        else
-            XAllowEvents(dpy, ReplayPointer, CurrentTime);
+        XAllowEvents(dpy, ReplayPointer, CurrentTime);
         if(CLEANMASK(ev->state) != MODKEY)
            return;
         if(ev->button == Button1) {
@@ -687,26 +686,6 @@ detachstack(Client *c) {
 	*tc = c->snext;
 }
 
-void drawbar()
-{
-    return;
-    int i;
-    for(i = 0; i < LENGTH(tags); i++) {
-		dc.w = textw(tags[i]);
-        if(seltags[i]) {
-            printf("^fg(#425c90)%s^fg() ", tags[i]);
-        }
-        else {
-            printf("%s ", tags[i]);
-        }
-    }
-    if(sel)
-        printf("| %s\n", sel->name);
-    else
-        printf("\n");
-    fflush(stdin);
-}
-
 void
 drawtext(const char *text, unsigned long col[ColLast], Bool center) {
 	int x, y, w, h;
@@ -830,8 +809,7 @@ enternotify(XEvent *e) {
     if((c = getclient(ev->window))){
 	if(c->isfloating || (layout->arrange == floating))
             focus(c);
-        else
-            XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
+        XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
                     BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
     }
     else if(ev->window == root) {
@@ -912,7 +890,6 @@ focus(Client *c) {
 	}
 	sel = c;
         ewmh_update_net_active_window();
-	drawbar();
 	if(!selscreen)
 		return;
 	if(c) {
@@ -1301,11 +1278,11 @@ manage(Window w, XWindowAttributes *wa) {
 	attachstack(c);
 	XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h); /* some windows require this */
 	XMapWindow(dpy, c->win);
+	setclientstate(c, IconicState);
         drawclient(c);
         ewmh_update_net_client_list();
         ewmh_update_net_window_desktop(c);
         arrange();
-	setclientstate(c, IconicState, 0);
 }
 
 void
@@ -1526,7 +1503,6 @@ restack(void) {
 	XEvent ev;
 	XWindowChanges wc;
 
-	drawbar();
 	if(!sel)
 		return;
 	if(sel->isfloating || (layout->arrange == floating)){
@@ -1546,6 +1522,7 @@ restack(void) {
 			wc.sibling = c->win;
 		}
 	}
+        ewmh_update_net_active_window();
 	XSync(dpy, False);
 	while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -1588,14 +1565,14 @@ scan(void) {
 			if(!XGetWindowAttributes(dpy, wins[i], &wa)
 			|| wa.override_redirect || XGetTransientForHint(dpy, wins[i], &d1))
 				continue;
-			if(wa.map_state == IsViewable || getstate(wins[i]) == IconicState)
+			if(wa.map_state == IsViewable || getstate(wins[i]) == IconicState || getstate(wins[i]) == NormalState)
 				manage(wins[i], &wa);
 		}
 		for(i = 0; i < num; i++) { /* now the transients */
 			if(!XGetWindowAttributes(dpy, wins[i], &wa))
 				continue;
 			if(XGetTransientForHint(dpy, wins[i], &d1)
-			&& (wa.map_state == IsViewable || getstate(wins[i]) == IconicState))
+			&& (wa.map_state == IsViewable || getstate(wins[i]) == IconicState || getstate(wins[i]) == NormalState ))
 				manage(wins[i], &wa);
 		}
 	}
@@ -1604,16 +1581,14 @@ scan(void) {
 }
 
 void
-setclientstate(Client *c, long state, Bool seticon) {
+setclientstate(Client *c, long state) {
 	long data[] = {state, None};
 
 	XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
 			PropModeReplace, (unsigned char *)data, 2);
-        if(state == IconicState && seticon)
-            c->isicon = True;
-        else
+        if(state != IconicState)
             c->isicon = False;
-}
+        }
 
 void
 setlayout(const char *arg) {
@@ -1633,8 +1608,6 @@ setlayout(const char *arg) {
 	}
 	if(sel)
 		arrange();
-	else
-		drawbar();
 }
 
 void
@@ -1675,8 +1648,6 @@ setnmaster(const char *arg) {
 	}
 	if(sel)
 		arrange();
-	else
-		drawbar();
 }
 
 void
@@ -1973,7 +1944,7 @@ unban(Client *c) {
 		return;
 	XMapWindow(dpy, c->win);
 	XMapWindow(dpy, c->title);
-        setclientstate(c, NormalState, 0);
+        setclientstate(c, NormalState);
 	c->isbanned = False;
 
 }
@@ -1992,7 +1963,7 @@ unmanage(Client *c) {
 	if(sel == c)
 		focus(NULL);
 	XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
-	setclientstate(c, WithdrawnState, 0);
+	setclientstate(c, WithdrawnState);
 	free(c->tags);
 	free(c);
 	XSync(dpy, False);
@@ -2042,7 +2013,6 @@ updatetitle(Client *c) {
 	if(!gettextprop(c->win, net_wm_name, c->name, sizeof c->name))
 		gettextprop(c->win, wmatom[WMName], c->name, sizeof c->name);
         drawclient(c);
-        drawbar();
 }
 
 /* There's no way to check accesses to destroyed windows, thus those cases are
@@ -2130,7 +2100,6 @@ main(int argc, char *argv[]) {
 
 	checkotherwm();
 	setup();
-	drawbar();
 	scan();
 	run();
 	cleanup();
