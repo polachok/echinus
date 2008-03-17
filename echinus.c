@@ -181,13 +181,13 @@ Client *nexttiled(Client *c);
 Client *prevtiled(Client *c);
 void propertynotify(XEvent *e);
 void quit(const char *arg);
-void resize(Client *c, int x, int y, int w, int h, Bool sizehints);
+void resize(Client *c, int x, int y, int w, int h);
 void resizemouse(Client *c);
 void resizetitle(Client *c);
 void restack(void);
 void run(void);
 void scan(void);
-void setclientstate(Client *c, long state);
+void setclientstate(Client *c, long state, Bool seticon);
 void setlayout(const char *arg);
 void setmwfact(const char *arg);
 void setnmaster(const char *arg);
@@ -360,7 +360,7 @@ ban(Client *c) {
 void
 iconify(Client *c) {
         ban(c);
-        setclientstate(c, IconicState);
+        setclientstate(c, IconicState, 1);
 }
 
 void
@@ -467,10 +467,11 @@ buttonpress(XEvent *e) {
             return;
     }
     if((c = getclient(ev->window))) {
-        XAllowEvents(dpy, ReplayPointer, CurrentTime);
         focus(c);
         if((layout->arrange == floating) || c->isfloating)
                         restack();
+        else
+            XAllowEvents(dpy, ReplayPointer, CurrentTime);
         if(CLEANMASK(ev->state) != MODKEY)
            return;
         if(ev->button == Button1) {
@@ -775,7 +776,7 @@ initbuttons() {
 void
 drawbuttons(Client *c) {
     XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
-    XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
+    XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
     XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-c->th, 0, 1);
     XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-3*c->th, 0, 1);
     XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-2*c->th, 0, 1);
@@ -826,8 +827,13 @@ enternotify(XEvent *e) {
 
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
-    if((c = getclient(ev->window)))
-        XGrabButton(dpy, AnyButton, AnyModifier, c->win, False, BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
+    if((c = getclient(ev->window))){
+	if(c->isfloating || (layout->arrange == floating))
+            focus(c);
+        else
+            XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
+                    BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
+    }
     else if(ev->window == root) {
         selscreen = True;
         focus(NULL);
@@ -879,9 +885,9 @@ floating(void) { /* default floating layout */
                     drawclient(c);
                     if(!c->isfloating && !wasfloating)
                             /*restore last known float dimensions*/
-                            resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
+                            resize(c, c->sfx, c->sfy, c->sfw, c->sfh);
  			else
-                            resize(c, c->x, c->y, c->w, c->h, False);
+                            resize(c, c->x, c->y, c->w, c->h);
             }
         }
     wasfloating = True;
@@ -1263,7 +1269,6 @@ manage(Window w, XWindowAttributes *wa) {
 	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
 	XSetWindowBorder(dpy, w, dc.norm[ColBorder]);
 	configure(c); /* propagates border_width, if size doesn't change */
-	updatesizehints(c);
 	c->sfx = c->x;
 	c->sfy = c->y;
 	c->sfw = c->w;
@@ -1296,11 +1301,11 @@ manage(Window w, XWindowAttributes *wa) {
 	attachstack(c);
 	XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h); /* some windows require this */
 	XMapWindow(dpy, c->win);
-	setclientstate(c, NormalState);
-        arrange();
         drawclient(c);
         ewmh_update_net_client_list();
         ewmh_update_net_window_desktop(c);
+        arrange();
+	setclientstate(c, IconicState, 0);
 }
 
 void
@@ -1337,9 +1342,9 @@ monocle(void) {
                             if (c->isfloating)
                                     continue;
                 if(bpos == BarOff) 
-                    resize(c, sx, sy, sw, sh, False);
+                    resize(c, sx, sy, sw, sh);
                 else {
-                    resize(c, wax-c->border, way, waw, wah, False);
+                    resize(c, wax-c->border, way, waw, wah);
                 }
             }
         }
@@ -1384,7 +1389,7 @@ movemouse(Client *c) {
 				ny = way;
 			else if(abs((way + wah) - (ny + c->h + 2 * c->border)) < SNAP)
 				ny = way + wah - c->h - 2 * c->border;
-			resize(c, nx, ny, c->w, c->h, False);
+			resize(c, nx, ny, c->w, c->h);
 			break;
 		}
 	}
@@ -1418,7 +1423,6 @@ propertynotify(XEvent *e) {
 					arrange();
 				break;
 			case XA_WM_NORMAL_HINTS:
-				updatesizehints(c);
 				break;
 		}
 		if(ev->atom == XA_WM_NAME || ev->atom == net_wm_name) {
@@ -1437,47 +1441,9 @@ quit(const char *arg) {
 }
 
 void
-resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
+resize(Client *c, int x, int y, int w, int h) {
 	XWindowChanges wc;
 
-	if(sizehints) {
-		/* set minimum possible */
-		if (w < 1)
-			w = 1;
-		if (h < 1)
-			h = 1;
-
-		/* temporarily remove base dimensions */
-		w -= c->basew;
-		h -= c->baseh;
-
-		/* adjust for aspect limits */
-		if (c->minay > 0 && c->maxay > 0 && c->minax > 0 && c->maxax > 0) {
-			if (w * c->maxay > h * c->maxax)
-				w = h * c->maxax / c->maxay;
-			else if (w * c->minay < h * c->minax)
-				h = w * c->minay / c->minax;
-		}
-
-		/* adjust for increment value */
-		if(c->incw)
-			w -= w % c->incw;
-		if(c->inch)
-			h -= h % c->inch;
-
-		/* restore base dimensions */
-		w += c->basew;
-		h += c->baseh;
-
-		if(c->minw > 0 && w < c->minw)
-			w = c->minw;
-		if(c->minh > 0 && h < c->minh)
-			h = c->minh;
-		if(c->maxw > 0 && w > c->maxw)
-			w = c->maxw;
-		if(c->maxh > 0 && h > c->maxh)
-			h = c->maxh;
-	}
 	if(w <= 0 || h <= 0)
 		return;
 	/* offscreen appearance fixes */
@@ -1535,7 +1501,7 @@ resizemouse(Client *c) {
 				nw = MINWIDTH;
 			if((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
 				nh = MINHEIGHT;
-			resize(c, c->x, c->y, nw, nh, True);
+			resize(c, c->x, c->y, nw, nh);
 			break;
 		}
 	}
@@ -1638,12 +1604,12 @@ scan(void) {
 }
 
 void
-setclientstate(Client *c, long state) {
+setclientstate(Client *c, long state, Bool seticon) {
 	long data[] = {state, None};
 
 	XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
 			PropModeReplace, (unsigned char *)data, 2);
-        if(state == IconicState)
+        if(state == IconicState && seticon)
             c->isicon = True;
         else
             c->isicon = False;
@@ -1908,10 +1874,7 @@ tile(void) {
                         else
                                 nh = th - 2 * c->border;
                 }
-                resize(c, nx, ny, nw, nh, RESIZEHINTS);
-                if((RESIZEHINTS) && ((c->h < bh) || (c->h > nh) || (c->w < bh) || (c->w > nw)))
-                        /* client doesn't accept size constraints */
-                        resize(c, nx, ny, nw, nh, False);
+                resize(c, nx, ny, nw, nh);
                 if(n > nmaster && th != wah)
                         ny = c->y + c->h + 2 * c->border;
         }
@@ -1949,7 +1912,7 @@ togglefloating(const char *arg) {
 	sel->isfloating = !sel->isfloating;
 	if(sel->isfloating)
 		/*restore last known float dimensions*/
-		resize(sel, sel->sfx, sel->sfy, sel->sfw, sel->sfh, True);
+		resize(sel, sel->sfx, sel->sfy, sel->sfw, sel->sfh);
 	else {
 		/*save last known float dimensions*/
 		sel->sfx = sel->x;
@@ -2010,7 +1973,7 @@ unban(Client *c) {
 		return;
 	XMapWindow(dpy, c->win);
 	XMapWindow(dpy, c->title);
-        setclientstate(c, NormalState);
+        setclientstate(c, NormalState, 0);
 	c->isbanned = False;
 
 }
@@ -2029,7 +1992,7 @@ unmanage(Client *c) {
 	if(sel == c)
 		focus(NULL);
 	XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
-	setclientstate(c, WithdrawnState);
+	setclientstate(c, WithdrawnState, 0);
 	free(c->tags);
 	free(c);
 	XSync(dpy, False);
@@ -2072,58 +2035,6 @@ unmapnotify(XEvent *e) {
             else
                 ban(c);
         }
-}
-
-void
-updatesizehints(Client *c) {
-	long msize;
-	XSizeHints size;
-
-	if(!XGetWMNormalHints(dpy, c->win, &size, &msize) || !size.flags)
-		size.flags = PSize;
-	c->flags = size.flags;
-	if(c->flags & PBaseSize) {
-		c->basew = size.base_width;
-		c->baseh = size.base_height;
-	}
-	else if(c->flags & PMinSize) {
-		c->basew = size.min_width;
-		c->baseh = size.min_height;
-	}
-	else
-		c->basew = c->baseh = 0;
-	if(c->flags & PResizeInc) {
-		c->incw = size.width_inc;
-		c->inch = size.height_inc;
-	}
-	else
-		c->incw = c->inch = 0;
-	if(c->flags & PMaxSize) {
-		c->maxw = size.max_width;
-		c->maxh = size.max_height;
-	}
-	else
-		c->maxw = c->maxh = 0;
-	if(c->flags & PMinSize) {
-		c->minw = size.min_width;
-		c->minh = size.min_height;
-	}
-	else if(c->flags & PBaseSize) {
-		c->minw = size.base_width;
-		c->minh = size.base_height;
-	}
-	else
-		c->minw = c->minh = 0;
-	if(c->flags & PAspect) {
-		c->minax = size.min_aspect.x;
-		c->maxax = size.max_aspect.x;
-		c->minay = size.min_aspect.y;
-		c->maxay = size.max_aspect.y;
-	}
-	else
-		c->minax = c->maxax = c->minay = c->maxay = 0;
-	c->isfixed = (c->maxw && c->minw && c->maxh && c->minh
-			&& c->maxw == c->minw && c->maxh == c->minh);
 }
 
 void
