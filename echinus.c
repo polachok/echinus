@@ -73,7 +73,7 @@ struct Client {
 	int minax, maxax, minay, maxay;
 	long flags;
 	unsigned int border, oldborder;
-	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isiconified, hastitle, hadtitle;
+	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon, hastitle, hadtitle;
 	Bool *tags;
         Bool skip;
 	Client *next;
@@ -320,7 +320,7 @@ arrange(void) {
 	Client *c;
 
 	for(c = clients; c; c = c->next){
-		if(isvisible(c))
+		if(isvisible(c) && !c->isicon)
 			unban(c);
 		else
 			ban(c);
@@ -350,8 +350,14 @@ ban(Client *c) {
 		return;
         XUnmapWindow(dpy, c->win);
         XUnmapWindow(dpy, c->title);
-        setclientstate(c, IconicState);
+        XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
 	c->isbanned = True;
+}
+
+void
+iconify(Client *c) {
+        ban(c);
+        setclientstate(c, IconicState);
 }
 
 void
@@ -411,6 +417,7 @@ focusin(XEvent *e) {
      * pypanel is EWMH incompliant
      * but people want it (:
      */
+    return;
     Client *c;
     XFocusChangeEvent *ev = &e->xfocus;
     if (ev->type == FocusIn){
@@ -480,21 +487,22 @@ buttonpress(XEvent *e) {
         }
     }
     else if((c = gettitle(ev->window))) {
-        focus(c);
+
         if((ev->x > c->tw-3*c->th) && (ev->x < c->tw-2*c->th)){
-            /* min, not implemented */
-            printf("minimize\n");
-            ban(c);
-            arrange();
+            /* min */
+            iconify(c);
+            return;
         }
-        
+        focus(c);
         if((ev->x > c->tw-2*c->th) && (ev->x < c->tw-c->th)){
             /* max */
             setlayout(NULL);
+            return;
         }
         if((ev->x > c->tw-c->th) && (ev->x < c->tw)){
             /* close */
             killclient(NULL);
+            return;
         }
         if(ev->button == Button1) {
             if((layout->arrange == floating) || c->isfloating)
@@ -762,7 +770,6 @@ void drawbuttons(Client *c) {
     XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-c->th, 0, 1);
     XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-3*c->th, 0, 1);
     XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-2*c->th, 0, 1);
-    //XCopyArea(dpy, close, c->title, dc.gc, 0, 0, close_width,close_height, 10, 20);
 }
 
 void drawclient(Client *c) {
@@ -771,7 +778,7 @@ void drawclient(Client *c) {
         return;
     resizetitle(c);
     XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
-	XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->tw, c->th);
+    XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->tw, c->th);
     dc.x = dc.y = 0;
     dc.w = c->w+borderpx;
     dc.h = c->th;
@@ -786,7 +793,10 @@ void drawclient(Client *c) {
       opacity = (unsigned int) (uf_opacity * OPAQUE);
     ewmh_set_window_opacity(c, opacity);
     XFlush(dpy);
-    XMapWindow(dpy, c->title);
+    if(!c->isicon)
+        XMapWindow(dpy, c->title);
+    else
+        XUnmapWindow(dpy, c->title);
 }
 
 
@@ -854,7 +864,7 @@ floating(void) { /* default floating layout */
 
 	domwfact = dozoom = False;
 	for(c = clients; c; c = c->next){
-            if(isvisible(c)) {
+            if(isvisible(c) && !c->isicon) {
                     c->hastitle=c->hadtitle;
                     drawclient(c);
                     if(!c->isfloating && !wasfloating)
@@ -863,8 +873,6 @@ floating(void) { /* default floating layout */
  			else
                             resize(c, c->x, c->y, c->w, c->h, False);
             }
-            else 
-                ban(c);
         }
     wasfloating = True;
 }
@@ -880,10 +888,11 @@ focus(Client *c) {
 		XSetWindowBorder(dpy, sel->win, dc.norm[ColBorder]);
 		XSetWindowBorder(dpy, sel->title, dc.norm[ColBorder]);
 	}
-	if(c && !c->skip) {
+	if(c) {
 		detachstack(c);
 		attachstack(c);
 		grabbuttons(c, True);
+                unban(c);
 	}
 	sel = c;
         ewmh_update_net_active_window();
@@ -891,7 +900,7 @@ focus(Client *c) {
 	if(!selscreen)
 		return;
 	if(c) {
-        drawclient(c);
+                drawclient(c);
 		XSetWindowBorder(dpy, c->win, dc.sel[ColBorder]);
 		XSetWindowBorder(dpy, c->title, dc.sel[ColBorder]);
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
@@ -1192,6 +1201,7 @@ manage(Window w, XWindowAttributes *wa) {
 	c = emallocz(sizeof(Client));
 	c->tags = emallocz(sizeof seltags);
 	c->win = w;
+        c->isicon = False;
         c->hastitle = True;
         c->hadtitle = True;
         int di;
@@ -1522,6 +1532,8 @@ resizemouse(Client *c) {
 }
 
 void resizetitle(Client *c) {
+        if(c->isicon)
+            return;
 	c->tx = c->x;
 	c->ty = c->y-c->th;
         c->tw = c->w;
@@ -1621,6 +1633,10 @@ setclientstate(Client *c, long state) {
 
 	XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
 			PropModeReplace, (unsigned char *)data, 2);
+        if(state == IconicState)
+            c->isicon = True;
+        else
+            c->isicon = False;
 }
 
 void
@@ -1984,6 +2000,7 @@ unban(Client *c) {
 	XMapWindow(dpy, c->title);
         setclientstate(c, NormalState);
 	c->isbanned = False;
+
 }
 
 void
