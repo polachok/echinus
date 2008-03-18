@@ -42,8 +42,8 @@
 #define MINHEIGHT 12
 
 
-#define BARHEIGHT 12
-#define TITLEHEIGHT 12
+#define BARHEIGHT "12"
+#define TITLEHEIGHT "12"
 
 #define NMASTER 1
 #define TERMINAL "urxvt"

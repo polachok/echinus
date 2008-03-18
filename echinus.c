@@ -1311,13 +1311,19 @@ maprequest(XEvent *e) {
 void
 monocle(void) {
 	Client *c;
+        wasfloating = False;
 	for(c = clients; c; c = c->next){
             if(isvisible(c)) {
-                if(!c->isfloating)
+                if(!c->isfloating){
+                    c->sfx = c->x;
+                    c->sfy = c->y;
+                    c->sfw = c->w;
+                    c->sfh = c->h;
                     c->hastitle=False;
-                            unban(c);
-                            if (c->isfloating)
-                                    continue;
+                    unban(c);
+                }
+                else
+                    continue;
                 if(bpos == BarOff) 
                     resize(c, sx, sy, sw, sh);
                 else {

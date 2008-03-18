@@ -1,8 +1,22 @@
 echinus wm.
 
+   ///////// 
+  /.       |
+ /_________|
+  ||    ||
+
+0.Installation
 1.Configuration file
 2.config.h header
 3.About panels and pagers
+
+
+0.Installation
+--------------
+
+You need X11 and Xft headers to compile echinus wm. Packages containing this
+stuff are probably named libx11-dev and libxft-dev (note "-dev" suffix).
+
 
 1.Configuration file
 --------------------
@@ -17,10 +31,13 @@ Color settings
     Echinus*normal.bg
     Echinus*selected.fg
     Echinus*normal.fg
+    Echinus*selected.button
+    Echinus*normal.button
 
     border - color of a small border around each window
     bg - titlebar background
     fg - titlebar foreground
+    button - button foreground
 
     normal - unfocused window
     selected - window in focus
@@ -54,6 +71,15 @@ Terminal app
 
     Preferred terminal to run with drawing rectangles on root window
 
+Title
+
+    Echinus*title
+
+    Titlebar height.
+
+    Echinus*font
+
+    Titlebar font.
 
 2.config.h header
 -----------------
