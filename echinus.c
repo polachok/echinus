@@ -1316,29 +1316,45 @@ ifloating(void) {
         rw = waw/3;
         rh = wah/3;
         int cr = 0;
-        Bool region[9];
-        for(i=0; i<9; i++){
-            region[i] = False;
+        static Bool region[9]={0,0,0,0,0,0,0,0,0};
+        for(i=0; i<9 && region[i]; i++);
+        if(i==9){
+            for(i=0; i<9; i++){
+                region[i] = False;
+            }
         }
         fprintf(stderr,"new arrange\n");
         for(c = clients; c; c = c->next){
-            if(isvisible(c) && !c->isplaced){
-                for(cr=0; cr <= 8 && region[cr]; cr++);
-                n = c->w/rw;
-                if(cr % 3 == 2){
-                    for(j = 0; cr >= 0 && j < n; j++)
-                        region[cr-j]=True;
+            if(isvisible(c)){
+                if(!c->isplaced){
+                    for(cr=0; cr <= 8 && region[cr]; cr++);
+                    n = c->w/rw;
+                    if(cr % 3 == 2){
+                        for(j = 0; cr >= 0 && j < n; j++)
+                            region[cr-j]=True;
+                    }
+                    else {
+                        for(j = 0; j <= n && cr<=8; j++)
+                            region[cr+j]=True;
+                    }
+                    if(n>2)
+                        cr = 0;
+                    n = c->h/rh;
+                    if(cr/3 == 2){
+                        for(j = 0; j <= n && cr>=0; j++)
+                            region[cr-3*j] = True;
+                    }
+                    else{
+                        for(j = 0; j <= n && cr<=8; j++)
+                            region[cr+3*j] = True;
+                    }
+                    if(n>2)
+                        cr = 0;
+                    fprintf(stderr,"placing %s into reg #%d (%d)\n",c->name,cr,cr%3);
+                    resize(c, wax+(cr%3)*rw, way+(cr/3)*rh+c->th, c->w, c->h);
+                    c->isplaced = True;
                 }
-                else {
-                    for(j = 0; j < n && cr<=8; j++)
-                        region[cr+j]=True;
-                }
-                if(n>2)
-                    cr = 0;
-                fprintf(stderr,"placing %s into reg #%d (%d)\n",c->name,cr,cr%3);
-                resize(c, wax+(cr%3)*rw, way+(cr/3)*rh+c->th, c->w, c->h);
-                drawclient(c);
-                c->isplaced = True;
+                    drawclient(c);
             }
         }
         focus(NULL);
