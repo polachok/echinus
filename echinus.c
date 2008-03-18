@@ -639,11 +639,14 @@ configurerequest(XEvent *e) {
 			if((ev->value_mask & (CWX | CWY))
 			&& !(ev->value_mask & (CWWidth | CWHeight)))
 				configure(c);
-			if(isvisible(c))
+			if(isvisible(c)){
 				XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
+                                drawclient(c);
+                        }
 		}
 		else
 			configure(c);
+
 	}
 	else {
 		wc.x = ev->x;
@@ -766,10 +769,6 @@ drawclient(Client *c) {
     unsigned int opacity;
     if(!isvisible(c))
         return;
-    if(c->isicon){
-        XUnmapWindow(dpy, c->title);
-        return;
-    }
     resizetitle(c);
     XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->tw, c->th);
@@ -1325,14 +1324,11 @@ ifloating(void) {
             for(i=0; i<9; i++){
                 region[i] = False;
             }
-            for(i=0; i<9; i++){
-                fregion[i] = False;
-            }
         }
         fprintf(stderr,"new arrange\n");
         for(c = clients; c; c = c->next){
             if(isvisible(c)){
-                if(!c->isplaced && !c->isfloating){
+                if(!c->isplaced){
                     for(cr=0; cr <= 8 && region[cr]; cr++);
                     if(!region[4])
                         cr = 4;
@@ -1358,13 +1354,15 @@ ifloating(void) {
                     }
                     if(y>2)
                         cr = 0;
-                    if(x >= 2 && y >= 2)  // too big for us
-                        return;
+                    if(x >= 2 && y >= 2){  // too big for us
+                        c->isplaced = True;
+                        continue;
+                    }
                     fprintf(stderr,"placing %s into reg #%d (%d)\n",c->name,cr,cr%3);
                     resize(c, wax+(cr%3)*rw, way+(cr/3)*rh+c->th, c->w, c->h);
                     c->isplaced = True;
                 }
-                drawclient(c);
+            drawclient(c);
             }
         }
         focus(NULL);
