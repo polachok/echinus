@@ -69,11 +69,10 @@ struct Client {
 	int tx, ty, tw, th; /* title window */
 	int rx, ry, rw, rh; /* revert geometry */
 	int sfx, sfy, sfw, sfh; /* stored float geometry, used on mode revert */
-	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
-	int minax, maxax, minay, maxay;
 	long flags;
 	unsigned int border, oldborder;
 	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon, hastitle, hadtitle;
+        Bool isplaced;
 	Bool *tags;
 	Client *next;
 	Client *prev;
@@ -153,6 +152,7 @@ void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
 void expose(XEvent *e);
 void floating(void); /* default floating layout */
+void ifloating(void); /* intellectual floating layout */
 void focus(Client *c);
 void focusin(XEvent *e);
 void focusnext(const char *arg);
@@ -468,8 +468,7 @@ buttonpress(XEvent *e) {
     }
     if((c = getclient(ev->window))) {
         focus(c);
-        if((layout->arrange == floating) || c->isfloating)
-                        restack();
+        restack();
         XAllowEvents(dpy, ReplayPointer, CurrentTime);
         if(CLEANMASK(ev->state) != MODKEY)
            return;
@@ -858,6 +857,7 @@ floating(void) { /* default floating layout */
 
 	domwfact = dozoom = False;
 	for(c = clients; c; c = c->next){
+            c->isplaced = False;
             if(isvisible(c) && !c->isicon) {
                     c->hastitle=c->hadtitle;
                     drawclient(c);
@@ -1309,10 +1309,48 @@ maprequest(XEvent *e) {
 }
 
 void
+ifloating(void) {
+	Client *c;
+        int i,n,j;
+        int rw,rh;
+        rw = waw/3;
+        rh = wah/3;
+        int cr = 0;
+        Bool region[9];
+        for(i=0; i<9; i++){
+            region[i] = False;
+        }
+        fprintf(stderr,"new arrange\n");
+        for(c = clients; c; c = c->next){
+            if(isvisible(c) && !c->isplaced){
+                for(cr=0; cr <= 8 && region[cr]; cr++);
+                n = c->w/rw;
+                if(cr % 3 == 2){
+                    for(j = 0; cr >= 0 && j < n; j++)
+                        region[cr-j]=True;
+                }
+                else {
+                    for(j = 0; j < n && cr<=8; j++)
+                        region[cr+j]=True;
+                }
+                if(n>2)
+                    cr = 0;
+                fprintf(stderr,"placing %s into reg #%d (%d)\n",c->name,cr,cr%3);
+                resize(c, wax+(cr%3)*rw, way+(cr/3)*rh+c->th, c->w, c->h);
+                drawclient(c);
+                c->isplaced = True;
+            }
+        }
+        focus(NULL);
+	restack();
+}
+
+void
 monocle(void) {
 	Client *c;
         wasfloating = False;
 	for(c = clients; c; c = c->next){
+            c->isplaced = False;
             if(isvisible(c)) {
                 if(!c->isfloating){
                     c->sfx = c->x;
@@ -1511,11 +1549,11 @@ restack(void) {
 
 	if(!sel)
 		return;
-	if(sel->isfloating || (layout->arrange == floating)){
+	if(sel->isfloating || (layout->arrange == floating) || (layout->arrange == ifloating)){
 		XRaiseWindow(dpy, sel->win);
 		XRaiseWindow(dpy, sel->title);
         }
-	if(layout->arrange != floating) {
+	if(layout->arrange != floating && layout->arrange != ifloating) {
 		wc.stack_mode = Below;
 		if(!sel->isfloating) {
 			XConfigureWindow(dpy, sel->win, CWSibling | CWStackMode, &wc);
