@@ -353,6 +353,7 @@ ban(Client *c) {
         XUnmapWindow(dpy, c->win);
         XUnmapWindow(dpy, c->title);
         XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
+        setclientstate(c, IconicState);
 	c->isbanned = True;
 }
 
@@ -893,6 +894,7 @@ focus(Client *c) {
 	if(!selscreen)
 		return;
 	if(c) {
+                setclientstate(c, NormalState);
                 drawclient(c);
 		XSetWindowBorder(dpy, c->win, dc.sel[ColBorder]);
 		XSetWindowBorder(dpy, c->title, dc.sel[ColBorder]);
@@ -1313,6 +1315,7 @@ ifloating(void) {
 	Client *c;
         int i,n,j;
         int rw,rh;
+        int x,y;
         rw = waw/3;
         rh = wah/3;
         int cr = 0;
@@ -1322,39 +1325,46 @@ ifloating(void) {
             for(i=0; i<9; i++){
                 region[i] = False;
             }
+            for(i=0; i<9; i++){
+                fregion[i] = False;
+            }
         }
         fprintf(stderr,"new arrange\n");
         for(c = clients; c; c = c->next){
             if(isvisible(c)){
-                if(!c->isplaced){
+                if(!c->isplaced && !c->isfloating){
                     for(cr=0; cr <= 8 && region[cr]; cr++);
-                    n = c->w/rw;
+                    if(!region[4])
+                        cr = 4;
+                    x = c->w/rw;
                     if(cr % 3 == 2){
-                        for(j = 0; cr >= 0 && j < n; j++)
+                        for(j = 0; cr >= 0 && j < x; j++)
                             region[cr-j]=True;
                     }
                     else {
-                        for(j = 0; j <= n && cr<=8; j++)
+                        for(j = 0; j <= x && cr<=8; j++)
                             region[cr+j]=True;
                     }
-                    if(n>2)
+                    if(x>2)
                         cr = 0;
-                    n = c->h/rh;
+                    y = c->h/rh;
                     if(cr/3 == 2){
-                        for(j = 0; j <= n && cr>=0; j++)
+                        for(j = 0; j <= y && cr>=0; j++)
                             region[cr-3*j] = True;
                     }
                     else{
-                        for(j = 0; j <= n && cr<=8; j++)
+                        for(j = 0; j <= y && cr<=8; j++)
                             region[cr+3*j] = True;
                     }
-                    if(n>2)
+                    if(y>2)
                         cr = 0;
+                    if(x >= 2 && y >= 2)  // too big for us
+                        return;
                     fprintf(stderr,"placing %s into reg #%d (%d)\n",c->name,cr,cr%3);
                     resize(c, wax+(cr%3)*rw, way+(cr/3)*rh+c->th, c->w, c->h);
                     c->isplaced = True;
                 }
-                    drawclient(c);
+                drawclient(c);
             }
         }
         focus(NULL);
@@ -2013,6 +2023,7 @@ void
 unmanage(Client *c) {
 	XWindowChanges wc;
         XDestroyWindow(dpy, c->title);
+        XDestroyWindow(dpy, c->win);
 	wc.border_width = c->oldborder;
 	/* The server grab construct avoids race conditions. */
 	XGrabServer(dpy);
@@ -2030,6 +2041,7 @@ unmanage(Client *c) {
 	XSetErrorHandler(xerror);
 	XUngrabServer(dpy);
 	arrange();
+        ewmh_update_net_client_list();
 }
 
 void
@@ -2059,12 +2071,15 @@ void
 unmapnotify(XEvent *e) {
 	Client *c;
 	XUnmapEvent *ev = &e->xunmap;
+        XWindowAttributes wa;
 
-	if((c = getclient(ev->window))) {
-            if(c->isicon)
-                iconify(c);
-            else
-                ban(c);
+        if((c = getclient(ev->window))) {
+            XGetWindowAttributes(dpy, ev->window, &wa);
+            if(wa.map_state == IsUnmapped){
+                    XGetWindowAttributes(dpy, c->title, &wa);
+                    if(wa.map_state == IsViewable)
+                        unmanage(c);
+            }
         }
 }
 
