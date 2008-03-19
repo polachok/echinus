@@ -238,6 +238,7 @@ Atom wmatom[WMLast];
 Bool domwfact = True;
 Bool dozoom = True;
 Bool otherwm;
+Bool ignore = False;
 Bool running = True;
 Bool selscreen = True;
 Bool notitles = False;
@@ -273,9 +274,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[MappingNotify] = mappingnotify,
 	[MapRequest] = maprequest,
 	[PropertyNotify] = propertynotify,
-#ifdef PYPANELHACK
 	[FocusIn] = focusin,
-#endif
 	[UnmapNotify] = unmapnotify,
         [ClientMessage] = ewmh_process_client_message,
 };
@@ -421,23 +420,16 @@ drawmouse(XEvent *e) {
 
 void
 focusin(XEvent *e) {
-    /* a hack to make pypanel work
-     * pypanel is EWMH incompliant
-     * but people want it (:
-     */
-#ifdef PYPANELHACK
     Client *c;
     XFocusChangeEvent *ev = &e->xfocus;
     if (ev->type == FocusIn){
         c = getclient(ev->window);
-        unban(c);
-        return;
-        if(sel && c!=sel && c){
+        if(c!=sel && c){
             focus(c);
-            arrange();
+            restack();
         }
     }
-#endif
+    XSync(dpy, False);
 }
 
 void
