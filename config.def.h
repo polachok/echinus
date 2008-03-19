@@ -79,6 +79,9 @@ Layout layouts[] = {
 	{ "#",		tile }, 
 };
 #define NMASTER 1
+// for ifloating
+#define COLS 3
+#define ROWS 3
 /* key definitions */
 #define MODKEY			Mod1Mask
 #define KEYS \

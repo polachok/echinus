@@ -1328,57 +1328,57 @@ ifloating(void) {
             if(isvisible(c)){
                 if(!c->isplaced){
                     for(cr=0; cr < LENGTH(region) && region[cr]; cr++);
-                    if(!region[4])
-                        cr = 4;
+                    if(!region[(COLS+ROWS)/2+1])
+                        cr = (COLS+ROWS)/2+1;
                     x = c->w/rw;
-                    if(cr % 3 == COLS-1){
+                    if(cr % COLS == COLS-1){
                         for(cr; cr <= x && region[cr]; cr++);
                     }
                     for(j = 0; j <= x && cr+x < LENGTH(region); j++)
                             region[cr+j]=True;
-                    if(x>2){
+                    if(x>(COLS/2+1)){
                         region[cr]=False;
                         cr = 0;
                     }
                     y = c->h/rh;
-                    if(cr/3 == ROWS-1){
-                        for(j = 0; j <= y && cr-3*y>=0; j++)
-                            region[cr-3*j] = True;
+                    if(cr/ROWS == ROWS-1){
+                        for(j = 0; j <= y && cr-ROWS*y>=0; j++)
+                            region[cr-ROWS*j] = True;
                     }
                     else{
                         for(j = 0; j <= y && cr+y<=LENGTH(region); j++)
-                            region[cr+3*j] = True;
+                            region[cr+ROWS*j] = True;
                     }
-                    if(y>2){
+                    if(y>(ROWS/2+1)){
                         region[cr]=False;
                         cr = 0;
                     }
-                    if(x >= 2 && y >= 2){  // too big for us
+                    if(y >= (ROWS/2+1) && x >= (COLS/2+1)){  // too big for us
                         c->isplaced = True;
                         continue;
                     }
                     region[cr] = True;
-                    fprintf(stderr,"placing %s into reg #%d (%d)\n",c->name,cr,cr%3);
-                    resize(c, wax+(cr%3)*rw, way+(cr/3)*rh+c->th, c->w, c->h);
+                    fprintf(stderr,"placing %s into reg #%d\n", c->name, cr);
+                    resize(c, wax+(cr%COLS)*rw, way+(cr/ROWS)*rh+c->th, c->w, c->h);
                     c->isplaced = True;
                 } else {
                     x = c->x/rw;
                     y = c->y/rh;
                     n = c->w/rw;
                     k = c->h/rh;
-                    cr = x+3*y;
-                    if(n >= 2 && k >= 2)
+                    cr = x+ROWS*y;
+                    if(n >= (COLS/2+1) && k >= (ROWS/2+1))
                         continue;
                     fprintf(stderr," %s is in reg #%d\n",c->name,cr);
-                    for(i=0; i <= n && cr+k*3+n < LENGTH(region); i++){
+                    for(i=0; i <= n && cr+k*ROWS+n < LENGTH(region); i++){
                         fregion[cr+i] = True;
-                        fregion[cr+i+k*3] = True;
+                        fregion[cr+i+k*ROWS] = True;
                     }
                 }
             drawclient(c);
             }
         }
-        for(i=0; i<9; i++){
+        for(i=0; i<LENGTH(region); i++){
             region[i]=fregion[i];
         }
         focus(NULL);
