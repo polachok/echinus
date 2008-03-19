@@ -23,6 +23,8 @@
  *
  * To understand everything else, start reading main().
  */
+
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -30,7 +32,6 @@
 #include <locale.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/select.h>
@@ -1312,13 +1313,14 @@ ifloating(void) {
         rw = waw/COLS;
         rh = wah/ROWS;
         int cr = 0;
-        static Bool region[COLS*ROWS];
+        static Bool region[COLS*ROWS]=INITCOLSROWS;
         Bool fregion[COLS*ROWS];
         for(i=0; i<LENGTH(fregion); i++){
             fregion[i] = False;
         }
         for(i=0; i<LENGTH(region) && region[i]; i++);
         if(i==LENGTH(region)){
+            fprintf(stderr, "Clearing all regions\n");
             for(; i>=0; i--){
                 region[i] = False;
             }
@@ -1328,13 +1330,13 @@ ifloating(void) {
             if(isvisible(c)){
                 if(!c->isplaced){
                     for(cr=0; cr < LENGTH(region) && region[cr]; cr++);
-                    if(!region[(COLS+ROWS)/2+1])
-                        cr = (COLS+ROWS)/2+1;
+                    if(!region[COLS/2+ROWS/2+1])
+                        cr = COLS/2+ROWS/2+1;
                     x = c->w/rw;
                     if(cr % COLS == COLS-1){
-                        for(cr; cr <= x && region[cr]; cr++);
+                        for(cr; cr <= x && region[cr] && cr <= LENGTH(region); cr++);
                     }
-                    for(j = 0; j <= x && cr+x < LENGTH(region); j++)
+                    for(j = 0; j <= x && cr+j < LENGTH(region); j++)
                             region[cr+j]=True;
                     if(x>(COLS/2+1)){
                         region[cr]=False;
@@ -1342,11 +1344,11 @@ ifloating(void) {
                     }
                     y = c->h/rh;
                     if(cr/ROWS == ROWS-1){
-                        for(j = 0; j <= y && cr-ROWS*y>=0; j++)
+                        for(j = 0; j <= y && cr-ROWS*j>=0; j++)
                             region[cr-ROWS*j] = True;
                     }
                     else{
-                        for(j = 0; j <= y && cr+y<=LENGTH(region); j++)
+                        for(j = 0; j <= y && cr+j<=LENGTH(region); j++)
                             region[cr+ROWS*j] = True;
                     }
                     if(y>(ROWS/2+1)){
@@ -1359,8 +1361,8 @@ ifloating(void) {
                     }
                     region[cr] = True;
                     fprintf(stderr,"placing %s into reg #%d\n", c->name, cr);
-                    resize(c, wax+(cr%COLS)*rw, way+(cr/ROWS)*rh+c->th, c->w, c->h);
                     c->isplaced = True;
+                    resize(c, wax+(cr%COLS)*rw+random()%4*c->th, way+(cr/ROWS)*rh+random()%4*c->th+c->th, c->w, c->h);
                 } else {
                     x = c->x/rw;
                     y = c->y/rh;
@@ -1370,9 +1372,9 @@ ifloating(void) {
                     if(n >= (COLS/2+1) && k >= (ROWS/2+1))
                         continue;
                     fprintf(stderr," %s is in reg #%d\n",c->name,cr);
-                    for(i=0; i <= n && cr+k*ROWS+n < LENGTH(region); i++){
+                    for(i=0; i <= n && cr+k*ROWS+i < LENGTH(region); i++){
                         fregion[cr+i] = True;
-                        fregion[cr+i+k*ROWS] = True;
+                        //fregion[cr+i+k*ROWS] = True;
                     }
                 }
             drawclient(c);
