@@ -728,10 +728,9 @@ drawtext(const char *text, unsigned long col[ColLast], Bool center) {
                 x = dc.x + h/2;
         while(x <= 0)
                 x = dc.x++;
-//	XSetForeground(dpy, dc.gc, col[ColFG]);
-        XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel ,dc.font.xftfont,x,y,(unsigned char*)buf,len);
-//	XSetForeground(dpy, dc.gc, col[ColBorder]);
-//	XDrawRectangles(dpy, dc.drawable, dc.gc, &r, 1);
+        XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel,
+                dc.font.xftfont, x, y, (unsigned char*)buf, len);
+        dc.x = x + w;
 }
 
 Pixmap
@@ -776,7 +775,7 @@ drawclient(Client *c) {
     dc.w = c->w+borderpx;
     dc.h = c->th;
     drawtext(c->name, c == sel ? dc.sel : dc.norm, False);
-    if(c->tw>=6*c->th)
+    if(c->tw>=6*c->th && dc.x <= c->tw-6*c->th)
         drawbuttons(c);
     XCopyArea(dpy, dc.drawable, c->title, dc.gc,
 			0, 0, c->tw, c->th+2*borderpx, 0, 0);
@@ -1319,6 +1318,7 @@ ifloating(void) {
         rh = wah/3;
         int cr = 0;
         static Bool region[9]={0,0,0,0,0,0,0,0,0};
+        Bool fregion[9]={0,0,0,0,0,0,0,0,0};
         for(i=0; i<9 && region[i]; i++);
         if(i==9){
             for(i=0; i<9; i++){
@@ -1334,36 +1334,47 @@ ifloating(void) {
                         cr = 4;
                     x = c->w/rw;
                     if(cr % 3 == 2){
-                        for(j = 0; cr >= 0 && j < x; j++)
-                            region[cr-j]=True;
+                        for(cr; cr <= 8 && region[cr]; cr++);
                     }
-                    else {
-                        for(j = 0; j <= x && cr<=8; j++)
+                    for(j = 0; j <= x && cr+x<=8; j++)
                             region[cr+j]=True;
-                    }
-                    if(x>2)
+                    if(x>2){
+                        region[cr]=False;
                         cr = 0;
+                    }
                     y = c->h/rh;
                     if(cr/3 == 2){
-                        for(j = 0; j <= y && cr>=0; j++)
+                        for(j = 0; j <= y && cr+y>=0; j++)
                             region[cr-3*j] = True;
                     }
                     else{
-                        for(j = 0; j <= y && cr<=8; j++)
+                        for(j = 0; j <= y && cr+y<=8; j++)
                             region[cr+3*j] = True;
                     }
-                    if(y>2)
+                    if(y>2){
+                        region[cr]=False;
                         cr = 0;
+                    }
                     if(x >= 2 && y >= 2){  // too big for us
                         c->isplaced = True;
                         continue;
                     }
+                    region[cr] = True;
                     fprintf(stderr,"placing %s into reg #%d (%d)\n",c->name,cr,cr%3);
                     resize(c, wax+(cr%3)*rw, way+(cr/3)*rh+c->th, c->w, c->h);
                     c->isplaced = True;
+                } else {
+                    x = c->x/rw;
+                    y = c->y/rh;
+                    cr = x+3*y;
+                    fprintf(stderr," %s is in reg #%d\n",c->name,cr);
+                    fregion[cr] = True;
                 }
             drawclient(c);
             }
+        }
+        for(i=0; i<9; i++){
+            region[i]=fregion[i];
         }
         focus(NULL);
 	restack();
