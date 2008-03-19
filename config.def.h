@@ -74,6 +74,7 @@ Rule rules[] = { \
 #define SNAP			5	/* snap pixel */
 Layout layouts[] = {
 	/* symbol		function */
+	{ "%",		ifloating },
 	{ "~",		floating },
 	{ "=",		monocle }, /* first entry is default */
 	{ "#",		tile }, 
