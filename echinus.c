@@ -1203,7 +1203,7 @@ manage(Window w, XWindowAttributes *wa) {
 		c->y = wa->y = cy;
 		c->w = wa->width = cw;
 		c->h = wa->height = ch;
-        cx = cy = cw = ch = 0;
+                cx = cy = cw = ch = 0;
         }
 	else {
                 c->w = wa->width;
@@ -1211,6 +1211,8 @@ manage(Window w, XWindowAttributes *wa) {
                 c->x = wa->x;
                 c->y = wa->y;
 	}
+        if(wa->x && wa->y)
+            c->isplaced = True;
     
         c->th = dc.h;
 	c->tx = c->x = wa->x;
@@ -1307,14 +1309,17 @@ ifloating(void) {
         int i,n,j,k;
         int rw,rh;
         int x,y;
-        rw = waw/3;
-        rh = wah/3;
+        rw = waw/COLS;
+        rh = wah/ROWS;
         int cr = 0;
-        static Bool region[9]={0,0,0,0,0,0,0,0,0};
-        Bool fregion[9]={0,0,0,0,0,0,0,0,0};
-        for(i=0; i<9 && region[i]; i++);
-        if(i==9){
-            for(i=0; i<9; i++){
+        static Bool region[COLS*ROWS];
+        Bool fregion[COLS*ROWS];
+        for(i=0; i<LENGTH(fregion); i++){
+            fregion[i] = False;
+        }
+        for(i=0; i<LENGTH(region) && region[i]; i++);
+        if(i==LENGTH(region)){
+            for(; i>=0; i--){
                 region[i] = False;
             }
         }
@@ -1322,26 +1327,26 @@ ifloating(void) {
         for(c = clients; c; c = c->next){
             if(isvisible(c)){
                 if(!c->isplaced){
-                    for(cr=0; cr <= 8 && region[cr]; cr++);
+                    for(cr=0; cr < LENGTH(region) && region[cr]; cr++);
                     if(!region[4])
                         cr = 4;
                     x = c->w/rw;
-                    if(cr % 3 == 2){
-                        for(cr; cr <= 8 && region[cr]; cr++);
+                    if(cr % 3 == COLS-1){
+                        for(cr; cr <= x && region[cr]; cr++);
                     }
-                    for(j = 0; j <= x && cr+x<=8; j++)
+                    for(j = 0; j <= x && cr+x < LENGTH(region); j++)
                             region[cr+j]=True;
                     if(x>2){
                         region[cr]=False;
                         cr = 0;
                     }
                     y = c->h/rh;
-                    if(cr/3 == 2){
-                        for(j = 0; j <= y && cr+y>=0; j++)
+                    if(cr/3 == ROWS-1){
+                        for(j = 0; j <= y && cr-3*y>=0; j++)
                             region[cr-3*j] = True;
                     }
                     else{
-                        for(j = 0; j <= y && cr+y<=8; j++)
+                        for(j = 0; j <= y && cr+y<=LENGTH(region); j++)
                             region[cr+3*j] = True;
                     }
                     if(y>2){
@@ -1365,7 +1370,7 @@ ifloating(void) {
                     if(n >= 2 && k >= 2)
                         continue;
                     fprintf(stderr," %s is in reg #%d\n",c->name,cr);
-                    for(i=0; i <= n && cr+k*3+n<=8; i++){
+                    for(i=0; i <= n && cr+k*3+n < LENGTH(region); i++){
                         fregion[cr+i] = True;
                         fregion[cr+i+k*3] = True;
                     }
