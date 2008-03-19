@@ -1197,13 +1197,6 @@ manage(Window w, XWindowAttributes *wa) {
         c->isicon = False;
         c->hastitle = True;
         c->hadtitle = True;
-        int di;
-        unsigned int dui;
-        if(!wa->x && !wa->y){
-            XQueryPointer(dpy, root, &trans, &trans, &wa->x, &wa->y, &di, &di, &dui);
-            wa->x-=wa->width/2 > sx ? wa->x-=wa->width/2: sx;
-            wa->y-=wa->height/2 > sy ? wa->y-=wa->height/2 : sy;
-        }
 
 	if(cx && cy && cw && ch) {
 		c->x = wa->x = cx;
@@ -1311,7 +1304,7 @@ maprequest(XEvent *e) {
 void
 ifloating(void) {
 	Client *c;
-        int i,n,j;
+        int i,n,j,k;
         int rw,rh;
         int x,y;
         rw = waw/3;
@@ -1366,9 +1359,16 @@ ifloating(void) {
                 } else {
                     x = c->x/rw;
                     y = c->y/rh;
+                    n = c->w/rw;
+                    k = c->h/rh;
                     cr = x+3*y;
+                    if(n >= 2 && k >= 2)
+                        continue;
                     fprintf(stderr," %s is in reg #%d\n",c->name,cr);
-                    fregion[cr] = True;
+                    for(i=0; i <= n && cr+k*3+n<=8; i++){
+                        fregion[cr+i] = True;
+                        fregion[cr+i+k*3] = True;
+                    }
                 }
             drawclient(c);
             }
@@ -1503,9 +1503,9 @@ resize(Client *c, int x, int y, int w, int h) {
 	if(w <= 0 || h <= 0)
 		return;
 	/* offscreen appearance fixes */
-	if(x > sw)
+	if(x + w > sw)
 		x = sw - w - 2 * c->border;
-	if(y > sh)
+	if(y + h > sh)
 		y = sh - h - 2 * c->border;
 	if(x + w + 2 * c->border < sx)
 		x = sx;
