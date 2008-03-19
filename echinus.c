@@ -55,6 +55,9 @@
 #define RESNAME                        "echinus"
 #define RESCLASS               "Echinus"
 #define OPAQUE	0xffffffff
+#define ROWS 4
+#define COLS 5
+#define INITCOLSROWS { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
 
 /* enums */
 enum { BarTop, BarBot, BarOff };			/* bar position */
@@ -181,7 +184,7 @@ Client *nexttiled(Client *c);
 Client *prevtiled(Client *c);
 void propertynotify(XEvent *e);
 void quit(const char *arg);
-void resize(Client *c, int x, int y, int w, int h);
+void resize(Client *c, int x, int y, int w, int h, Bool offscreen);
 void resizemouse(Client *c);
 void resizetitle(Client *c);
 void restack(void);
@@ -863,9 +866,9 @@ floating(void) { /* default floating layout */
                     drawclient(c);
                     if(!c->isfloating && !wasfloating)
                             /*restore last known float dimensions*/
-                            resize(c, c->sfx, c->sfy, c->sfw, c->sfh);
+                            resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
  			else
-                            resize(c, c->x, c->y, c->w, c->h);
+                            resize(c, c->x, c->y, c->w, c->h, False);
             }
         }
     wasfloating = True;
@@ -1306,6 +1309,90 @@ maprequest(XEvent *e) {
 
 void
 ifloating(void) {
+    Client *c;
+    int rw, rh;
+    int x,y;
+    int i,n,k;
+    rw = waw/COLS;
+    rh = wah/ROWS;
+    int cr = 0;
+    Bool region[COLS*ROWS]=INITCOLSROWS;
+    for(i=0; i<LENGTH(region) && region[i]; i++);
+        if(i==LENGTH(region)){
+            fprintf(stderr, "Clearing all regions\n");
+            for(i=LENGTH(region)-1; i>=0; i--){
+                region[i] = False;
+            }
+        }
+    fprintf(stderr,"new arrange\n");
+    for(c = clients; c; c = c->next){
+        if(isvisible(c)){
+                if(c->isplaced){
+                    y = c->y/rh;
+                    x = c->x/rw;
+                    n = c->w/rw;
+                    k = c->h/rh;
+                    cr = COLS*y+x;
+                    if(n >= (COLS/2+1) && k >= (ROWS/2+1))
+                        continue;
+                    fprintf(stderr," %s is in reg #%d [%d,%d]\n",c->name,cr,x,y);
+                    region[cr]=True;
+                    for(i=0; i <= n && cr+i < LENGTH(region); i++){
+                        region[cr+i] = True;
+                    }
+                }
+            drawclient(c);
+        }
+    }
+    for(c = clients; c; c = c->next){
+        if(isvisible(c)){
+            if(!c->isplaced) {
+                if(region[0]){
+                    for(cr=LENGTH(region)/2-COLS/2-2; cr < LENGTH(region) && region[cr]; cr++){
+                            fprintf(stderr, "CR: %d\n", cr);
+                    }
+                }
+                else {
+                    for(cr=LENGTH(region)/2-COLS/2-2; cr >= 0 && region[cr]; cr--){
+                            fprintf(stderr, "CR: %d\n", cr);
+                    }
+                }
+                    /* put in center if it's free */
+                    if(cr==LENGTH(region)){
+                        region[LENGTH(region)/2]=True;
+                        fprintf(stderr,"RRR=%d\n", COLS/2+COLS*ROWS/2-1);
+                        resize(c, sw/2-c->w/2+random()%4*c->th, sh/2-c->h/2+random()%4*c->th+c->th, c->w, c->h, False);
+                        c->isplaced = True;
+                        continue;
+                    }
+                    y = c->h/rh;
+                    x = c->w/rw;
+                    if(y >= (ROWS/2+1) && x >= (COLS/2+1)){  // too big for us
+                        c->isplaced = True;
+                        continue;
+                    }
+                    fprintf(stderr, "FUCKINOFF: %d %d %d\n", cr, cr%COLS, cr/COLS);
+                    region[cr] = True;
+                    resize(c, wax+(cr%COLS)*rw+random()%4*c->th, way+(cr/COLS)*rh+random()%4*c->th+c->th, c->w, c->h, False);
+                    c->isplaced = True;
+                    }
+            drawclient(c);
+            }
+        }
+
+        fprintf(stderr, "after\n");
+        for(i=0; i<LENGTH(region); i++){
+            fprintf(stderr, "%d\t", region[i]);
+            if(i%COLS==COLS-1)
+                fprintf(stderr, "\n");
+        }
+        focus(NULL);
+	restack();
+}
+    
+#if 0
+void
+ifloating(void) {
 	Client *c;
         int i,n,j,k;
         int rw,rh;
@@ -1321,7 +1408,7 @@ ifloating(void) {
         for(i=0; i<LENGTH(region) && region[i]; i++);
         if(i==LENGTH(region)){
             fprintf(stderr, "Clearing all regions\n");
-            for(; i>=0; i--){
+            for(i=LENGTH(region)-1; i>=0; i--){
                 region[i] = False;
             }
         }
@@ -1330,63 +1417,90 @@ ifloating(void) {
             if(isvisible(c)){
                 if(!c->isplaced){
                     for(cr=0; cr < LENGTH(region) && region[cr]; cr++);
+                    if(cr == LENGTH(region))
+                            cr = 0;
+                    fprintf(stderr, "WTF????\n\n");
+                    fprintf(stderr, "%s:%d CR=%d\n", __FILE__, __LINE__,  cr);
                     if(!region[COLS/2+ROWS/2+1])
                         cr = COLS/2+ROWS/2+1;
                     x = c->w/rw;
-                    if(cr % COLS == COLS-1){
-                        for(cr; cr <= x && region[cr] && cr <= LENGTH(region); cr++);
+                    if(cr / COLS == COLS-1){
+                        for(; region[cr] && cr < LENGTH(region); cr++);
                     }
+                    fprintf(stderr, "%s:%d CR=%d\n", __FILE__, __LINE__,  cr);
                     for(j = 0; j <= x && cr+j < LENGTH(region); j++)
                             region[cr+j]=True;
+                    fprintf(stderr, "%s:%d CR=%d\n", __FILE__, __LINE__,  cr);
+                    /*
                     if(x>(COLS/2+1)){
                         region[cr]=False;
-                        cr = 0;
+                        cr=cr/COLS;
                     }
+                    */
                     y = c->h/rh;
                     if(cr/ROWS == ROWS-1){
                         for(j = 0; j <= y && cr-ROWS*j>=0; j++)
                             region[cr-ROWS*j] = True;
+                            fprintf(stderr, "%s:%d CR=%d\n", __FILE__, __LINE__,  cr);
                     }
                     else{
                         for(j = 0; j <= y && cr+j<=LENGTH(region); j++)
                             region[cr+ROWS*j] = True;
                     }
-                    if(y>(ROWS/2+1)){
+
+                    fprintf(stderr, "%s:%d CR=%d\n", __FILE__, __LINE__,  cr);
+                   /* if(y>(ROWS/2+1)){
                         region[cr]=False;
-                        cr = 0;
+                        cr = cr/ROWS;
                     }
+                    */
+
                     if(y >= (ROWS/2+1) && x >= (COLS/2+1)){  // too big for us
                         c->isplaced = True;
                         continue;
                     }
+                    fprintf(stderr, "%s:%d CR=%d\n", __FILE__, __LINE__,  cr);
                     region[cr] = True;
                     fprintf(stderr,"placing %s into reg #%d\n", c->name, cr);
                     c->isplaced = True;
-                    resize(c, wax+(cr%COLS)*rw+random()%4*c->th, way+(cr/ROWS)*rh+random()%4*c->th+c->th, c->w, c->h);
+                    resize(c, wax+(cr/COLS)*rw+random()%4*c->th, way+(cr/COLS)*rh+random()%4*c->th+c->th, c->w, c->h);
                 } else {
                     x = c->x/rw;
-                    y = c->y/rh;
+                    y = COLS*c->y/rh;
                     n = c->w/rw;
                     k = c->h/rh;
-                    cr = x+ROWS*y;
+                    cr = y+x;
                     if(n >= (COLS/2+1) && k >= (ROWS/2+1))
                         continue;
-                    fprintf(stderr," %s is in reg #%d\n",c->name,cr);
-                    for(i=0; i <= n && cr+k*ROWS+i < LENGTH(region); i++){
+                    fprintf(stderr," %s is in reg #%d [%d,%d]\n",c->name,cr,x,y);
+                    fregion[cr]=True;
+                    for(i=0; i <= n && cr+i < LENGTH(tags); i++){
                         fregion[cr+i] = True;
-                        //fregion[cr+i+k*ROWS] = True;
                     }
                 }
             drawclient(c);
             }
         }
+        fprintf(stderr, "before\n");
         for(i=0; i<LENGTH(region); i++){
-            region[i]=fregion[i];
+            fprintf(stderr, "%d\t", region[i]);
+            if(i%COLS==COLS-1)
+                fprintf(stderr, "\n");
+        }
+        for(i=0; i<LENGTH(region); i++){
+            region[i]=fregion[i] ? fregion[i] : region[i];
+        }
+        fprintf(stderr, "after\n");
+        for(i=0; i<LENGTH(region); i++){
+            fprintf(stderr, "%d\t", region[i]);
+            if(i%COLS==COLS-1)
+                fprintf(stderr, "\n");
         }
         focus(NULL);
 	restack();
 }
 
+#endif
 void
 monocle(void) {
 	Client *c;
@@ -1405,9 +1519,9 @@ monocle(void) {
                 else
                     continue;
                 if(bpos == BarOff) 
-                    resize(c, sx, sy, sw, sh);
+                    resize(c, sx, sy, sw, sh, False);
                 else {
-                    resize(c, wax-c->border, way, waw, wah);
+                    resize(c, wax-c->border, way, waw, wah, False);
                 }
             }
         }
@@ -1452,7 +1566,7 @@ movemouse(Client *c) {
 				ny = way;
 			else if(abs((way + wah) - (ny + c->h + 2 * c->border)) < SNAP)
 				ny = way + wah - c->h - 2 * c->border;
-			resize(c, nx, ny, c->w, c->h);
+			resize(c, nx, ny, c->w, c->h, False);
 			break;
 		}
 	}
@@ -1504,16 +1618,22 @@ quit(const char *arg) {
 }
 
 void
-resize(Client *c, int x, int y, int w, int h) {
+resize(Client *c, int x, int y, int w, int h, Bool offscreen) {
 	XWindowChanges wc;
 
 	if(w <= 0 || h <= 0)
 		return;
 	/* offscreen appearance fixes */
+	if(x > sw)
+		x = sw - w - 2 * c->border;
+	if(y > sh)
+		y = sh - h - 2 * c->border;
+if (offscreen){
 	if(x + w > sw)
 		x = sw - w - 2 * c->border;
-	if(y + h > sh)
+	if(y + w> sh)
 		y = sh - h - 2 * c->border;
+}
 	if(x + w + 2 * c->border < sx)
 		x = sx;
 	if(y + h + 2 * c->border < sy)
@@ -1564,7 +1684,7 @@ resizemouse(Client *c) {
 				nw = MINWIDTH;
 			if((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
 				nh = MINHEIGHT;
-			resize(c, c->x, c->y, nw, nh);
+			resize(c, c->x, c->y, nw, nh, False);
 			break;
 		}
 	}
@@ -1931,7 +2051,7 @@ tile(void) {
                         else
                                 nh = th - 2 * c->border;
                 }
-                resize(c, nx, ny, nw, nh);
+                resize(c, nx, ny, nw, nh, False);
                 if(n > nmaster && th != wah)
                         ny = c->y + c->h + 2 * c->border;
         }
@@ -1969,7 +2089,7 @@ togglefloating(const char *arg) {
 	sel->isfloating = !sel->isfloating;
 	if(sel->isfloating)
 		/*restore last known float dimensions*/
-		resize(sel, sel->sfx, sel->sfy, sel->sfw, sel->sfh);
+		resize(sel, sel->sfx, sel->sfy, sel->sfw, sel->sfh, False);
 	else {
 		/*save last known float dimensions*/
 		sel->sfx = sel->x;
