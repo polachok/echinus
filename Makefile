@@ -16,7 +16,7 @@ options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
-	@echo "CONFIG   = ${HOME}/.echinus"
+	@echo "CONFIG   = ${CONF}"
 
 .c.o:
 	@echo CC $<
@@ -27,8 +27,6 @@ ${OBJ}: config.h config.mk
 config.h:
 	@echo creating $@ from config.def.h
 	@cp config.def.h $@
-	@echo creating dot_echinusrc from dot_echinusrc_def
-	@cat dot_echinusrc_def|sed "s/HOME/${HOM}/" > dot_echinusrc
 
 echinus: ${OBJ}
 	@echo CC -o $@
