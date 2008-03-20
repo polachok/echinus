@@ -1,10 +1,5 @@
 echinus wm.
 
-   ///////// 
-  /.       |
- /_________|
-  ||    ||
-
 0.Installation
 1.Configuration file
 2.config.h header
@@ -17,11 +12,18 @@ echinus wm.
 You need X11 and Xft headers to compile echinus wm. Packages containing this
 stuff are probably named libx11-dev and libxft-dev (note "-dev" suffix).
 
+% make
+% make install
+
+On new install:
+
+% make installconfig
+
 
 1.Configuration file
 --------------------
 
-Name: ~/.echinusrc
+Name: ~/echinus/echinusrc
 
 Color settings
 
@@ -75,11 +77,17 @@ Title
 
     Echinus*title
 
-    Titlebar height.
+    Titlebar height
 
     Echinus*font
 
-    Titlebar font.
+    Titlebar font
+
+Space
+    Echinus*space.top
+    Echinus*space.bottom
+
+This space on top and bottom won't be covered by windows.
 
 2.config.h header
 -----------------
@@ -97,20 +105,5 @@ Known to work:
     fbpanel
     ipager
 
-Known to cause problems:
-    fspanel
+Known to NOT work:
     pypanel
-
-Quote [1]:
-    If a Client wants to activate another window, it MUST
-    send a _NET_ACTIVE_WINDOW client message to the root window: 
-        _NET_ACTIVE_WINDOW
-          window  = window to activate
-          message_type = _NET_ACTIVE_WINDOW
-          format = 32
-          data.l[0] = source indication 
-          data.l[1] = timestamp
-          data.l[2] = requestor's currently active window, 0 if none
-          other data.l[] elements = 0
-
-[1] http://standards.freedesktop.org/wm-spec/wm-spec-latest.html

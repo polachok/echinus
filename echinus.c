@@ -238,7 +238,8 @@ Atom wmatom[WMLast];
 Bool domwfact = True;
 Bool dozoom = True;
 Bool otherwm;
-Bool ignore = False;
+int toph = 0;
+int both = 0;
 Bool running = True;
 Bool selscreen = True;
 Bool notitles = False;
@@ -422,6 +423,8 @@ void
 focusin(XEvent *e) {
     Client *c;
     XFocusChangeEvent *ev = &e->xfocus;
+    /* TODO: fix this */
+#ifdef PYPANELHACK
     if (ev->type == FocusIn){
         c = getclient(ev->window);
         if(c!=sel && c){
@@ -430,6 +433,7 @@ focusin(XEvent *e) {
         }
     }
     XSync(dpy, False);
+#endif
 }
 
 void
@@ -826,8 +830,6 @@ void
 expose(XEvent *e) {
     XExposeEvent *ev = &e->xexpose;
     Client *c;
-    if(ev->count != 0)
-        return;
     if((c=gettitle(ev->window)))
         drawclient(c);
 }
@@ -884,12 +886,12 @@ focus(Client *c) {
                 unban(c);
 	}
 	sel = c;
-        ewmh_update_net_active_window();
 	if(!selscreen)
 		return;
 	if(c) {
                 setclientstate(c, NormalState);
                 drawclient(c);
+                ewmh_update_net_active_window();
 		XSetWindowBorder(dpy, c->win, dc.sel[ColBorder]);
 		XSetWindowBorder(dpy, c->title, dc.sel[ColBorder]);
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
@@ -1311,12 +1313,10 @@ ifloating(void) {
     Bool region[COLS*ROWS]=INITCOLSROWS;
     for(i=0; i<LENGTH(region) && region[i]; i++);
         if(i==LENGTH(region)){
-            fprintf(stderr, "Clearing all regions\n");
             for(i=LENGTH(region)-1; i>=0; i--){
                 region[i] = False;
             }
         }
-    fprintf(stderr,"new arrange\n");
     for(c = clients; c; c = c->next){
         if(isvisible(c)){
                 if(c->isplaced){
@@ -1327,7 +1327,6 @@ ifloating(void) {
                     cr = COLS*y+x;
                     if(n >= (COLS/2+1) && k >= (ROWS/2+1))
                         continue;
-                    fprintf(stderr," %s is in reg #%d [%d,%d]\n",c->name,cr,x,y);
                     region[cr]=True;
                     for(i=0; i <= n && cr+i < LENGTH(region); i++){
                         region[cr+i] = True;
@@ -1339,44 +1338,42 @@ ifloating(void) {
     for(c = clients; c; c = c->next){
         if(isvisible(c)){
             if(!c->isplaced) {
+                if(!c->isfloating && !wasfloating){
+                            /*restore last known float dimensions*/
+                    c->isplaced = True;
+                    resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
+                    drawclient(c);
+                    continue;
+                }
                 if(region[0]){
-                    for(cr=LENGTH(region)/2-COLS/2-2; cr < LENGTH(region) && region[cr]; cr++){
-                            fprintf(stderr, "CR: %d\n", cr);
-                    }
+                    for(cr=LENGTH(region)/2-COLS/2-2; cr < LENGTH(region) && region[cr]; cr++);
                 }
                 else {
-                    for(cr=LENGTH(region)/2-COLS/2-2; cr >= 0 && region[cr]; cr--){
-                            fprintf(stderr, "CR: %d\n", cr);
-                    }
+                    for(cr=LENGTH(region)/2-COLS/2-2; cr >= 0 && region[cr]; cr--);
                 }
                     /* put in center if it's free */
                     if(cr==LENGTH(region)){
                         region[LENGTH(region)/2]=True;
-                        fprintf(stderr,"RRR=%d\n", COLS/2+COLS*ROWS/2-1);
-                        resize(c, sw/2-c->w/2+random()%4*c->th, sh/2-c->h/2+random()%4*c->th+c->th, c->w, c->h, False);
+                        resize(c, sw/2-c->w/2+rand()%4*c->th, sh/2-c->h/2+rand()%4*c->th+c->th,
+                                c->w, c->h, False);
                         c->isplaced = True;
+                        drawclient(c);
                         continue;
                     }
                     y = c->h/rh;
                     x = c->w/rw;
                     if(y >= (ROWS/2+1) && x >= (COLS/2+1)){  // too big for us
                         c->isplaced = True;
+                        drawclient(c);
                         continue;
                     }
-                    fprintf(stderr, "FUCKINOFF: %d %d %d\n", cr, cr%COLS, cr/COLS);
                     region[cr] = True;
-                    resize(c, wax+(cr%COLS)*rw+random()%4*c->th, way+(cr/COLS)*rh+random()%4*c->th+c->th, c->w, c->h, False);
+                    resize(c, wax+(cr%COLS)*rw+rand()%4*c->th, way+(cr/COLS)*rh+rand()%4*c->th+c->th,
+                            c->w, c->h, False);
                     c->isplaced = True;
                     }
             drawclient(c);
             }
-        }
-
-        fprintf(stderr, "after\n");
-        for(i=0; i<LENGTH(region); i++){
-            fprintf(stderr, "%d\t", region[i]);
-            if(i%COLS==COLS-1)
-                fprintf(stderr, "\n");
         }
         focus(NULL);
 	restack();
@@ -1509,12 +1506,12 @@ resize(Client *c, int x, int y, int w, int h, Bool offscreen) {
 		x = sw - w - 2 * c->border;
 	if(y > sh)
 		y = sh - h - 2 * c->border;
-if (offscreen){
-	if(x + w > sw)
-		x = sw - w - 2 * c->border;
-	if(y + w> sh)
-		y = sh - h - 2 * c->border;
-}
+        if (offscreen){
+            if(x + w > sw)
+                    x = sw - w - 2 * c->border;
+            if(y + w> sh)
+                    y = sh - h - 2 * c->border;
+        }
 	if(x + w + 2 * c->border < sx)
 		x = sx;
 	if(y + h + 2 * c->border < sy)
@@ -1571,7 +1568,8 @@ resizemouse(Client *c) {
 	}
 }
 
-void resizetitle(Client *c) {
+void
+resizetitle(Client *c) {
         if(c->isicon)
             return;
 	c->tx = c->x;
@@ -1787,8 +1785,9 @@ setup(void) {
         /* init resource database */
         XrmInitialize();
         char conf[255];
-        sprintf(conf, "%s/%s",getenv("HOME"),".echinusrc");
-        xrdb = XrmGetFileDatabase(conf);
+        sprintf(conf, "%s/%s",getenv("HOME"),"/.echinus");
+        chdir(conf);
+        xrdb = XrmGetFileDatabase("echinusrc");
         if(!xrdb)
             eprint("echinus: cannot open configuration file\n");
 
@@ -1822,6 +1821,8 @@ setup(void) {
         strncpy(terminal, getresource("terminal", TERMINAL), 255);
 
         dc.h = atoi(getresource("title", TITLEHEIGHT));
+        toph = atoi(getresource("space.top", BARHEIGHT));
+        both = atoi(getresource("space.bottom", BARHEIGHT));
 
 	/* init layouts */
 	mwfact = MWFACT;
@@ -1836,6 +1837,7 @@ setup(void) {
 
         /* buttons */
         initbuttons();
+        chdir(getenv("HOME"));
 
         /* free resource database */
         XrmDestroyDatabase(xrdb);
@@ -2069,13 +2071,11 @@ updatebarpos(void) {
 	way = sy;
 	wah = sh;
 	waw = sw;
-	switch(bpos) {
+        switch(bpos){
 	default:
-		wah -= BARHEIGHT;
-		way += BARHEIGHT;
-		break;
-	case BarBot:
-		wah -= BARHEIGHT;
+		wah -= toph;
+		way += toph;
+		wah -= both;
 		break;
 	case BarOff:
 		break;

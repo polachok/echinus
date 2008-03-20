@@ -1,11 +1,13 @@
 # echinus wm - a window manager
 # © 2006-2007 Anselm R. Garbe, Sander van Dijk
+# © 2008 Alexander Polakov
 
 include config.mk
 
 SRC = echinus.c
 OBJ = ${SRC:.c=.o}
 HOM = `echo ${HOME}|sed 's.\/.\\\/.g'`
+CONF = ${HOME}/.echinus/echinusrc
 
 all: clean options echinus 
 
@@ -14,7 +16,7 @@ options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
-	@echo "CONFIG   = ${HOME}/.echinusrc"
+	@echo "CONFIG   = ${HOME}/.echinus"
 
 .c.o:
 	@echo CC $<
@@ -50,6 +52,12 @@ install: all
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@cp -f echinus ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/echinus
+
+installconfig:
+	@echo install configuration files and pixmaps to ${HOME}/.echinus
+	@mkdir ${HOME}/.echinus
+	@cp echinusrc ${HOME}/.echinus/echinusrc
+	@cp bg.xbm bullet.xbm close.xbm ${HOME}/.echinus
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin

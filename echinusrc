@@ -7,10 +7,12 @@ Echinus*normal.fg: #000000
 Echinus*selected.button: #ffffff
 Echinus*normal.button: #000000
 Echinus*border: 1
-Echinus*button.left.pixmap: HOME/.fwm/iconify.xbm
-Echinus*button.center.pixmap: HOME/.fwm/max.xbm
-Echinus*button.right.pixmap: HOME/.fwm/close.xbm
+Echinus*button.left.pixmap: iconify.xbm
+Echinus*button.center.pixmap: max.xbm
+Echinus*button.right.pixmap: close.xbm
 Echinus*opacity: 0.9
 Echinus*terminal: xterm
 Echinus*font: fixed-12
 Echinus*title: 12
+Echinus*space.top: 12
+Echinus*space.bottom: 0
