@@ -56,8 +56,8 @@
 #define RESCLASS               "Echinus"
 #define OPAQUE	0xffffffff
 #define ROWS 4
-#define COLS 5
-#define INITCOLSROWS { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
+#define COLS 4
+#define INITCOLSROWS { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
 
 /* enums */
 enum { BarTop, BarBot, BarOff };			/* bar position */
@@ -366,7 +366,6 @@ iconify(Client *c) {
         ban(c);
         setclientstate(c, IconicState);
         c->isicon = True;
-        arrange();
 }
 
 void
@@ -1345,10 +1344,10 @@ ifloating(void) {
                     continue;
                 }
                 if(region[0]){
-                    for(cr=LENGTH(region)/2-COLS/2-2; cr < LENGTH(region) && region[cr]; cr++);
+                    for(cr=LENGTH(region)/2-COLS/2-1; cr < LENGTH(region) && region[cr]; cr++);
                 }
                 else {
-                    for(cr=LENGTH(region)/2-COLS/2-2; cr >= 0 && region[cr]; cr--);
+                    for(cr=LENGTH(region)/2-COLS/2-1; cr >= 0 && region[cr]; cr--);
                 }
                     /* put in center if it's free */
                     if(cr==LENGTH(region)){
