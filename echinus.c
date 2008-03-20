@@ -366,6 +366,7 @@ iconify(Client *c) {
         ban(c);
         setclientstate(c, IconicState);
         c->isicon = True;
+        arrange();
 }
 
 void
@@ -493,7 +494,6 @@ buttonpress(XEvent *e) {
         }
     }
     else if((c = gettitle(ev->window))) {
-
         if((ev->x > c->tw-3*c->th) && (ev->x < c->tw-2*c->th)){
             /* min */
             iconify(c);
@@ -502,7 +502,7 @@ buttonpress(XEvent *e) {
         focus(c);
         if((ev->x > c->tw-2*c->th) && (ev->x < c->tw-c->th)){
             /* max */
-            setlayout(NULL);
+            setlayout("=");
             return;
         }
         if((ev->x > c->tw-c->th) && (ev->x < c->tw)){
@@ -514,11 +514,9 @@ buttonpress(XEvent *e) {
             if((layout->arrange == floating) || c->isfloating)
                 restack();
             movemouse(c);
-            drawclient(c);
         }
         else if(ev->button == Button3 && !c->isfixed) {
             resizemouse(c);
-            drawclient(c);
         }
     }
 }
@@ -1209,8 +1207,9 @@ manage(Window w, XWindowAttributes *wa) {
                 c->x = wa->x;
                 c->y = wa->y;
 	}
-        if(wa->x && wa->y)
+        if(wa->x && wa->y){
             c->isplaced = True;
+        }
     
         c->th = dc.h;
 	c->tx = c->x = wa->x;
@@ -1318,7 +1317,7 @@ ifloating(void) {
             }
         }
     for(c = clients; c; c = c->next){
-        if(isvisible(c)){
+        if(isvisible(c) && !c->isicon){
                 if(c->isplaced){
                     y = c->y/rh;
                     x = c->x/rw;
@@ -1336,7 +1335,7 @@ ifloating(void) {
         }
     }
     for(c = clients; c; c = c->next){
-        if(isvisible(c)){
+        if(isvisible(c) && !c->isicon){
             if(!c->isplaced) {
                 if(!c->isfloating && !wasfloating){
                             /*restore last known float dimensions*/
