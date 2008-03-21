@@ -136,11 +136,12 @@ ewmh_update_net_window_desktop(Client *c) {
     CARD32 count = 0;
     int i;
 
-    for(i = 0; i < LENGTH(tags); i++)
+    for(i = 0; i < LENGTH(tags); i++){
         if(c->tags[i]){
             count=i;
             break;
         }
+    }
 
     XChangeProperty(dpy, c->win,
                     net_window_desktop, XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &count, 1);

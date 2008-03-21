@@ -156,6 +156,7 @@ void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
 void expose(XEvent *e);
 void floating(void); /* default floating layout */
+void rfloating(void); /* random floating layout */
 void ifloating(void); /* intellectual floating layout */
 void focus(Client *c);
 void focusin(XEvent *e);
@@ -845,6 +846,30 @@ initfont(const char *fontstr) {
 }
 
 void
+rfloating(void) { /* random floating layout */
+	Client *c;
+        notitles = False;
+
+	domwfact = dozoom = False;
+	for(c = clients; c; c = c->next){
+            c->isplaced = False;
+            if(isvisible(c) && !c->isicon && !c->isplaced) {
+                    c->hastitle=c->hadtitle;
+                    drawclient(c);
+                    if(!c->isfloating && !wasfloating)
+                            /*restore last known float dimensions*/
+                            resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
+ 			else 
+                            resize(c, rand()%waw, rand()%way, c->w, c->h, True);
+                        c->isplaced=True;
+            }
+        }
+    wasfloating = True;
+}
+
+
+
+void
 floating(void) { /* default floating layout */
 	Client *c;
         notitles = False;
@@ -1330,6 +1355,7 @@ ifloating(void) {
                         region[cr+i] = True;
                     }
                 }
+            c->hastitle=c->hadtitle;
             drawclient(c);
         }
     }
@@ -1370,6 +1396,7 @@ ifloating(void) {
                             c->w, c->h, False);
                     c->isplaced = True;
                     }
+            c->hastitle=c->hadtitle;
             drawclient(c);
             }
         }
@@ -1880,8 +1907,8 @@ tag(const char *arg) {
 	for(i = 0; i < LENGTH(tags); i++)
 		sel->tags[i] = (NULL == arg);
 	sel->tags[idxoftag(arg)] = True;
-	arrange();
         ewmh_update_net_window_desktop(sel);
+	arrange();
 }
 
 void
