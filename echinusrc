@@ -16,3 +16,7 @@ Echinus*font: fixed-12
 Echinus*title: 12
 Echinus*space.top: 12
 Echinus*space.bottom: 0
+Echinus*tags.number: 3
+Echinus*tags.name0: main
+Echinus*tags.name1: web
+Echinus*tags.name2: gfx

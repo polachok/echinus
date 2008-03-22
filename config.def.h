@@ -46,10 +46,8 @@
 #define TITLEHEIGHT "12"
 
 #define NMASTER 1
-#define TERMINAL "urxvt"
+#define TERMINAL "xterm"
 /* tagging */
-const char *tags[] = { "main", "web", "irc", "mail", "dev", "gfx", "misc" };
-Bool seltags[LENGTH(tags)] = {[0] = True};
 Rule rules[] = { \
     /* class:instance:title regex	tags regex	floating titlebar */ \
     { "Firefox.*",          "web",      False, True }, \
@@ -85,18 +83,9 @@ Layout layouts[] = {
 #define KEYS \
 Key keys[] = { \
 	/* modifier			key		function	arguments */ \
-	/* { MODKEY,		    XK_t,	spawn,		            "exec urxvt" }, \ */ \
-	{ MODKEY,		    XK_t,	spawn,		            "exec urxvt -e screen -U" }, \
-	{ MODKEY,		    XK_n,	spawn,	                    "exec np" }, \
+	{ MODKEY,		    XK_t,	spawn,		            "exec xterm" }, \
 	{ MODKEY,		    XK_b,	togglebar,	            NULL }, \
 	{ MODKEY,		    XK_l,	spawn,		            "sleep 3 ; slock" }, \
-	{ MODKEY,		    XK_u,	spawn,		            "killall unclutter||unclutter -idle 1" }, \
-	{ MODKEY|ControlMask,	    XK_Delete,	spawn,		            "exec sudo /sbin/reboot" }, \
-	{ MODKEY,		    XK_y,	spawn,		            "ymenu" }, \
-	{ MODKEY,		    XK_h,	spawn,		            "ssh-ui" }, \
-        { MODKEY,                   XK_p,       spawn,                      "pmenu" }, \
-        { MODKEY,                   XK_w,       spawn,                      "swarp 1280 900" }, \
-        { MODKEY,                   XK_r,       spawn,                      "gajim-remote toggle_roster_appearance" }, \
 	{ MODKEY,		    XK_f,	setlayout,	"~" }, \
 	{ MODKEY,		    XK_m,	setlayout,	"=" }, \
 	{ MODKEY,		    XK_r,	setlayout,	"#" }, \

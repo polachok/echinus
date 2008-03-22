@@ -89,6 +89,15 @@ Space
 
 This space on top and bottom won't be covered by windows.
 
+Tags 
+    Echinus*tags.number
+
+    Number of tags
+
+    Echinus*tags.name{...}
+
+    Names for the tags
+
 2.config.h header
 -----------------
 
