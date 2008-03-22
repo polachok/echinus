@@ -110,7 +110,7 @@ void
 ewmh_update_net_numbers_of_desktop() {
     CARD32 count = 0;
 
-    count=LENGTH(tags);
+    count=ndtags;
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     net_number_of_desktops, XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &count, 1);
@@ -121,7 +121,7 @@ ewmh_update_net_current_desktop() {
     CARD32 count = 0;
     int i;
 
-    for(i = 0; i < LENGTH(tags); i++)
+    for(i = 0; i < ndtags; i++)
         if(seltags[i]){
             count=i;
             break;
@@ -136,7 +136,7 @@ ewmh_update_net_window_desktop(Client *c) {
     CARD32 count = 0;
     int i;
 
-    for(i = 0; i < LENGTH(tags); i++){
+    for(i = 0; i < ndtags; i++){
         if(c->tags[i]){
             count=i;
             break;
@@ -155,7 +155,7 @@ ewmh_update_net_desktop_names() {
 
     pos = buf;
     len = 0;
-    for(i = 0; i < LENGTH(tags); i++)
+    for(i = 0; i < ndtags; i++)
     {
         curr_size = strlen(tags[i]);
         strcpy(pos, tags[i]);

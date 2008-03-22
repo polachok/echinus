@@ -259,7 +259,9 @@ Regs *regs = NULL;
 XrmDatabase xrdb = NULL;
 
 char terminal[255];
-
+char **tags;
+Bool *seltags;
+int ndtags;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 #include "ewmh.h"
@@ -282,7 +284,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 };
 
 
-Bool prevtags[LENGTH(tags)];
+Bool *prevtags;
 
 /* function implementations */
 
@@ -303,7 +305,7 @@ applyrules(Client *c) {
 		if(regs[i].propregex && !regexec(regs[i].propregex, buf, 1, &tmp, 0)) {
 			c->isfloating = rules[i].isfloating;
 			c->hadtitle = rules[i].hastitle;
-			for(j = 0; regs[i].tagregex && j < LENGTH(tags); j++) {
+			for(j = 0; regs[i].tagregex && j < ndtags; j++) {
 				if(!regexec(regs[i].tagregex, tags[j], 1, &tmp, 0)) {
 					matched = True;
 					c->tags[j] = True;
@@ -450,7 +452,7 @@ buttonpress(XEvent *e) {
                     drawmouse(e);
                     break;
                 case Button4:
-                    for(i=0; i <= LENGTH(tags); i++) {
+                    for(i=0; i <= ndtags; i++) {
                         if(i && seltags[i]) {
                                 view(tags[i-1]);
                                 break;
@@ -458,7 +460,7 @@ buttonpress(XEvent *e) {
                     }
                     break;
                 case Button5:
-                    for(i=0; i < LENGTH(tags); i++) {
+                    for(i=0; i < ndtags; i++) {
                         if(seltags[i]) {
                             view(tags[i+1]);
                             break;
@@ -1097,8 +1099,8 @@ unsigned int
 idxoftag(const char *tag) {
 	unsigned int i;
 
-	for(i = 0; (i < LENGTH(tags)) && (tags[i] != tag); i++);
-	return (i < LENGTH(tags)) ? i : 0;
+	for(i = 0; (i < ndtags) && (tags[i] != tag); i++);
+	return (i < ndtags) ? i : 0;
 }
 
 Bool
@@ -1131,7 +1133,7 @@ Bool
 isvisible(Client *c) {
 	unsigned int i;
 
-	for(i = 0; i < LENGTH(tags); i++)
+	for(i = 0; i < ndtags; i++)
 		if(c->tags[i] && seltags[i])
 			return True;
 	return False;
@@ -1761,6 +1763,33 @@ setnmaster(const char *arg) {
 }
 
 void
+inittags(){
+    int i;
+    char tmp[25]="\0";
+    fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
+    ndtags = atoi(getresource("tags.number", "5"));
+    fprintf(stderr, "\nndtags: %d\n", ndtags);
+    tags = malloc(ndtags*sizeof(char*));
+    prevtags = malloc(ndtags*sizeof(Bool));
+    seltags = malloc(ndtags*sizeof(Bool));
+    seltags[0] = True;
+    for(i=0; i < ndtags; i++){
+        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
+        tags[i] = malloc(25*sizeof(char));
+        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
+        sprintf(tmp, "tags.name%d", i);
+        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
+        sprintf(tags[i], "%s\0", getresource(tmp, "fuck"));
+        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
+    }
+    // debug
+    for(i = 0; i < ndtags; i++){
+        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
+        fprintf(stderr, "tag[%d]=%s\n", i, tags[i]);
+    }
+}
+
+void
 setup(void) {
 	int d;
 	unsigned int i, j, mask;
@@ -1776,10 +1805,7 @@ setup(void) {
         /* init EWMH atoms */
         ewmh_init_atoms();
         ewmh_set_supported_hints();
-        ewmh_update_net_numbers_of_desktop();
-        ewmh_update_net_desktop_names();
-        ewmh_update_net_current_desktop();
-	/* init cursors */
+        	/* init cursors */
 	cursor[CurNormal] = XCreateFontCursor(dpy, XC_left_ptr);
 	cursor[CurResize] = XCreateFontCursor(dpy, XC_sizing);
 	cursor[CurMove] = XCreateFontCursor(dpy, XC_fleur);
@@ -1816,11 +1842,16 @@ setup(void) {
         if(!xrdb)
             eprint("echinus: cannot open configuration file\n");
 
-	/* grab keys */
-	keypress(NULL);
-
+	
 	/* init tags */
+        inittags();
+        ewmh_update_net_numbers_of_desktop();
+        ewmh_update_net_desktop_names();
+        ewmh_update_net_current_desktop();
 	compileregs();
+
+        /* grab keys */
+	keypress(NULL);
 
 	/* init appearance */
 	dc.norm[ColBorder] = getcolor(getresource("normal.border",NORMBORDERCOLOR));
@@ -1904,7 +1935,7 @@ tag(const char *arg) {
 
 	if(!sel)
 		return;
-	for(i = 0; i < LENGTH(tags); i++)
+	for(i = 0; i < ndtags; i++)
 		sel->tags[i] = (NULL == arg);
 	sel->tags[idxoftag(arg)] = True;
         ewmh_update_net_window_desktop(sel);
@@ -2016,8 +2047,8 @@ toggletag(const char *arg) {
 		return;
 	i = idxoftag(arg);
 	sel->tags[i] = !sel->tags[i];
-	for(j = 0; j < LENGTH(tags) && !sel->tags[j]; j++);
-	if(j == LENGTH(tags))
+	for(j = 0; j < ndtags && !sel->tags[j]; j++);
+	if(j == ndtags)
 		sel->tags[i] = True; /* at least one tag must be enabled */
 	arrange();
 }
@@ -2028,8 +2059,8 @@ toggleview(const char *arg) {
 
 	i = idxoftag(arg);
 	seltags[i] = !seltags[i];
-	for(j = 0; j < LENGTH(tags) && !seltags[j]; j++);
-	if(j == LENGTH(tags))
+	for(j = 0; j < ndtags && !seltags[j]; j++);
+	if(j == ndtags)
 		seltags[i] = True; /* at least one tag must be viewed */
 	arrange();
 }
@@ -2168,9 +2199,10 @@ void
 view(const char *arg) {
 	unsigned int i;
 	memcpy(prevtags, seltags, sizeof seltags);
-	for(i = 0; i < LENGTH(tags); i++)
+	for(i = 0; i < ndtags; i++)
 		seltags[i] = (NULL == arg);
 	seltags[idxoftag(arg)] = True;
+        fprintf(stderr, "TAG=%d", idxoftag(arg));
 	arrange();
         ewmh_update_net_current_desktop();
 }
