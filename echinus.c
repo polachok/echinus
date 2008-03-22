@@ -425,10 +425,11 @@ drawmouse(XEvent *e) {
 
 void
 focusin(XEvent *e) {
-    Client *c;
-    XFocusChangeEvent *ev = &e->xfocus;
+
     /* TODO: fix this */
 #ifdef PYPANELHACK
+    Client *c;
+    XFocusChangeEvent *ev = &e->xfocus;
     if (ev->type == FocusIn){
         c = getclient(ev->window);
         if(c!=sel && c){
@@ -863,8 +864,8 @@ rfloating(void) { /* random floating layout */
                             /*restore last known float dimensions*/
                             resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
  			else 
-                            resize(c, rand()%waw, rand()%way, c->w, c->h, True);
-                        c->isplaced=True;
+                            resize(c, waw+rand()%sw, way+rand()%sh, c->w, c->h, True);
+                    c->isplaced=True;
             }
         }
     wasfloating = True;
@@ -1327,7 +1328,7 @@ maprequest(XEvent *e) {
         arrange();
 }
 
-void
+void 
 ifloating(void) {
     Client *c;
     int rw, rh;
@@ -1336,13 +1337,14 @@ ifloating(void) {
     rw = waw/COLS;
     rh = wah/ROWS;
     int cr = 0;
-    Bool region[COLS*ROWS]=INITCOLSROWS;
+    static Bool region[COLS*ROWS]=INITCOLSROWS;
+    Bool fregion[COLS*ROWS]=INITCOLSROWS;
     for(i=0; i<LENGTH(region) && region[i]; i++);
-        if(i==LENGTH(region)){
-            for(i=LENGTH(region)-1; i>=0; i--){
-                region[i] = False;
-            }
+    if(i==LENGTH(region)){
+        for(i=LENGTH(region)-1; i>=0; i--){
+            region[i] = False;
         }
+    }
     for(c = clients; c; c = c->next){
         if(isvisible(c) && !c->isicon){
                 if(c->isplaced){
@@ -1353,20 +1355,15 @@ ifloating(void) {
                     cr = COLS*y+x;
                     if(n >= (COLS/2+1) && k >= (ROWS/2+1))
                         continue;
+                    fregion[cr]=True;
                     region[cr]=True;
                     for(i=0; i <= n && cr+i < LENGTH(region); i++){
                         region[cr+i] = True;
+                        fregion[cr+i] = True;
                     }
-                }
-            c->hastitle=c->hadtitle;
-            drawclient(c);
-        }
-    }
-    for(c = clients; c; c = c->next){
-        if(isvisible(c) && !c->isicon){
-            if(!c->isplaced) {
+                } else if(!c->isplaced) {
                 if(!c->isfloating && !wasfloating){
-                            /*restore last known float dimensions*/
+                    /*restore last known float dimensions*/
                     c->isplaced = True;
                     resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
                     drawclient(c);
@@ -1381,6 +1378,7 @@ ifloating(void) {
                     /* put in center if it's free */
                     if(cr==LENGTH(region)){
                         region[LENGTH(region)/2]=True;
+                        fregion[LENGTH(region)/2]=True;
                         resize(c, sw/2-c->w/2+rand()%4*c->th, sh/2-c->h/2+rand()%4*c->th+c->th,
                                 c->w, c->h, False);
                         c->isplaced = True;
@@ -1395,16 +1393,20 @@ ifloating(void) {
                         continue;
                     }
                     region[cr] = True;
+                    fregion[cr] = True;
                     resize(c, wax+(cr%COLS)*rw+rand()%4*c->th, way+(cr/COLS)*rh+rand()%4*c->th+c->th,
                             c->w, c->h, False);
                     c->isplaced = True;
-                    }
-            c->hastitle=c->hadtitle;
+                }
+            c->hastitle = c->hadtitle;
             drawclient(c);
-            }
         }
-        focus(NULL);
-	restack();
+    }
+    for(i = 0; i<LENGTH(region); i++){
+        region[i] = fregion[i];
+    }
+    focus(NULL);
+    restack();
 }
 
 void
@@ -1783,7 +1785,7 @@ inittags(){
         fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
         sprintf(tmp, "tags.name%d", i);
         fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
-        sprintf(tags[i], "%s\0", getresource(tmp, "fuck"));
+        sprintf(tags[i], "%s", getresource(tmp, "fuck"));
         fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
     }
     // debug
