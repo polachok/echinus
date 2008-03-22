@@ -316,8 +316,9 @@ applyrules(Client *c) {
 		XFree(ch.res_class);
 	if(ch.res_name)
 		XFree(ch.res_name);
+        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 	if(!matched) {
-		memcpy(c->tags, seltags, sizeof seltags);
+		memcpy(c->tags, seltags, ndtags*(sizeof seltags));
         return 0;
         }
     else
@@ -1214,7 +1215,7 @@ manage(Window w, XWindowAttributes *wa) {
             return;
         }
 	c = emallocz(sizeof(Client));
-	c->tags = emallocz(sizeof seltags);
+	c->tags = emallocz(ndtags*(sizeof seltags));
 	c->win = w;
         c->isicon = False;
         c->hastitle = True;
@@ -1288,7 +1289,7 @@ manage(Window w, XWindowAttributes *wa) {
 	if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
 		for(t = clients; t && t->win != trans; t = t->next);
 	if(t)
-		memcpy(c->tags, t->tags, sizeof seltags);
+		memcpy(c->tags, t->tags, ndtags*(sizeof seltags));
 	applyrules(c);
 	if(!c->isfloating)
 		c->isfloating = (rettrans == Success) || c->isfixed;
@@ -1772,6 +1773,9 @@ inittags(){
     tags = malloc(ndtags*sizeof(char*));
     prevtags = malloc(ndtags*sizeof(Bool));
     seltags = malloc(ndtags*sizeof(Bool));
+    memset(prevtags, 0, ndtags*(sizeof prevtags));
+    memset(seltags, 0, ndtags*(sizeof seltags));
+    fprintf(stderr, "\nsizeof seltags: %d\n", sizeof seltags);
     seltags[0] = True;
     for(i=0; i < ndtags; i++){
         fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
@@ -1784,9 +1788,9 @@ inittags(){
     }
     // debug
     for(i = 0; i < ndtags; i++){
-        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
         fprintf(stderr, "tag[%d]=%s\n", i, tags[i]);
     }
+    fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 }
 
 void
@@ -1802,10 +1806,12 @@ setup(void) {
 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 	wmatom[WMName] = XInternAtom(dpy, "WM_NAME", False);
 	wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
+
         /* init EWMH atoms */
         ewmh_init_atoms();
         ewmh_set_supported_hints();
-        	/* init cursors */
+
+        /* init cursors */
 	cursor[CurNormal] = XCreateFontCursor(dpy, XC_left_ptr);
 	cursor[CurResize] = XCreateFontCursor(dpy, XC_sizing);
 	cursor[CurMove] = XCreateFontCursor(dpy, XC_fleur);
@@ -1903,7 +1909,7 @@ setup(void) {
 
 	/* multihead support */
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
-
+        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 }
 
 void
@@ -2198,7 +2204,7 @@ xerrorstart(Display *dsply, XErrorEvent *ee) {
 void
 view(const char *arg) {
 	unsigned int i;
-	memcpy(prevtags, seltags, sizeof seltags);
+	memcpy(prevtags, seltags, ndtags*(sizeof seltags));
 	for(i = 0; i < ndtags; i++)
 		seltags[i] = (NULL == arg);
 	seltags[idxoftag(arg)] = True;
@@ -2211,9 +2217,9 @@ void
 viewprevtag(const char *arg) {
 	static Bool tmptags[sizeof tags / sizeof tags[0]];
 
-	memcpy(tmptags, seltags, sizeof seltags);
-	memcpy(seltags, prevtags, sizeof seltags);
-	memcpy(prevtags, tmptags, sizeof seltags);
+	memcpy(tmptags, seltags, ndtags*(sizeof seltags));
+	memcpy(seltags, prevtags, ndtags*(sizeof seltags));
+	memcpy(prevtags, tmptags, ndtags*(sizeof seltags));
 	arrange();
 }
 
