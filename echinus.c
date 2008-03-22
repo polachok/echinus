@@ -58,7 +58,7 @@
 #define ROWS 4
 #define COLS 4
 #define INITCOLSROWS { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
-
+#define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 /* enums */
 enum { BarTop, BarBot, BarOff };			/* bar position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
@@ -316,7 +316,6 @@ applyrules(Client *c) {
 		XFree(ch.res_class);
 	if(ch.res_name)
 		XFree(ch.res_name);
-        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 	if(!matched) {
 		memcpy(c->tags, seltags, ndtags*(sizeof seltags));
         return 0;
@@ -501,6 +500,7 @@ buttonpress(XEvent *e) {
         if((ev->x > c->tw-3*c->th) && (ev->x < c->tw-2*c->th)){
             /* min */
             iconify(c);
+            focus(c->next);
             return;
         }
         focus(c);
@@ -1701,7 +1701,9 @@ setclientstate(Client *c, long state) {
 
 	XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
 			PropModeReplace, (unsigned char *)data, 2);
-        if(state != IconicState)
+	XChangeProperty(dpy, c->title, wmatom[WMState], wmatom[WMState], 32,
+			PropModeReplace, (unsigned char *)data, 2);
+        if(state == NormalState)
             c->isicon = False;
         }
 
@@ -1771,28 +1773,17 @@ inittags(){
     char tmp[25]="\0";
     fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
     ndtags = atoi(getresource("tags.number", "5"));
-    fprintf(stderr, "\nndtags: %d\n", ndtags);
     tags = malloc(ndtags*sizeof(char*));
     prevtags = malloc(ndtags*sizeof(Bool));
     seltags = malloc(ndtags*sizeof(Bool));
     memset(prevtags, 0, ndtags*(sizeof prevtags));
     memset(seltags, 0, ndtags*(sizeof seltags));
-    fprintf(stderr, "\nsizeof seltags: %d\n", sizeof seltags);
     seltags[0] = True;
     for(i=0; i < ndtags; i++){
-        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
         tags[i] = malloc(25*sizeof(char));
-        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
         sprintf(tmp, "tags.name%d", i);
-        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
-        sprintf(tags[i], "%s", getresource(tmp, "fuck"));
-        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
+        sprintf(tags[i], "%s", getresource(tmp, "null"));
     }
-    // debug
-    for(i = 0; i < ndtags; i++){
-        fprintf(stderr, "tag[%d]=%s\n", i, tags[i]);
-    }
-    fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 }
 
 void
@@ -2106,7 +2097,6 @@ void
 unmanage(Client *c) {
 	XWindowChanges wc;
         XDestroyWindow(dpy, c->title);
-        XDestroyWindow(dpy, c->win);
 	wc.border_width = c->oldborder;
 	/* The server grab construct avoids race conditions. */
 	XGrabServer(dpy);
@@ -2155,11 +2145,13 @@ unmapnotify(XEvent *e) {
         XWindowAttributes wa;
 
         if((c = getclient(ev->window))) {
+            if(c->isicon)
+                return;
             XGetWindowAttributes(dpy, ev->window, &wa);
             if(wa.map_state == IsUnmapped){
                     XGetWindowAttributes(dpy, c->title, &wa);
                     if(wa.map_state == IsViewable)
-                        unmanage(c);
+                            unmanage(c);
             }
         }
 }
