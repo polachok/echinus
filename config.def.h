@@ -110,7 +110,7 @@ Key keys[] = { \
 	{ MODKEY,		    XK_i,		incnmaster,	"1" }, \
 	{ MODKEY|ShiftMask,	    XK_c,		killclient,	 NULL  }, \
         { MODKEY,                   XK_space,           togglefloating,  NULL, }, \
-        { MODKEY|ShiftMask,	    XK_q,		quit,		 "fwm"  }, \
+        { MODKEY|ShiftMask,	    XK_q,		quit,		 "echinus"  }, \
 	{ MODKEY|ShiftMask,	    XK_1,		tag,		  tags[0] }, \
 	{ MODKEY|ShiftMask,	    XK_2,		tag,		  tags[1] }, \
 	{ MODKEY|ShiftMask,	    XK_3,		tag,		  tags[2] }, \

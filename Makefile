@@ -40,8 +40,8 @@ dist: clean
 	@echo creating dist tarball
 	@mkdir -p echinus-${VERSION}
 	@cp -R LICENSE Makefile README config.def.h config.mk \
-		echinus.1 ${SRC} dwm-${VERSION}
-	@tar -cf echinus-${VERSION}.tar dwm-${VERSION}
+		echinus.1 ${SRC} echinus-${VERSION}
+	@tar -cf echinus-${VERSION}.tar echinus-${VERSION}
 	@gzip echinus-${VERSION}.tar
 	@rm -rf echinus-${VERSION}
 
