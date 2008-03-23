@@ -264,10 +264,12 @@ char **tags;
 Bool *seltags;
 int ntags = 0;
 int nkeys = 0;
+int nrules = 0;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 #include "ewmh.h"
 #include "keys.h"
+#include "rules.h"
 
 void (*handler[LASTEvent]) (XEvent *) = {
 	[ButtonPress] = buttonpress,
