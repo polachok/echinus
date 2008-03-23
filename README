@@ -90,6 +90,7 @@ Space
 This space on top and bottom won't be covered by windows.
 
 Tags 
+
     Echinus*tags.number
 
     Number of tags
@@ -98,10 +99,58 @@ Tags
 
     Names for the tags
 
+Keybindings
+
+    Format is "[ASC] + key", where:
+        A - Alt (mod1)
+        S - Shift
+        C - Control
+    Don't miss ' ' (space).
+
+    Echinus*togglebar
+
+     Echinus has no bar, but this binding switches the area
+     on top and bottom which won't be covered by windows in
+     monocle mode.
+
+    Echinus*focusnext
+    Echinus*focusprev
+
+     Focus next and previous window
+
+    Echinus*viewprevtag
+
+     View previous tag set
+
+    Echinus*quit
+
+     Leave echinus
+
+    Echinus*killclient
+     
+     Close window in focus
+
+    Echinus*togglefloating
+
+     Toggle floating/tiled
+
+    Echinus*view#
+
+     View tag number #
+
+    Echinus*tag#
+
+     Tag current window with tag number #
+
+    Echinus*focusview#
+     
+     Toggle view number # and focus it
+
+
 2.config.h header
 -----------------
 
-Is used to define keybindings and rules for placing windows on tags.
+Is used to define rules for placing windows on tags.
 Should be self-documenting.
 
 3.About panels and pagers

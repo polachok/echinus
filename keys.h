@@ -17,6 +17,7 @@
 #include <regex.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
+#include <X11/XF86keysym.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
@@ -42,11 +43,20 @@ static KeyItem KeyItems[] =
     { "togglefloating", togglefloating },
 };
 
+static KeyItem KeyItemsByTag[] = 
+{
+    { "view", view },
+    { "toggleview", toggleview },
+    { "focusview", focusview },
+    { "tag", tag },
+    { "toggletag", toggletag },
+};
+
 void
 parsekey(char *s, Key *k) {
-    char mod[5]="\0";
+    char mod[15]="\0";
     unsigned long modmask = 0;
-    char key[15]="\0";
+    char key[32]="\0";
     int i;
     sscanf(s, "%s + %s", mod, key);
     for(i = 0; i<3; i++){
@@ -58,21 +68,43 @@ parsekey(char *s, Key *k) {
             modmask = modmask | ControlMask;
     }
     k->mod = modmask;
-    fprintf(stderr, "%s : mod=%s : key=%s\n",s, mod, key);
+    fprintf(stderr, "%s : mod=%s : key=[%s] ksym = %d %s\n",s, mod, key, (int)(XStringToKeysym(key)==NoSymbol), XKeysymToString(XStringToKeysym(key)));
     k->keysym = XStringToKeysym(key);
-    k->arg = NULL;
 }
 
 int
 initkeys(){
-    int i;
+    int i,j,k;
     char *tmp;
+    char t[64];
     dkeys = malloc(sizeof(Key*)*LENGTH(KeyItems));
+    /* statically defined functions */
     for(i = 0; i < LENGTH(KeyItems); i++){
         tmp = getresource(KeyItems[i].name, NULL);
         dkeys[i] = malloc(sizeof(Key));
         dkeys[i]->func = KeyItems[i].action;
+        dkeys[i]->arg = NULL;
         parsekey(tmp, dkeys[i]);
+        ndkeys = i;
     }
+    k = i;
+    for(j = 0; j < LENGTH(KeyItemsByTag); j++){
+        for(i = 0; i < ndtags; i++){
+            sprintf(t, "%s%d", KeyItemsByTag[j].name, i);
+            fprintf(stderr, "KeyItemsByTag[%d]=[%s%d]\n", j, KeyItemsByTag[j].name, i);
+            tmp = getresource(t, NULL);
+            if(!tmp)
+                continue;
+            dkeys = realloc(dkeys, sizeof(Key*)*(k+1));
+            dkeys[k] = malloc(sizeof(Key));
+            dkeys[k]->func = KeyItemsByTag[j].action;
+            dkeys[k]->arg = tags[i];
+            fprintf(stderr, "arg=%s\n", dkeys[k]->arg);
+            parsekey(tmp, dkeys[k]);
+            k++;
+            ndkeys = k;
+        }
+    }
+
     return 0;
 }

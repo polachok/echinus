@@ -40,6 +40,7 @@
 #include <regex.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
+#include <X11/XF86keysym.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
@@ -261,7 +262,8 @@ XrmDatabase xrdb = NULL;
 char terminal[255];
 char **tags;
 Bool *seltags;
-int ndtags;
+int ndtags = 0;
+int ndkeys = 0;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 #include "ewmh.h"
@@ -1102,7 +1104,8 @@ unsigned int
 idxoftag(const char *tag) {
 	unsigned int i;
 
-	for(i = 0; (i < ndtags) && (tags[i] != tag); i++);
+	//for(i = 0; (i < ndtags) && (tags[i] != tag); i++);
+	for(i = 0; (i < ndtags) && strcmp(tag, tags[i]); i++);
 	return (i < ndtags) ? i : 0;
 }
 
@@ -1152,8 +1155,8 @@ keypress(XEvent *e) {
 
 	if(!e) { /* grabkeys */
 		XUngrabKey(dpy, AnyKey, AnyModifier, root);
-		for(i = 0; i < LENGTH(KeyItems); i++) {
-                        fprintf(stderr, "dkeys[%d] dkeys[%d]->keysym = %d modmask=%ld Mod1Mask=%ld\n", i, i, dkeys[i]->keysym, dkeys[i]->mod, Mod1Mask);
+		for(i = 0; i < ndkeys; i++) {
+                        fprintf(stderr, "dkeys[%d] dkeys[%d]->keysym = %d modmask=%lu arg=%s func=%d\n", i, i, (int)dkeys[i]->keysym, dkeys[i]->mod, dkeys[i]->arg, dkeys[i]->func);
 			code = XKeysymToKeycode(dpy, dkeys[i]->keysym);
 			XGrabKey(dpy, code, dkeys[i]->mod, root, True,
 					GrabModeAsync, GrabModeAsync);
@@ -1168,7 +1171,7 @@ keypress(XEvent *e) {
 	}
 	ev = &e->xkey;
 	keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
-	for(i = 0; i < LENGTH(KeyItems); i++)
+	for(i = 0; i < ndkeys; i++)
 		if(keysym == dkeys[i]->keysym
 		&& CLEANMASK(dkeys[i]->mod) == CLEANMASK(ev->state))
 		{
