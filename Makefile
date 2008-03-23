@@ -51,7 +51,7 @@ installconfig:
 	@echo install configuration files and pixmaps to ${HOME}/.echinus
 	@mkdir ${HOME}/.echinus
 	@cp echinusrc ${HOME}/.echinus/echinusrc
-	@cp bg.xbm bullet.xbm close.xbm ${HOME}/.echinus
+	@cp bg.xbm iconify.xbm max.xbm ${HOME}/.echinus
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
