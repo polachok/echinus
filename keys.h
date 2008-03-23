@@ -78,7 +78,7 @@ initkeys(){
     char *tmp;
     char t[64];
     dkeys = malloc(sizeof(Key*)*LENGTH(KeyItems));
-    /* statically defined functions */
+    /* global functions */
     for(i = 0; i < LENGTH(KeyItems); i++){
         tmp = getresource(KeyItems[i].name, NULL);
         dkeys[i] = malloc(sizeof(Key));
@@ -88,6 +88,7 @@ initkeys(){
         ndkeys = i;
     }
     k = i;
+    /* per tag functions */
     for(j = 0; j < LENGTH(KeyItemsByTag); j++){
         for(i = 0; i < ndtags; i++){
             sprintf(t, "%s%d", KeyItemsByTag[j].name, i);
@@ -105,6 +106,24 @@ initkeys(){
             ndkeys = k;
         }
     }
+    /* layout setting */
+    for(i = 0; i<LENGTH(layouts); i++){
+            sprintf(t, "setlayout%s", layouts[i].symbol);
+            fprintf(stderr, "setlayout%s\n", layouts[i].symbol);
+            tmp = getresource(t, NULL);
+            if(!tmp)
+                continue;
+            dkeys = realloc(dkeys, sizeof(Key*)*(k+1));
+            dkeys[k] = malloc(sizeof(Key));
+            dkeys[k]->func = setlayout;
+            dkeys[k]->arg = layouts[i].symbol;
+            fprintf(stderr, "arg=%s\n", dkeys[k]->arg);
+            parsekey(tmp, dkeys[k]);
+            k++;
+            ndkeys = k;
+    }
+    /* spawn */
+ 
 
     return 0;
 }
