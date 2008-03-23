@@ -144,8 +144,13 @@ Keybindings
 
     Echinus*focusview#
      
-     Toggle view number # and focus it
+     Toggle view number # and focus the first client
+     from it.
 
+
+    Echinus*spawn#: <key> = program
+
+    Run specified program. # is less than 64.
 
 2.config.h header
 -----------------

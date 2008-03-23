@@ -846,7 +846,7 @@ initfont(const char *fontstr) {
          dc.font.xftfont = XftFontOpenName(dpy,screen,fontstr);
     if(!dc.font.xftfont)
          eprint("error, cannot load font: '%s'\n", fontstr);
-    dc.font.extents = malloc(sizeof(XGlyphInfo));
+    dc.font.extents = emallocz(sizeof(XGlyphInfo));
     XftTextExtentsUtf8(dpy,dc.font.xftfont,(unsigned char*)fontstr, strlen(fontstr), dc.font.extents);
     dc.font.height = dc.font.extents->y+dc.font.extents->yOff;
     dc.font.width = (dc.font.extents->width)/strlen(fontstr);
@@ -1156,7 +1156,7 @@ keypress(XEvent *e) {
 	if(!e) { /* grabkeys */
 		XUngrabKey(dpy, AnyKey, AnyModifier, root);
 		for(i = 0; i < ndkeys; i++) {
-                        fprintf(stderr, "dkeys[%d] dkeys[%d]->keysym = %d modmask=%lu arg=%s func=%d\n", i, i, (int)dkeys[i]->keysym, dkeys[i]->mod, dkeys[i]->arg, dkeys[i]->func);
+                        fprintf(stderr, "dkeys[%d] dkeys[%d]->keysym = %d modmask=%lu arg=%s func=%d\n", i, i, (int)dkeys[i]->keysym, dkeys[i]->mod, dkeys[i]->arg, (int)dkeys[i]->func);
 			code = XKeysymToKeycode(dpy, dkeys[i]->keysym);
 			XGrabKey(dpy, code, dkeys[i]->mod, root, True,
 					GrabModeAsync, GrabModeAsync);
@@ -1778,14 +1778,12 @@ inittags(){
     char tmp[25]="\0";
     fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
     ndtags = atoi(getresource("tags.number", "5"));
-    tags = malloc(ndtags*sizeof(char*));
-    prevtags = malloc(ndtags*sizeof(Bool));
-    seltags = malloc(ndtags*sizeof(Bool));
-    memset(prevtags, 0, ndtags*(sizeof prevtags));
-    memset(seltags, 0, ndtags*(sizeof seltags));
+    tags = emallocz(ndtags*sizeof(char*));
+    prevtags = emallocz(ndtags*sizeof(Bool));
+    seltags = emallocz(ndtags*sizeof(Bool));
     seltags[0] = True;
     for(i=0; i < ndtags; i++){
-        tags[i] = malloc(25*sizeof(char));
+        tags[i] = emallocz(25*sizeof(char));
         sprintf(tmp, "tags.name%d", i);
         sprintf(tags[i], "%s", getresource(tmp, "null"));
     }
@@ -1869,8 +1867,8 @@ setup(void) {
 	dc.sel[ColFG] = getcolor(getresource("selected.fg", SELFGCOLOR));
 	dc.sel[ColButton] = getcolor(getresource("selected.button", SELBUTTONCOLOR));
 
-        dc.xftsel=malloc(sizeof(XftColor));
-        dc.xftnorm=malloc(sizeof(XftColor));
+        dc.xftsel=emallocz(sizeof(XftColor));
+        dc.xftnorm=emallocz(sizeof(XftColor));
         XftColorAllocName(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen),getresource("selected.fg", SELFGCOLOR), dc.xftsel);
         XftColorAllocName(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen),getresource("normal.fg", SELFGCOLOR), dc.xftnorm);
         if(!dc.xftnorm || !dc.xftnorm)

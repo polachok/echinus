@@ -28,3 +28,20 @@ Echinus*viewprevtag: A + Tab
 Echinus*quit: A + q
 Echinus*killclient: AS + C
 Echinus*togglefloating: A + space
+
+Echinus*view0: A + F1
+Echinus*view1: A + F2
+Echinus*view2: A + F3
+
+Echinus*tag0: AS + 1
+Echinus*tag1: AS + 2
+Echinus*tag2: AS + 3
+
+Echinus*focusview6: A + s
+
+Echinus*setlayoutm: A + m
+Echinus*setlayoutf: A + f
+Echinus*setlayouti: A + i
+Echinus*setlayoutr: A + r
+
+Echinus*spawn0: A + t = xterm

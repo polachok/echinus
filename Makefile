@@ -22,11 +22,7 @@ options:
 	@echo CC $<
 	@${CC} -c ${CFLAGS} $<
 
-${OBJ}: config.h config.mk
-
-config.h:
-	@echo creating $@ from config.def.h
-	@cp config.def.h $@
+${OBJ}: config.mk
 
 echinus: ${OBJ}
 	@echo CC -o $@
@@ -39,7 +35,7 @@ clean:
 dist: clean
 	@echo creating dist tarball
 	@mkdir -p echinus-${VERSION}
-	@cp -R LICENSE Makefile README config.def.h config.mk \
+	@cp -R LICENSE Makefile README config.h config.mk \
 		echinus.1 ${SRC} echinus-${VERSION}
 	@tar -cf echinus-${VERSION}.tar echinus-${VERSION}
 	@gzip echinus-${VERSION}.tar
