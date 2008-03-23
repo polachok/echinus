@@ -159,6 +159,8 @@ void expose(XEvent *e);
 void floating(void); /* default floating layout */
 void rfloating(void); /* random floating layout */
 void ifloating(void); /* intellectual floating layout */
+void iconifyit(const char *arg);
+void incnmaster(const char *arg);
 void focus(Client *c);
 void focusin(XEvent *e);
 void focusnext(const char *arg);
@@ -378,6 +380,15 @@ iconify(Client *c) {
 }
 
 void
+iconifyit(const char *arg) {
+    if(!sel)
+        return;
+    focus(sel->next);
+    iconify(sel);
+}
+
+
+void
 drawmouse(XEvent *e) {
     /* it's ugly, i know */
     /* TODO: look at 9wm */
@@ -512,7 +523,7 @@ buttonpress(XEvent *e) {
         focus(c);
         if((ev->x > c->tw-2*c->th) && (ev->x < c->tw-c->th)){
             /* max */
-            setlayout("=");
+            setlayout("m");
             return;
         }
         if((ev->x > c->tw-c->th) && (ev->x < c->tw)){

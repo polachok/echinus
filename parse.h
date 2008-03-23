@@ -1,5 +1,6 @@
 /*
  *  echinus wm written by Alexander Polakov <polachok@gmail.com> at 23.03.2008 19:47:22 MSK
+ *  this file contains code to parse rules and keybindings
  */
 typedef struct
 {
@@ -16,6 +17,11 @@ static KeyItem KeyItems[] =
     { "quit", quit },
     { "killclient", killclient },
     { "togglefloating", togglefloating },
+    { "decmwfact", setmwfact },
+    { "incmwfact", setmwfact },
+    { "incnmaster", incnmaster },
+    { "decnmaster", incnmaster },
+    { "iconify", iconifyit },
 };
 
 static KeyItem KeyItemsByTag[] = 
