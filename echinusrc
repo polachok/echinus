@@ -20,3 +20,11 @@ Echinus*tags.number: 3
 Echinus*tags.name0: main
 Echinus*tags.name1: web
 Echinus*tags.name2: gfx
+
+Echinus*togglebar: A + b
+Echinus*focusnext: A + j
+Echinus*focusprev: A + k
+Echinus*viewprevtag: A + Tab
+Echinus*quit: A + q
+Echinus*killclient: AS + C
+Echinus*togglefloating: A + space

@@ -265,6 +265,7 @@ int ndtags;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 #include "ewmh.h"
+#include "keys.h"
 
 void (*handler[LASTEvent]) (XEvent *) = {
 	[ButtonPress] = buttonpress,
@@ -1143,7 +1144,7 @@ isvisible(Client *c) {
 
 void
 keypress(XEvent *e) {
-	KEYS
+	//KEYS
 	unsigned int i;
 	KeyCode code;
 	KeySym keysym;
@@ -1151,27 +1152,28 @@ keypress(XEvent *e) {
 
 	if(!e) { /* grabkeys */
 		XUngrabKey(dpy, AnyKey, AnyModifier, root);
-		for(i = 0; i < LENGTH(keys); i++) {
-			code = XKeysymToKeycode(dpy, keys[i].keysym);
-			XGrabKey(dpy, code, keys[i].mod, root, True,
+		for(i = 0; i < LENGTH(KeyItems); i++) {
+                        fprintf(stderr, "dkeys[%d] dkeys[%d]->keysym = %d modmask=%ld Mod1Mask=%ld\n", i, i, dkeys[i]->keysym, dkeys[i]->mod, Mod1Mask);
+			code = XKeysymToKeycode(dpy, dkeys[i]->keysym);
+			XGrabKey(dpy, code, dkeys[i]->mod, root, True,
 					GrabModeAsync, GrabModeAsync);
-			XGrabKey(dpy, code, keys[i].mod | LockMask, root, True,
+			XGrabKey(dpy, code, dkeys[i]->mod | LockMask, root, True,
 					GrabModeAsync, GrabModeAsync);
-			XGrabKey(dpy, code, keys[i].mod | numlockmask, root, True,
+			XGrabKey(dpy, code, dkeys[i]->mod | numlockmask, root, True,
 					GrabModeAsync, GrabModeAsync);
-			XGrabKey(dpy, code, keys[i].mod | numlockmask | LockMask, root, True,
+			XGrabKey(dpy, code, dkeys[i]->mod | numlockmask | LockMask, root, True,
 					GrabModeAsync, GrabModeAsync);
 		}
 		return;
 	}
 	ev = &e->xkey;
 	keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
-	for(i = 0; i < LENGTH(keys); i++)
-		if(keysym == keys[i].keysym
-		&& CLEANMASK(keys[i].mod) == CLEANMASK(ev->state))
+	for(i = 0; i < LENGTH(KeyItems); i++)
+		if(keysym == dkeys[i]->keysym
+		&& CLEANMASK(dkeys[i]->mod) == CLEANMASK(ev->state))
 		{
-			if(keys[i].func)
-				keys[i].func(keys[i].arg);
+			if(dkeys[i]->func)
+				dkeys[i]->func(dkeys[i]->arg);
 		}
 }
 
@@ -1850,6 +1852,7 @@ setup(void) {
 	compileregs();
 
         /* grab keys */
+        initkeys();
 	keypress(NULL);
 
 	/* init appearance */
@@ -1895,7 +1898,7 @@ setup(void) {
         chdir(getenv("HOME"));
 
         /* free resource database */
-        XrmDestroyDatabase(xrdb);
+ //       XrmDestroyDatabase(xrdb);
         dc.xftdrawable = XftDrawCreate(dpy, dc.drawable, DefaultVisual(dpy,screen),DefaultColormap(dpy,screen));
         if(!dc.xftdrawable)
              eprint("error, cannot create drawable\n");
@@ -2209,7 +2212,7 @@ view(const char *arg) {
 
 void
 viewprevtag(const char *arg) {
-	static Bool tmptags[sizeof tags / sizeof tags[0]];
+	Bool tmptags[ndtags];
 
 	memcpy(tmptags, seltags, ndtags*(sizeof seltags));
 	memcpy(seltags, prevtags, ndtags*(sizeof seltags));
