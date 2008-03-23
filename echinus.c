@@ -188,6 +188,7 @@ Client *nexttiled(Client *c);
 Client *prevtiled(Client *c);
 void propertynotify(XEvent *e);
 void quit(const char *arg);
+void restart(const char *arg);
 void resize(Client *c, int x, int y, int w, int h, Bool offscreen);
 void resizemouse(Client *c);
 void resizetitle(Client *c);
@@ -1538,12 +1539,19 @@ propertynotify(XEvent *e) {
 }
 
 void
+restart(const char *arg) {
+    running = False;
+    execvp(cargv[0], cargv);
+    eprint("Can't exec: %s\n", strerror(errno));
+}
+
+void
 quit(const char *arg) {
+    running = False;
     if(arg){
 	execvp(cargv[0], cargv);
 	eprint("Can't exec: %s\n", strerror(errno));
     }
-    running = False;
 }
 
 void

@@ -128,6 +128,10 @@ Keybindings
 
      Leave echinus
 
+    Echinus*restart
+
+     Restart echinus
+
     Echinus*killclient
      
      Close window in focus

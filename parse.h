@@ -15,6 +15,7 @@ static KeyItem KeyItems[] =
     { "focusprev", focusprev },
     { "viewprevtag", viewprevtag },
     { "quit", quit },
+    { "restart", restart },
     { "killclient", killclient },
     { "togglefloating", togglefloating },
     { "decmwfact", setmwfact },

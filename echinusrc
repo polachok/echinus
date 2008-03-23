@@ -1,3 +1,4 @@
+// Colors
 Echinus*selected.border: #0066ff
 Echinus*normal.border: #cccccc
 Echinus*selected.bg: #0066ff
@@ -6,28 +7,49 @@ Echinus*selected.fg: #ffffff
 Echinus*normal.fg: #000000
 Echinus*selected.button: #ffffff
 Echinus*normal.button: #000000
+// border
 Echinus*border: 1
+
+// buttons 
 Echinus*button.left.pixmap: iconify.xbm
 Echinus*button.center.pixmap: max.xbm
 Echinus*button.right.pixmap: close.xbm
+
+// opacity
 Echinus*opacity: 0.9
-Echinus*terminal: xterm
+
+// font
 Echinus*font: fixed-9
 Echinus*title: 12
+
+// default terminal
+Echinus*terminal: xterm
+
+// free space
 Echinus*space.top: 12
 Echinus*space.bottom: 0
+
+// tags
 Echinus*tags.number: 3
 Echinus*tags.name0: main
 Echinus*tags.name1: web
 Echinus*tags.name2: gfx
 
+
+// hotkeys 
 Echinus*togglebar: A + b
 Echinus*focusnext: A + j
 Echinus*focusprev: A + k
 Echinus*viewprevtag: A + Tab
 Echinus*quit: A + q
+Echinus*restart: AS + q
 Echinus*killclient: AS + c
 Echinus*togglefloating: A + space
+Echinus*iconify: A + i
+Echinus*decmwfact: A + h = -0.05
+Echinus*incmwfact: A + l = +0.05
+Echinus*decnmaster: AS + j = -1
+Echinus*incnmaster: AS + k = +1
 
 Echinus*view0: A + F1
 Echinus*view1: A + F2
@@ -37,13 +59,17 @@ Echinus*tag0: AS + 1
 Echinus*tag1: AS + 2
 Echinus*tag2: AS + 3
 
-Echinus*focusview6: A + s
-
+// monocle 
 Echinus*setlayoutm: A + m
+// floating
 Echinus*setlayoutf: A + f
+// ifloating
 Echinus*setlayouti: A + i
-Echinus*setlayoutr: A + r
+// tiled
+Echinus*setlayoutt: A + r
 
+// spawns
 Echinus*spawn0: A + t = xterm
 
+// rules
 Echinus*rule0: Firefox.* web 0 1
