@@ -5,9 +5,11 @@
 include config.mk
 
 SRC = echinus.c
+HEADERS = ewmh.h parse.h config.h
+PIXMAPS = close.xbm iconify.xbm max.xbm 
 OBJ = ${SRC:.c=.o}
 HOM = `echo ${HOME}|sed 's.\/.\\\/.g'`
-CONF = ${HOME}/.echinus/echinusrc
+CONF = ${HOME}/.echinus/
 
 all: clean options echinus 
 
@@ -35,8 +37,8 @@ clean:
 dist: clean
 	@echo creating dist tarball
 	@mkdir -p echinus-${VERSION}
-	@cp -R LICENSE Makefile README config.h config.mk \
-		echinus.1 ${SRC} echinus-${VERSION}
+	@cp -R LICENSE Makefile README config.mk \
+		echinus.1 echinusrc ${SRC} ${HEADERS} ${PIXMAPS} echinus-${VERSION}
 	@tar -cf echinus-${VERSION}.tar echinus-${VERSION}
 	@gzip echinus-${VERSION}.tar
 	@rm -rf echinus-${VERSION}
@@ -48,10 +50,10 @@ install: all
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/echinus
 
 installconfig:
-	@echo install configuration files and pixmaps to ${HOME}/.echinus
-	@mkdir ${HOME}/.echinus
-	@cp echinusrc ${HOME}/.echinus/echinusrc
-	@cp close.xbm iconify.xbm max.xbm ${HOME}/.echinus
+	@echo installing configuration file and pixmaps to ${CONF}
+	@mkdir ${CONF}
+	@cp echinusrc ${CONF}
+	@cp ${PIXMAPS} ${CONF}
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin

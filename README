@@ -1,4 +1,5 @@
 echinus wm.
+==========
 
 0.Installation
 1.Configuration file
@@ -9,8 +10,9 @@ echinus wm.
 0.Installation
 --------------
 
-You need X11 and Xft headers to compile echinus wm. Packages containing this
-stuff are probably named libx11-dev and libxft-dev (note "-dev" suffix).
+You need X11 and Xft headers to compile echinus wm and the pkg-config tool.
+Packages containing this stuff are probably named libx11-dev and libxft-dev
+(note "-dev" suffix).
 
 % make
 % make install
@@ -23,7 +25,7 @@ On new install:
 1.Configuration file
 --------------------
 
-Name: ~/echinus/echinusrc
+Name: ~/.echinus/echinusrc
 
 Color settings
 
@@ -147,16 +149,20 @@ Keybindings
      Toggle view number # and focus the first client
      from it.
 
-
     Echinus*spawn#: <key> = program
 
-    Run specified program. # is less than 64.
+     Run specified program. # is less than 64.
+
+    Echinus*rule#
+     
+     Format is "<Window class|Window title> <tag> <isfloating> <hastitle>"
 
 2.config.h header
 -----------------
 
-Is used to define rules for placing windows on tags.
-Should be self-documenting.
+Contains default values of options. You probably don't have
+to edit it.
+
 
 3.About panels and pagers
 -------------------------

@@ -45,3 +45,5 @@ Echinus*setlayouti: A + i
 Echinus*setlayoutr: A + r
 
 Echinus*spawn0: A + t = xterm
+
+Echinus*rule0: Firefox.* web 0 1
