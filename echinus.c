@@ -261,6 +261,8 @@ XrmDatabase xrdb = NULL;
 
 char terminal[255];
 char **tags;
+Key **keys;
+Rule **rules;
 Bool *seltags;
 int ntags = 0;
 int nkeys = 0;
@@ -268,8 +270,7 @@ int nrules = 0;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 #include "ewmh.h"
-#include "keys.h"
-#include "rules.h"
+#include "parse.h"
 
 void (*handler[LASTEvent]) (XEvent *) = {
 	[ButtonPress] = buttonpress,
@@ -306,10 +307,10 @@ applyrules(Client *c) {
 	snprintf(buf, sizeof buf, "%s:%s:%s",
 			ch.res_class ? ch.res_class : "",
 			ch.res_name ? ch.res_name : "", c->name);
-	for(i = 0; i < LENGTH(rules); i++)
+	for(i = 0; i < nrules; i++)
 		if(regs[i].propregex && !regexec(regs[i].propregex, buf, 1, &tmp, 0)) {
-			c->isfloating = rules[i].isfloating;
-			c->hadtitle = rules[i].hastitle;
+			c->isfloating = rules[i]->isfloating;
+			c->hadtitle = rules[i]->hastitle;
 			for(j = 0; regs[i].tagregex && j < ntags; j++) {
 				if(!regexec(regs[i].tagregex, tags[j], 1, &tmp, 0)) {
 					matched = True;
@@ -571,18 +572,18 @@ compileregs(void) {
 
 	if(regs)
 		return;
-	regs = emallocz(LENGTH(rules) * sizeof(Regs));
-	for(i = 0; i < LENGTH(rules); i++) {
-		if(rules[i].prop) {
+	regs = emallocz(nrules * sizeof(Regs));
+	for(i = 0; i < nrules; i++) {
+		if(rules[i]->prop) {
 			reg = emallocz(sizeof(regex_t));
-			if(regcomp(reg, rules[i].prop, REG_EXTENDED))
+			if(regcomp(reg, rules[i]->prop, REG_EXTENDED))
 				free(reg);
 			else
 				regs[i].propregex = reg;
 		}
-		if(rules[i].tags) {
+		if(rules[i]->tags) {
 			reg = emallocz(sizeof(regex_t));
-			if(regcomp(reg, rules[i].tags, REG_EXTENDED))
+			if(regcomp(reg, rules[i]->tags, REG_EXTENDED))
 				free(reg);
 			else
 				regs[i].tagregex = reg;
@@ -1160,7 +1161,7 @@ keypress(XEvent *e) {
 	if(!e) { /* grabkeys */
 		XUngrabKey(dpy, AnyKey, AnyModifier, root);
 		for(i = 0; i < nkeys; i++) {
-                        fprintf(stderr, "keys[%d] keys[%d]->keysym = %d modmask=%lu arg=%s func=%d\n", i, i, (int)keys[i]->keysym, keys[i]->mod, keys[i]->arg, (int)keys[i]->func);
+  //                      fprintf(stderr, "keys[%d] keys[%d]->keysym = %d modmask=%lu arg=%s func=%d\n", i, i, (int)keys[i]->keysym, keys[i]->mod, keys[i]->arg, (int)keys[i]->func);
 			code = XKeysymToKeycode(dpy, keys[i]->keysym);
 			XGrabKey(dpy, code, keys[i]->mod, root, True,
 					GrabModeAsync, GrabModeAsync);
@@ -1851,13 +1852,15 @@ setup(void) {
 	
 	/* init tags */
         inittags();
+        initrules();
+        initkeys();
         ewmh_update_net_numbers_of_desktop();
         ewmh_update_net_desktop_names();
         ewmh_update_net_current_desktop();
+
 	compileregs();
 
         /* grab keys */
-        initkeys();
 	keypress(NULL);
 
 	/* init appearance */

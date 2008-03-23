@@ -1,36 +1,11 @@
 /*
  *  echinus wm written by Alexander Polakov <polachok@gmail.com> at 23.03.2008 19:47:22 MSK
  */
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <locale.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/select.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <regex.h>
-#include <X11/cursorfont.h>
-#include <X11/keysym.h>
-#include <X11/XF86keysym.h>
-#include <X11/Xatom.h>
-#include <X11/Xlib.h>
-#include <X11/Xproto.h>
-#include <X11/Xutil.h>
-#include <X11/Xresource.h>
-
 typedef struct
 {
     const char *name;
     void (*action)(const char *arg);
 } KeyItem;
-
-Key **keys;
 
 static KeyItem KeyItems[] = 
 {
@@ -73,7 +48,6 @@ parsekey(char *s, Key *k) {
         k->arg = arg;
     else
         free(arg);
-    fprintf(stderr, "%s : mod=%s : key=[%s] arg = %s ksym = %s\n",s, mod, key, arg, XKeysymToString(XStringToKeysym(key)));
     k->keysym = XStringToKeysym(key);
 }
 
@@ -97,7 +71,6 @@ initkeys(){
     for(j = 0; j < LENGTH(KeyItemsByTag); j++){
         for(i = 0; i < ntags; i++){
             sprintf(t, "%s%d", KeyItemsByTag[j].name, i);
-            fprintf(stderr, "KeyItemsByTag[%d]=[%s%d]\n", j, KeyItemsByTag[j].name, i);
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
@@ -105,7 +78,6 @@ initkeys(){
             keys[k] = malloc(sizeof(Key));
             keys[k]->func = KeyItemsByTag[j].action;
             keys[k]->arg = tags[i];
-            fprintf(stderr, "arg=%s\n", keys[k]->arg);
             parsekey(tmp, keys[k]);
             k++;
             nkeys = k;
@@ -114,7 +86,6 @@ initkeys(){
     /* layout setting */
     for(i = 0; i<LENGTH(layouts); i++){
             sprintf(t, "setlayout%s", layouts[i].symbol);
-            fprintf(stderr, "setlayout%s\n", layouts[i].symbol);
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
@@ -122,7 +93,6 @@ initkeys(){
             keys[k] = malloc(sizeof(Key));
             keys[k]->func = setlayout;
             keys[k]->arg = layouts[i].symbol;
-            fprintf(stderr, "arg=%s\n", keys[k]->arg);
             parsekey(tmp, keys[k]);
             k++;
             nkeys = k;
@@ -130,7 +100,6 @@ initkeys(){
     /* spawn */
      for(i = 0; i<64; i++){
             sprintf(t, "spawn%d", i);
-            fprintf(stderr, "spawn%d\n", i);
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
@@ -139,11 +108,37 @@ initkeys(){
             keys[k]->func = spawn;
             keys[k]->arg = NULL;
             parsekey(tmp, keys[k]);
-            fprintf(stderr, "arg=%s\n", keys[k]->arg);
             k++;
             nkeys = k;
     }
  
 
     return 0;
+}
+
+void 
+parserule(char *s, Rule *r){
+    char *prop = emallocz(sizeof(char)*128);
+    char *tags = emallocz(sizeof(char)*64);
+    sscanf(s, "%s %s %d %d", prop, tags, &r->isfloating, &r->hastitle);
+    r->prop = prop;
+    r->tags = tags;
+}
+
+void
+initrules(){
+    int i;
+    char t[64];
+    char *tmp;
+    rules = malloc(sizeof(Rule*));
+    for(i=0; i < 64; i++){
+            sprintf(t, "rule%d", i);
+            tmp = getresource(t, NULL);
+            fprintf(stderr, "rule%d=%s\n", i, tmp);
+            if(!tmp)
+                continue;
+            rules[i] = malloc(sizeof(Rule));
+            parserule(tmp, rules[i]);
+            nrules++;
+    }
 }
