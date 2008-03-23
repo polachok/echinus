@@ -57,8 +57,9 @@ parsekey(char *s, Key *k) {
     char mod[15]="\0";
     unsigned long modmask = 0;
     char key[32]="\0";
+    char *arg = emallocz(sizeof(char)*64);
     int i;
-    sscanf(s, "%s + %s", mod, key);
+    sscanf(s, "%s + %s = %s", mod, key, arg);
     for(i = 0; i<3; i++){
         if(mod[i]=='A')
             modmask = modmask | Mod1Mask;
@@ -68,7 +69,11 @@ parsekey(char *s, Key *k) {
             modmask = modmask | ControlMask;
     }
     k->mod = modmask;
-    fprintf(stderr, "%s : mod=%s : key=[%s] ksym = %d %s\n",s, mod, key, (int)(XStringToKeysym(key)==NoSymbol), XKeysymToString(XStringToKeysym(key)));
+    if(strlen(arg))
+        k->arg = arg;
+    else
+        free(arg);
+    fprintf(stderr, "%s : mod=%s : key=[%s] arg = %s ksym = %s\n",s, mod, key, arg, XKeysymToString(XStringToKeysym(key)));
     k->keysym = XStringToKeysym(key);
 }
 
@@ -123,6 +128,21 @@ initkeys(){
             ndkeys = k;
     }
     /* spawn */
+     for(i = 0; i<64; i++){
+            sprintf(t, "spawn%d", i);
+            fprintf(stderr, "spawn%d\n", i);
+            tmp = getresource(t, NULL);
+            if(!tmp)
+                continue;
+            dkeys = realloc(dkeys, sizeof(Key*)*(k+1));
+            dkeys[k] = malloc(sizeof(Key));
+            dkeys[k]->func = spawn;
+            dkeys[k]->arg = NULL;
+            parsekey(tmp, dkeys[k]);
+            fprintf(stderr, "arg=%s\n", dkeys[k]->arg);
+            k++;
+            ndkeys = k;
+    }
  
 
     return 0;
