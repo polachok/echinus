@@ -262,8 +262,8 @@ XrmDatabase xrdb = NULL;
 char terminal[255];
 char **tags;
 Bool *seltags;
-int ndtags = 0;
-int ndkeys = 0;
+int ntags = 0;
+int nkeys = 0;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 #include "ewmh.h"
@@ -308,7 +308,7 @@ applyrules(Client *c) {
 		if(regs[i].propregex && !regexec(regs[i].propregex, buf, 1, &tmp, 0)) {
 			c->isfloating = rules[i].isfloating;
 			c->hadtitle = rules[i].hastitle;
-			for(j = 0; regs[i].tagregex && j < ndtags; j++) {
+			for(j = 0; regs[i].tagregex && j < ntags; j++) {
 				if(!regexec(regs[i].tagregex, tags[j], 1, &tmp, 0)) {
 					matched = True;
 					c->tags[j] = True;
@@ -320,7 +320,7 @@ applyrules(Client *c) {
 	if(ch.res_name)
 		XFree(ch.res_name);
 	if(!matched) {
-		memcpy(c->tags, seltags, ndtags*(sizeof seltags));
+		memcpy(c->tags, seltags, ntags*(sizeof seltags));
         return 0;
         }
     else
@@ -456,7 +456,7 @@ buttonpress(XEvent *e) {
                     drawmouse(e);
                     break;
                 case Button4:
-                    for(i=0; i <= ndtags; i++) {
+                    for(i=0; i <= ntags; i++) {
                         if(i && seltags[i]) {
                                 view(tags[i-1]);
                                 break;
@@ -464,7 +464,7 @@ buttonpress(XEvent *e) {
                     }
                     break;
                 case Button5:
-                    for(i=0; i < ndtags; i++) {
+                    for(i=0; i < ntags; i++) {
                         if(seltags[i]) {
                             view(tags[i+1]);
                             break;
@@ -550,6 +550,8 @@ cleanup(void) {
 		unban(stack);
 		unmanage(stack);
 	}
+        free(tags);
+        free(keys);
 	XUngrabKey(dpy, AnyKey, AnyModifier, root);
 	XFreePixmap(dpy, dc.drawable);
 	XFreeGC(dpy, dc.gc);
@@ -1104,9 +1106,9 @@ unsigned int
 idxoftag(const char *tag) {
 	unsigned int i;
 
-	//for(i = 0; (i < ndtags) && (tags[i] != tag); i++);
-	for(i = 0; (i < ndtags) && strcmp(tag, tags[i]); i++);
-	return (i < ndtags) ? i : 0;
+	//for(i = 0; (i < ntags) && (tags[i] != tag); i++);
+	for(i = 0; (i < ntags) && strcmp(tag, tags[i]); i++);
+	return (i < ntags) ? i : 0;
 }
 
 Bool
@@ -1139,7 +1141,7 @@ Bool
 isvisible(Client *c) {
 	unsigned int i;
 
-	for(i = 0; i < ndtags; i++)
+	for(i = 0; i < ntags; i++)
 		if(c->tags[i] && seltags[i])
 			return True;
 	return False;
@@ -1155,28 +1157,28 @@ keypress(XEvent *e) {
 
 	if(!e) { /* grabkeys */
 		XUngrabKey(dpy, AnyKey, AnyModifier, root);
-		for(i = 0; i < ndkeys; i++) {
-                        fprintf(stderr, "dkeys[%d] dkeys[%d]->keysym = %d modmask=%lu arg=%s func=%d\n", i, i, (int)dkeys[i]->keysym, dkeys[i]->mod, dkeys[i]->arg, (int)dkeys[i]->func);
-			code = XKeysymToKeycode(dpy, dkeys[i]->keysym);
-			XGrabKey(dpy, code, dkeys[i]->mod, root, True,
+		for(i = 0; i < nkeys; i++) {
+                        fprintf(stderr, "keys[%d] keys[%d]->keysym = %d modmask=%lu arg=%s func=%d\n", i, i, (int)keys[i]->keysym, keys[i]->mod, keys[i]->arg, (int)keys[i]->func);
+			code = XKeysymToKeycode(dpy, keys[i]->keysym);
+			XGrabKey(dpy, code, keys[i]->mod, root, True,
 					GrabModeAsync, GrabModeAsync);
-			XGrabKey(dpy, code, dkeys[i]->mod | LockMask, root, True,
+			XGrabKey(dpy, code, keys[i]->mod | LockMask, root, True,
 					GrabModeAsync, GrabModeAsync);
-			XGrabKey(dpy, code, dkeys[i]->mod | numlockmask, root, True,
+			XGrabKey(dpy, code, keys[i]->mod | numlockmask, root, True,
 					GrabModeAsync, GrabModeAsync);
-			XGrabKey(dpy, code, dkeys[i]->mod | numlockmask | LockMask, root, True,
+			XGrabKey(dpy, code, keys[i]->mod | numlockmask | LockMask, root, True,
 					GrabModeAsync, GrabModeAsync);
 		}
 		return;
 	}
 	ev = &e->xkey;
 	keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
-	for(i = 0; i < ndkeys; i++)
-		if(keysym == dkeys[i]->keysym
-		&& CLEANMASK(dkeys[i]->mod) == CLEANMASK(ev->state))
+	for(i = 0; i < nkeys; i++)
+		if(keysym == keys[i]->keysym
+		&& CLEANMASK(keys[i]->mod) == CLEANMASK(ev->state))
 		{
-			if(dkeys[i]->func)
-				dkeys[i]->func(dkeys[i]->arg);
+			if(keys[i]->func)
+				keys[i]->func(keys[i]->arg);
 		}
 }
 
@@ -1221,7 +1223,7 @@ manage(Window w, XWindowAttributes *wa) {
             return;
         }
 	c = emallocz(sizeof(Client));
-	c->tags = emallocz(ndtags*(sizeof seltags));
+	c->tags = emallocz(ntags*(sizeof seltags));
 	c->win = w;
         c->isicon = False;
         c->hastitle = True;
@@ -1295,7 +1297,7 @@ manage(Window w, XWindowAttributes *wa) {
 	if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
 		for(t = clients; t && t->win != trans; t = t->next);
 	if(t)
-		memcpy(c->tags, t->tags, ndtags*(sizeof seltags));
+		memcpy(c->tags, t->tags, ntags*(sizeof seltags));
 	applyrules(c);
 	if(!c->isfloating)
 		c->isfloating = (rettrans == Success) || c->isfixed;
@@ -1777,12 +1779,12 @@ inittags(){
     int i;
     char tmp[25]="\0";
     fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
-    ndtags = atoi(getresource("tags.number", "5"));
-    tags = emallocz(ndtags*sizeof(char*));
-    prevtags = emallocz(ndtags*sizeof(Bool));
-    seltags = emallocz(ndtags*sizeof(Bool));
+    ntags = atoi(getresource("tags.number", "5"));
+    tags = emallocz(ntags*sizeof(char*));
+    prevtags = emallocz(ntags*sizeof(Bool));
+    seltags = emallocz(ntags*sizeof(Bool));
     seltags[0] = True;
-    for(i=0; i < ndtags; i++){
+    for(i=0; i < ntags; i++){
         tags[i] = emallocz(25*sizeof(char));
         sprintf(tmp, "tags.name%d", i);
         sprintf(tags[i], "%s", getresource(tmp, "null"));
@@ -1938,7 +1940,7 @@ tag(const char *arg) {
 
 	if(!sel)
 		return;
-	for(i = 0; i < ndtags; i++)
+	for(i = 0; i < ntags; i++)
 		sel->tags[i] = (NULL == arg);
 	sel->tags[idxoftag(arg)] = True;
         ewmh_update_net_window_desktop(sel);
@@ -2050,8 +2052,8 @@ toggletag(const char *arg) {
 		return;
 	i = idxoftag(arg);
 	sel->tags[i] = !sel->tags[i];
-	for(j = 0; j < ndtags && !sel->tags[j]; j++);
-	if(j == ndtags)
+	for(j = 0; j < ntags && !sel->tags[j]; j++);
+	if(j == ntags)
 		sel->tags[i] = True; /* at least one tag must be enabled */
 	arrange();
 }
@@ -2062,8 +2064,8 @@ toggleview(const char *arg) {
 
 	i = idxoftag(arg);
 	seltags[i] = !seltags[i];
-	for(j = 0; j < ndtags && !seltags[j]; j++);
-	if(j == ndtags)
+	for(j = 0; j < ntags && !seltags[j]; j++);
+	if(j == ntags)
 		seltags[i] = True; /* at least one tag must be viewed */
 	arrange();
 }
@@ -2202,8 +2204,8 @@ xerrorstart(Display *dsply, XErrorEvent *ee) {
 void
 view(const char *arg) {
 	unsigned int i;
-	memcpy(prevtags, seltags, ndtags*(sizeof seltags));
-	for(i = 0; i < ndtags; i++)
+	memcpy(prevtags, seltags, ntags*(sizeof seltags));
+	for(i = 0; i < ntags; i++)
 		seltags[i] = (NULL == arg);
 	seltags[idxoftag(arg)] = True;
         fprintf(stderr, "TAG=%d", idxoftag(arg));
@@ -2213,11 +2215,11 @@ view(const char *arg) {
 
 void
 viewprevtag(const char *arg) {
-	Bool tmptags[ndtags];
+	Bool tmptags[ntags];
 
-	memcpy(tmptags, seltags, ndtags*(sizeof seltags));
-	memcpy(seltags, prevtags, ndtags*(sizeof seltags));
-	memcpy(prevtags, tmptags, ndtags*(sizeof seltags));
+	memcpy(tmptags, seltags, ntags*(sizeof seltags));
+	memcpy(seltags, prevtags, ntags*(sizeof seltags));
+	memcpy(prevtags, tmptags, ntags*(sizeof seltags));
 	arrange();
 }
 

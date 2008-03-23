@@ -12,7 +12,7 @@ Echinus*button.center.pixmap: max.xbm
 Echinus*button.right.pixmap: close.xbm
 Echinus*opacity: 0.9
 Echinus*terminal: xterm
-Echinus*font: fixed-12
+Echinus*font: fixed-9
 Echinus*title: 12
 Echinus*space.top: 12
 Echinus*space.bottom: 0
@@ -26,7 +26,7 @@ Echinus*focusnext: A + j
 Echinus*focusprev: A + k
 Echinus*viewprevtag: A + Tab
 Echinus*quit: A + q
-Echinus*killclient: AS + C
+Echinus*killclient: AS + c
 Echinus*togglefloating: A + space
 
 Echinus*view0: A + F1

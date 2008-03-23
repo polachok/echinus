@@ -30,7 +30,7 @@ typedef struct
     void (*action)(const char *arg);
 } KeyItem;
 
-Key **dkeys;
+Key **keys;
 
 static KeyItem KeyItems[] = 
 {
@@ -82,33 +82,33 @@ initkeys(){
     int i,j,k;
     char *tmp;
     char t[64];
-    dkeys = malloc(sizeof(Key*)*LENGTH(KeyItems));
+    keys = malloc(sizeof(Key*)*LENGTH(KeyItems));
     /* global functions */
     for(i = 0; i < LENGTH(KeyItems); i++){
         tmp = getresource(KeyItems[i].name, NULL);
-        dkeys[i] = malloc(sizeof(Key));
-        dkeys[i]->func = KeyItems[i].action;
-        dkeys[i]->arg = NULL;
-        parsekey(tmp, dkeys[i]);
-        ndkeys = i;
+        keys[i] = malloc(sizeof(Key));
+        keys[i]->func = KeyItems[i].action;
+        keys[i]->arg = NULL;
+        parsekey(tmp, keys[i]);
+        nkeys = i;
     }
     k = i;
     /* per tag functions */
     for(j = 0; j < LENGTH(KeyItemsByTag); j++){
-        for(i = 0; i < ndtags; i++){
+        for(i = 0; i < ntags; i++){
             sprintf(t, "%s%d", KeyItemsByTag[j].name, i);
             fprintf(stderr, "KeyItemsByTag[%d]=[%s%d]\n", j, KeyItemsByTag[j].name, i);
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
-            dkeys = realloc(dkeys, sizeof(Key*)*(k+1));
-            dkeys[k] = malloc(sizeof(Key));
-            dkeys[k]->func = KeyItemsByTag[j].action;
-            dkeys[k]->arg = tags[i];
-            fprintf(stderr, "arg=%s\n", dkeys[k]->arg);
-            parsekey(tmp, dkeys[k]);
+            keys = realloc(keys, sizeof(Key*)*(k+1));
+            keys[k] = malloc(sizeof(Key));
+            keys[k]->func = KeyItemsByTag[j].action;
+            keys[k]->arg = tags[i];
+            fprintf(stderr, "arg=%s\n", keys[k]->arg);
+            parsekey(tmp, keys[k]);
             k++;
-            ndkeys = k;
+            nkeys = k;
         }
     }
     /* layout setting */
@@ -118,14 +118,14 @@ initkeys(){
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
-            dkeys = realloc(dkeys, sizeof(Key*)*(k+1));
-            dkeys[k] = malloc(sizeof(Key));
-            dkeys[k]->func = setlayout;
-            dkeys[k]->arg = layouts[i].symbol;
-            fprintf(stderr, "arg=%s\n", dkeys[k]->arg);
-            parsekey(tmp, dkeys[k]);
+            keys = realloc(keys, sizeof(Key*)*(k+1));
+            keys[k] = malloc(sizeof(Key));
+            keys[k]->func = setlayout;
+            keys[k]->arg = layouts[i].symbol;
+            fprintf(stderr, "arg=%s\n", keys[k]->arg);
+            parsekey(tmp, keys[k]);
             k++;
-            ndkeys = k;
+            nkeys = k;
     }
     /* spawn */
      for(i = 0; i<64; i++){
@@ -134,14 +134,14 @@ initkeys(){
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
-            dkeys = realloc(dkeys, sizeof(Key*)*(k+1));
-            dkeys[k] = malloc(sizeof(Key));
-            dkeys[k]->func = spawn;
-            dkeys[k]->arg = NULL;
-            parsekey(tmp, dkeys[k]);
-            fprintf(stderr, "arg=%s\n", dkeys[k]->arg);
+            keys = realloc(keys, sizeof(Key*)*(k+1));
+            keys[k] = malloc(sizeof(Key));
+            keys[k]->func = spawn;
+            keys[k]->arg = NULL;
+            parsekey(tmp, keys[k]);
+            fprintf(stderr, "arg=%s\n", keys[k]->arg);
             k++;
-            ndkeys = k;
+            nkeys = k;
     }
  
 
