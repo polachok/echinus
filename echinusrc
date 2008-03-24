@@ -46,6 +46,7 @@ Echinus*restart: AS + q
 Echinus*killclient: AS + c
 Echinus*togglefloating: A + space
 Echinus*iconify: A + i
+Echinus*zoom: A + Return
 Echinus*decmwfact: A + h = -0.05
 Echinus*incmwfact: A + l = +0.05
 Echinus*decnmaster: AS + j = -1

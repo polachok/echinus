@@ -37,26 +37,44 @@ static KeyItem KeyItemsByTag[] =
 
 void
 parsekey(char *s, Key *k) {
-    char mod[15]="\0";
+    int l = strlen(s);
     unsigned long modmask = 0;
-    char key[32]="\0";
-    char *arg = emallocz(sizeof(char)*64);
+    char *pos, *opos;
+    char *tmp;
     int i;
-    sscanf(s, "%s + %s = %s", mod, key, arg);
-    for(i = 0; i<3; i++){
-        if(mod[i]=='A')
+    pos = strchr(s, '+');
+    if(!pos)
+        return;
+    opos = pos;
+    tmp = emallocz((pos-s)*sizeof(char));
+    strncpy(tmp, s, pos-s);
+    for(i = 0; i <= strlen(tmp); i++){
+        if(tmp[i]=='A')
             modmask = modmask | Mod1Mask;
-        if(mod[i]=='S')
+        if(tmp[i]=='S')
             modmask = modmask | ShiftMask;
-        if(mod[i]=='C')
+        if(tmp[i]=='C')
             modmask = modmask | ControlMask;
     }
     k->mod = modmask;
-    if(strlen(arg))
-        k->arg = arg;
-    else
-        free(arg);
-    k->keysym = XStringToKeysym(key);
+    free(tmp);
+    pos = strchr(s, '=');
+    if(pos){
+        tmp = emallocz((pos-opos)*sizeof(char));
+        for(opos++;!isalnum(opos[0]);opos++);
+        strncpy(tmp, opos, pos-opos-1);
+        k->keysym = XStringToKeysym(tmp);
+        free(tmp);
+        tmp = emallocz((s+l-pos+1)*sizeof(char));
+        strncpy(tmp, pos+2, s+l-pos);
+        k->arg = tmp;
+    }
+    else {
+        tmp = emallocz((s+l-opos)*sizeof(char));
+        for(opos++;!isalnum(opos[0]);opos++);
+        strncpy(tmp, opos, s+l-opos);
+        k->keysym = XStringToKeysym(tmp);
+    }
 }
 
 int
@@ -148,4 +166,5 @@ initrules(){
             parserule(tmp, rules[i]);
             nrules++;
     }
+    rules = realloc(rules, nrules*sizeof(Rule*));
 }
