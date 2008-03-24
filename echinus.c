@@ -527,7 +527,7 @@ buttonpress(XEvent *e) {
         focus(c);
         if((ev->x > c->tw-2*c->th) && (ev->x < c->tw-c->th)){
             /* max */
-            setlayout("m");
+            togglemax(NULL);
             return;
         }
         if((ev->x > c->tw-c->th) && (ev->x < c->tw)){
@@ -2080,6 +2080,28 @@ togglefloating(const char *arg) {
 		sel->sfh = sel->h;
 	}
 	arrange();
+}
+
+void
+togglemax(const char *arg) {
+	XEvent ev;
+
+	if(!sel || sel->isfixed)
+		return;
+	if((sel->ismax = !sel->ismax)) {
+		if((layout->arrange == floating) || sel->isfloating || (layout->arrange == ifloating)){
+                    sel->wasfloating = True;
+                    sel->rx = sel->x;
+                    sel->ry = sel->y;
+                    sel->rw = sel->w;
+                    sel->rh = sel->h;
+                    resize(sel, wax, way+sel->th, waw - 2 * sel->border, wah - 2 * sel->border - sel->th, True);
+                }
+	}
+	else {
+		resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, True);
+	}
+	while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
 
 void
