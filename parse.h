@@ -23,6 +23,7 @@ static KeyItem KeyItems[] =
     { "incnmaster", incnmaster },
     { "decnmaster", incnmaster },
     { "iconify", iconifyit },
+    { "zoom", zoom },
 };
 
 static KeyItem KeyItemsByTag[] = 
@@ -141,7 +142,6 @@ initrules(){
     for(i=0; i < 64; i++){
             sprintf(t, "rule%d", i);
             tmp = getresource(t, NULL);
-            fprintf(stderr, "rule%d=%s\n", i, tmp);
             if(!tmp)
                 continue;
             rules[i] = malloc(sizeof(Rule));

@@ -11,7 +11,7 @@ OBJ = ${SRC:.c=.o}
 HOM = `echo ${HOME}|sed 's.\/.\\\/.g'`
 CONF = ${HOME}/.echinus/
 
-all: clean options echinus 
+all: options echinus 
 
 options:
 	@echo echinus build options:

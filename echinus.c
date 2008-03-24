@@ -378,6 +378,8 @@ iconify(Client *c) {
         ban(c);
         setclientstate(c, IconicState);
         c->isicon = True;
+        detach(c);
+        attach(c);
 }
 
 void
@@ -386,6 +388,7 @@ iconifyit(const char *arg) {
         return;
     focus(sel->next);
     iconify(sel);
+    arrange();
 }
 
 
@@ -567,6 +570,8 @@ cleanup(void) {
 	}
         free(tags);
         free(keys);
+        /* free resource database */
+        //XrmDestroyDatabase(xrdb);
 	XUngrabKey(dpy, AnyKey, AnyModifier, root);
 	XFreePixmap(dpy, dc.drawable);
 	XFreeGC(dpy, dc.gc);
@@ -1320,7 +1325,7 @@ manage(Window w, XWindowAttributes *wa) {
 	attachstack(c);
 	XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h); /* some windows require this */
 	XMapWindow(dpy, c->win);
-	setclientstate(c, IconicState);
+	//setclientstate(c, IconicState);
         drawclient(c);
         ewmh_update_net_client_list();
         ewmh_update_net_window_desktop(c);
@@ -1361,6 +1366,9 @@ ifloating(void) {
     int cr = 0;
     static Bool region[COLS*ROWS]=INITCOLSROWS;
     Bool fregion[COLS*ROWS]=INITCOLSROWS;
+
+    domwfact = dozoom = True;
+
     for(i=0; i<LENGTH(region) && region[i]; i++);
     if(i==LENGTH(region)){
         for(i=LENGTH(region)-1; i>=0; i--){
@@ -1504,13 +1512,13 @@ movemouse(Client *c) {
 
 Client *
 nexttiled(Client *c) {
-	for(; c && (c->isfloating || !isvisible(c)); c = c->next);
+	for(; c && (c->isfloating || !isvisible(c) || c->isicon); c = c->next);
 	return c;
 }
 
 Client *
 prevtiled(Client *c) {
-	for(; c && (c->isfloating || !isvisible(c)); c = c->prev);
+	for(; c && (c->isfloating || !isvisible(c) || c->isicon); c = c->prev);
 	return c;
 }
 void
@@ -1540,6 +1548,7 @@ propertynotify(XEvent *e) {
 
 void
 restart(const char *arg) {
+    cleanup();
     running = False;
     execvp(cargv[0], cargv);
     eprint("Can't exec: %s\n", strerror(errno));
@@ -2012,8 +2021,10 @@ tile(void) {
                         if(i == nmaster) {
                                 ny = way;
                                 nx += mc->w + mc->border;
-                                nw = waw - nx - c->border;
+                                nw = waw - nx - 2*c->border;
                         }
+                        else 
+                            ny -= c->border;
                         if(i + 1 == n) /* remainder */
                                 nh = (way + wah) - ny - 2 * c->border;
                         else
@@ -2258,8 +2269,8 @@ zoom(const char *arg) {
 			return;
 	detach(c);
 	attach(c);
-	focus(c);
 	arrange();
+	focus(c);
 }
 
 int
