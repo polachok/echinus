@@ -4,14 +4,14 @@
 
 include config.mk
 
-SRC = echinus.c
 HEADERS = ewmh.h parse.h config.h
 PIXMAPS = close.xbm iconify.xbm max.xbm 
+SRC = echinus.c
 OBJ = ${SRC:.c=.o}
 HOM = `echo ${HOME}|sed 's.\/.\\\/.g'`
 CONF = ${HOME}/.echinus/
 
-all: options echinus 
+all: options echinus ${HEADERS}
 
 options:
 	@echo echinus build options:

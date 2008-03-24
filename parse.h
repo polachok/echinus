@@ -138,13 +138,13 @@ initrules(){
     int i;
     char t[64];
     char *tmp;
-    rules = malloc(sizeof(Rule*));
-    for(i=0; i < 64; i++){
+    rules = emallocz(64*sizeof(Rule*));
+    for(i = 0; i < 64; i++){
             sprintf(t, "rule%d", i);
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
-            rules[i] = malloc(sizeof(Rule));
+            rules[i] = emallocz(sizeof(Rule));
             parserule(tmp, rules[i]);
             nrules++;
     }

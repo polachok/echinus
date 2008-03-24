@@ -401,7 +401,7 @@ drawmouse(XEvent *e) {
     Window dummy;
     XButtonPressedEvent *ev = &e->xbutton;
     XEvent ee;
-
+    rx = ry = 0;
     ocx = nx = ev->x;
     ocy = ny = ev->y;
     if(XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
@@ -421,7 +421,7 @@ drawmouse(XEvent *e) {
                     XClearArea(dpy, root, ev->x-4, ev->y-4, rx1+4, ry1+4, False);
                     return;
             case MotionNotify:
-                    XSync(dpy, False);
+                                        XSync(dpy, False);
                     nx = ocx + (ee.xmotion.x - x1);
                     ny = ocy + (ee.xmotion.y - y1);
                     XSetLineAttributes(dpy, dc.gc, 4, LineSolid, CapNotLast, JoinMiter);
@@ -571,7 +571,10 @@ cleanup(void) {
         free(tags);
         free(keys);
         /* free resource database */
-        //XrmDestroyDatabase(xrdb);
+        XrmDestroyDatabase(xrdb);
+        /* free colors */
+        XftColorFree(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen), dc.xftnorm);
+        XftColorFree(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen), dc.xftsel);
 	XUngrabKey(dpy, AnyKey, AnyModifier, root);
 	XFreePixmap(dpy, dc.drawable);
 	XFreeGC(dpy, dc.gc);
