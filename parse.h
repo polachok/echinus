@@ -66,7 +66,8 @@ parsekey(char *s, Key *k) {
         k->keysym = XStringToKeysym(tmp);
         free(tmp);
         tmp = emallocz((s+l-pos+1)*sizeof(char));
-        strncpy(tmp, pos+2, s+l-pos);
+        for(pos++;!isalnum(pos[0]);pos++);
+        strncpy(tmp, pos, s+l-pos);
         k->arg = tmp;
     }
     else {
@@ -74,6 +75,7 @@ parsekey(char *s, Key *k) {
         for(opos++;!isalnum(opos[0]);opos++);
         strncpy(tmp, opos, s+l-opos);
         k->keysym = XStringToKeysym(tmp);
+        free(tmp);
     }
 }
 

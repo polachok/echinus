@@ -32,7 +32,7 @@ echinus: ${OBJ}
 
 clean:
 	@echo cleaning
-	@rm -f echinus ${OBJ} echinus-${VERSION}.tar.gz
+	@rm -f echinus ${OBJ} echinus-${VERSION}.tar.gz *~
 
 dist: clean
 	@echo creating dist tarball

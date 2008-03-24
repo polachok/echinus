@@ -2119,7 +2119,7 @@ focusview(const char *arg) {
 	for(c = clients; c; c = c->next){
         if (c->tags[i]) {
                 focus(c);
-                if((layout->arrange == floating) || c->isfloating)
+                if((layout->arrange == floating) || c->isfloating || (layout->arrange == ifloating))
                     arrange();
                 return;
         }
@@ -2246,7 +2246,6 @@ view(const char *arg) {
 	for(i = 0; i < ntags; i++)
 		seltags[i] = (NULL == arg);
 	seltags[idxoftag(arg)] = True;
-        fprintf(stderr, "TAG=%d", idxoftag(arg));
 	arrange();
         ewmh_update_net_current_desktop();
 }
