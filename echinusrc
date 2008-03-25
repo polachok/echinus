@@ -1,42 +1,32 @@
-// Colors
-Echinus*selected.border: #0066ff
-Echinus*normal.border: #cccccc
-Echinus*selected.bg: #0066ff
-Echinus*normal.bg: #cccccc
-Echinus*selected.fg: #ffffff
-Echinus*normal.fg: #000000
-Echinus*selected.button: #ffffff
-Echinus*normal.button: #000000
-// border
+Echinus*selected.border: #262626
+Echinus*selected.button: #d3d7cf
+Echinus*normal.border: #262626
+Echinus*selected.bg: #262626
+Echinus*normal.bg: #262626
+Echinus*selected.fg: #d3d7cf
+Echinus*normal.fg: #b0b4ac
+Echinus*normal.button: #262626
 Echinus*border: 1
-
-// buttons 
 Echinus*button.left.pixmap: iconify.xbm
 Echinus*button.center.pixmap: max.xbm
 Echinus*button.right.pixmap: close.xbm
+Echinus*opacity: 0.8
 
-// opacity
-Echinus*opacity: 0.9
-
-// font
 Echinus*font: fixed-9
 Echinus*title: 12
 
-// default terminal
-Echinus*terminal: xterm
-
-// free space
-Echinus*space.top: 12
+Echinus*space.top: 13
 Echinus*space.bottom: 0
 
-// tags
-Echinus*tags.number: 3
+Echinus*tags.number: 7
 Echinus*tags.name0: main
 Echinus*tags.name1: web
-Echinus*tags.name2: gfx
+Echinus*tags.name2: doc
+Echinus*tags.name3: dev
+Echinus*tags.name4: scr
+Echinus*tags.name5: gfx
+Echinus*tags.name6: misc
 
-
-// hotkeys 
 Echinus*togglebar: A + b
 Echinus*focusnext: A + j
 Echinus*focusprev: A + k
@@ -47,30 +37,37 @@ Echinus*killclient: AS + c
 Echinus*togglefloating: A + space
 Echinus*iconify: A + i
 Echinus*zoom: A + Return
+
+Echinus*view0: A + F1
+Echinus*view1: A + F2
+Echinus*view2: A + F3
+Echinus*view3: A + F4
+Echinus*view4: A + F5
+Echinus*view5: A + F6
+
+Echinus*tag0: AS + 1
+Echinus*tag1: AS + 2
+Echinus*tag2: AS + 3
+Echinus*tag3: AS + 4
+Echinus*tag4: AS + 5
+Echinus*tag5: AS + 6
+
+Echinus*focusview6: A + s
+
+Echinus*setlayoutm: A + m
+Echinus*setlayoutf: A + f
+Echinus*setlayouti: A + a
+Echinus*setlayoutt: A + r
+
+Echinus*spawn0: A + t = xterm
+
 Echinus*decmwfact: A + h = -0.05
 Echinus*incmwfact: A + l = +0.05
 Echinus*decnmaster: AS + j = -1
 Echinus*incnmaster: AS + k = +1
 
-Echinus*view0: A + F1
-Echinus*view1: A + F2
-Echinus*view2: A + F3
+Echinus*terminal: xterm
 
-Echinus*tag0: AS + 1
-Echinus*tag1: AS + 2
-Echinus*tag2: AS + 3
-
-// monocle 
-Echinus*setlayoutm: A + m
-// floating
-Echinus*setlayoutf: A + f
-// ifloating
-Echinus*setlayouti: A + i
-// tiled
-Echinus*setlayoutt: A + r
-
-// spawns
-Echinus*spawn0: A + t = xterm
-
-// rules
 Echinus*rule0: Firefox.* web 0 1
+Echinus*rule4: Mplayer.* NULL 1 1
+Echinus*rule5: Gimp.* gfx 1 1

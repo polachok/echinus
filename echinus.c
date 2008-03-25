@@ -1337,21 +1337,20 @@ maprequest(XEvent *e) {
 
 int
 smartcheckarea(int x, int y, int w, int h){
+    /* this one is called for *every*(!) client */
     Client *c;
     int n = 0;
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon && c->isplaced){
-            if(c->y + c->h >= y && c->y + c->h <= y + h
+            /* A Kind Of Magic */
+            if((c->y + c->h >= y && c->y + c->h <= y + h
             && c->x+c->w >= x && c->x+c->w <= x+w)
-                n++;
-            else if(c->x >= x && c->x <= x+w
+            || (c->x >= x && c->x <= x+w
                  && c->y + c->h >= y && c->y + c->h <= y + h)
-                n++;
-            else if(c->x >= x && c->x <= x+w
+            || (c->x >= x && c->x <= x+w
                  && c->y >= y && c->y <= y+h)
-                n++;
-            else if(c->x+c->w >= x && c->x+c->w <= x+w
-                 && c->y >= y && c->y <= y+h)
+            || (c->x+c->w >= x && c->x+c->w <= x+w
+                 && c->y >= y && c->y <= y+h))
                 n++;
         }
     }
@@ -1364,24 +1363,26 @@ ifloating(void){
     int x = wax;
     int y = way;
     int f;
-    f = 0;
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon){
                 f = 0;
-                while(!c->isplaced){
+                while(!c->isplaced){ 
                     if(c->w > sw/2 && c->h > sw/2){
-                        c->isplaced = True;
+                        /* too big to deal with */
+                        c->isplaced = True; 
                     }
+                    /* i dunno if c->h/4 & c->w/8 are optimal */
                         for(y = way; y+c->h <= wah && !c->isplaced ; y+=c->h/4){
                             for(x = wax; x+c->w <= waw && !c->isplaced; x+=c->w/8){
-                            fprintf(stderr, "x = %d y = %d f = %d\n", x, y, f);
+                                /* are you wondering about 0.9 & 0.8 ? */
                             if(smartcheckarea(x,y,0.9*c->w,0.8*c->h)<=f){
+                                /* got it! a big chunk of "free" space */
                                 resize(c, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, False);
                                 c->isplaced = True;
                             }
                         }
                     }
-                    f++;
+                    f++; /* too many windows hanging around, try another time */
                 }
             c->hastitle = c->hadtitle;
             drawclient(c);
