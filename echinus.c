@@ -1372,24 +1372,38 @@ smartgetarea(int w, int h, int *tx, int *ty, int *f){
             continue;
         if(!c->isplaced)
             continue;
+        /*if (y >= c->y && y <= c->y+c->h && x >= c->x && x <= c->x + c->w){
+            x = c->x - c->w;
+            if (x < wax){
+                x = c->x + c->w;
+                if(x >= waw){
+                    y+= c->h;
+                    x = wax;
+                }
+            }
+            //}
+        }*/
         if (y >= c->y && y <= c->y+c->h && x >= c->x && x <= c->x + c->w){
             x = c->x + c->w;
-        }
-        if (x >= waw){
+            if (x >= waw){
+                y+= c->h;
+                x = wax;
+            }
+        }/*
+        if (x >= waw || x <= wax){
             x = 0;
             y = c->y + c->h;
-            continue;
         }
         if(y >= wah){
-            x = c->x - c->w;
-            y = *ty;
-            continue;
-        }
-        if(y >= wah && x >= waw){
+            x = c->x + c->w;
+            y = way;
+        }*/
+        /*if(y >= wah && x >= waw){
             x = 0;
             y = 0;
             *f++;
         }
+        */
     }
     *tx = x;
     *ty = y;
