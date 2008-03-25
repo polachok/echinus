@@ -1372,44 +1372,30 @@ smartgetarea(int w, int h, int *tx, int *ty, int *f){
             continue;
         if(!c->isplaced)
             continue;
-        // check if we are inside a window
-        fprintf(stderr, "checking against %s\n", c->name);
-        if(x >= c->x && x <= c->x + c->w && y >= c->y && y <= c->y + c->h){
-            fprintf(stderr, "we are inside ): %d %d", x, y);
-            // check space on left
-            if (c->x - w >= wax){
-                x = c->x - w;
-                fprintf(stderr, "left %d\n", x);
-                continue;
-            } else
-            // check space on right
-            if (c->x + c->w + w <= waw){
-                x = c->x + c->w;
-                fprintf(stderr, "right %d\n", x);
-                continue;
-            } else
-            // check space on top
-            if (c->y - way >= h){
-                y = c->y - h;
-                fprintf(stderr, "top %d\n", y);
-                continue;
-            } else
-            // check space on bottom
-            if (c->y + c->h + h <= wah){
-                y = c->y + c->h;
-                fprintf(stderr, "bottom %d\n", y);
-                continue;
-            }
-            // fallback
-            y += c->th;
-            x += c->th;
+        if(y>=wah)
+            y = *ty;
+        if(x < c->x){ // we are on left
+            if(x - w > wax)
+                goto y;
+        } else if(x >= c->x && x <= c->x + c->w){ // we are inside
+                x += c->w+c->th;
+        } else if(x > c->x + c->w){ // we are on right
+            if(x + w <= waw)
+                goto y;
         }
-        else {
-            fprintf(stderr, "fine, we are free");
-            break;
+y:
+        if(x>=waw)
+            x = *tx;
+        if(y < c->y){ // we are on top
+            if(y+h <= c->y)
+                break;
+        } else if (y >= c->y && y <= c->y+c->h && x >= c->x && x <= c->x + c->w){
+            y += c->h+c->th;
+        } else if (y > c->y){ // we are on bottom
+            if(y > c->y + c->h)
+                break;
         }
     }
-    fprintf(stderr, "end checking");
     *tx = x;
     *ty = y;
 }
@@ -1417,8 +1403,8 @@ smartgetarea(int w, int h, int *tx, int *ty, int *f){
 void
 sfloating(void){
     Client *c;
-    int x = wax;
-    int y = way;
+    static int x = 0;
+    static int y = 13;
     int f;
     f = 0;
     for(c = clients; c; c = c->next){ 
