@@ -1341,17 +1341,20 @@ smartcheckarea(int x, int y, int w, int h){
     int n = 0;
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon && c->isplaced){
-            if(c->y + c->h >= y && c->y + c->h <= y + h && c->x+c->w >= x && c->x+c->w <= x+w)
+            if(c->y + c->h >= y && c->y + c->h <= y + h
+            && c->x+c->w >= x && c->x+c->w <= x+w)
                 n++;
-            else if(c->x >= x && c->x <= x+w && c->y + c->h >= y && c->y + c->h <= y + h)
+            else if(c->x >= x && c->x <= x+w
+                 && c->y + c->h >= y && c->y + c->h <= y + h)
                 n++;
-            else if(c->x >= x && c->x <= x+w && c->y >= y && c->y <= y+h)
+            else if(c->x >= x && c->x <= x+w
+                 && c->y >= y && c->y <= y+h)
                 n++;
-            else if(c->x+c->w >= x && c->x+c->w <= x+w && c->y >= y && c->y <= y+h)
+            else if(c->x+c->w >= x && c->x+c->w <= x+w
+                 && c->y >= y && c->y <= y+h)
                 n++;
         }
     }
-    fprintf(stderr, "x = %d y = %d n = %d\n",x,y, n);
     return n;
 }
 
@@ -1373,8 +1376,7 @@ ifloating(void){
                             for(x = wax; x+c->w <= waw && !c->isplaced; x+=c->w/8){
                             fprintf(stderr, "x = %d y = %d f = %d\n", x, y, f);
                             if(smartcheckarea(x,y,0.9*c->w,0.8*c->h)<=f){
-                                fprintf(stderr, "GOTCHA! x = %d y = %d f = %d\n", x, y, f);
-                                resize(c, x+c->th*(rand()%3), y+c->th*(rand()%3), c->w, c->h, False);
+                                resize(c, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, False);
                                 c->isplaced = True;
                             }
                         }
