@@ -1364,13 +1364,7 @@ smartcheckarea(int x, int y, int w, int h){
     Client *c;
     int n = 0;
     for(c = clients; c; c = c->next){ 
-        if(isvisible(c) && !c->isicon){
-            /*
-            if(c->y >= y && c->y <= y +h && c->x >= x && c->x <= x+w)
-                n++;
-            else if(c->y + c->h >= y && c->y + c->h <= y +h && ((c->x >= x && c->x <= x+w) || (c->x + c->w >= x && c->x + c->w <= x+w)))
-                n++;
-                */
+        if(isvisible(c) && !c->isicon && c->isplaced){
             if(c->y + c->h >= y && c->y + c->h <= y + h && c->x+c->w >= x && c->x+c->w <= x+w)
                 n++;
             else if(c->x >= x && c->x <= x+w && c->y + c->h >= y && c->y + c->h <= y + h)
@@ -1386,7 +1380,7 @@ smartcheckarea(int x, int y, int w, int h){
 }
 
 void
-sfloating(void){
+ifloating(void){
     Client *c;
     int x = wax;
     int y = way;
@@ -1395,13 +1389,14 @@ sfloating(void){
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon){
             if(!c->isplaced){
+                f = 0;
                 while(!c->isplaced){
-                    for(y = way; y+c->h <= wah && !c->isplaced ; y+=c->h/4){
-                        for(x = wax; x+c->w <= waw && !c->isplaced; x+=c->w/4){
+                        for(y = way; y <= wah && !c->isplaced ; y+=c->h/4){
+                            for(x = wax; x <= waw && !c->isplaced; x+=c->w/8){
                             fprintf(stderr, "x = %d y = %d f = %d\n", x, y, f);
-                            if(smartcheckarea(x,y,c->w,c->h)<=f){
+                            if(smartcheckarea(x,y,0.9*c->w,0.8*c->h)<=f){
                                 fprintf(stderr, "GOTCHA! x = %d y = %d f = %d\n", x, y, f);
-                                resize(c, x, y, c->w, c->h, False);
+                                resize(c, x+c->th*(rand()%3), y+c->th*(rand()%3), c->w, c->h, False);
                                 c->isplaced = True;
                             }
                         }
@@ -1418,7 +1413,7 @@ sfloating(void){
 }
 
 void 
-ifloating(void) {
+sfloating(void) {
     Client *c;
     int rw, rh;
     int x,y;
