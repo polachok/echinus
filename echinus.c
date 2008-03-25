@@ -159,6 +159,7 @@ void expose(XEvent *e);
 void floating(void); /* default floating layout */
 void rfloating(void); /* random floating layout */
 void ifloating(void); /* intellectual floating layout */
+void sfloating(void); /* intellectual floating layout */
 void iconifyit(const char *arg);
 void incnmaster(const char *arg);
 void focus(Client *c);
@@ -1356,6 +1357,83 @@ maprequest(XEvent *e) {
 	if(!getclient(ev->window))
 		manage(ev->window, &wa);
         arrange();
+}
+
+void
+smartgetarea(int w, int h, int *tx, int *ty, int *f){
+    Client *c;
+    f = 0;
+    int x = *tx;
+    int y = *ty;
+
+    fprintf(stderr, "checking\n");
+    for(c = clients; c; c = c->next){
+        if(!isvisible(c) || c->isicon)
+            continue;
+        if(!c->isplaced)
+            continue;
+        // check if we are inside a window
+        fprintf(stderr, "checking against %s\n", c->name);
+        if(x >= c->x && x <= c->x + c->w && y >= c->y && y <= c->y + c->h){
+            fprintf(stderr, "we are inside ): %d %d", x, y);
+            // check space on left
+            if (c->x - w >= wax){
+                x = c->x - w;
+                fprintf(stderr, "left %d\n", x);
+                continue;
+            } else
+            // check space on right
+            if (c->x + c->w + w <= waw){
+                x = c->x + c->w;
+                fprintf(stderr, "right %d\n", x);
+                continue;
+            } else
+            // check space on top
+            if (c->y - way >= h){
+                y = c->y - h;
+                fprintf(stderr, "top %d\n", y);
+                continue;
+            } else
+            // check space on bottom
+            if (c->y + c->h + h <= wah){
+                y = c->y + c->h;
+                fprintf(stderr, "bottom %d\n", y);
+                continue;
+            }
+            // fallback
+            y += c->th;
+            x += c->th;
+        }
+        else {
+            fprintf(stderr, "fine, we are free");
+            break;
+        }
+    }
+    fprintf(stderr, "end checking");
+    *tx = x;
+    *ty = y;
+}
+
+void
+sfloating(void){
+    Client *c;
+    int x = wax;
+    int y = way;
+    int f;
+    f = 0;
+    for(c = clients; c; c = c->next){ 
+        if(isvisible(c) && !c->isicon){
+            if(!c->isplaced){
+                smartgetarea(c->w, c->h, &x, &y, &f);
+                resize(c, x, y, c->w, c->h, False);
+                c->isplaced = True;
+            }
+            c->hastitle = c->hadtitle;
+            drawclient(c);
+        }
+    }
+    focus(NULL);
+    restack();
 }
 
 void 
