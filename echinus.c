@@ -1359,69 +1359,55 @@ maprequest(XEvent *e) {
         arrange();
 }
 
-void
-smartgetarea(int w, int h, int *tx, int *ty, int *f){
+int
+smartcheckarea(int x, int y, int w, int h){
     Client *c;
-    f = 0;
-    int x = *tx;
-    int y = *ty;
-
-    fprintf(stderr, "checking\n");
-    for(c = clients; c; c = c->next){
-        if(!isvisible(c) || c->isicon)
-            continue;
-        if(!c->isplaced)
-            continue;
-        /*if (y >= c->y && y <= c->y+c->h && x >= c->x && x <= c->x + c->w){
-            x = c->x - c->w;
-            if (x < wax){
-                x = c->x + c->w;
-                if(x >= waw){
-                    y+= c->h;
-                    x = wax;
-                }
-            }
-            //}
-        }*/
-        if (y >= c->y && y <= c->y+c->h && x >= c->x && x <= c->x + c->w){
-            x = c->x + c->w;
-            if (x >= waw){
-                y+= c->h;
-                x = wax;
-            }
-        }/*
-        if (x >= waw || x <= wax){
-            x = 0;
-            y = c->y + c->h;
+    int n = 0;
+    for(c = clients; c; c = c->next){ 
+        if(isvisible(c) && !c->isicon){
+            /*
+            if(c->y >= y && c->y <= y +h && c->x >= x && c->x <= x+w)
+                n++;
+            else if(c->y + c->h >= y && c->y + c->h <= y +h && ((c->x >= x && c->x <= x+w) || (c->x + c->w >= x && c->x + c->w <= x+w)))
+                n++;
+                */
+            if(c->y + c->h >= y && c->y + c->h <= y + h && c->x+c->w >= x && c->x+c->w <= x+w)
+                n++;
+            else if(c->x >= x && c->x <= x+w && c->y + c->h >= y && c->y + c->h <= y + h)
+                n++;
+            else if(c->x >= x && c->x <= x+w && c->y >= y && c->y <= y+h)
+                n++;
+            else if(c->x+c->w >= x && c->x+c->w <= x+w && c->y >= y && c->y <= y+h)
+                n++;
         }
-        if(y >= wah){
-            x = c->x + c->w;
-            y = way;
-        }*/
-        /*if(y >= wah && x >= waw){
-            x = 0;
-            y = 0;
-            *f++;
-        }
-        */
     }
-    *tx = x;
-    *ty = y;
+    fprintf(stderr, "x = %d y = %d n = %d\n",x,y, n);
+    return n;
 }
 
 void
 sfloating(void){
     Client *c;
-    static int x = 0;
-    static int y = 13;
+    int x = wax;
+    int y = way;
     int f;
     f = 0;
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon){
             if(!c->isplaced){
-                smartgetarea(c->w, c->h, &x, &y, &f);
-                resize(c, x, y, c->w, c->h, False);
-                c->isplaced = True;
+                while(!c->isplaced){
+                    for(y = way; y+c->h <= wah && !c->isplaced ; y+=c->h/4){
+                        for(x = wax; x+c->w <= waw && !c->isplaced; x+=c->w/4){
+                            fprintf(stderr, "x = %d y = %d f = %d\n", x, y, f);
+                            if(smartcheckarea(x,y,c->w,c->h)<=f){
+                                fprintf(stderr, "GOTCHA! x = %d y = %d f = %d\n", x, y, f);
+                                resize(c, x, y, c->w, c->h, False);
+                                c->isplaced = True;
+                            }
+                        }
+                    }
+                    f++;
+                }
             }
             c->hastitle = c->hadtitle;
             drawclient(c);
