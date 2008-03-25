@@ -157,9 +157,9 @@ void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
 void expose(XEvent *e);
 void floating(void); /* default floating layout */
-void rfloating(void); /* random floating layout */
-void ifloating(void); /* intellectual floating layout */
-void sfloating(void); /* intellectual floating layout */
+void rfloating(void); /* region floating layout */
+void ifloating(void); /* intellectual floating layout try */
+//void sfloating(void); /* intellectual floating layout */
 void iconifyit(const char *arg);
 void incnmaster(const char *arg);
 void focus(Client *c);
@@ -879,30 +879,6 @@ initfont(const char *fontstr) {
 }
 
 void
-rfloating(void) { /* random floating layout */
-	Client *c;
-        notitles = False;
-
-	domwfact = dozoom = False;
-	for(c = clients; c; c = c->next){
-            c->isplaced = False;
-            if(isvisible(c) && !c->isicon && !c->isplaced) {
-                    c->hastitle=c->hadtitle;
-                    drawclient(c);
-                    if(!c->isfloating && !wasfloating)
-                            /*restore last known float dimensions*/
-                            resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
- 			else 
-                            resize(c, waw+rand()%sw, way+rand()%sh, c->w, c->h, True);
-                    c->isplaced=True;
-            }
-        }
-    wasfloating = True;
-}
-
-
-
-void
 floating(void) { /* default floating layout */
 	Client *c;
         notitles = False;
@@ -1388,11 +1364,13 @@ ifloating(void){
     f = 0;
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon){
-            if(!c->isplaced){
                 f = 0;
                 while(!c->isplaced){
-                        for(y = way; y <= wah && !c->isplaced ; y+=c->h/4){
-                            for(x = wax; x <= waw && !c->isplaced; x+=c->w/8){
+                    if(c->w > sw/2 && c->h > sw/2){
+                        c->isplaced = True;
+                    }
+                        for(y = way; y+c->h <= wah && !c->isplaced ; y+=c->h/4){
+                            for(x = wax; x+c->w <= waw && !c->isplaced; x+=c->w/8){
                             fprintf(stderr, "x = %d y = %d f = %d\n", x, y, f);
                             if(smartcheckarea(x,y,0.9*c->w,0.8*c->h)<=f){
                                 fprintf(stderr, "GOTCHA! x = %d y = %d f = %d\n", x, y, f);
@@ -1403,7 +1381,6 @@ ifloating(void){
                     }
                     f++;
                 }
-            }
             c->hastitle = c->hadtitle;
             drawclient(c);
         }
@@ -1413,7 +1390,7 @@ ifloating(void){
 }
 
 void 
-sfloating(void) {
+rfloating(void) {
     Client *c;
     int rw, rh;
     int x,y;

@@ -26,7 +26,7 @@
 Layout layouts[] = {
 	/* symbol		function */
 	{ "i",		ifloating }, /* first entry is default */
-	{ "s",		sfloating }, /* first entry is default */
+	{ "r",		rfloating }, /* first entry is default */
 	{ "f",		floating },
 	{ "m",		monocle }, /* first entry is default */
 	{ "t",		tile }, 
