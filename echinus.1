@@ -25,8 +25,13 @@ an optional titlebar
 .B \-v
 prints version information to standard output, then exits.
 .SH USAGE
-After compiling check dot_echinusrc file and copy it to ~/.echinusrc, don't forget
-to set up pathes to button pixmaps.
+% make
+
+% make install
+
+% make installconfig
+
+Add echinus to ~/.xsession (or ~/.xinitrc) script and restart X.
 .SS Title bar
 .TP
 .B Button1
@@ -97,9 +102,6 @@ View all windows with
 .BR nth
 tag.
 .TP
-.B Mod1\-0
-View all windows with any tag.
-.TP
 .B Mod1\-Control\-[1..n]
 Add/remove all windows with
 .BR nth
@@ -124,9 +126,12 @@ draws a rectangle to start a TERMINAL in it.
 echinus is partially EWMH (NetWM) compliant, so you can use your favourite panel 
 or pager. Don't forget that pypanel (2.4) doesn't follows EWMH for its WM interaction.
 .SH CUSTOMIZATION
-echinus is customized by creating a custom config.h and (re)compiling the source
-code. This keeps it fast, secure and simple. It also supports ~/.echinusrc.
+Edit ~/.echinus/echinusrc
 .SH SEE ALSO
 .BR dmenu (1),\  dwm (1)
 .SH BUGS
+* parsekey() doesn't handle non-alphanumeric keysyms
+
+* ifloating() performs badly
+
 You should find lots of them. If you did please contact me, my mail is <polachok at gmail dot com>
