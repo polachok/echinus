@@ -922,7 +922,6 @@ focus(Client *c) {
 	if(c) {
                 setclientstate(c, NormalState);
                 drawclient(c);
-                ewmh_update_net_active_window();
 		XSetWindowBorder(dpy, c->win, dc.sel[ColBorder]);
 		XSetWindowBorder(dpy, c->title, dc.sel[ColBorder]);
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
@@ -932,6 +931,7 @@ focus(Client *c) {
         if(o){
             drawclient(o);
         }
+        ewmh_update_net_active_window();
 }
 
 void
@@ -1301,6 +1301,8 @@ manage(Window w, XWindowAttributes *wa) {
 	applyrules(c);
 	if(!c->isfloating)
 		c->isfloating = (rettrans == Success) || c->isfixed;
+        if(NOTITLES)
+            c->hadtitle = False;
 	attach(c);
 	attachstack(c);
 	XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h); /* some windows require this */
@@ -1494,7 +1496,7 @@ monocle(void) {
                 else
                     continue;
                 if(bpos == BarOff) 
-                    resize(c, sx, sy, sw, sh, False);
+                    resize(c, sx-c->border, sy-c->border, sw, sh, False);
                 else {
                     resize(c, wax-c->border, way, waw, wah, False);
                 }
@@ -1712,7 +1714,6 @@ restack(void) {
 			wc.sibling = c->win;
 		}
 	}
-        ewmh_update_net_active_window();
 	XSync(dpy, False);
 	while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }

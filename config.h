@@ -1,9 +1,9 @@
 /* See LICENSE file for copyright and license details. */
 #define BARPOS			BarTop /* BarTop, BarOff */
 #define BORDERPX		"3"
-#define NOTITLES 0
 #define NF_OPACITY "0.9"
 #define FONT            "fixed-9"
+#define NOTITLES 0
 #define NORMBORDERCOLOR		"#cccccc"
 #define NORMBUTTONCOLOR		"#cccccc"
 #define NORMBGCOLOR		"#cccccc"
@@ -25,10 +25,10 @@
 #define SNAP			5	/* snap pixel */
 Layout layouts[] = {
 	/* symbol		function */
+	{ "m",		monocle }, /* first entry is default */
 	{ "i",		ifloating }, /* first entry is default */
 	{ "r",		rfloating }, /* first entry is default */
 	{ "f",		floating },
-	{ "m",		monocle }, /* first entry is default */
 	{ "t",		tile }, 
 };
 #define NMASTER 1
