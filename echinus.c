@@ -816,7 +816,7 @@ drawclient(Client *c) {
       opacity = OPAQUE;
     else
       opacity = (unsigned int) (uf_opacity * OPAQUE);
-    ewmh_set_window_opacity(c, opacity);
+    setopacity(c, opacity);
     XMapWindow(dpy, c->title);
 }
 
@@ -1220,7 +1220,7 @@ manage(Window w, XWindowAttributes *wa) {
 	XWindowChanges wc;
 	XSetWindowAttributes twa;
 
-        if(!ewmh_process_window_type_atom(w)){ // check for a dock window
+        if(isdock(w)){ // check for a dock window
             XMapWindow(dpy, w); // let it manage itself
             return;
         }
@@ -1270,7 +1270,6 @@ manage(Window w, XWindowAttributes *wa) {
 			c->y = way;
 		c->border = borderpx;
 	}
-        //ewmh_process_window_type_atom(c);
 	wc.border_width = c->border;
 	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
 	XSetWindowBorder(dpy, w, dc.norm[ColBorder]);

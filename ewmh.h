@@ -196,7 +196,7 @@ clientmessage(XEvent *e) {
 }
 
 void 
-ewmh_set_window_opacity(Client *c, unsigned int opacity) {
+setopacity(Client *c, unsigned int opacity) {
     if (opacity == OPAQUE)
         XDeleteProperty (dpy, c->win, net_window_opacity);
     else
@@ -207,7 +207,7 @@ ewmh_set_window_opacity(Client *c, unsigned int opacity) {
 
 
 static int
-ewmh_process_window_type_atom(Window win)
+isdock(Window win)
 {
     Atom real, *state;
     int format;
@@ -219,9 +219,9 @@ ewmh_process_window_type_atom(Window win)
         state = (Atom *) data;
         for(i = 0; i < n; i++){
             if(state[i] == net_wm_window_type_dock)
-                            return 0;
+                            return 1;
         }
-    return 1;
+    return 0;
 }
 
 void (*updateatom[LASTAtom]) (Client *) = {
