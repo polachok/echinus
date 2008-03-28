@@ -290,7 +290,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[PropertyNotify] = propertynotify,
 	[FocusIn] = focusin,
 	[UnmapNotify] = unmapnotify,
-        [ClientMessage] = ewmh_process_client_message,
+        [ClientMessage] = clientmessage,
 };
 
 
@@ -933,7 +933,7 @@ focus(Client *c) {
         if(o){
             drawclient(o);
         }
-        ewmh_update_net_active_window();
+        updateatom[ActiveWindow](sel);
 }
 
 void
@@ -1311,8 +1311,8 @@ manage(Window w, XWindowAttributes *wa) {
 	XMapWindow(dpy, c->win);
 	//setclientstate(c, IconicState);
         drawclient(c);
-        ewmh_update_net_client_list();
-        ewmh_update_net_window_desktop(c);
+        updateatom[ClientList](NULL);
+        updateatom[WindowDesktop](c);
         arrange();
 }
 
@@ -1877,8 +1877,7 @@ setup(void) {
 	wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
 
         /* init EWMH atoms */
-        ewmh_init_atoms();
-        ewmh_set_supported_hints();
+        initatoms();
 
         /* init cursors */
 	cursor[CurNormal] = XCreateFontCursor(dpy, XC_left_ptr);
@@ -1922,9 +1921,9 @@ setup(void) {
         inittags();
         initrules();
         initkeys();
-        ewmh_update_net_numbers_of_desktop();
-        ewmh_update_net_desktop_names();
-        ewmh_update_net_current_desktop();
+        updateatom[NumberOfDesk](NULL);
+        updateatom[DesktopNames](NULL);
+        updateatom[CurDesk](NULL);
 
 	compileregs();
 
@@ -2016,7 +2015,7 @@ tag(const char *arg) {
 	for(i = 0; i < ntags; i++)
 		sel->tags[i] = (NULL == arg);
 	sel->tags[idxoftag(arg)] = True;
-        ewmh_update_net_window_desktop(sel);
+        updateatom[WindowDesktop](sel);
 	arrange();
 }
 
@@ -2217,7 +2216,7 @@ unmanage(Client *c) {
 	XSetErrorHandler(xerror);
 	XUngrabServer(dpy);
 	arrange();
-        ewmh_update_net_client_list();
+        updateatom[ClientList](NULL);
 }
 
 void
@@ -2306,7 +2305,7 @@ view(const char *arg) {
 		seltags[i] = (NULL == arg);
 	seltags[idxoftag(arg)] = True;
 	arrange();
-        ewmh_update_net_current_desktop();
+        updateatom[CurDesk](NULL);
 }
 
 void

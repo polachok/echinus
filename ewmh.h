@@ -49,18 +49,7 @@ static AtomItem AtomNames[] =
 #define _NET_WM_STATE_ADD 1
 #define _NET_WM_STATE_TOGGLE 2
 
-void
-ewmh_init_atoms(void) {
-    unsigned int i;
-    char *names[ATOM_NUMBER];
-    Atom atoms[ATOM_NUMBER];
-    
-    for(i = 0; i < ATOM_NUMBER; i++)
-        names[i] = (char *) AtomNames[i].name;
-    XInternAtoms(dpy, names, ATOM_NUMBER, False, atoms);
-    for(i = 0; i < ATOM_NUMBER; i++)
-        *AtomNames[i].atom = atoms[i];
-}
+enum { ClientList, ActiveWindow, WindowDesktop, NumberOfDesk, DesktopNames, CurDesk, LASTAtom };
 
 void
 ewmh_set_supported_hints() {
@@ -85,6 +74,20 @@ ewmh_set_supported_hints() {
 }
  
 void
+initatoms(void) {
+    unsigned int i;
+    char *names[ATOM_NUMBER];
+    Atom atoms[ATOM_NUMBER];
+    
+    for(i = 0; i < ATOM_NUMBER; i++)
+        names[i] = (char *) AtomNames[i].name;
+    XInternAtoms(dpy, names, ATOM_NUMBER, False, atoms);
+    for(i = 0; i < ATOM_NUMBER; i++)
+        *AtomNames[i].atom = atoms[i];
+    ewmh_set_supported_hints();
+}
+
+void
 ewmh_update_net_client_list() {
     Window *wins;
     Client *c;
@@ -107,7 +110,7 @@ ewmh_update_net_client_list() {
 }
 
 void
-ewmh_update_net_numbers_of_desktop() {
+ewmh_update_net_number_of_desktops() {
     CARD32 count = 0;
 
     count=ntags;
@@ -180,7 +183,7 @@ ewmh_update_net_active_window() {
 }
 
 void
-ewmh_process_client_message(XEvent *e) {
+clientmessage(XEvent *e) {
     XClientMessageEvent *ev = &e->xclient;
 
     if(ev->message_type == net_active_window) {
@@ -220,3 +223,12 @@ ewmh_process_window_type_atom(Window win)
         }
     return 1;
 }
+
+void (*updateatom[LASTAtom]) (Client *) = {
+    [ClientList] = ewmh_update_net_client_list,
+    [ActiveWindow] = ewmh_update_net_active_window,
+    [WindowDesktop] = ewmh_update_net_window_desktop,
+    [NumberOfDesk] = ewmh_update_net_number_of_desktops,
+    [DesktopNames] = ewmh_update_net_desktop_names,
+    [CurDesk] = ewmh_update_net_current_desktop,
+};
