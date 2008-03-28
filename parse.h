@@ -94,7 +94,7 @@ initkeys(){
         keys[nkeys] = malloc(sizeof(Key));
         keys[nkeys]->func = KeyItems[i].action;
         keys[nkeys]->arg = NULL;
-        parsekey(tmp, keys[i]);
+        parsekey(tmp, keys[nkeys]);
         nkeys++;
     }
     /* per tag functions */
