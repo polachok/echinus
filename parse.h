@@ -82,20 +82,21 @@ parsekey(char *s, Key *k) {
 
 int
 initkeys(){
-    int i,j,k;
+    int i,j;
     char *tmp;
     char t[64];
     keys = malloc(sizeof(Key*)*LENGTH(KeyItems));
     /* global functions */
     for(i = 0; i < LENGTH(KeyItems); i++){
         tmp = getresource(KeyItems[i].name, NULL);
-        keys[i] = malloc(sizeof(Key));
-        keys[i]->func = KeyItems[i].action;
-        keys[i]->arg = NULL;
+        if(!tmp)
+            continue;
+        keys[nkeys] = malloc(sizeof(Key));
+        keys[nkeys]->func = KeyItems[i].action;
+        keys[nkeys]->arg = NULL;
         parsekey(tmp, keys[i]);
-        nkeys = i;
+        nkeys++;
     }
-    k = i;
     /* per tag functions */
     for(j = 0; j < LENGTH(KeyItemsByTag); j++){
         for(i = 0; i < ntags; i++){
@@ -103,13 +104,12 @@ initkeys(){
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
-            keys = realloc(keys, sizeof(Key*)*(k+1));
-            keys[k] = malloc(sizeof(Key));
-            keys[k]->func = KeyItemsByTag[j].action;
-            keys[k]->arg = tags[i];
-            parsekey(tmp, keys[k]);
-            k++;
-            nkeys = k;
+            keys = realloc(keys, sizeof(Key*)*(nkeys+1));
+            keys[nkeys] = malloc(sizeof(Key));
+            keys[nkeys]->func = KeyItemsByTag[j].action;
+            keys[nkeys]->arg = tags[i];
+            parsekey(tmp, keys[nkeys]);
+            nkeys++;
         }
     }
     /* layout setting */
@@ -118,13 +118,12 @@ initkeys(){
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
-            keys = realloc(keys, sizeof(Key*)*(k+1));
-            keys[k] = malloc(sizeof(Key));
-            keys[k]->func = setlayout;
-            keys[k]->arg = layouts[i].symbol;
-            parsekey(tmp, keys[k]);
-            k++;
-            nkeys = k;
+            keys = realloc(keys, sizeof(Key*)*(nkeys+1));
+            keys[nkeys] = malloc(sizeof(Key));
+            keys[nkeys]->func = setlayout;
+            keys[nkeys]->arg = layouts[i].symbol;
+            parsekey(tmp, keys[nkeys]);
+            nkeys++;
     }
     /* spawn */
      for(i = 0; i<64; i++){
@@ -132,13 +131,12 @@ initkeys(){
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
-            keys = realloc(keys, sizeof(Key*)*(k+1));
-            keys[k] = malloc(sizeof(Key));
-            keys[k]->func = spawn;
-            keys[k]->arg = NULL;
-            parsekey(tmp, keys[k]);
-            k++;
-            nkeys = k;
+            keys = realloc(keys, sizeof(Key*)*(nkeys+1));
+            keys[nkeys] = malloc(sizeof(Key));
+            keys[nkeys]->func = spawn;
+            keys[nkeys]->arg = NULL;
+            parsekey(tmp, keys[nkeys]);
+            nkeys++;
     }
  
 
@@ -165,8 +163,8 @@ initrules(){
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
-            rules[i] = emallocz(sizeof(Rule));
-            parserule(tmp, rules[i]);
+            rules[nrules] = emallocz(sizeof(Rule));
+            parserule(tmp, rules[nrules]);
             nrules++;
     }
     rules = realloc(rules, nrules*sizeof(Rule*));

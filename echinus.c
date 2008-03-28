@@ -1378,7 +1378,7 @@ ifloating(void){
                         for(y = way; y+c->h <= wah && !c->isplaced ; y+=c->h/4){
                             for(x = wax; x+c->w <= waw && !c->isplaced; x+=c->w/8){
                                 /* are you wondering about 0.9 & 0.8 ? */
-                            if(smartcheckarea(x,y,0.9*c->w,0.8*c->h)<=f){
+                            if(smartcheckarea(x,y,0.8*c->w,0.8*c->h)<=f){
                                 /* got it! a big chunk of "free" space */
                                 resize(c, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, False);
                                 c->isplaced = True;
