@@ -25,8 +25,8 @@
 #define SNAP			5	/* snap pixel */
 Layout layouts[] = {
 	/* symbol		function */
-	{ "m",		monocle }, /* first entry is default */
 	{ "i",		ifloating }, /* first entry is default */
+	{ "m",		monocle }, /* first entry is default */
 	{ "r",		rfloating }, /* first entry is default */
 	{ "f",		floating },
 	{ "t",		tile }, 

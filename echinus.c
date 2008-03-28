@@ -797,6 +797,8 @@ drawbuttons(Client *c) {
 void
 drawclient(Client *c) {
     unsigned int opacity;
+    if(NOTITLES)
+        return;
     if(!isvisible(c))
         return;
     resizetitle(c);
