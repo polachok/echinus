@@ -67,7 +67,7 @@ parsekey(char *s, Key *k) {
         k->keysym = XStringToKeysym(tmp);
         free(tmp);
         tmp = emallocz((s+l-pos+1)*sizeof(char));
-        for(pos++;!isalnum(pos[0]);pos++);
+        for(pos++;!isgraph(pos[0]);pos++);
         strncpy(tmp, pos, s+l-pos);
         k->arg = tmp;
     }
@@ -126,7 +126,7 @@ initkeys(){
             nkeys++;
     }
     /* spawn */
-     for(i = 0; i<64; i++){
+    for(i = 0; i<64; i++){
             sprintf(t, "spawn%d", i);
             tmp = getresource(t, NULL);
             if(!tmp)
@@ -138,8 +138,6 @@ initkeys(){
             parsekey(tmp, keys[nkeys]);
             nkeys++;
     }
- 
-
     return 0;
 }
 
