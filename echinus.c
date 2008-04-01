@@ -1368,8 +1368,7 @@ ifloating(void){
     int f;
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon){
-                f = 0;
-                while(!c->isplaced){ 
+                for(f=0;!c->isplaced;f++){ 
                     if(c->w > sw/2 && c->h > sw/2){
                         /* too big to deal with */
                         c->isplaced = True; 
@@ -1385,7 +1384,6 @@ ifloating(void){
                             }
                         }
                     }
-                    f++; /* too many windows hanging around, try another time */
                 }
             c->hastitle = c->hadtitle;
             drawclient(c);
