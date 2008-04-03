@@ -2038,7 +2038,7 @@ tile(void) {
 	ny = way;
 	nw = 0; /* gcc stupidity requires this */
 	for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
-                c->hastitle = False;
+                c->hastitle = DecorateTiled ? True : False;
 		c->ismax = False;
                 c->sfx = c->x;
                 c->sfy = c->y;
@@ -2051,11 +2051,17 @@ tile(void) {
                         nh = mh;
                         if(i + 1 == (n < nmaster ? n : nmaster)) /* remainder */
                                 nh = wah - mh * i;
+                        if(DecorateTiled){
+                            ny+=dc.h;
+                            nh-=dc.h;
+                        }
                         nh -= 2 * c->border;
                 }
                 else {  /* tile window */
                         if(i == nmaster) {
                                 ny = way;
+                                if(DecorateTiled)
+                                    ny+=dc.h;
                                 nx += mc->w + mc->border;
                                 nw = waw - nx - 2*c->border;
                         }
@@ -2067,8 +2073,12 @@ tile(void) {
                                 nh = th - 2 * c->border;
                 }
                 resize(c, nx, ny, nw, nh, False);
-                if(n > nmaster && th != wah)
+                drawclient(c);
+                if(n > nmaster && th != wah){
                         ny = c->y + c->h + 2 * c->border;
+                        if(DecorateTiled)
+                            ny += c->th;
+                }
         }
 }
 

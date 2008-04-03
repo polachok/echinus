@@ -33,3 +33,4 @@ Layout layouts[] = {
 };
 #define NMASTER 1
 #define MODKEY Mod1Mask
+#define DecorateTiled 1
