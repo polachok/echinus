@@ -26,11 +26,11 @@
 Layout layouts[] = {
 	/* symbol		function */
 	{ "i",		ifloating }, /* first entry is default */
+	{ "t",		tile }, 
 	{ "m",		monocle }, /* first entry is default */
 	{ "r",		rfloating }, /* first entry is default */
 	{ "f",		floating },
-	{ "t",		tile }, 
 };
 #define NMASTER 1
 #define MODKEY Mod1Mask
-#define DecorateTiled 1
+#define DecorateTiled 0
