@@ -141,6 +141,7 @@ void attach(Client *c);
 void attachstack(Client *c);
 void ban(Client *c);
 void buttonpress(XEvent *e);
+void bstack(void);
 void checkotherwm(void);
 void cleanup(void);
 void compileregs(void);
@@ -2026,6 +2027,46 @@ tag(const char *arg) {
 }
 
 void
+bstack(void) {
+    unsigned int i, n, nx, ny, nw, nh, mh, tw;
+    Client *c, *mc;
+
+    domwfact = dozoom = True;
+    for(n = 0, c = nexttiled(clients); c; c = nexttiled(c->next))
+        n++;
+
+    mh = (n == 1) ? wah : mwfact * wah;
+    tw = (n > 1) ? waw / (n - 1) : 0;
+
+    nx = wax;
+    ny = way;
+    nh = 0;
+    for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
+        c->ismax = False;
+        c->hastitle = False;
+        if(i == 0) {
+            nh = mh - 2 * c->border;
+            nw = waw - c->border;
+            nx = wax;
+        }
+        else {
+            if(i == 1) {
+                nx = wax;
+                ny += mc->h+c->border;
+                nh = (way + wah) - ny;
+            }
+            if(i + 1 == n)
+                nw = (wax + waw) - nx - c->border;
+            else
+                nw = tw - c->border;
+        }
+        resize(c, nx, ny, nw, nh, False);
+        if(n > 1 && tw != waw)
+            nx = c->x + c->w + c->border;
+    }
+}
+
+void
 tile(void) {
 	unsigned int i, n, nx, ny, nw, nh, mw, mh, th;
 	Client *c, *mc;
@@ -2054,9 +2095,8 @@ tile(void) {
                 c->sfw = c->w;
                 c->sfh = c->h;
                 if(i < nmaster) { /* master */
-                        ny = way + i * mh;
+                        ny = way + i * (mh - 2*c->border);
                         nw = mw - 2 * c->border;
-                        nh = wah - 2 * c->border;
                         nh = mh;
                         if(i + 1 == (n < nmaster ? n : nmaster)) /* remainder */
                                 nh = wah - mh * i;

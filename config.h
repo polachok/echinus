@@ -28,7 +28,7 @@ Layout layouts[] = {
 	{ "i",		ifloating }, /* first entry is default */
 	{ "t",		tile }, 
 	{ "m",		monocle }, /* first entry is default */
-	{ "r",		rfloating }, /* first entry is default */
+	{ "b",		bstack }, /* first entry is default */
 	{ "f",		floating },
 };
 #define NMASTER 1
