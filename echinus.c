@@ -1070,35 +1070,17 @@ gettextprop(Window w, Atom atom, char *text, unsigned int size) {
 
 void
 grabbuttons(Client *c, Bool focused) {
+        unsigned int Buttons[] = {Button1, Button2, Button3};            
+        unsigned int Modifiers[] = {MODKEY, MODKEY|LockMask,
+                   MODKEY|numlockmask, MODKEY|numlockmask|LockMask};                                                                                              
+        int i, j;   
 	XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 
 	if(focused) {
-		XGrabButton(dpy, Button1, MODKEY, c->win, False, BUTTONMASK,
-				GrabModeAsync, GrabModeSync, None, None);
-		XGrabButton(dpy, Button1, MODKEY | LockMask, c->win, False, BUTTONMASK,
-				GrabModeAsync, GrabModeSync, None, None);
-		XGrabButton(dpy, Button1, MODKEY | numlockmask, c->win, False, BUTTONMASK,
-				GrabModeAsync, GrabModeSync, None, None);
-		XGrabButton(dpy, Button1, MODKEY | numlockmask | LockMask, c->win, False, BUTTONMASK,
-				GrabModeAsync, GrabModeSync, None, None);
-
-		XGrabButton(dpy, Button2, MODKEY, c->win, False, BUTTONMASK,
-				GrabModeAsync, GrabModeSync, None, None);
-		XGrabButton(dpy, Button2, MODKEY | LockMask, c->win, False, BUTTONMASK,
-				GrabModeAsync, GrabModeSync, None, None);
-		XGrabButton(dpy, Button2, MODKEY | numlockmask, c->win, False, BUTTONMASK,
-				GrabModeAsync, GrabModeSync, None, None);
-		XGrabButton(dpy, Button2, MODKEY | numlockmask | LockMask, c->win, False, BUTTONMASK,
-				GrabModeAsync, GrabModeSync, None, None);
-
-		XGrabButton(dpy, Button3, MODKEY, c->win, False, BUTTONMASK,
-				GrabModeAsync, GrabModeSync, None, None);
-		XGrabButton(dpy, Button3, MODKEY | LockMask, c->win, False, BUTTONMASK,
-				GrabModeAsync, GrabModeSync, None, None);
-		XGrabButton(dpy, Button3, MODKEY | numlockmask, c->win, False, BUTTONMASK,
-				GrabModeAsync, GrabModeSync, None, None);
-		XGrabButton(dpy, Button3, MODKEY | numlockmask | LockMask, c->win, False, BUTTONMASK,
-				GrabModeAsync, GrabModeSync, None, None);
+               for (i = 0; i < LENGTH(Buttons); i++)                                                                                                          
+                       for (j = 0; j < LENGTH(Modifiers); j++)                                                                                                
+                               XGrabButton(dpy, Buttons[i], Modifiers[j], c->win, False,                                                                      
+                                       BUTTONMASK, GrabModeAsync, GrabModeSync, None, None);    
 	}
 	else
 		XGrabButton(dpy, AnyButton, AnyModifier, c->win, False, BUTTONMASK,
