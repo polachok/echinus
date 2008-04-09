@@ -1328,7 +1328,7 @@ smartcheckarea(int x, int y, int w, int h){
     int n = 0;
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon && c->isplaced){
-            /* A Kind Of Magic 
+            /* A Kind Of Magic */
             if((c->y + c->h >= y && c->y + c->h <= y + h
             && c->x+c->w >= x && c->x+c->w <= x+w)
             || (c->x >= x && c->x <= x+w
@@ -1337,15 +1337,6 @@ smartcheckarea(int x, int y, int w, int h){
                  && c->y >= y && c->y <= y+h)
             || (c->x+c->w >= x && c->x+c->w <= x+w
                  && c->y >= y && c->y <= y+h))
-                 */
-            if((x >= c->x && x <= c->x+c->w &&
-                y >= c->y && y <= c->y+c->h) ||
-                (x+w >= c->x && x+w <=c->x+c->w &&
-                y+h >= y && y+h <= y+h) ||
-                (x >= c->x && x <= c->x+c->w &&
-                 y+h >= c->y && y+h <= c->y+c->h) ||
-                (x+w >= c->x && x+w <= c->x+c->w &&
-                 y >= c->y && y <= c->y+c->h))
                 n++;
         }
     }
@@ -1366,12 +1357,12 @@ ifloating(void){
                         c->isplaced = True; 
                     }
                     /* i dunno if c->h/4 & c->w/8 are optimal */
-                        for(y = way; y+c->h <= wah && !c->isplaced ; y+=1){
-                            for(x = wax; x+c->w <= waw && !c->isplaced; x+=1){
+                        for(y = way; y+c->h <= wah && !c->isplaced ; y+=c->h/4){
+                            for(x = wax; x+c->w <= waw && !c->isplaced; x+=c->w/8){
                                 /* are you wondering about 0.9 & 0.8 ? */
-                            if(smartcheckarea(x, y, c->w, c->h)<=f){
+                            if(smartcheckarea(x,y,0.8*c->w,0.8*c->h)<=f){
                                 /* got it! a big chunk of "free" space */
-                                resize(c, x, y, c->w, c->h, False);
+                                resize(c, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, False);
                                 c->isplaced = True;
                             }
                         }
