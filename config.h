@@ -19,18 +19,17 @@
 #define MINHEIGHT 12
 #define BARHEIGHT "12"
 #define TITLEHEIGHT "12"
-#define NMASTER 1
-#define TERMINAL "urxvt"
+#define TERMINAL "xterm"
 #define MWFACT			0.6	/* master width factor [0.1 .. 0.9] */
 #define SNAP			5	/* snap pixel */
 Layout layouts[] = {
 	/* symbol		function */
 	{ "i",		ifloating }, /* first entry is default */
 	{ "t",		tile }, 
-	{ "m",		monocle }, /* first entry is default */
-	{ "b",		bstack }, /* first entry is default */
+	{ "m",		monocle }, 
+	{ "b",		bstack }, 
 	{ "f",		floating },
 };
-#define NMASTER 1
-#define MODKEY Mod1Mask
-#define DecorateTiled 1
+#define NMASTER 1 /* number of windows in master area */
+#define MODKEY Mod1Mask /* key to press while moving */
+#define DecorateTiled 0 /* set to 1 to draw titles in tiled layouts */
