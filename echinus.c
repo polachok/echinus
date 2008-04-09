@@ -2023,17 +2023,23 @@ bstack(void) {
     ny = way;
     nh = 0;
     for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
+        c->hastitle = DecorateTiled ? c->hadtitle : False;
         c->ismax = False;
-        c->hastitle = False;
         if(i == 0) {
             nh = mh - 2 * c->border;
             nw = waw - c->border;
             nx = wax;
+            if(DecorateTiled){
+                ny+=dc.h;
+                nh-=dc.h;
+            }
         }
         else {
             if(i == 1) {
                 nx = wax;
                 ny += mc->h+c->border;
+                if(DecorateTiled)
+                    ny += dc.h;
                 nh = (way + wah) - ny;
             }
             if(i + 1 == n)
@@ -2069,7 +2075,7 @@ tile(void) {
 	ny = way;
 	nw = 0; /* gcc stupidity requires this */
 	for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
-                c->hastitle = DecorateTiled ? True : False;
+                c->hastitle = DecorateTiled ? c->hadtitle : False;
 		c->ismax = False;
                 c->sfx = c->x;
                 c->sfy = c->y;
