@@ -1974,9 +1974,8 @@ setup(void) {
 
 void
 spawn(const char *arg) {
-	static char *shell = NULL;
+	static char shell[] = "/bin/sh";
 
-        shell = "/bin/sh";
 	if(!arg)
 		return;
 	/* The double-fork construct avoids zombie processes and keeps the code

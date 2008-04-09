@@ -59,7 +59,6 @@ parsekey(char *s, Key *k) {
     k->mod = modmask;
     free(tmp);
     pos = strchr(s, '=');
-    /* TODO: handle = and + in keysyms */
     if(pos){
         tmp = emallocz((pos-opos)*sizeof(char));
         for(opos++;!isalnum(opos[0]);opos++);

@@ -107,6 +107,10 @@ Keybindings
         A - Alt (mod1)
         S - Shift
         C - Control
+    You can find the list of available keys in keysym.h
+    and XF86keysym.h files (usually located in 
+    /usr/include/X11/), remove XK_ prefix before use.
+
     Don't miss ' ' (space).
 
     Echinus*togglebar
