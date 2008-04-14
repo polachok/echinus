@@ -129,7 +129,7 @@ typedef struct {
 
 typedef struct {
     Pixmap pm;
-    void (*action)(char);
+    void (*action)(const char *arg);
 } button;
 
 
@@ -388,9 +388,8 @@ void
 iconifyit(const char *arg) {
     if(!sel)
         return;
-    focus(sel->next);
     iconify(sel);
-    arrange();
+    restack();
 }
 
 
@@ -520,21 +519,20 @@ buttonpress(XEvent *e) {
         }
     }
     else if((c = gettitle(ev->window))) {
+        focus(c);
         if((ev->x > c->tw-3*c->th) && (ev->x < c->tw-2*c->th)){
             /* min */
-            iconify(c);
-            focus(c->next);
+            bleft.action(NULL);
             return;
         }
-        focus(c);
         if((ev->x > c->tw-2*c->th) && (ev->x < c->tw-c->th)){
             /* max */
-            togglemax(NULL);
+            bcenter.action(NULL);
             return;
         }
         if((ev->x > c->tw-c->th) && (ev->x < c->tw)){
             /* close */
-            killclient(NULL);
+            bright.action(NULL);
             return;
         }
         if(ev->button == Button1) {
@@ -784,6 +782,9 @@ initbuttons() {
     bleft.pm = initpixmap(getresource("button.left.pixmap", BLEFTPIXMAP));
     bright.pm = initpixmap(getresource("button.right.pixmap", BRIGHTPIXMAP));
     bcenter.pm = initpixmap(getresource("button.center.pixmap", BCENTERPIXMAP));
+    bleft.action = iconifyit;
+    bright.action = killclient;
+    bcenter.action = togglemax;
 }
 
 void

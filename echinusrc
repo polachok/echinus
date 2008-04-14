@@ -58,6 +58,7 @@ Echinus*setlayoutm: A + m
 Echinus*setlayoutf: A + f
 Echinus*setlayouti: A + a
 Echinus*setlayoutt: A + r
+Echinus*setlayoutb: A + w
 
 Echinus*spawn0: A + t = xterm
 
