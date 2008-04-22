@@ -273,6 +273,7 @@ Bool *seltags;
 int ntags = 0;
 int nkeys = 0;
 int nrules = 0;
+int dectiled = 0;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 #include "ewmh.h"
@@ -1935,10 +1936,10 @@ setup(void) {
 	dc.sel[ColFG] = getcolor(getresource("selected.fg", SELFGCOLOR));
 	dc.sel[ColButton] = getcolor(getresource("selected.button", SELBUTTONCOLOR));
 
-        dc.xftsel=emallocz(sizeof(XftColor));
-        dc.xftnorm=emallocz(sizeof(XftColor));
-        XftColorAllocName(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen),getresource("selected.fg", SELFGCOLOR), dc.xftsel);
-        XftColorAllocName(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen),getresource("normal.fg", SELFGCOLOR), dc.xftnorm);
+        dc.xftsel = emallocz(sizeof(XftColor));
+        dc.xftnorm = emallocz(sizeof(XftColor));
+        XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,screen), getresource("selected.fg", SELFGCOLOR), dc.xftsel);
+        XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,screen), getresource("normal.fg", SELFGCOLOR), dc.xftnorm);
         if(!dc.xftnorm || !dc.xftnorm)
              eprint("error, cannot allocate colors\n");
         initfont(getresource("font",FONT));
@@ -1950,6 +1951,7 @@ setup(void) {
         dc.h = atoi(getresource("title", TITLEHEIGHT));
         toph = atoi(getresource("space.top", BARHEIGHT));
         both = atoi(getresource("space.bottom", BARHEIGHT));
+        dectiled = atoi(getresource("decoratetiled", DECORATETILED));
 
 	/* init layouts */
 	mwfact = MWFACT;
@@ -2028,13 +2030,13 @@ bstack(void) {
     ny = way;
     nh = 0;
     for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
-        c->hastitle = DecorateTiled ? c->hadtitle : False;
+        c->hastitle = dectiled ? c->hadtitle : False;
         c->ismax = False;
         if(i == 0) {
             nh = mh - 2 * c->border;
             nw = waw - c->border;
             nx = wax;
-            if(DecorateTiled){
+            if(dectiled){
                 ny+=dc.h;
                 nh-=dc.h;
             }
@@ -2043,7 +2045,7 @@ bstack(void) {
             if(i == 1) {
                 nx = wax;
                 ny += mc->h+c->border;
-                if(DecorateTiled)
+                if(dectiled)
                     ny += dc.h;
                 nh = (way + wah) - ny;
             }
@@ -2081,7 +2083,7 @@ tile(void) {
 	ny = way;
 	nw = 0; /* gcc stupidity requires this */
 	for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
-                c->hastitle = DecorateTiled ? c->hadtitle : False;
+                c->hastitle = dectiled ? c->hadtitle : False;
 		c->ismax = False;
                 c->sfx = c->x;
                 c->sfy = c->y;
@@ -2093,7 +2095,7 @@ tile(void) {
                         nh = mh;
                         if(i + 1 == (n < nmaster ? n : nmaster)) /* remainder */
                                 nh = wah - mh * i;
-                        if(DecorateTiled){
+                        if(dectiled){
                             ny+=dc.h;
                             nh-=dc.h;
                         }
@@ -2102,7 +2104,7 @@ tile(void) {
                 else {  /* tile window */
                         if(i == nmaster) {
                                 ny = way;
-                                if(DecorateTiled)
+                                if(dectiled)
                                     ny+=dc.h;
                                 nx += mc->w + mc->border;
                                 nw = waw - nx - 2*c->border;
@@ -2118,7 +2120,7 @@ tile(void) {
                 drawclient(c);
                 if(n > nmaster && th != wah){
                         ny = c->y + c->h + 2 * c->border;
-                        if(DecorateTiled)
+                        if(dectiled)
                             ny += c->th;
                 }
         }
