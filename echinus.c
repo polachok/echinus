@@ -276,8 +276,8 @@ int nrules = 0;
 int dectiled = 0;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
-#include "ewmh.h"
-#include "parse.h"
+#include "ewmh.c"
+#include "parse.c"
 
 void (*handler[LASTEvent]) (XEvent *) = {
 	[ButtonPress] = buttonpress,

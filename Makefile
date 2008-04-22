@@ -4,7 +4,6 @@
 
 include config.mk
 
-HEADERS = ewmh.h parse.h config.h
 PIXMAPS = close.xbm iconify.xbm max.xbm 
 SRC = echinus.c
 OBJ = ${SRC:.c=.o}
