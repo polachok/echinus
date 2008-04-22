@@ -152,6 +152,7 @@ void destroynotify(XEvent *e);
 void detach(Client *c);
 void detachstack(Client *c);
 void drawclient(Client *c);
+void drawfloating(void);
 void drawtext(const char *text, unsigned long col[ColLast], Bool center);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
@@ -390,6 +391,7 @@ iconifyit(const char *arg) {
         return;
     iconify(sel);
     restack();
+    focusnext(NULL);
 }
 
 
@@ -822,6 +824,16 @@ drawclient(Client *c) {
     XMapWindow(dpy, c->title);
 }
 
+void
+drawfloating() {
+    Client *c;
+    for(c = clients; c; c=c->next){
+        if(c->isfloating){
+            c->hastitle = c->hadtitle;
+            drawclient(c);
+        }
+    }
+}
 
 void *
 emallocz(unsigned int size) {
@@ -1485,6 +1497,7 @@ monocle(void) {
                 }
             }
         }
+        drawfloating();
 	focus(NULL);
 	restack();
 }
@@ -2043,6 +2056,7 @@ bstack(void) {
         if(n > 1 && tw != waw)
             nx = c->x + c->w + c->border;
     }
+    drawfloating();
 }
 
 void
@@ -2108,6 +2122,7 @@ tile(void) {
                             ny += c->th;
                 }
         }
+        drawfloating();
 }
 
 unsigned int
