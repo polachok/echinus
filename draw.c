@@ -139,6 +139,10 @@ drawfloating() {
         if(c->isfloating){
             c->hastitle = c->hadtitle;
             drawclient(c);
+            if(layout->arrange != floating && layout->arrange != ifloating){
+                XRaiseWindow(dpy, c->win);
+                XRaiseWindow(dpy, c->title);
+            }
         }
     }
 }

@@ -1279,7 +1279,7 @@ monocle(void) {
             if(bpos == BarOff) 
                 resize(c, sx-c->border, sy-c->border, sw, sh, False);
             else {
-                resize(c, wax-c->border, way, waw, wah, False);
+                resize(c, wax, way, waw-2*c->border, wah-2*c->border, False);
             }
         }
     }
@@ -1478,10 +1478,10 @@ restack(void) {
 
     if(!sel)
             return;
-    if(sel->isfloating || (layout->arrange == floating) || (layout->arrange == ifloating)){
+//    if(sel->isfloating || (layout->arrange == floating) || (layout->arrange == ifloating)){
             XRaiseWindow(dpy, sel->win);
             XRaiseWindow(dpy, sel->title);
-    }
+  //  }
     if(layout->arrange != floating && layout->arrange != ifloating) {
             wc.stack_mode = Below;
             if(!sel->isfloating) {
@@ -1831,8 +1831,8 @@ bstack(void) {
                 nx = wax;
                 ny += mc->h+c->border;
                 if(dectiled)
-                    ny += dc.h;
-                nh = (way + wah) - ny;
+                    ny += dc.h+1;
+                nh = (way + wah) - ny - 2 * c->border;
             }
             if(i + 1 == n)
                 nw = (wax + waw) - nx - 2 * c->border;
@@ -1881,8 +1881,8 @@ tile(void) {
                         if(i + 1 == (n < nmaster ? n : nmaster)) /* remainder */
                                 nh = wah - mh * i;
                         if(dectiled){
-                            ny+=dc.h;
-                            nh-=dc.h;
+                            ny+=dc.h+1;
+                            nh-=dc.h+1;
                         }
                         nh -= 2 * c->border;
                 }
@@ -1890,7 +1890,7 @@ tile(void) {
                         if(i == nmaster) {
                                 ny = way;
                                 if(dectiled)
-                                    ny+=dc.h;
+                                    ny+=dc.h+1;
                                 nx += mc->w + mc->border;
                                 nw = waw - nx - 2*c->border;
                         }
@@ -1906,7 +1906,7 @@ tile(void) {
                 if(n > nmaster && th != wah){
                         ny = c->y + c->h + 2 * c->border;
                         if(dectiled)
-                            ny += c->th;
+                            ny += dc.h+1;
                 }
         }
         drawfloating();
