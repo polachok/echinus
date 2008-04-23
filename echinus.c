@@ -1874,11 +1874,11 @@ tile(void) {
                 c->sfw = c->w;
                 c->sfh = c->h;
                 if(i < nmaster) { /* master */
-                        ny = way + i * (mh - 2*c->border);
+                        ny = way + i * (mh - c->border);
                         nw = mw - 2 * c->border;
                         nh = mh;
                         if(i + 1 == (n < nmaster ? n : nmaster)) /* remainder */
-                                nh = wah - ny;
+                                nh = way + wah - ny;
                         if(dectiled){
                             ny+=dc.h+1;
                             nh-=dc.h+1;
