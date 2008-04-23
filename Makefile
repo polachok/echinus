@@ -5,6 +5,7 @@
 include config.mk
 
 PIXMAPS = close.xbm iconify.xbm max.xbm 
+FILES = draw.c parse.c ewmh.c config.h
 SRC = echinus.c
 OBJ = ${SRC:.c=.o}
 CONF = ${HOME}/.echinus/
@@ -36,7 +37,7 @@ dist: clean
 	@echo creating dist tarball
 	@mkdir -p echinus-${VERSION}
 	@cp -R LICENSE Makefile README config.mk \
-		echinus.1 echinusrc ${SRC} ${HEADERS} ${PIXMAPS} echinus-${VERSION}
+		echinus.1 echinusrc ${SRC} ${FILES} ${PIXMAPS} echinus-${VERSION}
 	@tar -cf echinus-${VERSION}.tar echinus-${VERSION}
 	@gzip echinus-${VERSION}.tar
 	@rm -rf echinus-${VERSION}

@@ -12,23 +12,17 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
             return;
     olen = len = strlen(text);
     w = 0;
-    fprintf(stderr, "%d>>>w = %d<<<",__LINE__, w);
-    fprintf(stderr, "%d>>>w = %d len=%d<<<",__LINE__, w, len);
     if(len >= sizeof buf)
             len = sizeof buf - 1;
     memcpy(buf, text, len);
     buf[len] = 0;
-    fprintf(stderr, "%d>>>w = %d len=%d<<<",__LINE__, w, len);
     h = dc.h;
     y = dc.h-dc.font.height/2+1;
     x = dc.x+h/2;
-    fprintf(stderr, "%d>>>w = %d dc.w = %d<<<",__LINE__, w, dc.w);
     /* shorten text if necessary */
     while(len && (w = textnw(buf, len)) > dc.w){
-        fprintf(stderr, "%d w = %d dc.w = %d\n",__LINE__, w, dc.w);
             buf[--len] = 0;
     }
-    fprintf(stderr, "%d>>>w = %d<<<",__LINE__, w);
     if(len < olen) {
             if(len > 1)
                     buf[len - 1] = '.';
@@ -37,10 +31,8 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
             if(len > 3)
                     buf[len - 3] = '.';
     }
-    fprintf(stderr, "%d>>>w = %d<<<",__LINE__, w);
     if(w > dc.w)
             return; /* too long */
-    fprintf(stderr, "%d>>>w = %d<<<",__LINE__, w);
     switch(position) {
     case TitleCenter:
             x = dc.x + dc.w/2 - w/2;
@@ -52,13 +44,10 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
             x = dc.w - w - h;
             break;
     }
-    fprintf(stderr, "%d>>>w = %d<<<",__LINE__, w);
     while(x <= 0)
             x = dc.x++;
-    fprintf(stderr, "%d>>>w = %d<<<",__LINE__, w);
     XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel,
             dc.font.xftfont, x, y, (unsigned char*)buf, len);
-    fprintf(stderr, "x = %d %d w = %d\n", x,__LINE__, w);
     dc.x = x + w;
 }
 
@@ -163,7 +152,6 @@ initfont(const char *fontstr) {
 unsigned int
 textnw(const char *text, unsigned int len) {
     XftTextExtentsUtf8(dpy,dc.font.xftfont,(unsigned char*)text, strlen(text), dc.font.extents);
-    fprintf(stderr, "width = %d len = %d", dc.font.extents->width, len);
     return dc.font.extents->width;
 }
 

@@ -27,6 +27,15 @@ On new install:
 
 Name: ~/.echinus/echinusrc
 
+Title settings
+
+    Echinus*decoratetiled - boolean (1 or 0)
+        Draw titles in tiled mode
+    Echinus*titleposition - 0 (left), 1 (center), 2 (right)
+        Window name position
+    Echinus*tagbar - boolean (1 or 0)
+        Show tagbar
+
 Color settings
 
     Echinus*selected.border

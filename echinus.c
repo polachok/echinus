@@ -1628,7 +1628,6 @@ void
 inittags(){
     int i;
     char tmp[25]="\0";
-    fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
     ntags = atoi(getresource("tags.number", "5"));
     tags = emallocz(ntags*sizeof(char*));
     prevtags = emallocz(ntags*sizeof(Bool));
@@ -1762,7 +1761,6 @@ setup(void) {
 
 	/* multihead support */
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
-        fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 }
 
 void
@@ -1880,7 +1878,7 @@ tile(void) {
                         nw = mw - 2 * c->border;
                         nh = mh;
                         if(i + 1 == (n < nmaster ? n : nmaster)) /* remainder */
-                                nh = wah - mh * i;
+                                nh = wah - ny;
                         if(dectiled){
                             ny+=dc.h+1;
                             nh-=dc.h+1;
