@@ -62,6 +62,7 @@
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 /* enums */
 enum { BarTop, BarBot, BarOff };			/* bar position */
+enum { TitleLeft, TitleCenter, TitleRight };			/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColButton, ColLast };		/* color */
 enum { WMProtocols, WMDelete, WMName, WMState, WMLast };/* default atoms */
@@ -153,7 +154,7 @@ void detach(Client *c);
 void detachstack(Client *c);
 void drawclient(Client *c);
 void drawfloating(void);
-void drawtext(const char *text, unsigned long col[ColLast], Bool center);
+void drawtext(const char *text, unsigned long col[ColLast], unsigned int position);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
@@ -239,7 +240,7 @@ int borderpx;
 int cx, cy, cw, ch;
 unsigned int nmaster;
 int (*xerrorxlib)(Display *, XErrorEvent *);
-unsigned int bh, bpos;
+unsigned int bh, bpos, tpos, tbpos;
 unsigned int blw = 0;
 unsigned int numlockmask = 0;
 Atom wmatom[WMLast];
@@ -520,23 +521,25 @@ buttonpress(XEvent *e) {
     }
     else if((c = gettitle(ev->window))) {
         focus(c);
-        if((ev->x > c->tw-3*c->th) && (ev->x < c->tw-2*c->th)){
-            /* min */
-            bleft.action(NULL);
-            return;
-        }
-        if((ev->x > c->tw-2*c->th) && (ev->x < c->tw-c->th)){
-            /* max */
-            bcenter.action(NULL);
-            return;
-        }
-        if((ev->x > c->tw-c->th) && (ev->x < c->tw)){
-            /* close */
-            bright.action(NULL);
-            return;
+        if(tpos != TitleRight){
+            if((ev->x > c->tw-3*c->th) && (ev->x < c->tw-2*c->th)){
+                /* min */
+                bleft.action(NULL);
+                return;
+            }
+            if((ev->x > c->tw-2*c->th) && (ev->x < c->tw-c->th)){
+                /* max */
+                bcenter.action(NULL);
+                return;
+            }
+            if((ev->x > c->tw-c->th) && (ev->x < c->tw)){
+                /* close */
+                bright.action(NULL);
+                return;
+            }
         }
         if(ev->button == Button1) {
-            if((layout->arrange == floating) || c->isfloating)
+            if((layout->arrange == floating) || (layout->arrange == ifloating) || c->isfloating)
                 restack();
             movemouse(c);
         }
@@ -1458,7 +1461,7 @@ resizetitle(Client *c) {
     if(c->isicon)
         return;
     c->tx = c->x;
-    c->ty = c->y-c->th;
+    c->ty = c->y-c->th-1;
     c->tw = c->w;
     if(!c->hastitle){
         XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
@@ -1732,6 +1735,8 @@ setup(void) {
         toph = atoi(getresource("space.top", BARHEIGHT));
         both = atoi(getresource("space.bottom", BARHEIGHT));
         dectiled = atoi(getresource("decoratetiled", DECORATETILED));
+        tpos = atoi(getresource("titleposition", TITLEPOSITION));
+        tbpos = atoi(getresource("tagbar", TAGBAR));
 
 	/* init layouts */
 	mwfact = MWFACT;
@@ -1814,11 +1819,11 @@ bstack(void) {
         c->ismax = False;
         if(i == 0) {
             nh = mh - 2 * c->border;
-            nw = waw - c->border;
+            nw = waw - 2 * c->border;
             nx = wax;
             if(dectiled){
-                ny+=dc.h;
-                nh-=dc.h;
+                ny+=dc.h+1;
+                nh-=dc.h+1;
             }
         }
         else {
@@ -1830,7 +1835,7 @@ bstack(void) {
                 nh = (way + wah) - ny;
             }
             if(i + 1 == n)
-                nw = (wax + waw) - nx - c->border;
+                nw = (wax + waw) - nx - 2 * c->border;
             else
                 nw = tw - c->border;
         }

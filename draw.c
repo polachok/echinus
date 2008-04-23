@@ -1,5 +1,6 @@
+
 void
-drawtext(const char *text, unsigned long col[ColLast], Bool center) {
+drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     int x, y, w, h;
     char buf[256];
     unsigned int len, olen;
@@ -40,11 +41,17 @@ drawtext(const char *text, unsigned long col[ColLast], Bool center) {
     if(w > dc.w)
             return; /* too long */
     fprintf(stderr, "%d>>>w = %d<<<",__LINE__, w);
-    if(center)
+    switch(position) {
+    case TitleCenter:
             x = dc.x + dc.w/2 - w/2;
-    else 
+            break;
+    case TitleLeft:
             x = dc.x + h/2;
-
+            break;
+    case TitleRight:
+            x = dc.w - w - h;
+            break;
+    }
     fprintf(stderr, "%d>>>w = %d<<<",__LINE__, w);
     while(x <= 0)
             x = dc.x++;
@@ -102,16 +109,18 @@ drawclient(Client *c) {
     dc.x = dc.y = 0;
     dc.w = c->w;
     dc.h = c->th;
-    for(i=0; i <= ntags; i++) {
-        if(seltags[i]){
-            drawtext(tags[i], c == sel ? dc.sel : dc.norm, False);
-            XSetForeground(dpy, dc.gc, c== sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
-            XDrawLine(dpy, dc.drawable, dc.gc, dc.x+dc.h/2-1, 0, dc.x+dc.h/2-1, dc.h);
-            dc.x+=dc.h/2;
+    if(tbpos){
+        for(i=0; i <= ntags; i++) {
+            if(seltags[i]){
+                drawtext(tags[i], c == sel ? dc.sel : dc.norm, TitleLeft);
+                XSetForeground(dpy, dc.gc, c== sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
+                XDrawLine(dpy, dc.drawable, dc.gc, dc.x+dc.h/2, 0, dc.x+dc.h/2, dc.h);
+                dc.x+=dc.h/2+1;
+            }
         }
     }
-    drawtext(c->name, c == sel ? dc.sel : dc.norm, False);
-    if(c->tw>=6*c->th && dc.x <= c->tw-6*c->th)
+    drawtext(c->name, c == sel ? dc.sel : dc.norm, tpos);
+    if(c->tw>=6*c->th && dc.x <= c->tw-6*c->th && tpos != TitleRight)
         drawbuttons(c);
     XCopyArea(dpy, dc.drawable, c->title, dc.gc,
 			0, 0, c->tw, c->th+2*borderpx, 0, 0);

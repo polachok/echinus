@@ -33,3 +33,5 @@ Layout layouts[] = {
 #define NMASTER 1 /* number of windows in master area */
 #define MODKEY Mod1Mask /* key to press while moving */
 #define DECORATETILED "0" /* set to 1 to draw titles in tiled layouts */
+#define TITLEPOSITION "0"
+#define TAGBAR "0"
