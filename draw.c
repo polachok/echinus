@@ -111,7 +111,7 @@ drawclient(Client *c) {
     dc.h = c->th;
     if(tbpos){
         for(i=0; i <= ntags; i++) {
-            if(seltags[i]){
+            if(c->tags[i]){
                 drawtext(tags[i], c == sel ? dc.sel : dc.norm, TitleLeft);
                 XSetForeground(dpy, dc.gc, c== sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
                 XDrawLine(dpy, dc.drawable, dc.gc, dc.x+dc.h/2, 0, dc.x+dc.h/2, dc.h);
