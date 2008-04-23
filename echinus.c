@@ -1430,6 +1430,7 @@ resizemouse(Client *c) {
                     None, cursor[CurResize], CurrentTime) != GrabSuccess)
             return;
     c->ismax = False;
+    XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->border - 1, c->h + c->border - 1);
     for(;;) {
             XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask , &ev);
             switch(ev.type) {
