@@ -1462,7 +1462,7 @@ resizetitle(Client *c) {
     if(c->isicon)
         return;
     c->tx = c->x;
-    c->ty = c->y-c->th-1;
+    c->ty = c->y-c->th-c->border;
     c->tw = c->w;
     if(!c->hastitle){
         XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
@@ -1821,8 +1821,8 @@ bstack(void) {
             nw = waw - 2 * c->border;
             nx = wax;
             if(dectiled){
-                ny+=dc.h+1;
-                nh-=dc.h+1;
+                ny+=dc.h + c->border;
+                nh-=dc.h + c->border;
             }
         }
         else {
@@ -1830,7 +1830,7 @@ bstack(void) {
                 nx = wax;
                 ny += mc->h+c->border;
                 if(dectiled)
-                    ny += dc.h+1;
+                    ny += dc.h + c->border;
                 nh = (way + wah) - ny - 2 * c->border;
             }
             if(i + 1 == n)
@@ -1880,8 +1880,8 @@ tile(void) {
                         if(i + 1 == (n < nmaster ? n : nmaster)) /* remainder */
                                 nh = way + wah - ny;
                         if(dectiled){
-                            ny+=dc.h+1;
-                            nh-=dc.h+1;
+                            ny+=dc.h+c->border;
+                            nh-=dc.h+c->border;
                         }
                         nh -= 2 * c->border;
                 }
@@ -1889,7 +1889,7 @@ tile(void) {
                         if(i == nmaster) {
                                 ny = way;
                                 if(dectiled)
-                                    ny+=dc.h+1;
+                                    ny+=dc.h+c->border;
                                 nx += mc->w + mc->border;
                                 nw = waw - nx - 2*c->border;
                         }
@@ -1905,7 +1905,7 @@ tile(void) {
                 if(n > nmaster && th != wah){
                         ny = c->y + c->h + 2 * c->border;
                         if(dectiled)
-                            ny += dc.h+1;
+                            ny += dc.h+c->border;
                 }
         }
         drawfloating();
