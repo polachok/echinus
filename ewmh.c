@@ -16,6 +16,7 @@ static Atom net_desktop_names;
 static Atom net_active_window;
 static Atom net_window_opacity;
 static Atom net_wm_window_type;
+static Atom net_wm_window_type_desktop;
 static Atom net_wm_window_type_dock;
 Atom net_wm_name;
 Atom net_window_desktop;
@@ -40,6 +41,7 @@ static AtomItem AtomNames[] =
     { "_NET_WM_DESKTOP", &net_window_desktop },
     { "_NET_WM_WINDOW_OPACITY", &net_window_opacity },
     { "_NET_WM_WINDOW_TYPE", &net_wm_window_type },
+    { "_NET_WM_WINDOW_TYPE_DESKTOP", &net_wm_window_type_desktop },
     { "_NET_WM_WINDOW_TYPE_DOCK", &net_wm_window_type_dock },
     { "UTF8_STRING", &utf8_string },
 };
@@ -65,6 +67,7 @@ ewmh_set_supported_hints() {
     atom[i++] = net_active_window;
     atom[i++] = net_wm_name;
     atom[i++] = net_wm_window_type;
+    atom[i++] = net_wm_window_type_desktop;
     atom[i++] = net_wm_window_type_dock;
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
@@ -207,8 +210,7 @@ setopacity(Client *c, unsigned int opacity) {
 
 
 static int
-isdock(Window win)
-{
+isdock(Window win){
     Atom real, *state;
     int format;
     unsigned char *data = NULL;
@@ -218,7 +220,7 @@ isdock(Window win)
                           (unsigned char **) &data) == Success && data)
         state = (Atom *) data;
         for(i = 0; i < n; i++){
-            if(state[i] == net_wm_window_type_dock)
+            if(state[i] == net_wm_window_type_dock || state[i] == net_wm_window_type_desktop)
                             return 1;
         }
     return 0;
