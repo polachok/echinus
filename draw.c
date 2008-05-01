@@ -103,7 +103,8 @@ drawclient(Client *c) {
             if(c->tags[i]){
                 drawtext(tags[i], c == sel ? dc.sel : dc.norm, TitleLeft);
                 XSetForeground(dpy, dc.gc, c== sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
-                XDrawLine(dpy, dc.drawable, dc.gc, dc.x+dc.h/2, 0, dc.x+dc.h/2, dc.h);
+                if(c->border)
+                    XDrawLine(dpy, dc.drawable, dc.gc, dc.x+dc.h/2, 0, dc.x+dc.h/2, dc.h);
                 dc.x+=dc.h/2+1;
             }
         }
