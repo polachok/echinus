@@ -210,7 +210,7 @@ setopacity(Client *c, unsigned int opacity) {
 
 
 static int
-isdock(Window win){
+isspecial(Window win){
     Atom real, *state;
     int format;
     unsigned char *data = NULL;
@@ -227,7 +227,7 @@ isdock(Window win){
 }
 
 static int
-checkstruts(Window win){
+updatestruts(Window win){
     Atom real, *state;
     int format;
     unsigned char *data = NULL;
@@ -239,10 +239,12 @@ checkstruts(Window win){
         for(i = 0; i < n; i++){
             fprintf(stderr, "i=%d\n", state[i]);
         }
-        wax = state[0];
-        waw = sw - state[1];
-        way = state[2];
-        wah = sh - state[3];
+        if(n){
+            wax = state[0];
+            waw = sw - state[1];
+            way = state[2];
+            wah = sh - state[3];
+        }
     return 0;
 }
 

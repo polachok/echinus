@@ -247,8 +247,6 @@ Atom wmatom[WMLast];
 Bool domwfact = True;
 Bool dozoom = True;
 Bool otherwm;
-int toph = 0;
-int both = 0;
 Bool running = True;
 Bool selscreen = True;
 Bool notitles = False;
@@ -1087,10 +1085,9 @@ manage(Window w, XWindowAttributes *wa) {
     XWindowChanges wc;
     XSetWindowAttributes twa;
 
-
-    checkstruts(w);
-    if(isdock(w)){ // check for a dock window
-        XMapWindow(dpy, w); // let it manage itself
+    updatestruts(w);
+    if(isspecial(w)){ 
+        XMapWindow(dpy, w);
         return;
     }
     c = emallocz(sizeof(Client));
@@ -1366,6 +1363,8 @@ propertynotify(XEvent *e) {
             if(ev->atom == XA_WM_NAME || ev->atom == net_wm_name) {
                     updatetitle(c);
             }
+            else if(ev->atom == net_wm_strut_partial)
+                updatestruts(c->win);
     }
 }
 
@@ -1734,8 +1733,6 @@ setup(void) {
         strncpy(terminal, getresource("terminal", TERMINAL), 255);
 
         dc.h = atoi(getresource("title", TITLEHEIGHT));
-        toph = atoi(getresource("space.top", BARHEIGHT));
-        both = atoi(getresource("space.bottom", BARHEIGHT));
         dectiled = atoi(getresource("decoratetiled", DECORATETILED));
         tpos = atoi(getresource("titleposition", TITLEPOSITION));
         tbpos = atoi(getresource("tagbar", TAGBAR));
@@ -2042,18 +2039,14 @@ unmanage(Client *c) {
 void
 updatebarpos(void) {
     XEvent ev;
-
-    wax = sx;
-    way = sy;
-    wah = sh;
-    waw = sw;
     switch(bpos){
     default:
-            wah -= toph;
-            way += toph;
-            wah -= both;
             break;
     case BarOff:
+            wax = sx;
+            way = sy;
+            wah = sh;
+            waw = sw;
             break;
     }
     XSync(dpy, False);
