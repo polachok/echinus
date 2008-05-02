@@ -61,7 +61,7 @@
 #define INITCOLSROWS { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 /* enums */
-enum { LeftStrut, RightStrut, BotStrut, TopStrut };
+enum { LeftStrut, RightStrut, BotStrut, TopStrut, LastStrut };
 enum { StrutsOn, StrutsOff };			/* bar position */
 enum { TitleLeft, TitleCenter, TitleRight };			/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
@@ -237,7 +237,6 @@ Bool wasfloating = True;
 double mwfact;
 float uf_opacity;
 int screen, sx, sy, sw, sh, wax, way, waw, wah;
-int  swax, sway, swaw, swah;
 int borderpx;
 int cx, cy, cw, ch;
 unsigned int nmaster;
@@ -256,6 +255,7 @@ Client *clients = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
 Cursor cursor[CurLast];
+unsigned long struts[LastStrut];
 Display *dpy;
 DC dc = {0};
 button bleft = {0};
@@ -701,16 +701,6 @@ destroynotify(XEvent *e) {
 
     if((c = getclient(ev->window)))
         unmanage(c);
-    else if(isspecial(ev->window)){
-        swax = sway = 0;
-        swaw = sw;
-        swah = sh;
-
-        for(c = clients; c ; c = c->next)
-            updatestruts(c->win);
-        updategeom();
-        arrange();
-    }
 }
 
 void
@@ -1676,9 +1666,9 @@ setup(void) {
 	cursor[CurMove] = XCreateFontCursor(dpy, XC_fleur);
 
 	/* init geometry */
-	swax = sway = sx = sy = 0;
-	swaw = sw = DisplayWidth(dpy, screen);
-	swah = sh = DisplayHeight(dpy, screen);
+	sx = sy = 0;
+	sw = DisplayWidth(dpy, screen);
+	sh = DisplayHeight(dpy, screen);
 
 	cx = cy = cw = ch = 0;
 	/* init modifier map */
@@ -1754,7 +1744,7 @@ setup(void) {
 	nmaster = NMASTER;
 	layout = &layouts[0];
 
-	/* init bar */
+	/* init struts */
 	bpos = BARPOS;
 	updategeom();
 	dc.drawable = XCreatePixmap(dpy, root, sw, dc.h, DefaultDepth(dpy, screen));
@@ -2051,19 +2041,20 @@ unmanage(Client *c) {
 void
 updategeom(void) {
     XEvent ev;
+
+    wax = sx;
+    way = sy;
+    wah = sh;
+    waw = sw;
     switch(bpos){
     default:
-            wax = swax;
-            way = sway;
-            wah = swah;
-            waw = swaw;
-            break;
+        wax += struts[LeftStrut];
+        waw = sw - wax - struts[RightStrut];
+        way += struts[TopStrut];
+        wah = sh - way - struts[BotStrut];
+        break;
     case StrutsOff:
-            wax = sx;
-            way = sy;
-            wah = sh;
-            waw = sw;
-            break;
+        break;
     }
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
