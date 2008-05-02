@@ -231,19 +231,18 @@ updatestruts(Window win){
     Atom real, *state;
     int format;
     unsigned char *data = NULL;
-    unsigned long i, n, extra;
+    unsigned long n, extra;
     if(XGetWindowProperty(dpy, win, net_wm_strut_partial, 0L, LONG_MAX, False,
                           XA_CARDINAL, &real, &format, &n, &extra,
                           (unsigned char **) &data) == Success && data)
         state = (Atom *) data;
-        for(i = 0; i < n; i++){
-            fprintf(stderr, "i=%d\n", state[i]);
-        }
         if(n){
-            wax = state[0];
-            waw = sw - state[1];
-            way = state[2];
-            wah = sh - state[3];
+            swax = state[0] ? state[0] : swax;
+            swaw = state[1] ? sw - state[1] : swaw;
+            sway = state[2] ? state[2] : sway;
+            swah = state[3] ? sh - state[3] : swah;
+            updategeom();
+            return 1;
         }
     return 0;
 }

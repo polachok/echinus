@@ -218,7 +218,7 @@ void focusview(const char *arg);
 void saveconfig(Client *c);
 void unban(Client *c);
 void unmanage(Client *c);
-void updatebarpos(void);
+void updategeom(void);
 void unmapnotify(XEvent *e);
 void updatesizehints(Client *c);
 void updatetitle(Client *c);
@@ -236,6 +236,7 @@ Bool wasfloating = True;
 double mwfact;
 float uf_opacity;
 int screen, sx, sy, sw, sh, wax, way, waw, wah;
+int  swax, sway, swaw, swah;
 int borderpx;
 int cx, cy, cw, ch;
 unsigned int nmaster;
@@ -639,7 +640,7 @@ configurenotify(XEvent *e) {
             sh = ev->height;
             XFreePixmap(dpy, dc.drawable);
             dc.drawable = XCreatePixmap(dpy, root, sw, dc.h, DefaultDepth(dpy, screen));
-            updatebarpos();
+            updategeom();
             arrange();
     }
 }
@@ -698,7 +699,17 @@ destroynotify(XEvent *e) {
     XDestroyWindowEvent *ev = &e->xdestroywindow;
 
     if((c = getclient(ev->window)))
-            unmanage(c);
+        unmanage(c);
+    else if(isspecial(ev->window)){
+        swax = sway = 0;
+        swaw = sw;
+        swah = sh;
+
+        for(c = clients; c ; c = c->next)
+            updatestruts(c->win);
+        updategeom();
+        arrange();
+    }
 }
 
 void
@@ -1664,9 +1675,9 @@ setup(void) {
 	cursor[CurMove] = XCreateFontCursor(dpy, XC_fleur);
 
 	/* init geometry */
-	sx = sy = 0;
-	sw = DisplayWidth(dpy, screen);
-	sh = DisplayHeight(dpy, screen);
+	swax = sway = sx = sy = 0;
+	swaw = sw = DisplayWidth(dpy, screen);
+	swah = sh = DisplayHeight(dpy, screen);
 
 	cx = cy = cw = ch = 0;
 	/* init modifier map */
@@ -1744,7 +1755,7 @@ setup(void) {
 
 	/* init bar */
 	bpos = BARPOS;
-	updatebarpos();
+	updategeom();
 	dc.drawable = XCreatePixmap(dpy, root, sw, dc.h, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
 
@@ -1916,7 +1927,7 @@ togglebar(const char *arg) {
             bpos = (BARPOS == BarOff) ? BarTop : BARPOS;
     else
             bpos = BarOff;
-    updatebarpos();
+    updategeom();
     arrange();
 }
 
@@ -2037,10 +2048,14 @@ unmanage(Client *c) {
 }
 
 void
-updatebarpos(void) {
+updategeom(void) {
     XEvent ev;
     switch(bpos){
     default:
+            wax = swax;
+            way = sway;
+            wah = swah;
+            waw = swaw;
             break;
     case BarOff:
             wax = sx;
