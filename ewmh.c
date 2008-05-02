@@ -18,18 +18,17 @@ static Atom net_window_opacity;
 static Atom net_wm_window_type;
 static Atom net_wm_window_type_desktop;
 static Atom net_wm_window_type_dock;
-Atom net_wm_name;
-Atom net_window_desktop;
+static Atom net_wm_strut_partial;
+static Atom net_wm_name;
+static Atom net_window_desktop;
 static Atom utf8_string;
 
-typedef struct
-{
+typedef struct {
     const char *name;
     Atom *atom;
 } AtomItem;
 
-static AtomItem AtomNames[] =
-{
+static AtomItem AtomNames[] = {
     { "_NET_SUPPORTED", &net_supported },
     { "_NET_CLIENT_LIST", &net_client_list },
     { "_NET_CLIENT_LIST_STACKING", &net_client_list_stacking },
@@ -43,6 +42,7 @@ static AtomItem AtomNames[] =
     { "_NET_WM_WINDOW_TYPE", &net_wm_window_type },
     { "_NET_WM_WINDOW_TYPE_DESKTOP", &net_wm_window_type_desktop },
     { "_NET_WM_WINDOW_TYPE_DOCK", &net_wm_window_type_dock },
+    { "_NET_WM_STRUT_PARTIAL", &net_wm_strut_partial },
     { "UTF8_STRING", &utf8_string },
 };
 
@@ -223,6 +223,26 @@ isdock(Window win){
             if(state[i] == net_wm_window_type_dock || state[i] == net_wm_window_type_desktop)
                             return 1;
         }
+    return 0;
+}
+
+static int
+checkstruts(Window win){
+    Atom real, *state;
+    int format;
+    unsigned char *data = NULL;
+    unsigned long i, n, extra;
+    if(XGetWindowProperty(dpy, win, net_wm_strut_partial, 0L, LONG_MAX, False,
+                          XA_CARDINAL, &real, &format, &n, &extra,
+                          (unsigned char **) &data) == Success && data)
+        state = (Atom *) data;
+        for(i = 0; i < n; i++){
+            fprintf(stderr, "i=%d\n", state[i]);
+        }
+        wax = state[0];
+        waw = sw - state[1];
+        way = state[2];
+        wah = sh - state[3];
     return 0;
 }
 

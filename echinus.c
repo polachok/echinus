@@ -1087,6 +1087,8 @@ manage(Window w, XWindowAttributes *wa) {
     XWindowChanges wc;
     XSetWindowAttributes twa;
 
+
+    checkstruts(w);
     if(isdock(w)){ // check for a dock window
         XMapWindow(dpy, w); // let it manage itself
         return;
