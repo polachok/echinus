@@ -1351,6 +1351,8 @@ propertynotify(XEvent *e) {
 
     if(ev->state == PropertyDelete)
             return; /* ignore */
+    if(ev->atom == net_wm_strut_partial)
+            updatestruts(ev->window);
     if((c = getclient(ev->window))) {
             switch (ev->atom) {
                     default: break;
@@ -1365,8 +1367,6 @@ propertynotify(XEvent *e) {
             if(ev->atom == XA_WM_NAME || ev->atom == net_wm_name) {
                     updatetitle(c);
             }
-            else if(ev->atom == net_wm_strut_partial)
-                updatestruts(c->win);
     }
 }
 
