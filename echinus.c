@@ -61,7 +61,8 @@
 #define INITCOLSROWS { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 /* enums */
-enum { BarTop, BarBot, BarOff };			/* bar position */
+enum { LeftStrut, RightStrut, BotStrut, TopStrut };
+enum { StrutsOn, StrutsOff };			/* bar position */
 enum { TitleLeft, TitleCenter, TitleRight };			/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColButton, ColLast };		/* color */
@@ -1286,7 +1287,7 @@ monocle(void) {
             }
             else
                 continue;
-            if(bpos == BarOff) 
+            if(bpos == StrutsOff) 
                 resize(c, sx-c->border, sy-c->border, sw, sh, False);
             else {
                 resize(c, wax, way, waw-2*c->border, wah-2*c->border, False);
@@ -1923,10 +1924,10 @@ tile(void) {
 
 void
 togglebar(const char *arg) {
-    if(bpos == BarOff)
-            bpos = (BARPOS == BarOff) ? BarTop : BARPOS;
+    if(bpos == StrutsOff)
+            bpos = (BARPOS == StrutsOff) ? StrutsOn : BARPOS;
     else
-            bpos = BarOff;
+            bpos = StrutsOff;
     updategeom();
     arrange();
 }
@@ -2057,7 +2058,7 @@ updategeom(void) {
             wah = swah;
             waw = swaw;
             break;
-    case BarOff:
+    case StrutsOff:
             wax = sx;
             way = sy;
             wah = sh;

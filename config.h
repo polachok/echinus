@@ -1,5 +1,5 @@
 /* See LICENSE file for copyright and license details. */
-#define BARPOS			BarTop /* BarTop, BarOff */
+#define BARPOS			StrutsOn /* BarTop, BarOff */
 #define BORDERPX		"3"
 #define NF_OPACITY "0.9"
 #define FONT            "fixed-9"

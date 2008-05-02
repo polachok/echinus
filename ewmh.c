@@ -237,6 +237,7 @@ updatestruts(Window win){
                           (unsigned char **) &data) == Success && data)
         state = (Atom *) data;
         if(n){
+            if(state[0])
             swax = state[0] ? state[0] : swax;
             swaw = state[1] ? sw - state[1] : swaw;
             sway = state[2] ? state[2] : sway;
