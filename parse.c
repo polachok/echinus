@@ -1,5 +1,5 @@
 /*
- *  echinus wm written by Alexander Polakov <polachok@gmail.com> at 23.03.2008 19:47:22 MSK
+ *  echinus wm written by Alexander Polakov <polachok@gmail.com>
  *  this file contains code to parse rules and keybindings
  */
 typedef struct
@@ -55,6 +55,8 @@ parsekey(char *s, Key *k) {
             modmask = modmask | ShiftMask;
         if(tmp[i]=='C')
             modmask = modmask | ControlMask;
+        if(tmp[i]=='W')                                                                                                                           
+            modmask = modmask | Mod4Mask; 
     }
     k->mod = modmask;
     free(tmp);
