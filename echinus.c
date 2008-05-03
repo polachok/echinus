@@ -204,7 +204,6 @@ void scan(void);
 void setclientstate(Client *c, long state);
 void setlayout(const char *arg);
 void setmwfact(const char *arg);
-void setnmaster(const char *arg);
 void setup(void);
 void spawn(const char *arg);
 void tag(const char *arg);
@@ -239,7 +238,7 @@ float uf_opacity;
 int screen, sx, sy, sw, sh, wax, way, waw, wah;
 int borderpx;
 int cx, cy, cw, ch;
-unsigned int nmaster;
+unsigned int *nmasters;
 int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int bh, tpos, tbpos;
 unsigned int blw = 0;
@@ -897,12 +896,12 @@ incnmaster(const char *arg) {
     if(layouts[ltidxs[csel]].arrange != tile)
             return;
     if(!arg)
-            nmaster = NMASTER;
+            nmasters[csel] = NMASTER;
     else {
             i = atoi(arg);
-            if((nmaster + i) < 1 || wah / (nmaster + i) <= 2 * borderpx)
+            if((nmasters[csel] + i) < 1 || wah / (nmasters[csel] + i) <= 2 * borderpx)
                     return;
-            nmaster += i;
+            nmasters[csel] += i;
     }
     if(sel)
             arrange();
@@ -1651,24 +1650,6 @@ setmwfact(const char *arg) {
 }
 
 void
-setnmaster(const char *arg) {
-    int i;
-
-    if(layouts[ltidxs[csel]].arrange != tile)
-            return;
-    if(!arg)
-            nmaster = NMASTER;
-    else {
-            i = atoi(arg);
-            if((nmaster + i) < 1 || wah / (nmaster + i) <= 2 * borderpx)
-                    return;
-            nmaster += i;
-    }
-    if(sel)
-            arrange();
-}
-
-void
 inittags(){
     int i;
     char tmp[25]="\0";
@@ -1781,12 +1762,13 @@ setup(void) {
         tbpos = atoi(getresource("tagbar", TAGBAR));
 
 	/* init layouts */
-	nmaster = NMASTER;
+	nmasters = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
 	ltidxs = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
 	mwfacts = (double*)emallocz(sizeof(double) * ntags);
 	for(i = 0; i < ntags; i++) {
 		ltidxs[i] = 0;
 		mwfacts[i] = MWFACT;
+                nmasters[i] = NMASTER;
 	}
 
 	/* init struts */
@@ -1905,10 +1887,10 @@ tile(void) {
 		n++;
 
 	/* window geoms */
-	mh = (n <= nmaster) ? wah / (n > 0 ? n : 1) : wah / nmaster;
-	mw = (n <= nmaster) ? waw : mwfacts[csel] * waw;
-	th = (n > nmaster) ? wah / (n - nmaster) : 0;
-	if(n > nmaster && th < bh)
+	mh = (n <= nmasters[csel]) ? wah / (n > 0 ? n : 1) : wah / nmasters[csel];
+	mw = (n <= nmasters[csel]) ? waw : mwfacts[csel] * waw;
+	th = (n > nmasters[csel]) ? wah / (n - nmasters[csel]) : 0;
+	if(n > nmasters[csel] && th < bh)
 		th = wah;
 
 	nx = wax;
@@ -1921,11 +1903,11 @@ tile(void) {
                 c->sfy = c->y;
                 c->sfw = c->w;
                 c->sfh = c->h;
-                if(i < nmaster) { /* master */
+                if(i < nmasters[csel]) { /* master */
                         ny = way + i * (mh - c->border);
                         nw = mw - 2 * c->border;
                         nh = mh;
-                        if(i + 1 == (n < nmaster ? n : nmaster)) /* remainder */
+                        if(i + 1 == (n < nmasters[csel] ? n : nmasters[csel])) /* remainder */
                                 nh = way + wah - ny;
                         if(dectiled){
                             ny+=dc.h+c->border;
@@ -1934,7 +1916,7 @@ tile(void) {
                         nh -= 2 * c->border;
                 }
                 else {  /* tile window */
-                        if(i == nmaster) {
+                        if(i == nmasters[csel]) {
                                 ny = way;
                                 if(dectiled)
                                     ny+=dc.h+c->border;
@@ -1950,7 +1932,7 @@ tile(void) {
                 }
                 resize(c, nx, ny, nw, nh, False);
                 drawclient(c);
-                if(n > nmaster && th != wah){
+                if(n > nmasters[csel] && th != wah){
                         ny = c->y + c->h + 2 * c->border;
                         if(dectiled)
                             ny += dc.h+c->border;
