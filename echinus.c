@@ -235,15 +235,15 @@ void zoom(const char *arg);
 char **cargv;
 char **environ;
 Bool wasfloating = True;
-double mwfact;
 float uf_opacity;
 int screen, sx, sy, sw, sh, wax, way, waw, wah;
 int borderpx;
 int cx, cy, cw, ch;
 unsigned int nmaster;
 int (*xerrorxlib)(Display *, XErrorEvent *);
-unsigned int bh, bpos, tpos, tbpos;
+unsigned int bh, tpos, tbpos;
 unsigned int blw = 0;
+unsigned int csel = 0;
 unsigned int numlockmask = 0;
 Atom wmatom[WMLast];
 Bool domwfact = True;
@@ -263,10 +263,13 @@ DC dc = {0};
 button bleft = {0};
 button bcenter = {0};
 button bright = {0};
-Layout *layout = NULL;
 Window root;
 Regs *regs = NULL;
 XrmDatabase xrdb = NULL;
+
+unsigned int *bpos;
+unsigned int *ltidxs;
+double *mwfacts;
 
 char terminal[255];
 char **tags;
@@ -347,7 +350,7 @@ arrange(void) {
             else
                     ban(c);
     }
-    layout->arrange();
+    layouts[ltidxs[csel]].arrange();
     focus(NULL);
     restack();
 }
@@ -511,18 +514,18 @@ buttonpress(XEvent *e) {
         if(CLEANMASK(ev->state) != MODKEY)
            return;
         if(ev->button == Button1) {
-                if((layout->arrange == floating) || c->isfloating)
+                if((layouts[ltidxs[csel]].arrange == floating) || c->isfloating)
                         restack();
                 movemouse(c);
         }
         else if(ev->button == Button2) {
-                if((floating != layout->arrange) && c->isfloating)
+                if((floating != layouts[ltidxs[csel]].arrange) && c->isfloating)
                         togglefloating(NULL);
                 else
                         zoom(NULL);
         }
         else if(ev->button == Button3 && !c->isfixed) {
-                if((floating == layout->arrange) || c->isfloating)
+                if((floating == layouts[ltidxs[csel]].arrange) || c->isfloating)
                         restack();
                 else
                         togglefloating(NULL);
@@ -549,7 +552,7 @@ buttonpress(XEvent *e) {
             }
         }
         if(ev->button == Button1) {
-            if((layout->arrange == floating) || (layout->arrange == ifloating) || c->isfloating)
+            if((layouts[ltidxs[csel]].arrange == floating) || (layouts[ltidxs[csel]].arrange == ifloating) || c->isfloating)
                 restack();
             movemouse(c);
         }
@@ -666,7 +669,7 @@ configurerequest(XEvent *e) {
             c->ismax = False;
             if(ev->value_mask & CWBorderWidth)
                     c->border = ev->border_width;
-            if(c->isfixed || c->isfloating || (floating == layout->arrange)) {
+            if(c->isfixed || c->isfloating || (floating == layouts[ltidxs[csel]].arrange)) {
                     if(ev->value_mask & CWX)
                             c->x = ev->x;
                     if(ev->value_mask & CWY)
@@ -771,7 +774,7 @@ enternotify(XEvent *e) {
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
     if((c = getclient(ev->window))){
-	if(c->isfloating || (layout->arrange == floating))
+	if(c->isfloating || (layouts[ltidxs[csel]].arrange == floating))
             focus(c);
         XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
                     BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
@@ -891,7 +894,7 @@ focusprev(const char *arg) {
 void
 incnmaster(const char *arg) {
     int i;
-    if(layout->arrange != tile)
+    if(layouts[ltidxs[csel]].arrange != tile)
             return;
     if(!arg)
             nmaster = NMASTER;
@@ -1315,7 +1318,7 @@ monocle(void) {
             }
             else
                 continue;
-            if(bpos == StrutsOff) 
+            if(bpos[csel] == StrutsOff) 
                 resize(c, sx-c->border, sy-c->border, sw, sh, False);
             else {
                 resize(c, wax, way, waw-2*c->border, wah-2*c->border, False);
@@ -1520,11 +1523,11 @@ restack(void) {
 
     if(!sel)
             return;
-//    if(sel->isfloating || (layout->arrange == floating) || (layout->arrange == ifloating)){
+//    if(sel->isfloating || (layouts[ltidxs[csel]].arrange == floating) || (layouts[ltidxs[csel]].arrange == ifloating)){
             XRaiseWindow(dpy, sel->win);
             XRaiseWindow(dpy, sel->title);
   //  }
-    if(layout->arrange != floating && layout->arrange != ifloating) {
+    if(layouts[ltidxs[csel]].arrange != floating && layouts[ltidxs[csel]].arrange != ifloating) {
             wc.stack_mode = Below;
             if(!sel->isfloating) {
                     XConfigureWindow(dpy, sel->win, CWSibling | CWStackMode, &wc);
@@ -1610,8 +1613,8 @@ setlayout(const char *arg) {
     unsigned int i;
 
     if(!arg) {
-            if(++layout == &layouts[LENGTH(layouts)])
-                    layout = &layouts[0];
+            if(&layouts[++ltidxs[csel]] == &layouts[LENGTH(layouts)])
+                    ltidxs[csel] = 0;
     }
     else {
             for(i = 0; i < LENGTH(layouts); i++)
@@ -1619,7 +1622,7 @@ setlayout(const char *arg) {
                             break;
             if(i == LENGTH(layouts))
                     return;
-            layout = &layouts[i];
+            ltidxs[csel] = i;
     }
     if(sel)
             arrange();
@@ -1633,16 +1636,16 @@ setmwfact(const char *arg) {
             return;
     /* arg handling, manipulate mwfact */
     if(arg == NULL)
-            mwfact = MWFACT;
+            mwfacts[csel] = MWFACT;
     else if(sscanf(arg, "%lf", &delta) == 1) {
             if(arg[0] == '+' || arg[0] == '-')
-                    mwfact += delta;
+                    mwfacts[csel] += delta;
             else
-                    mwfact = delta;
-            if(mwfact < 0.1)
-                    mwfact = 0.1;
-            else if(mwfact > 0.9)
-                    mwfact = 0.9;
+                    mwfacts[csel] = delta;
+            if(mwfacts[csel] < 0.1)
+                    mwfacts[csel] = 0.1;
+            else if(mwfacts[csel] > 0.9)
+                    mwfacts[csel] = 0.9;
     }
     arrange();
 }
@@ -1651,7 +1654,7 @@ void
 setnmaster(const char *arg) {
     int i;
 
-    if(layout->arrange != tile)
+    if(layouts[ltidxs[csel]].arrange != tile)
             return;
     if(!arg)
             nmaster = NMASTER;
@@ -1778,12 +1781,18 @@ setup(void) {
         tbpos = atoi(getresource("tagbar", TAGBAR));
 
 	/* init layouts */
-	mwfact = MWFACT;
 	nmaster = NMASTER;
-	layout = &layouts[0];
+	ltidxs = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
+	mwfacts = (double*)emallocz(sizeof(double) * ntags);
+	for(i = 0; i < ntags; i++) {
+		ltidxs[i] = 0;
+		mwfacts[i] = MWFACT;
+	}
 
 	/* init struts */
-	bpos = BARPOS;
+	bpos = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
+	for(i = 0; i < ntags; i++)
+		bpos[i] = BARPOS;
 	updategeom();
 	dc.drawable = XCreatePixmap(dpy, root, sw, dc.h, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
@@ -1846,7 +1855,7 @@ bstack(void) {
     for(n = 0, c = nexttiled(clients); c; c = nexttiled(c->next))
         n++;
 
-    mh = (n == 1) ? wah : mwfact * wah;
+    mh = (n == 1) ? wah : mwfacts[csel] * wah;
     tw = (n > 1) ? waw / (n - 1) : 0;
 
     nx = wax;
@@ -1897,7 +1906,7 @@ tile(void) {
 
 	/* window geoms */
 	mh = (n <= nmaster) ? wah / (n > 0 ? n : 1) : wah / nmaster;
-	mw = (n <= nmaster) ? waw : mwfact * waw;
+	mw = (n <= nmaster) ? waw : mwfacts[csel] * waw;
 	th = (n > nmaster) ? wah / (n - nmaster) : 0;
 	if(n > nmaster && th < bh)
 		th = wah;
@@ -1952,10 +1961,10 @@ tile(void) {
 
 void
 togglebar(const char *arg) {
-    if(bpos == StrutsOff)
-            bpos = (BARPOS == StrutsOff) ? StrutsOn : BARPOS;
+    if(bpos[csel] == StrutsOff)
+            bpos[csel] = (BARPOS == StrutsOff) ? StrutsOn : BARPOS;
     else
-            bpos = StrutsOff;
+            bpos[csel] = StrutsOff;
     updategeom();
     arrange();
 }
@@ -1985,7 +1994,7 @@ togglemax(const char *arg) {
     if(!sel || sel->isfixed)
             return;
     if((sel->ismax = !sel->ismax)) {
-            if((layout->arrange == floating) || sel->isfloating || (layout->arrange == ifloating)){
+            if((layouts[ltidxs[csel]].arrange == floating) || sel->isfloating || (layouts[ltidxs[csel]].arrange == ifloating)){
                 sel->wasfloating = True;
                 sel->rx = sel->x;
                 sel->ry = sel->y;
@@ -2020,8 +2029,12 @@ toggleview(const char *arg) {
     i = idxoftag(arg);
     seltags[i] = !seltags[i];
     for(j = 0; j < ntags && !seltags[j]; j++);
-    if(j == ntags)
-            seltags[i] = True; /* at least one tag must be viewed */
+    if(j == ntags) {
+        seltags[i] = True; /* at least one tag must be viewed */
+        j = i;
+    }
+    if(csel == i)
+        csel = j;
     arrange();
 }
 
@@ -2036,7 +2049,7 @@ focusview(const char *arg) {
     for(c = clients; c; c = c->next){
         if (c->tags[i]) {
                 focus(c);
-                if((layout->arrange == floating) || c->isfloating || (layout->arrange == ifloating))
+                if((layouts[ltidxs[csel]].arrange == floating) || c->isfloating || (layouts[ltidxs[csel]].arrange == ifloating))
                     restack();
                 return;
         }
@@ -2084,7 +2097,7 @@ updategeom(void) {
     way = sy;
     wah = sh;
     waw = sw;
-    switch(bpos){
+    switch(bpos[csel]){
     default:
         wax += struts[LeftStrut];
         waw = sw - wax - struts[RightStrut];
@@ -2157,11 +2170,15 @@ xerrorstart(Display *dsply, XErrorEvent *ee) {
 
 void
 view(const char *arg) {
-    unsigned int i;
+    unsigned int i, prevcsel;
     memcpy(prevtags, seltags, ntags*(sizeof seltags));
     for(i = 0; i < ntags; i++)
             seltags[i] = (NULL == arg);
     seltags[idxoftag(arg)] = True;
+    prevcsel = csel;
+    csel = idxoftag(arg);
+    if (bpos[prevcsel] != bpos[csel])
+        updategeom();
     arrange();
     updateatom[CurDesk](NULL);
 }
@@ -2169,10 +2186,18 @@ view(const char *arg) {
 void
 viewprevtag(const char *arg) {
     Bool tmptags[ntags];
+    unsigned int i, prevcsel;
+ 
+    i = 0;
+    while(i < ntags && !prevtags[i]) i++;
+    prevcsel = csel;
+    csel = i;
 
     memcpy(tmptags, seltags, ntags*(sizeof seltags));
     memcpy(seltags, prevtags, ntags*(sizeof seltags));
     memcpy(prevtags, tmptags, ntags*(sizeof seltags));
+    if (bpos[prevcsel] != bpos[csel])
+	updategeom();
     arrange();
 }
 
