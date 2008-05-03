@@ -94,6 +94,7 @@ drawclient(Client *c) {
         return;
     resizetitle(c);
     XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
+    XSetLineAttributes(dpy, dc.gc, borderpx, LineSolid, CapNotLast, JoinMiter);
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->tw, c->th);
     dc.x = dc.y = 0;
     dc.w = c->w;

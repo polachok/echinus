@@ -1766,7 +1766,7 @@ setup(void) {
         XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,screen), getresource("normal.fg", SELFGCOLOR), dc.xftnorm);
         if(!dc.xftnorm || !dc.xftnorm)
              eprint("error, cannot allocate colors\n");
-        initfont(getresource("font",FONT));
+        initfont(getresource("font", FONT));
         borderpx = atoi(getresource("border", BORDERPX));
         uf_opacity = strtof(getresource("opacity", NF_OPACITY),NULL);
 
