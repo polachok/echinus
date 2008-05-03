@@ -114,12 +114,8 @@ ewmh_update_net_client_list() {
 
 void
 ewmh_update_net_number_of_desktops() {
-    CARD32 count = 0;
-
-    count=ntags;
-
     XChangeProperty(dpy, RootWindow(dpy, screen),
-                    net_number_of_desktops, XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &count, 1);
+                    net_number_of_desktops, XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &ntags, 1);
 }
 
 void

@@ -18,9 +18,6 @@ Echinus*tagbar: 0
 Echinus*font: fixed-9
 Echinus*title: 12
 
-Echinus*space.top: 13
-Echinus*space.bottom: 0
-
 Echinus*tags.number: 7
 Echinus*tags.name0: main
 Echinus*tags.name1: web

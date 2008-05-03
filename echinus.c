@@ -152,6 +152,7 @@ void configurenotify(XEvent *e);
 void configurerequest(XEvent *e);
 void destroynotify(XEvent *e);
 void detach(Client *c);
+void detachspec(Client *c);
 void detachstack(Client *c);
 void drawclient(Client *c);
 void drawfloating(void);
@@ -252,6 +253,7 @@ Bool running = True;
 Bool selscreen = True;
 Bool notitles = False;
 Client *clients = NULL;
+Client *specials = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
 Cursor cursor[CurLast];
@@ -356,6 +358,14 @@ attach(Client *c) {
             clients->prev = c;
     c->next = clients;
     clients = c;
+}
+
+void
+attachspec(Client *c) {
+    if(specials)
+            specials->prev = c;
+    c->next = specials;
+    specials = c;
 }
 
 void
@@ -701,6 +711,17 @@ destroynotify(XEvent *e) {
 
     if((c = getclient(ev->window)))
         unmanage(c);
+    struts[RightStrut] = struts[LeftStrut] = struts[TopStrut] = struts[BotStrut] = 0;
+    for(c = specials; c ; c = c->next){
+        if(ev->window != c->win)
+            updatestruts(c->win);
+        else {
+            detachspec(c);
+            free(c);
+        }
+    }
+    updategeom();
+    arrange();
 }
 
 void
@@ -711,6 +732,17 @@ detach(Client *c) {
             c->next->prev = c->prev;
     if(c == clients)
             clients = c->next;
+    c->next = c->prev = NULL;
+}
+
+void
+detachspec(Client *c) {
+    if(c->prev)
+            c->prev->next = c->next;
+    if(c->next)
+            c->next->prev = c->prev;
+    if(c == specials)
+            specials = c->next;
     c->next = c->prev = NULL;
 }
 
@@ -1088,16 +1120,22 @@ manage(Window w, XWindowAttributes *wa) {
     XSetWindowAttributes twa;
 
     updatestruts(w);
-    if(isspecial(w)){ 
+    c = emallocz(sizeof(Client));
+    c->win = w;
+
+    if(isspecial(c->win)){
+        if(updatestruts(c->win))
+            attachspec(c);
+        else
+            free(c);
         XMapWindow(dpy, w);
         return;
     }
-    c = emallocz(sizeof(Client));
-    c->tags = emallocz(ntags*(sizeof seltags));
-    c->win = w;
+
     c->isicon = False;
     c->hastitle = True;
     c->hadtitle = True;
+    c->tags = emallocz(ntags*(sizeof seltags));
 
     if(cx && cy && cw && ch) {
             c->x = wa->x = cx;
