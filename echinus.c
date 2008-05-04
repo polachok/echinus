@@ -1522,10 +1522,8 @@ restack(void) {
 
     if(!sel)
             return;
-//    if(sel->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)){
-            XRaiseWindow(dpy, sel->win);
-            XRaiseWindow(dpy, sel->title);
-  //  }
+    XRaiseWindow(dpy, sel->win);
+    XRaiseWindow(dpy, sel->title);
     if(layouts[ltidxs[curtag]].arrange != floating && layouts[ltidxs[curtag]].arrange != ifloating) {
             wc.stack_mode = Below;
             if(!sel->isfloating) {
@@ -2046,8 +2044,10 @@ focusview(const char *arg) {
     for(c = clients; c; c = c->next){
         if (c->tags[i]) {
                 focus(c);
-                if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating || (layouts[ltidxs[curtag]].arrange == ifloating))
+                if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating || (layouts[ltidxs[curtag]].arrange == ifloating)){
                     restack();
+                    drawfloating();
+                }
                 return;
         }
     }
