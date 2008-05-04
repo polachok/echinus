@@ -101,7 +101,7 @@ initkeys(){
     /* per tag functions */
     for(j = 0; j < LENGTH(KeyItemsByTag); j++){
         for(i = 0; i < ntags; i++){
-            sprintf(t, "%s%d", KeyItemsByTag[j].name, i);
+            snprintf(t, 63, "%s%d", KeyItemsByTag[j].name, i);
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
@@ -115,7 +115,7 @@ initkeys(){
     }
     /* layout setting */
     for(i = 0; i<LENGTH(layouts); i++){
-            sprintf(t, "setlayout%s", layouts[i].symbol);
+            snprintf(t, 63, "setlayout%s", layouts[i].symbol);
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
@@ -128,7 +128,7 @@ initkeys(){
     }
     /* spawn */
     for(i = 0; i<64; i++){
-            sprintf(t, "spawn%d", i);
+            snprintf(t, 63, "spawn%d", i);
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;
@@ -158,7 +158,7 @@ initrules(){
     char *tmp;
     rules = emallocz(64*sizeof(Rule*));
     for(i = 0; i < 64; i++){
-            sprintf(t, "rule%d", i);
+            snprintf(t, 63, "rule%d", i);
             tmp = getresource(t, NULL);
             if(!tmp)
                 continue;

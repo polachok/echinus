@@ -148,8 +148,7 @@ ewmh_update_net_desktop_names() {
 
     pos = buf;
     len = 0;
-    for(i = 0; i < ntags; i++)
-    {
+    for(i = 0; i < ntags; i++) {
         curr_size = strlen(tags[i]);
         strcpy(pos, tags[i]);
         pos += curr_size;

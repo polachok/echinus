@@ -1658,7 +1658,7 @@ initlayouts(){
     mwfacts = (double*)emallocz(sizeof(double) * ntags);
     for(i = 0; i < ntags; i++) {
         ltidxs[i] = 0;
-        sprintf(conf, "tags.layout%d", i);
+        snprintf(conf, 31, "tags.layout%d", i);
         strncpy(xres, getresource(conf, getresource("deflayout", "i")), 255);
         for (j = 0; j < LENGTH(layouts); j++) {
             if (!strcmp(layouts[j].symbol, xres)) {
@@ -1687,8 +1687,8 @@ inittags(){
     seltags[0] = True;
     for(i=0; i < ntags; i++){
         tags[i] = emallocz(25*sizeof(char));
-        sprintf(tmp, "tags.name%d", i);
-        sprintf(tags[i], "%s", getresource(tmp, "null"));
+        snprintf(tmp, 24, "tags.name%d", i);
+        snprintf(tags[i], 24, "%s", getresource(tmp, "null"));
     }
 }
 
@@ -1739,8 +1739,8 @@ setup(void) {
 
         /* init resource database */
         XrmInitialize();
-        char conf[255];
-        sprintf(conf, "%s/%s",getenv("HOME"),"/.echinus");
+        char conf[256];
+        snprintf(conf, 255, "%s/%s", getenv("HOME"), "/.echinus");
         chdir(conf);
         xrdb = XrmGetFileDatabase("echinusrc");
         if(!xrdb)
