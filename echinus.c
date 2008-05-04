@@ -1650,6 +1650,35 @@ setmwfact(const char *arg) {
 }
 
 void
+initlayouts(){
+    int i,j;
+    char conf[32], xres[256];
+
+    /* init layouts */
+    nmasters = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
+    ltidxs = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
+    mwfacts = (double*)emallocz(sizeof(double) * ntags);
+    for(i = 0; i < ntags; i++) {
+        ltidxs[i] = 0;
+        sprintf(conf, "tags.layout%d", i);
+        strncpy(xres, getresource(conf, 0), 255);
+        for (j = 0; j < LENGTH(layouts); j++) {
+            if (!strcmp(layouts[j].symbol, xres)) {
+                    ltidxs[i] = j;
+                    break;
+            }
+        }
+        mwfacts[i] = MWFACT;
+        nmasters[i] = NMASTER;
+    }
+
+    /* init struts */
+    bpos = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
+    for(i = 0; i < ntags; i++)
+            bpos[i] = BARPOS;
+}
+
+void
 inittags(){
     int i;
     char tmp[25]="\0";
@@ -1719,11 +1748,11 @@ setup(void) {
         if(!xrdb)
             eprint("echinus: cannot open configuration file\n");
 
-	
 	/* init tags */
         inittags();
         initrules();
         initkeys();
+        initlayouts();
         updateatom[NumberOfDesk](NULL);
         updateatom[DesktopNames](NULL);
         updateatom[CurDesk](NULL);
@@ -1761,21 +1790,7 @@ setup(void) {
         tpos = atoi(getresource("titleposition", TITLEPOSITION));
         tbpos = atoi(getresource("tagbar", TAGBAR));
 
-	/* init layouts */
-	nmasters = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
-	ltidxs = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
-	mwfacts = (double*)emallocz(sizeof(double) * ntags);
-	for(i = 0; i < ntags; i++) {
-		ltidxs[i] = 0;
-		mwfacts[i] = MWFACT;
-                nmasters[i] = NMASTER;
-	}
-
-	/* init struts */
-	bpos = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
-	for(i = 0; i < ntags; i++)
-		bpos[i] = BARPOS;
-	updategeom();
+        updategeom();
 	dc.drawable = XCreatePixmap(dpy, root, sw, dc.h, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
 
