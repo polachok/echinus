@@ -120,17 +120,8 @@ ewmh_update_net_number_of_desktops() {
 
 void
 ewmh_update_net_current_desktop() {
-    CARD32 count = 0;
-    int i;
-
-    for(i = 0; i < ntags; i++)
-        if(seltags[i]){
-            count=i;
-            break;
-        }
-
     XChangeProperty(dpy, RootWindow(dpy, screen),
-                    net_current_desktop, XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &count, 1);
+                    net_current_desktop, XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &curtag, 1);
 }
 
 void

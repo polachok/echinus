@@ -242,7 +242,7 @@ unsigned int *nmasters;
 int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int bh, tpos, tbpos;
 unsigned int blw = 0;
-unsigned int csel = 0;
+unsigned int curtag = 0;
 unsigned int numlockmask = 0;
 Atom wmatom[WMLast];
 Bool domwfact = True;
@@ -349,7 +349,7 @@ arrange(void) {
             else
                     ban(c);
     }
-    layouts[ltidxs[csel]].arrange();
+    layouts[ltidxs[curtag]].arrange();
     focus(NULL);
     restack();
 }
@@ -513,18 +513,18 @@ buttonpress(XEvent *e) {
         if(CLEANMASK(ev->state) != MODKEY)
            return;
         if(ev->button == Button1) {
-                if((layouts[ltidxs[csel]].arrange == floating) || c->isfloating)
+                if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating)
                         restack();
                 movemouse(c);
         }
         else if(ev->button == Button2) {
-                if((floating != layouts[ltidxs[csel]].arrange) && c->isfloating)
+                if((floating != layouts[ltidxs[curtag]].arrange) && c->isfloating)
                         togglefloating(NULL);
                 else
                         zoom(NULL);
         }
         else if(ev->button == Button3 && !c->isfixed) {
-                if((floating == layouts[ltidxs[csel]].arrange) || c->isfloating)
+                if((floating == layouts[ltidxs[curtag]].arrange) || c->isfloating)
                         restack();
                 else
                         togglefloating(NULL);
@@ -551,7 +551,7 @@ buttonpress(XEvent *e) {
             }
         }
         if(ev->button == Button1) {
-            if((layouts[ltidxs[csel]].arrange == floating) || (layouts[ltidxs[csel]].arrange == ifloating) || c->isfloating)
+            if((layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating) || c->isfloating)
                 restack();
             movemouse(c);
         }
@@ -668,7 +668,7 @@ configurerequest(XEvent *e) {
             c->ismax = False;
             if(ev->value_mask & CWBorderWidth)
                     c->border = ev->border_width;
-            if(c->isfixed || c->isfloating || (floating == layouts[ltidxs[csel]].arrange)) {
+            if(c->isfixed || c->isfloating || (floating == layouts[ltidxs[curtag]].arrange)) {
                     if(ev->value_mask & CWX)
                             c->x = ev->x;
                     if(ev->value_mask & CWY)
@@ -773,7 +773,7 @@ enternotify(XEvent *e) {
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
     if((c = getclient(ev->window))){
-	if(c->isfloating || (layouts[ltidxs[csel]].arrange == floating))
+	if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating))
             focus(c);
         XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
                     BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
@@ -893,15 +893,15 @@ focusprev(const char *arg) {
 void
 incnmaster(const char *arg) {
     int i;
-    if(layouts[ltidxs[csel]].arrange != tile)
+    if(layouts[ltidxs[curtag]].arrange != tile)
             return;
     if(!arg)
-            nmasters[csel] = NMASTER;
+            nmasters[curtag] = NMASTER;
     else {
             i = atoi(arg);
-            if((nmasters[csel] + i) < 1 || wah / (nmasters[csel] + i) <= 2 * borderpx)
+            if((nmasters[curtag] + i) < 1 || wah / (nmasters[curtag] + i) <= 2 * borderpx)
                     return;
-            nmasters[csel] += i;
+            nmasters[curtag] += i;
     }
     if(sel)
             arrange();
@@ -1317,7 +1317,7 @@ monocle(void) {
             }
             else
                 continue;
-            if(bpos[csel] == StrutsOff) 
+            if(bpos[curtag] == StrutsOff) 
                 resize(c, sx-c->border, sy-c->border, sw, sh, False);
             else {
                 resize(c, wax, way, waw-2*c->border, wah-2*c->border, False);
@@ -1522,11 +1522,11 @@ restack(void) {
 
     if(!sel)
             return;
-//    if(sel->isfloating || (layouts[ltidxs[csel]].arrange == floating) || (layouts[ltidxs[csel]].arrange == ifloating)){
+//    if(sel->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)){
             XRaiseWindow(dpy, sel->win);
             XRaiseWindow(dpy, sel->title);
   //  }
-    if(layouts[ltidxs[csel]].arrange != floating && layouts[ltidxs[csel]].arrange != ifloating) {
+    if(layouts[ltidxs[curtag]].arrange != floating && layouts[ltidxs[curtag]].arrange != ifloating) {
             wc.stack_mode = Below;
             if(!sel->isfloating) {
                     XConfigureWindow(dpy, sel->win, CWSibling | CWStackMode, &wc);
@@ -1612,8 +1612,8 @@ setlayout(const char *arg) {
     unsigned int i;
 
     if(!arg) {
-            if(&layouts[++ltidxs[csel]] == &layouts[LENGTH(layouts)])
-                    ltidxs[csel] = 0;
+            if(&layouts[++ltidxs[curtag]] == &layouts[LENGTH(layouts)])
+                    ltidxs[curtag] = 0;
     }
     else {
             for(i = 0; i < LENGTH(layouts); i++)
@@ -1621,7 +1621,7 @@ setlayout(const char *arg) {
                             break;
             if(i == LENGTH(layouts))
                     return;
-            ltidxs[csel] = i;
+            ltidxs[curtag] = i;
     }
     if(sel)
             arrange();
@@ -1635,16 +1635,16 @@ setmwfact(const char *arg) {
             return;
     /* arg handling, manipulate mwfact */
     if(arg == NULL)
-            mwfacts[csel] = MWFACT;
+            mwfacts[curtag] = MWFACT;
     else if(sscanf(arg, "%lf", &delta) == 1) {
             if(arg[0] == '+' || arg[0] == '-')
-                    mwfacts[csel] += delta;
+                    mwfacts[curtag] += delta;
             else
-                    mwfacts[csel] = delta;
-            if(mwfacts[csel] < 0.1)
-                    mwfacts[csel] = 0.1;
-            else if(mwfacts[csel] > 0.9)
-                    mwfacts[csel] = 0.9;
+                    mwfacts[curtag] = delta;
+            if(mwfacts[curtag] < 0.1)
+                    mwfacts[curtag] = 0.1;
+            else if(mwfacts[curtag] > 0.9)
+                    mwfacts[curtag] = 0.9;
     }
     arrange();
 }
@@ -1746,8 +1746,8 @@ setup(void) {
 
         dc.xftsel = emallocz(sizeof(XftColor));
         dc.xftnorm = emallocz(sizeof(XftColor));
-        XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,screen), getresource("selected.fg", SELFGCOLOR), dc.xftsel);
-        XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,screen), getresource("normal.fg", SELFGCOLOR), dc.xftnorm);
+        XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen), getresource("selected.fg", SELFGCOLOR), dc.xftsel);
+        XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen), getresource("normal.fg", SELFGCOLOR), dc.xftnorm);
         if(!dc.xftnorm || !dc.xftnorm)
              eprint("error, cannot allocate colors\n");
         initfont(getresource("font", FONT));
@@ -1837,7 +1837,7 @@ bstack(void) {
     for(n = 0, c = nexttiled(clients); c; c = nexttiled(c->next))
         n++;
 
-    mh = (n == 1) ? wah : mwfacts[csel] * wah;
+    mh = (n == 1) ? wah : mwfacts[curtag] * wah;
     tw = (n > 1) ? waw / (n - 1) : 0;
 
     nx = wax;
@@ -1887,10 +1887,10 @@ tile(void) {
 		n++;
 
 	/* window geoms */
-	mh = (n <= nmasters[csel]) ? wah / (n > 0 ? n : 1) : wah / nmasters[csel];
-	mw = (n <= nmasters[csel]) ? waw : mwfacts[csel] * waw;
-	th = (n > nmasters[csel]) ? wah / (n - nmasters[csel]) : 0;
-	if(n > nmasters[csel] && th < bh)
+	mh = (n <= nmasters[curtag]) ? wah / (n > 0 ? n : 1) : wah / nmasters[curtag];
+	mw = (n <= nmasters[curtag]) ? waw : mwfacts[curtag] * waw;
+	th = (n > nmasters[curtag]) ? wah / (n - nmasters[curtag]) : 0;
+	if(n > nmasters[curtag] && th < bh)
 		th = wah;
 
 	nx = wax;
@@ -1903,11 +1903,11 @@ tile(void) {
                 c->sfy = c->y;
                 c->sfw = c->w;
                 c->sfh = c->h;
-                if(i < nmasters[csel]) { /* master */
+                if(i < nmasters[curtag]) { /* master */
                         ny = way + i * (mh - c->border);
                         nw = mw - 2 * c->border;
                         nh = mh;
-                        if(i + 1 == (n < nmasters[csel] ? n : nmasters[csel])) /* remainder */
+                        if(i + 1 == (n < nmasters[curtag] ? n : nmasters[curtag])) /* remainder */
                                 nh = way + wah - ny;
                         if(dectiled){
                             ny+=dc.h+c->border;
@@ -1916,7 +1916,7 @@ tile(void) {
                         nh -= 2 * c->border;
                 }
                 else {  /* tile window */
-                        if(i == nmasters[csel]) {
+                        if(i == nmasters[curtag]) {
                                 ny = way;
                                 if(dectiled)
                                     ny+=dc.h+c->border;
@@ -1932,7 +1932,7 @@ tile(void) {
                 }
                 resize(c, nx, ny, nw, nh, False);
                 drawclient(c);
-                if(n > nmasters[csel] && th != wah){
+                if(n > nmasters[curtag] && th != wah){
                         ny = c->y + c->h + 2 * c->border;
                         if(dectiled)
                             ny += dc.h+c->border;
@@ -1943,10 +1943,10 @@ tile(void) {
 
 void
 togglebar(const char *arg) {
-    if(bpos[csel] == StrutsOff)
-            bpos[csel] = (BARPOS == StrutsOff) ? StrutsOn : BARPOS;
+    if(bpos[curtag] == StrutsOff)
+            bpos[curtag] = (BARPOS == StrutsOff) ? StrutsOn : BARPOS;
     else
-            bpos[csel] = StrutsOff;
+            bpos[curtag] = StrutsOff;
     updategeom();
     arrange();
 }
@@ -1976,7 +1976,7 @@ togglemax(const char *arg) {
     if(!sel || sel->isfixed)
             return;
     if((sel->ismax = !sel->ismax)) {
-            if((layouts[ltidxs[csel]].arrange == floating) || sel->isfloating || (layouts[ltidxs[csel]].arrange == ifloating)){
+            if((layouts[ltidxs[curtag]].arrange == floating) || sel->isfloating || (layouts[ltidxs[curtag]].arrange == ifloating)){
                 sel->wasfloating = True;
                 sel->rx = sel->x;
                 sel->ry = sel->y;
@@ -2015,8 +2015,8 @@ toggleview(const char *arg) {
         seltags[i] = True; /* at least one tag must be viewed */
         j = i;
     }
-    if(csel == i)
-        csel = j;
+    if(curtag == i)
+        curtag = j;
     arrange();
 }
 
@@ -2031,7 +2031,7 @@ focusview(const char *arg) {
     for(c = clients; c; c = c->next){
         if (c->tags[i]) {
                 focus(c);
-                if((layouts[ltidxs[csel]].arrange == floating) || c->isfloating || (layouts[ltidxs[csel]].arrange == ifloating))
+                if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating || (layouts[ltidxs[curtag]].arrange == ifloating))
                     restack();
                 return;
         }
@@ -2079,7 +2079,7 @@ updategeom(void) {
     way = sy;
     wah = sh;
     waw = sw;
-    switch(bpos[csel]){
+    switch(bpos[curtag]){
     default:
         wax += struts[LeftStrut];
         waw = sw - wax - struts[RightStrut];
@@ -2152,14 +2152,14 @@ xerrorstart(Display *dsply, XErrorEvent *ee) {
 
 void
 view(const char *arg) {
-    unsigned int i, prevcsel;
+    unsigned int i, prevcurtag;
     memcpy(prevtags, seltags, ntags*(sizeof seltags));
     for(i = 0; i < ntags; i++)
             seltags[i] = (NULL == arg);
     seltags[idxoftag(arg)] = True;
-    prevcsel = csel;
-    csel = idxoftag(arg);
-    if (bpos[prevcsel] != bpos[csel])
+    prevcurtag = curtag;
+    curtag = idxoftag(arg);
+    if (bpos[prevcurtag] != bpos[curtag])
         updategeom();
     arrange();
     updateatom[CurDesk](NULL);
@@ -2168,17 +2168,17 @@ view(const char *arg) {
 void
 viewprevtag(const char *arg) {
     Bool tmptags[ntags];
-    unsigned int i, prevcsel;
+    unsigned int i, prevcurtag;
  
     i = 0;
     while(i < ntags && !prevtags[i]) i++;
-    prevcsel = csel;
-    csel = i;
+    prevcurtag = curtag;
+    curtag = i;
 
     memcpy(tmptags, seltags, ntags*(sizeof seltags));
     memcpy(seltags, prevtags, ntags*(sizeof seltags));
     memcpy(prevtags, tmptags, ntags*(sizeof seltags));
-    if (bpos[prevcsel] != bpos[csel])
+    if (bpos[prevcurtag] != bpos[curtag])
 	updategeom();
     arrange();
 }
