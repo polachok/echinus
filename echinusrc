@@ -1,15 +1,20 @@
+
 Echinus*selected.border: #262626
 Echinus*selected.button: #d3d7cf
-Echinus*normal.border: #262626
 Echinus*selected.bg: #262626
-Echinus*normal.bg: #262626
 Echinus*selected.fg: #d3d7cf
-Echinus*normal.fg: #b0b4ac
+
+Echinus*normal.border: #262626
 Echinus*normal.button: #262626
+Echinus*normal.bg: #262626
+Echinus*normal.fg: #b0b4ac
+
 Echinus*border: 1
+
 Echinus*button.left.pixmap: iconify.xbm
 Echinus*button.center.pixmap: max.xbm
 Echinus*button.right.pixmap: close.xbm
+
 Echinus*opacity: 0.8
 Echinus*decoratetiled: 0
 Echinus*titleposition: 0
@@ -17,6 +22,9 @@ Echinus*tagbar: 0
 
 Echinus*font: fixed-9
 Echinus*title: 12
+
+
+Echinus*deflayout: i
 
 Echinus*tags.number: 7
 Echinus*tags.name0: main
@@ -26,6 +34,9 @@ Echinus*tags.name3: dev
 Echinus*tags.name4: scr
 Echinus*tags.name5: gfx
 Echinus*tags.name6: misc
+
+Echinus*tags.layout1: m
+Echinus*tags.layout3: b
 
 Echinus*togglebar: A + b
 Echinus*focusnext: A + j

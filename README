@@ -27,13 +27,25 @@ On new install:
 
 Name: ~/.echinus/echinusrc
 
+Default layout
+
+    Echinus*deflayout
+        Layout applied to tag if not explicitly set by tags.layout later.
+        One of: i - ifloating, f - floating, t - tiled, b - bottomstack, m - maximized. 
+
+
 Title settings
 
     Echinus*decoratetiled - boolean (1 or 0)
+
         Draw titles in tiled mode
+
     Echinus*titleposition - 0 (left), 1 (center), 2 (right)
+
         Window name position
+
     Echinus*tagbar - boolean (1 or 0)
+
         Show tagbar
 
 Color settings
@@ -47,19 +59,19 @@ Color settings
     Echinus*selected.button
     Echinus*normal.button
 
-    border - color of a small border around each window
-    bg - titlebar background
-    fg - titlebar foreground
-    button - button foreground
+        border - color of a small border around each window
+        bg - titlebar background
+        fg - titlebar foreground
+        button - button foreground
 
-    normal - unfocused window
-    selected - window in focus
+        normal - unfocused window
+        selected - window in focus
 
 Border settings
 
     Echinus*border
 
-    width of the border, in pixels
+        width of the border, in pixels
 
 Button settings
 
@@ -75,47 +87,48 @@ Opacity
 
     Echinus*opacity
 
-    Opacity value for inactive windows, you need xcompmgr runned to
-    see the result.
+        Opacity value for inactive windows, you need xcompmgr runned to
+        see the result.
 
 Terminal app
     
     Echinus*terminal
 
-    Preferred terminal to run with drawing rectangles on root window
+        Preferred terminal to run with drawing rectangles on root window
 
 Title
 
     Echinus*title
 
-    Titlebar height
+        Titlebar height
 
     Echinus*font
 
-    Titlebar font
-
-Space
-    Echinus*space.top
-    Echinus*space.bottom
-
-This space on top and bottom won't be covered by windows.
+        Titlebar font
 
 Tags 
 
     Echinus*tags.number
 
-    Number of tags
+        Number of tags
 
     Echinus*tags.name{...}
 
-    Names for the tags
+        Names for the tags
+
+    Echinus*tags.layout{...}
+
+        Layout per tag on start. See deflayout for possible
+        values
+
 
 Keybindings
 
-    Format is "[ASC] + key", where:
+    Format is "[ASCW] + key", where:
         A - Alt (mod1)
         S - Shift
         C - Control
+        W - Windows key
     You can find the list of available keys in keysym.h
     and XF86keysym.h files (usually located in 
     /usr/include/X11/), remove XK_ prefix before use.
@@ -125,8 +138,8 @@ Keybindings
     Echinus*togglebar
 
      Echinus has no bar, but this binding switches the area
-     on top and bottom which won't be covered by windows in
-     monocle mode.
+     on top or bottom which won't be covered by windows in
+     tiled or monocle mode.
 
     Echinus*focusnext
     Echinus*focusprev
@@ -190,6 +203,7 @@ what this magical letters mean it *should* work fine.
 Known to work:
     fbpanel
     ipager
+    ourico
 
 Known to NOT work:
     pypanel
