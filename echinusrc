@@ -23,7 +23,6 @@ Echinus*tagbar: 0
 Echinus*font: fixed-9
 Echinus*title: 12
 
-
 Echinus*deflayout: i
 
 Echinus*tags.number: 7
@@ -63,6 +62,7 @@ Echinus*tag3: AS + 4
 Echinus*tag4: AS + 5
 Echinus*tag5: AS + 6
 
+Echinus*toggleview4: W + F4
 Echinus*focusview6: A + s
 
 Echinus*setlayoutm: A + m
