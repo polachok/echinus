@@ -210,7 +210,7 @@ void tag(const char *arg);
 unsigned int textnw(const char *text, unsigned int len);
 unsigned int textw(const char *text);
 void tile(void);
-void togglebar(const char *arg);
+void togglestruts(const char *arg);
 void togglefloating(const char *arg);
 void togglemax(const char *arg);
 void toggletag(const char *arg);
@@ -1955,9 +1955,9 @@ tile(void) {
 }
 
 void
-togglebar(const char *arg) {
+togglestruts(const char *arg) {
     if(bpos[curtag] == StrutsOff)
-            bpos[curtag] = (BARPOS == StrutsOff) ? StrutsOn : BARPOS;
+            bpos[curtag] =  StrutsOn;
     else
             bpos[curtag] = StrutsOff;
     updategeom();

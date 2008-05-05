@@ -37,7 +37,7 @@ Echinus*tags.name6: misc
 Echinus*tags.layout1: m
 Echinus*tags.layout3: b
 
-Echinus*togglebar: A + b
+Echinus*togglestruts: A + b
 Echinus*focusnext: A + j
 Echinus*focusprev: A + k
 Echinus*viewprevtag: A + Tab

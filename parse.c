@@ -10,7 +10,7 @@ typedef struct
 
 static KeyItem KeyItems[] = 
 {
-    { "togglebar", togglebar },
+    { "togglestruts", togglestruts },
     { "focusnext", focusnext },
     { "focusprev", focusprev },
     { "viewprevtag", viewprevtag },
