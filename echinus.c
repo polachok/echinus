@@ -1125,8 +1125,6 @@ manage(Window w, XWindowAttributes *wa) {
     c = emallocz(sizeof(Client));
     c->win = w;
 
-    XUnmapWindow(dpy, w);
-
     if(isspecial(c->win)){
         if(updatestruts(c->win))
             attachspec(c);
@@ -1763,10 +1761,10 @@ setup(void) {
 	keypress(NULL);
 
 	/* init appearance */
-	dc.norm[ColBorder] = getcolor(getresource("normal.border",NORMBORDERCOLOR));
-	dc.norm[ColBG] = getcolor(getresource("normal.bg",NORMBGCOLOR));
-	dc.norm[ColFG] = getcolor(getresource("normal.fg",NORMFGCOLOR));
-	dc.norm[ColButton] = getcolor(getresource("normal.button",NORMBUTTONCOLOR));
+	dc.norm[ColBorder] = getcolor(getresource("normal.border", NORMBORDERCOLOR));
+	dc.norm[ColBG] = getcolor(getresource("normal.bg", NORMBGCOLOR));
+	dc.norm[ColFG] = getcolor(getresource("normal.fg", NORMFGCOLOR));
+	dc.norm[ColButton] = getcolor(getresource("normal.button", NORMBUTTONCOLOR));
 
         dc.sel[ColBorder] = getcolor(getresource("selected.border", SELBORDERCOLOR));
 	dc.sel[ColBG] = getcolor(getresource("selected.bg", SELBGCOLOR));
