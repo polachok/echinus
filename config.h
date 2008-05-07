@@ -3,7 +3,7 @@
 #define BORDERPX		"3"
 #define NF_OPACITY "0.9"
 #define FONT            "fixed-9"
-#define NOTITLES 0
+Bool NOTITLES=0;
 #define NORMBORDERCOLOR		"#cccccc"
 #define NORMBUTTONCOLOR		"#cccccc"
 #define NORMBGCOLOR		"#cccccc"

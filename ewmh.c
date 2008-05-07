@@ -19,6 +19,7 @@ static Atom net_wm_window_type;
 static Atom net_wm_window_type_desktop;
 static Atom net_wm_window_type_dock;
 static Atom net_wm_strut_partial;
+static Atom echinus_seltags;
 static Atom net_wm_name;
 static Atom net_window_desktop;
 static Atom utf8_string;
@@ -43,6 +44,7 @@ static AtomItem AtomNames[] = {
     { "_NET_WM_WINDOW_TYPE_DESKTOP", &net_wm_window_type_desktop },
     { "_NET_WM_WINDOW_TYPE_DOCK", &net_wm_window_type_dock },
     { "_NET_WM_STRUT_PARTIAL", &net_wm_strut_partial },
+    { "_ECHINUS_SELTAGS", &echinus_seltags },
     { "UTF8_STRING", &utf8_string },
 };
 
@@ -120,6 +122,8 @@ ewmh_update_net_number_of_desktops() {
 
 void
 ewmh_update_net_current_desktop() {
+    XChangeProperty(dpy, RootWindow(dpy, screen),
+                    echinus_seltags, XA_CARDINAL, 32, PropModeReplace, (unsigned char *) seltags, ntags);
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     net_current_desktop, XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &curtag, 1);
 }

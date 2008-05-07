@@ -1125,6 +1125,8 @@ manage(Window w, XWindowAttributes *wa) {
     c = emallocz(sizeof(Client));
     c->win = w;
 
+    XUnmapWindow(dpy, w);
+
     if(isspecial(c->win)){
         if(updatestruts(c->win))
             attachspec(c);
@@ -1784,6 +1786,10 @@ setup(void) {
         strncpy(terminal, getresource("terminal", TERMINAL), 255);
 
         dc.h = atoi(getresource("title", TITLEHEIGHT));
+        if(!dc.h){
+            NOTITLES = 1;
+            dc.h = 1;
+        }
         dectiled = atoi(getresource("decoratetiled", DECORATETILED));
         tpos = atoi(getresource("titleposition", TITLEPOSITION));
         tbpos = atoi(getresource("tagbar", TAGBAR));
@@ -2031,6 +2037,7 @@ toggleview(const char *arg) {
     if(curtag == i)
         curtag = j;
     arrange();
+    updateatom[CurDesk](NULL);
 }
 
 void
