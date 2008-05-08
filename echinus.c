@@ -66,7 +66,7 @@ enum { StrutsOn, StrutsOff, StrutsHide };			/* struts position */
 enum { TitleLeft, TitleCenter, TitleRight };			/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColButton, ColLast };		/* color */
-enum { WMProtocols, WMDelete, WMName, WMState, WMLast };/* default atoms */
+enum { WMProtocols, WMDelete, WMName, WMState, WMLast }; /* default atoms */
 
 /* typedefs */
 typedef struct Client Client;
@@ -1229,7 +1229,7 @@ manage(Window w, XWindowAttributes *wa) {
     XMapWindow(dpy, c->win);
     drawclient(c);
     updateatom[ClientList](NULL);
-    updateatom[WindowDesktop](c);
+    updateatom[WindowDesk](c);
     arrange();
 }
 
@@ -1402,7 +1402,7 @@ propertynotify(XEvent *e) {
 
     if(ev->state == PropertyDelete)
             return; /* ignore */
-    if(ev->atom == net_wm_strut_partial)
+    if(ev->atom == atoms[StrutPartial])
             updatestruts(ev->window);
     if((c = getclient(ev->window))) {
             switch (ev->atom) {
@@ -1415,7 +1415,7 @@ propertynotify(XEvent *e) {
                     case XA_WM_NORMAL_HINTS:
                             break;
             }
-            if(ev->atom == XA_WM_NAME || ev->atom == net_wm_name) {
+            if(ev->atom == XA_WM_NAME || ev->atom == atoms[WMName]) {
                     updatetitle(c);
             }
     }
@@ -1719,6 +1719,7 @@ setup(void) {
 
         /* init EWMH atoms */
         initatoms();
+        fprintf(stderr, "atoms inited\n");
 
         /* init cursors */
 	cursor[CurNormal] = XCreateFontCursor(dpy, XC_left_ptr);
@@ -1763,7 +1764,7 @@ setup(void) {
         initkeys();
         initlayouts();
         updateatom[NumberOfDesk](NULL);
-        updateatom[DesktopNames](NULL);
+        updateatom[DeskNames](NULL);
         updateatom[CurDesk](NULL);
 
 	compileregs();
@@ -1853,7 +1854,7 @@ tag(const char *arg) {
 	for(i = 0; i < ntags; i++)
 		sel->tags[i] = (NULL == arg);
 	sel->tags[idxoftag(arg)] = True;
-        updateatom[WindowDesktop](sel);
+        updateatom[WindowDesk](sel);
 	arrange();
 }
 
@@ -2143,7 +2144,7 @@ unmapnotify(XEvent *e) {
 
 void
 updatetitle(Client *c) {
-    if(!gettextprop(c->win, net_wm_name, c->name, sizeof c->name))
+    if(!gettextprop(c->win, atoms[WMName], c->name, sizeof c->name))
             gettextprop(c->win, wmatom[WMName], c->name, sizeof c->name);
     drawclient(c);
 }
