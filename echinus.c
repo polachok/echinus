@@ -62,7 +62,7 @@
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 /* enums */
 enum { LeftStrut, RightStrut, BotStrut, TopStrut, LastStrut };
-enum { StrutsOn, StrutsOff };			/* bar position */
+enum { StrutsOn, StrutsOff, StrutsHide };			/* struts position */
 enum { TitleLeft, TitleCenter, TitleRight };			/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColButton, ColLast };		/* color */
@@ -252,7 +252,7 @@ Bool running = True;
 Bool selscreen = True;
 Bool notitles = False;
 Client *clients = NULL;
-Client *specials = NULL;
+Client *bastards = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
 Cursor cursor[CurLast];
@@ -278,7 +278,8 @@ Bool *seltags;
 int ntags = 0;
 int nkeys = 0;
 int nrules = 0;
-int dectiled = 0;
+Bool dectiled = 0;
+Bool hidebastards = 0;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 #include "ewmh.c"
@@ -349,6 +350,15 @@ arrange(void) {
             else
                     ban(c);
     }
+
+    if(bpos[curtag] == StrutsOn) {
+        for(c = bastards ; c; c = c->next)
+            unban(c);
+    } else if(bpos[curtag] == StrutsHide) {
+        for(c = bastards ; c; c = c->next)
+            ban(c);
+    }
+
     layouts[ltidxs[curtag]].arrange();
     focus(NULL);
     restack();
@@ -364,10 +374,10 @@ attach(Client *c) {
 
 void
 attachspec(Client *c) {
-    if(specials)
-            specials->prev = c;
-    c->next = specials;
-    specials = c;
+    if(bastards)
+            bastards->prev = c;
+    c->next = bastards;
+    bastards = c;
 }
 
 void
@@ -381,8 +391,10 @@ ban(Client *c) {
     if(c->isbanned)
             return;
     XUnmapWindow(dpy, c->win);
-    XUnmapWindow(dpy, c->title);
-    XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
+    if(c->title){
+        XUnmapWindow(dpy, c->title);
+        XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
+    }
     setclientstate(c, IconicState);
     c->isbanned = True;
 }
@@ -404,7 +416,6 @@ iconifyit(const char *arg) {
     restack();
     focusnext(NULL);
 }
-
 
 void
 drawmouse(XEvent *e) {
@@ -714,7 +725,7 @@ destroynotify(XEvent *e) {
     if((c = getclient(ev->window)))
         unmanage(c);
     struts[RightStrut] = struts[LeftStrut] = struts[TopStrut] = struts[BotStrut] = 0;
-    for(c = specials; c ; c = c->next){
+    for(c = bastards; c ; c = c->next){
         if(ev->window != c->win)
             updatestruts(c->win);
         else {
@@ -743,8 +754,8 @@ detachspec(Client *c) {
             c->prev->next = c->next;
     if(c->next)
             c->next->prev = c->prev;
-    if(c == specials)
-            specials = c->next;
+    if(c == bastards)
+            bastards = c->next;
     c->next = c->prev = NULL;
 }
 
@@ -1789,6 +1800,7 @@ setup(void) {
             dc.h = 1;
         }
         dectiled = atoi(getresource("decoratetiled", DECORATETILED));
+        hidebastards = atoi(getresource("hidebastards", "0"));
         tpos = atoi(getresource("titleposition", TITLEPOSITION));
         tbpos = atoi(getresource("tagbar", TAGBAR));
 
@@ -1960,10 +1972,7 @@ tile(void) {
 
 void
 togglestruts(const char *arg) {
-    if(bpos[curtag] == StrutsOff)
-            bpos[curtag] =  StrutsOn;
-    else
-            bpos[curtag] = StrutsOff;
+    bpos[curtag] = (bpos[curtag] == StrutsOn) ? (hidebastards ? StrutsHide : StrutsOff) : StrutsOn;
     updategeom();
     arrange();
 }
@@ -2106,6 +2115,7 @@ updategeom(void) {
         way += struts[TopStrut];
         wah = sh - way - struts[BotStrut];
         break;
+    case StrutsHide:
     case StrutsOff:
         break;
     }
