@@ -1,5 +1,5 @@
 /*
- *    EWMH atoms support. borrowed from awesome wm
+ *    EWMH atom support. borrowed from awesome wm
  *
  *    Copyright © 2007-2008 Julien Danjou <julien@danjou.info>
  *
@@ -11,9 +11,9 @@ enum { ClientList, ActiveWindow, WindowDesk,
       NumberOfDesk, DeskNames, CurDesk, ClientListStacking,
       WindowOpacity, WindowType, WindowTypeDesk,
       WindowTypeDock, StrutPartial, ESelTags,
-      WmName, Utf8String, Supported, NATOMS };
+      WindowName, Utf8String, Supported, NATOMS };
 
-Atom atoms[NATOMS];
+Atom atom[NATOMS];
 
 #define LASTAtom ClientListStacking
 
@@ -37,14 +37,14 @@ char* atomnames[NATOMS][1] = {
 };
 
 void
-initatoms(void) {
+initatom(void) {
     int i;
     for(i = 0; i < NATOMS; i++){
-        atoms[i] = XInternAtom(dpy, atomnames[i][0], False);
+        atom[i] = XInternAtom(dpy, atomnames[i][0], False);
     }
     XChangeProperty(dpy, RootWindow(dpy, screen),
-                    atoms[Supported], XA_ATOM, 32,
-                    PropModeReplace, (unsigned char *) atoms, NATOMS);
+                    atom[Supported], XA_ATOM, 32,
+                    PropModeReplace, (unsigned char *) atom, NATOMS);
 }
 
 void
@@ -62,9 +62,9 @@ ewmh_update_net_client_list() {
             wins[n] = c->win;
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
-                    atoms[ClientList], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
+                    atom[ClientList], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
     XChangeProperty(dpy, RootWindow(dpy, screen),
-                    atoms[ClientListStacking], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
+                    atom[ClientListStacking], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
     /* free wins here */
     XFlush(dpy);
 }
@@ -72,31 +72,25 @@ ewmh_update_net_client_list() {
 void
 ewmh_update_net_number_of_desktops() {
     XChangeProperty(dpy, RootWindow(dpy, screen),
-                    atoms[NumberOfDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &ntags, 1);
+                    atom[NumberOfDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &ntags, 1);
 }
 
 void
 ewmh_update_net_current_desktop() {
     XChangeProperty(dpy, RootWindow(dpy, screen),
-                    atoms[ESelTags], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) seltags, ntags);
+                    atom[ESelTags], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) seltags, ntags);
     XChangeProperty(dpy, RootWindow(dpy, screen),
-                    atoms[CurDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &curtag, 1);
+                    atom[CurDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &curtag, 1);
 }
 
 void
 ewmh_update_net_window_desktop(Client *c) {
-    CARD32 count = 0;
     int i;
 
-    for(i = 0; i < ntags; i++){
-        if(c->tags[i]){
-            count=i;
-            break;
-        }
-    }
+    for(i = 0; i < ntags && !c->tags[i]; i++);
 
     XChangeProperty(dpy, c->win,
-                    atoms[WindowDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &count, 1);
+                    atom[WindowDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &i, 1);
 }
 
 void
@@ -117,7 +111,7 @@ ewmh_update_net_desktop_names() {
     len = pos - buf;
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
-                    atoms[DeskNames], atoms[Utf8String], 8, PropModeReplace, (unsigned char *) buf, len);
+                    atom[DeskNames], atom[Utf8String], 8, PropModeReplace, (unsigned char *) buf, len);
 }
 
 void
@@ -127,18 +121,18 @@ ewmh_update_net_active_window() {
     win = sel ? sel->win : None;
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
-                    atoms[ActiveWindow], XA_WINDOW, 32,  PropModeReplace, (unsigned char *) &win, 1);
+                    atom[ActiveWindow], XA_WINDOW, 32,  PropModeReplace, (unsigned char *) &win, 1);
 }
 
 void
 clientmessage(XEvent *e) {
     XClientMessageEvent *ev = &e->xclient;
 
-    if(ev->message_type == atoms[ActiveWindow]) {
+    if(ev->message_type == atom[ActiveWindow]) {
         focus(getclient(ev->window));
         restack();
     }
-    if(ev->message_type == atoms[CurDesk]) {
+    if(ev->message_type == atom[CurDesk]) {
         view(tags[ev->data.l[0]]);
     }
 }
@@ -146,26 +140,26 @@ clientmessage(XEvent *e) {
 void 
 setopacity(Client *c, unsigned int opacity) {
     if (opacity == OPAQUE)
-        XDeleteProperty (dpy, c->win, atoms[WindowOpacity]);
+        XDeleteProperty (dpy, c->win, atom[WindowOpacity]);
     else
-        XChangeProperty(dpy, c->win, atoms[WindowOpacity], 
+        XChangeProperty(dpy, c->win, atom[WindowOpacity], 
                 XA_CARDINAL, 32, PropModeReplace, 
                 (unsigned char *) &opacity, 1L);
 }
 
 
 static int
-isspecial(Window win){
+isbastard(Window win){
     Atom real, *state;
     int format;
     unsigned char *data = NULL;
     unsigned long i, n, extra;
-    if(XGetWindowProperty(dpy, win, atoms[WindowType], 0L, LONG_MAX, False,
+    if(XGetWindowProperty(dpy, win, atom[WindowType], 0L, LONG_MAX, False,
                           XA_ATOM, &real, &format, &n, &extra,
                           (unsigned char **) &data) == Success && data)
         state = (Atom *) data;
         for(i = 0; i < n; i++){
-            if(state[i] == atoms[WindowTypeDock] || state[i] == atoms[WindowTypeDesk])
+            if(state[i] == atom[WindowTypeDock] || state[i] == atom[WindowTypeDesk])
                             return 1;
         }
     return 0;
@@ -177,7 +171,7 @@ updatestruts(Window win){
     int format;
     unsigned char *data = NULL;
     unsigned long n, extra;
-    if(XGetWindowProperty(dpy, win, atoms[StrutPartial], 0L, LONG_MAX, False,
+    if(XGetWindowProperty(dpy, win, atom[StrutPartial], 0L, LONG_MAX, False,
                           XA_CARDINAL, &real, &format, &n, &extra,
                           (unsigned char **) &data) == Success && data)
         state = (Atom *) data;

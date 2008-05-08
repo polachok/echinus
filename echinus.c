@@ -66,7 +66,7 @@ enum { StrutsOn, StrutsOff, StrutsHide };			/* struts position */
 enum { TitleLeft, TitleCenter, TitleRight };			/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColButton, ColLast };		/* color */
-enum { WMProtocols, WMDelete, WMName, WMState, WMLast }; /* default atoms */
+enum { WMProtocols, WMDelete, WMName, WMState, WMLast }; /* default atom */
 
 /* typedefs */
 typedef struct Client Client;
@@ -1136,7 +1136,7 @@ manage(Window w, XWindowAttributes *wa) {
     c = emallocz(sizeof(Client));
     c->win = w;
 
-    if(isspecial(c->win)){
+    if(isbastard(c->win)){
         if(updatestruts(c->win))
             attachspec(c);
         else
@@ -1402,7 +1402,7 @@ propertynotify(XEvent *e) {
 
     if(ev->state == PropertyDelete)
             return; /* ignore */
-    if(ev->atom == atoms[StrutPartial])
+    if(ev->atom == atom[StrutPartial])
             updatestruts(ev->window);
     if((c = getclient(ev->window))) {
             switch (ev->atom) {
@@ -1415,7 +1415,7 @@ propertynotify(XEvent *e) {
                     case XA_WM_NORMAL_HINTS:
                             break;
             }
-            if(ev->atom == XA_WM_NAME || ev->atom == atoms[WMName]) {
+            if(ev->atom == XA_WM_NAME || ev->atom == atom[WindowName]) {
                     updatetitle(c);
             }
     }
@@ -1711,15 +1711,15 @@ setup(void) {
 	XModifierKeymap *modmap;
 	XSetWindowAttributes wa;
 
-	/* init atoms */
+	/* init atom */
 	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
 	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
 	wmatom[WMName] = XInternAtom(dpy, "WM_NAME", False);
 	wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
 
-        /* init EWMH atoms */
-        initatoms();
-        fprintf(stderr, "atoms inited\n");
+        /* init EWMH atom */
+        initatom();
+        fprintf(stderr, "atom inited\n");
 
         /* init cursors */
 	cursor[CurNormal] = XCreateFontCursor(dpy, XC_left_ptr);
@@ -2144,13 +2144,13 @@ unmapnotify(XEvent *e) {
 
 void
 updatetitle(Client *c) {
-    if(!gettextprop(c->win, atoms[WMName], c->name, sizeof c->name))
+    if(!gettextprop(c->win, atom[WindowName], c->name, sizeof c->name))
             gettextprop(c->win, wmatom[WMName], c->name, sizeof c->name);
     drawclient(c);
 }
 
 /* There's no way to check accesses to destroyed windows, thus those cases are
- * ignored (especially on UnmapNotify's).  Other types of errors call Xlibs
+ * ignored (ebastardly on UnmapNotify's).  Other types of errors call Xlibs
  * default error handler, which may call exit.  */
 int
 xerror(Display *dpy, XErrorEvent *ee) {
