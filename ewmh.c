@@ -48,16 +48,13 @@ static AtomItem AtomNames[] = {
     { "UTF8_STRING", &utf8_string },
 };
 
-#define ATOM_NUMBER (sizeof(AtomNames)/sizeof(AtomItem)) 
-#define _NET_WM_STATE_REMOVE 0
-#define _NET_WM_STATE_ADD 1
-#define _NET_WM_STATE_TOGGLE 2
+#define NATOMS (sizeof(AtomNames)/sizeof(AtomItem)) 
 
 enum { ClientList, ActiveWindow, WindowDesktop, NumberOfDesk, DesktopNames, CurDesk, LASTAtom };
 
 void
 ewmh_set_supported_hints() {
-    Atom atom[ATOM_NUMBER];
+    Atom atom[NATOMS];
     int i = 0;
 
     atom[i++] = net_supported;
@@ -81,13 +78,13 @@ ewmh_set_supported_hints() {
 void
 initatoms(void) {
     unsigned int i;
-    char *names[ATOM_NUMBER];
-    Atom atoms[ATOM_NUMBER];
+    char *names[NATOMS];
+    Atom atoms[NATOMS];
     
-    for(i = 0; i < ATOM_NUMBER; i++)
+    for(i = 0; i < NATOMS; i++)
         names[i] = (char *) AtomNames[i].name;
-    XInternAtoms(dpy, names, ATOM_NUMBER, False, atoms);
-    for(i = 0; i < ATOM_NUMBER; i++)
+    XInternAtoms(dpy, names, NATOMS, False, atoms);
+    for(i = 0; i < NATOMS; i++)
         *AtomNames[i].atom = atoms[i];
     ewmh_set_supported_hints();
 }

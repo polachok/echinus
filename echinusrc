@@ -17,6 +17,7 @@ Echinus*button.right.pixmap: close.xbm
 
 Echinus*opacity: 0.8
 Echinus*decoratetiled: 0
+Echinus*hidebastards: 0
 Echinus*titleposition: 0
 Echinus*tagbar: 0
 

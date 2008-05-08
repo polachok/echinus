@@ -21,7 +21,6 @@ On new install:
 
 % make installconfig
 
-
 1.Configuration file
 --------------------
 
@@ -121,6 +120,12 @@ Tags
         Layout per tag on start. See deflayout for possible
         values
 
+Hacks
+
+    Echinus*hidebastards
+
+        Set to 1 to hide panels, pagers and others with
+        togglestruts function.
 
 Keybindings
 
