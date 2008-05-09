@@ -168,7 +168,6 @@ void ifloating(void); /* intellectual floating layout try */
 void iconifyit(const char *arg);
 void incnmaster(const char *arg);
 void focus(Client *c);
-void focusin(XEvent *e);
 void focusnext(const char *arg);
 void focusprev(const char *arg);
 Client *getclient(Window w);
@@ -298,7 +297,6 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[MappingNotify] = mappingnotify,
 	[MapRequest] = maprequest,
 	[PropertyNotify] = propertynotify,
-	[FocusIn] = focusin,
 	[UnmapNotify] = unmapnotify,
         [ClientMessage] = clientmessage,
 };
@@ -466,24 +464,6 @@ drawmouse(XEvent *e) {
                     break;
             }
     }
-}
-
-void
-focusin(XEvent *e) {
-
-    /* TODO: fix this */
-#ifdef PYPANELHACK
-    Client *c;
-    XFocusChangeEvent *ev = &e->xfocus;
-    if (ev->type == FocusIn){
-        c = getclient(ev->window);
-        if(c!=sel && c){
-            focus(c);
-            restack();
-        }
-    }
-    XSync(dpy, False);
-#endif
 }
 
 void
