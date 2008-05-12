@@ -623,7 +623,7 @@ configure(Client *c) {
     ce.x = c->x;
     ce.y = c->y;
     ce.width = c->w - 2*c->border;
-    ce.height = c->h - dc.h - 3*c->border;
+    ce.height = c->hastitle ? c->h - dc.h - 3*c->border : c->h - 2*c->border;
     ce.border_width = c->border;
     ce.above = None;
     ce.override_redirect = False;
@@ -1202,7 +1202,11 @@ manage(Window w, XWindowAttributes *wa) {
         c->hadtitle = False;
     attach(c);
     attachstack(c);
-    XMoveResizeWindow(dpy, c->win, 0, dc.h + c->border, c->w-2*c->border, c->h-dc.h-3*c->border); /* some windows require this */
+    if(c->hadtitle)
+        XMoveResizeWindow(dpy, c->win, 0, dc.h + c->border, c->w-2*c->border, c->h-dc.h-3*c->border); /* some windows require this */
+    else {
+        XMoveResizeWindow(dpy, c->win, 0, 0, c->w-2*c->border, c->h-2*c->border); /* some windows require this */
+    }
     XMapWindow(dpy, c->win);
     drawclient(c);
     updateatom[ClientList](NULL);
@@ -1433,16 +1437,19 @@ resize(Client *c, int x, int y, int w, int h, Bool offscreen) {
             c->w = w;
             c->h = h;
             wc.x = 0;
-            wc.y = dc.h + c->border;
             wc.width = w - 2*c->border;
-            wc.height = h - dc.h - 3*c->border;
+            if(c->hastitle){
+                wc.y = dc.h + c->border;
+                wc.height = h - dc.h - 3*c->border;
+            }
+            else {
+                wc.y = 0;
+                wc.height = h - 2*c->border;
+            }
             wc.border_width = c->border;
-            fprintf(stderr, "shouldbe: x=%d y=%d w=%d h=%d ", x, y, w, h);
-            fprintf(stderr, "before: x=%d y=%d w=%d h=%d\n", c->x, c->y, c->w, c->h);
             XConfigureWindow(dpy, c->win, CWY | CWX | CWWidth | CWHeight | CWBorderWidth, &wc);
             XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
             configure(c);
-            fprintf(stderr, "after: x=%d y=%d w=%d h=%d\n", c->x, c->y, c->w, c->h);
             XSync(dpy, False);
     }
     resizetitle(c);
@@ -1495,7 +1502,8 @@ resizetitle(Client *c) {
         XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
         return;
     }
-    XMoveResizeWindow(dpy, c->title, 0, 0, c->w-2*c->border, dc.h);
+    if(c->hastitle)
+        XMoveResizeWindow(dpy, c->title, 0, 0, c->w-2*c->border, dc.h);
     XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
 }
 

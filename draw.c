@@ -123,7 +123,8 @@ drawclient(Client *c) {
       opacity = (unsigned int) (uf_opacity * OPAQUE);
     setopacity(c, opacity);
     XMapWindow(dpy, c->frame);
-    XMapWindow(dpy, c->title);
+    if(c->hastitle)
+        XMapWindow(dpy, c->title);
 }
 
 void
