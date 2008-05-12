@@ -904,7 +904,7 @@ Client *
 gettitle(Window w) {
     Client *c;
 
-    for(c = clients; c && (c->title != w || c->frame != w); c = c->next);
+    for(c = clients; c && c->title != w; c = c->next);
     return c;
 }
 
@@ -1171,14 +1171,15 @@ manage(Window w, XWindowAttributes *wa) {
     grabbuttons(c, False);
     twa.override_redirect = 1;
     twa.background_pixmap = ParentRelative;
-    twa.event_mask = ExposureMask | MOUSEMASK;
+    twa.event_mask = ExposureMask | MOUSEMASK | SubstructureRedirectMask | EnterWindowMask | LeaveWindowMask;
     //twa.border_width = borderpx;
-
 
     c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
                     0, DefaultDepth(dpy, screen), CopyFromParent,
                     DefaultVisual(dpy, screen),
                     CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
+
+    twa.event_mask = ExposureMask | MOUSEMASK;
 
     c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w-2*c->border, dc.h,
                     0, DefaultDepth(dpy, screen), CopyFromParent,
