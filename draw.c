@@ -77,17 +77,19 @@ initbuttons() {
 
 void
 drawbuttons(Client *c) {
+    unsigned int tw = c->w - 2 * c->border;
     XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
-    XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-c->th, 0, 1);
-    XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-3*c->th, 0, 1);
-    XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-2*c->th, 0, 1);
+    XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, dc.h*2, tw-dc.h, 0, 1);
+    XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, dc.h*2, tw-3*dc.h, 0, 1);
+    XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, dc.h*2, tw-2*dc.h, 0, 1);
 }
 
 void
 drawclient(Client *c) {
     unsigned int i;
     unsigned int opacity;
+    unsigned int tw = c->w - 2 * c->border;
     if(NOTITLES)
         return;
     if(!isvisible(c))
@@ -95,10 +97,10 @@ drawclient(Client *c) {
     resizetitle(c);
     XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, borderpx, LineSolid, CapNotLast, JoinMiter);
-    XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->tw, c->th);
+    XFillRectangle(dpy, c->title, dc.gc, 0, 0, tw, dc.h);
     dc.x = dc.y = 0;
-    dc.w = c->w;
-    dc.h = c->th;
+    dc.w = tw;
+    dc.h = dc.h;
     if(tbpos){
         for(i=0; i <= ntags; i++) {
             if(c->tags[i]){
@@ -111,15 +113,16 @@ drawclient(Client *c) {
         }
     }
     drawtext(c->name, c == sel ? dc.sel : dc.norm, tpos);
-    if(c->tw>=6*c->th && dc.x <= c->tw-6*c->th && tpos != TitleRight)
+    if(tw>=6*dc.h && dc.x <= tw-6*dc.h && tpos != TitleRight)
         drawbuttons(c);
     XCopyArea(dpy, dc.drawable, c->title, dc.gc,
-			0, 0, c->tw, c->th+2*borderpx, 0, 0);
+			0, 0, tw, dc.h+2*borderpx, 0, 0);
     if (c==sel)
       opacity = OPAQUE;
     else
       opacity = (unsigned int) (uf_opacity * OPAQUE);
     setopacity(c, opacity);
+    XMapWindow(dpy, c->frame);
     XMapWindow(dpy, c->title);
 }
 

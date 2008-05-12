@@ -73,7 +73,6 @@ typedef struct Client Client;
 struct Client {
 	char name[256];
 	int x, y, w, h;
-	int tx, ty, tw, th; /* title window */
 	int rx, ry, rw, rh; /* revert geometry */
 	int sfx, sfy, sfw, sfh; /* stored float geometry, used on mode revert */
 	long flags;
@@ -86,6 +85,7 @@ struct Client {
 	Client *snext;
 	Window win;
 	Window title;
+	Window frame;
 };
 
 typedef struct {
@@ -193,7 +193,6 @@ Client *nexttiled(Client *c);
 Client *prevtiled(Client *c);
 void propertynotify(XEvent *e);
 void quit(const char *arg);
-void restart(const char *arg);
 void resize(Client *c, int x, int y, int w, int h, Bool offscreen);
 void resizemouse(Client *c);
 void resizetitle(Client *c);
@@ -388,11 +387,7 @@ void
 ban(Client *c) {
     if(c->isbanned)
             return;
-    XUnmapWindow(dpy, c->win);
-    if(c->title){
-        XUnmapWindow(dpy, c->title);
-        XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
-    }
+    XUnmapWindow(dpy, c->frame);
     setclientstate(c, IconicState);
     c->isbanned = True;
 }
@@ -525,17 +520,17 @@ buttonpress(XEvent *e) {
     else if((c = gettitle(ev->window))) {
         focus(c);
         if(tpos != TitleRight){
-            if((ev->x > c->tw-3*c->th) && (ev->x < c->tw-2*c->th)){
+            if((ev->x > c->w-3*dc.h) && (ev->x < c->w-2*dc.h)){
                 /* min */
                 bleft.action(NULL);
                 return;
             }
-            if((ev->x > c->tw-2*c->th) && (ev->x < c->tw-c->th)){
+            if((ev->x > c->w-2*dc.h) && (ev->x < c->w-dc.h)){
                 /* max */
                 bcenter.action(NULL);
                 return;
             }
-            if((ev->x > c->tw-c->th) && (ev->x < c->tw)){
+            if((ev->x > c->w-dc.h) && (ev->x < c->w)){
                 /* close */
                 bright.action(NULL);
                 return;
@@ -627,8 +622,8 @@ configure(Client *c) {
     ce.window = c->win;
     ce.x = c->x;
     ce.y = c->y;
-    ce.width = c->w;
-    ce.height = c->h;
+    ce.width = c->w - 2*c->border;
+    ce.height = c->h - dc.h - 3*c->border;
     ce.border_width = c->border;
     ce.above = None;
     ce.override_redirect = False;
@@ -675,10 +670,8 @@ configurerequest(XEvent *e) {
                     if((ev->value_mask & (CWX | CWY))
                     && !(ev->value_mask & (CWWidth | CWHeight)))
                             configure(c);
-                    if(isvisible(c)){
-                            XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
+                    if(isvisible(c))
                             drawclient(c);
-                    }
             }
             else
                     configure(c);
@@ -835,11 +828,12 @@ focus(Client *c) {
     if(!selscreen)
             return;
     if(c) {
+            fprintf(stderr, "before: x=%d y=%d w=%d h=%d\n", c->x, c->y, c->w, c->h);
             setclientstate(c, NormalState);
-            drawclient(c);
             XSetWindowBorder(dpy, c->win, dc.sel[ColBorder]);
             XSetWindowBorder(dpy, c->title, dc.sel[ColBorder]);
             XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
+            drawclient(c);
     }
     else
             XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
@@ -910,7 +904,7 @@ Client *
 gettitle(Window w) {
     Client *c;
 
-    for(c = clients; c && c->title != w; c = c->next);
+    for(c = clients; c && (c->title != w || c->frame != w); c = c->next);
     return c;
 }
 
@@ -1147,11 +1141,6 @@ manage(Window w, XWindowAttributes *wa) {
         c->isplaced = True;
     }
 
-    c->th = dc.h;
-    c->tx = c->x = wa->x;
-    c->ty = c->y - c->th;
-    c->tw = c->w = wa->width;
-
     c->oldborder = wa->border_width;
     if(c->w == sw && c->h == sh) {
             c->x = sx;
@@ -1185,13 +1174,20 @@ manage(Window w, XWindowAttributes *wa) {
     twa.event_mask = ExposureMask | MOUSEMASK;
     //twa.border_width = borderpx;
 
-    c->title = XCreateWindow(dpy, root, c->tx, c->ty, c->tw, c->th,
+
+    c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
+                    0, DefaultDepth(dpy, screen), CopyFromParent,
+                    DefaultVisual(dpy, screen),
+                    CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
+
+    c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w-2*c->border, dc.h,
                     0, DefaultDepth(dpy, screen), CopyFromParent,
                     DefaultVisual(dpy, screen),
                     CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
 
     XConfigureWindow(dpy, c->title, CWBorderWidth, &wc);
     XSetWindowBorder(dpy, c->title, dc.norm[ColBorder]);
+    XReparentWindow(dpy, c->win, c->frame, 0, dc.h + c->border);
 
     updatetitle(c);
     if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
@@ -1205,7 +1201,7 @@ manage(Window w, XWindowAttributes *wa) {
         c->hadtitle = False;
     attach(c);
     attachstack(c);
-    XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h); /* some windows require this */
+    XMoveResizeWindow(dpy, c->win, 0, dc.h + c->border, c->w-2*c->border, c->h-dc.h-3*c->border); /* some windows require this */
     XMapWindow(dpy, c->win);
     drawclient(c);
     updateatom[ClientList](NULL);
@@ -1277,7 +1273,7 @@ ifloating(void){
                                 /* are you wondering about 0.9 & 0.8 ? */
                             if(smartcheckarea(x,y,0.8*c->w,0.8*c->h)<=f){
                                 /* got it! a big chunk of "free" space */
-                                resize(c, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, False);
+                                resize(c, x+dc.h*(rand()%3), y+dc.h*(rand()%3), c->w, c->h, False);
                                 c->isplaced = True;
                             }
                         }
@@ -1402,20 +1398,11 @@ propertynotify(XEvent *e) {
 }
 
 void
-restart(const char *arg) {
+quit(const char *arg) {
     cleanup();
     running = False;
     execvp(cargv[0], cargv);
     eprint("Can't exec: %s\n", strerror(errno));
-}
-
-void
-quit(const char *arg) {
-    running = False;
-    if(arg){
-	execvp(cargv[0], cargv);
-	eprint("Can't exec: %s\n", strerror(errno));
-    }
 }
 
 void
@@ -1440,13 +1427,21 @@ resize(Client *c, int x, int y, int w, int h, Bool offscreen) {
     if(y + h + 2 * c->border < sy)
             y = sy;
     if(c->x != x || c->y != y || c->w != w || c->h != h) {
-            c->x = wc.x = x;
-            c->y = wc.y = y;
-            c->w = wc.width = w;
-            c->h = wc.height = h;
+            c->x = x;
+            c->y = y;
+            c->w = w;
+            c->h = h;
+            wc.x = 0;
+            wc.y = dc.h + c->border;
+            wc.width = w - 2*c->border;
+            wc.height = h - dc.h - 3*c->border;
             wc.border_width = c->border;
-            XConfigureWindow(dpy, c->win, CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
+            fprintf(stderr, "shouldbe: x=%d y=%d w=%d h=%d ", x, y, w, h);
+            fprintf(stderr, "before: x=%d y=%d w=%d h=%d\n", c->x, c->y, c->w, c->h);
+            XConfigureWindow(dpy, c->win, CWY | CWX | CWWidth | CWHeight | CWBorderWidth, &wc);
+            XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
             configure(c);
+            fprintf(stderr, "after: x=%d y=%d w=%d h=%d\n", c->x, c->y, c->w, c->h);
             XSync(dpy, False);
     }
     resizetitle(c);
@@ -1464,12 +1459,12 @@ resizemouse(Client *c) {
                     None, cursor[CurResize], CurrentTime) != GrabSuccess)
             return;
     c->ismax = False;
-    XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->border - 1, c->h + c->border - 1);
+    XWarpPointer(dpy, None, c->frame, 0, 0, 0, 0, c->w + c->border - 1, c->h + c->border - 1);
     for(;;) {
             XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask , &ev);
             switch(ev.type) {
             case ButtonRelease:
-                    XWarpPointer(dpy, None, c->win, 0, 0, 0, 0,
+                    XWarpPointer(dpy, None, c->frame, 0, 0, 0, 0,
                                     c->w + c->border - 1, c->h + c->border - 1);
                     XUngrabPointer(dpy, CurrentTime);
                     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
@@ -1495,14 +1490,12 @@ void
 resizetitle(Client *c) {
     if(c->isicon)
         return;
-    c->tx = c->x;
-    c->ty = c->y-c->th-c->border;
-    c->tw = c->w;
     if(!c->hastitle){
         XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
         return;
     }
-    XMoveResizeWindow(dpy, c->title, c->tx, c->ty, c->tw, c->th);
+    XMoveResizeWindow(dpy, c->title, 0, 0, c->w-2*c->border, dc.h);
+    XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
 }
 
 void
@@ -1512,20 +1505,20 @@ restack(void) {
     XWindowChanges wc;
 
     if(!sel)
-            return;
-    XRaiseWindow(dpy, sel->win);
-    XRaiseWindow(dpy, sel->title);
+        return;
+
+    XRaiseWindow(dpy, sel->frame);
     if(layouts[ltidxs[curtag]].arrange != floating && layouts[ltidxs[curtag]].arrange != ifloating) {
             wc.stack_mode = Below;
             if(!sel->isfloating) {
-                    XConfigureWindow(dpy, sel->win, CWSibling | CWStackMode, &wc);
-                    wc.sibling = sel->win;
+                    XConfigureWindow(dpy, sel->frame, CWSibling | CWStackMode, &wc);
+                    wc.sibling = sel->frame;
             }
             for(c = nexttiled(clients); c; c = nexttiled(c->next)) {
                     if(c == sel)
                             continue;
-                    XConfigureWindow(dpy, c->win, CWSibling | CWStackMode, &wc);
-                    wc.sibling = c->win;
+                    XConfigureWindow(dpy, c->frame, CWSibling | CWStackMode, &wc);
+                    wc.sibling = c->frame;
             }
     }
     XSync(dpy, False);
@@ -1854,33 +1847,26 @@ bstack(void) {
     ny = way;
     nh = 0;
     for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
-        c->hastitle = dectiled ? c->hadtitle : False;
         c->ismax = False;
         if(i == 0) {
-            nh = mh - 2 * c->border;
-            nw = waw - 2 * c->border;
+            nh = mh;
+            nw = waw;
             nx = wax;
-            if(dectiled){
-                ny+=dc.h + c->border;
-                nh-=dc.h + c->border;
-            }
         }
         else {
             if(i == 1) {
                 nx = wax;
-                ny += mc->h+c->border;
-                if(dectiled)
-                    ny += dc.h + c->border;
-                nh = (way + wah) - ny - 2 * c->border;
+                ny += mc->h-c->border;
+                nh = (way + wah) - ny;
             }
             if(i + 1 == n)
-                nw = (wax + waw) - nx - 2 * c->border;
+                nw = (wax + waw) - nx;
             else
-                nw = tw - c->border;
+                nw = tw;
         }
         resize(c, nx, ny, nw, nh, False);
         if(n > 1 && tw != waw)
-            nx = c->x + c->w + c->border;
+            nx = c->x + c->w;
     }
     drawfloating();
 }
@@ -1907,7 +1893,7 @@ tile(void) {
 	ny = way;
 	nw = 0; /* gcc stupidity requires this */
 	for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
-                c->hastitle = dectiled ? c->hadtitle : False;
+                c->hastitle = c->hadtitle;
 		c->ismax = False;
                 c->sfx = c->x;
                 c->sfy = c->y;
@@ -1915,37 +1901,28 @@ tile(void) {
                 c->sfh = c->h;
                 if(i < nmasters[curtag]) { /* master */
                         ny = way + i * (mh - c->border);
-                        nw = mw - 2 * c->border;
-                        nh = mh;
+                        nw = mw;
+                        nh = mh - c->border;
                         if(i + 1 == (n < nmasters[curtag] ? n : nmasters[curtag])) /* remainder */
                                 nh = way + wah - ny;
-                        if(dectiled){
-                            ny+=dc.h+c->border;
-                            nh-=dc.h+c->border;
-                        }
-                        nh -= 2 * c->border;
                 }
                 else {  /* tile window */
                         if(i == nmasters[curtag]) {
                                 ny = way;
-                                if(dectiled)
-                                    ny+=dc.h+c->border;
-                                nx += mc->w + mc->border;
-                                nw = waw - nx - 2*c->border;
+                                nx = mw-c->border;
+                                nw = waw - nx;
                         }
                         else 
                             ny -= c->border;
                         if(i + 1 == n) /* remainder */
-                                nh = (way + wah) - ny - 2 * c->border;
+                                nh = (way + wah) - ny;
                         else
-                                nh = th - 2 * c->border;
+                                nh = th;
                 }
                 resize(c, nx, ny, nw, nh, False);
                 drawclient(c);
                 if(n > nmasters[curtag] && th != wah){
-                        ny = c->y + c->h + 2 * c->border;
-                        if(dectiled)
-                            ny += dc.h+c->border;
+                        ny = c->y + c->h;
                 }
         }
         drawfloating();
@@ -1989,7 +1966,7 @@ togglemax(const char *arg) {
                 sel->ry = sel->y;
                 sel->rw = sel->w;
                 sel->rh = sel->h;
-                resize(sel, wax, way+sel->th, waw - 2 * sel->border, wah - 2 * sel->border - sel->th, True);
+                resize(sel, wax, way+dc.h, waw - 2 * sel->border, wah - 2 * sel->border - dc.h, True);
             }
     }
     else
@@ -2051,8 +2028,7 @@ void
 unban(Client *c) {
     if(!c->isbanned)
             return;
-    XMapWindow(dpy, c->win);
-    XMapWindow(dpy, c->title);
+    XMapWindow(dpy, c->frame);
     setclientstate(c, NormalState);
     c->isbanned = False;
 }
@@ -2060,7 +2036,9 @@ unban(Client *c) {
 void
 unmanage(Client *c) {
     XWindowChanges wc;
+    XReparentWindow(dpy, c->win, root, c->x, c->y);
     XDestroyWindow(dpy, c->title);
+    XDestroyWindow(dpy, c->frame);
     wc.border_width = c->oldborder;
     /* The server grab construct avoids race conditions. */
     XGrabServer(dpy);
