@@ -795,7 +795,7 @@ floating(void) { /* default floating layout */
     for(c = clients; c; c = c->next){
         c->isplaced = False;
         if(isvisible(c) && !c->isicon) {
-                c->hastitle=c->hadtitle;
+                c->hastitle = c->hadtitle;
                 drawclient(c);
                 if(!c->isfloating && !wasfloating)
                         /*restore last known float dimensions*/
@@ -1312,7 +1312,7 @@ monocle(void) {
             if(bpos[curtag] == StrutsOff) 
                 resize(c, sx-c->border, sy-c->border, sw, sh, False);
             else {
-                resize(c, wax, way, waw-2*c->border, wah-2*c->border, False);
+                resize(c, wax, way, waw, wah, False);
             }
         }
     }
@@ -1432,25 +1432,31 @@ resize(Client *c, int x, int y, int w, int h, Bool offscreen) {
     if(y + h + 2 * c->border < sy)
             y = sy;
     if(c->x != x || c->y != y || c->w != w || c->h != h) {
-            c->x = x;
-            c->y = y;
-            c->w = w;
-            c->h = h;
-            wc.x = 0;
-            wc.width = w - 2*c->border;
-            if(c->hastitle){
-                wc.y = dc.h + c->border;
-                wc.height = h - dc.h - 3*c->border;
-            }
-            else {
-                wc.y = 0;
-                wc.height = h - 2*c->border;
-            }
-            wc.border_width = c->border;
-            XConfigureWindow(dpy, c->win, CWY | CWX | CWWidth | CWHeight | CWBorderWidth, &wc);
-            XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
-            configure(c);
-            XSync(dpy, False);
+        if(layouts[ltidxs[curtag]].arrange == ifloating || layouts[ltidxs[curtag]].arrange == floating || c->isfloating){
+            c->sfx = x;
+            c->sfy = y;
+            c->sfw = w;
+            c->sfh = h;
+        }
+        c->x = x;
+        c->y = y;
+        c->w = w;
+        c->h = h;
+        wc.x = 0;
+        wc.width = w - 2*c->border;
+        if(c->hastitle){
+            wc.y = dc.h + c->border;
+            wc.height = h - dc.h - 3*c->border;
+        }
+        else {
+            wc.y = 0;
+            wc.height = h - 2*c->border;
+        }
+        wc.border_width = c->border;
+        XConfigureWindow(dpy, c->win, CWY | CWX | CWWidth | CWHeight | CWBorderWidth, &wc);
+        XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
+        configure(c);
+        XSync(dpy, False);
     }
     resizetitle(c);
 }
@@ -1856,6 +1862,7 @@ bstack(void) {
     ny = way;
     nh = 0;
     for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
+        c->hastitle = dectiled ? c->hadtitle : 0;
         c->ismax = False;
         if(i == 0) {
             nh = mh;
@@ -1902,12 +1909,8 @@ tile(void) {
 	ny = way;
 	nw = 0; /* gcc stupidity requires this */
 	for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
-                c->hastitle = c->hadtitle;
+                c->hastitle = dectiled ? c->hadtitle : 0;
 		c->ismax = False;
-                c->sfx = c->x;
-                c->sfy = c->y;
-                c->sfw = c->w;
-                c->sfh = c->h;
                 if(i < nmasters[curtag]) { /* master */
                         ny = way + i * (mh - c->border);
                         nw = mw;
