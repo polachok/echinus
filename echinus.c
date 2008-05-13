@@ -621,8 +621,8 @@ configure(Client *c) {
     ce.display = dpy;
     ce.event = c->win;
     ce.window = c->win;
-    ce.x = c->x;
-    ce.y = c->y;
+    ce.x = 0;
+    ce.y = c->hastitle ? dc.h+c->border : 0;
     ce.width = c->w;
     ce.height = c->h;
     ce.border_width = c->border;
@@ -655,7 +655,7 @@ configurerequest(XEvent *e) {
             c->ismax = False;
             if(ev->value_mask & CWBorderWidth)
                     c->border = ev->border_width;
-            if(c->isfixed || c->isfloating || (floating == layouts[ltidxs[curtag]].arrange)) {
+            if(c->isfixed || c->isfloating || (ifloating == layouts[ltidxs[curtag]].arrange) || (floating == layouts[ltidxs[curtag]].arrange)) {
                     if(ev->value_mask & CWX)
                             c->x = ev->x;
                     if(ev->value_mask & CWY)
@@ -1171,11 +1171,11 @@ manage(Window w, XWindowAttributes *wa) {
     c->fw = c->w + 2*c->border;
     c->fh = c->h + 3*c->border + dc.h;
     XSelectInput(dpy, w,
-            StructureNotifyMask | PropertyChangeMask | EnterWindowMask | FocusChangeMask);
+            StructureNotifyMask | PropertyChangeMask | EnterWindowMask);
     grabbuttons(c, False);
     twa.override_redirect = 1;
     twa.background_pixmap = ParentRelative;
-    twa.event_mask = ExposureMask | MOUSEMASK | SubstructureRedirectMask | EnterWindowMask | LeaveWindowMask;
+    twa.event_mask = ExposureMask | MOUSEMASK | SubstructureRedirectMask | EnterWindowMask | LeaveWindowMask | SubstructureNotifyMask | StructureNotifyMask;
     //twa.border_width = borderpx;
 
     c->frame = XCreateWindow(dpy, root, c->fx, c->fy, c->fw, c->fh,
@@ -1212,6 +1212,8 @@ manage(Window w, XWindowAttributes *wa) {
         XMoveResizeWindow(dpy, c->frame, c->fx, c->fy, c->fw, c->fh);
         XMoveResizeWindow(dpy, c->win, 0, 0, c->w, c->h);
     }
+    configure(c);
+    XUnmapWindow(dpy, c->win);
     XMapWindow(dpy, c->win);
     drawclient(c);
     updateatom[ClientList](NULL);
@@ -1302,14 +1304,12 @@ monocle(void) {
     Client *c;
     wasfloating = False;
     for(c = clients; c; c = c->next){
-            if(isvisible(c))
-                unban(c);
-            else
-                continue;
-            if(bpos[curtag] == StrutsOff) 
-                resize(c, sx-c->border, sy-c->border, sw, sh, False);
-            else
-                resize(c, wax, way, waw-2*c->border, wah-2*c->border, False);
+            if(isvisible(c) && !c->isfloating){
+                if(bpos[curtag] == StrutsOff) 
+                    resize(c, sx-c->border, sy-c->border, sw, sh, False);
+                else
+                    resize(c, wax, way, waw-2*c->border, wah-2*c->border, False);
+            }
         }
     drawfloating();
     focus(NULL);
@@ -1453,8 +1453,8 @@ resize(Client *c, int x, int y, int w, int h, Bool offscreen) {
             c->fh = h + 2*c->border;
         }
         wc.border_width = c->border;
-        XConfigureWindow(dpy, c->win, CWY | CWX | CWWidth | CWHeight | CWBorderWidth, &wc);
         XMoveResizeWindow(dpy, c->frame, c->fx, c->fy, c->fw, c->fh);
+        XConfigureWindow(dpy, c->win, CWY | CWX | CWWidth | CWHeight | CWBorderWidth, &wc);
         configure(c);
         XSync(dpy, False);
     }
@@ -1523,17 +1523,19 @@ restack(void) {
         return;
 
     XRaiseWindow(dpy, sel->frame);
+    XRaiseWindow(dpy, sel->win);
     if(layouts[ltidxs[curtag]].arrange != floating && layouts[ltidxs[curtag]].arrange != ifloating) {
             wc.stack_mode = Below;
             if(!sel->isfloating) {
                     XConfigureWindow(dpy, sel->frame, CWSibling | CWStackMode, &wc);
-                    wc.sibling = sel->frame;
+                    XConfigureWindow(dpy, sel->win, CWSibling | CWStackMode, &wc);
+                    wc.sibling = sel->win;
             }
             for(c = nexttiled(clients); c; c = nexttiled(c->next)) {
                     if(c == sel)
                             continue;
-                    XConfigureWindow(dpy, c->frame, CWSibling | CWStackMode, &wc);
-                    wc.sibling = c->frame;
+                    XConfigureWindow(dpy, c->win, CWSibling | CWStackMode, &wc);
+                    wc.sibling = c->win;
             }
     }
     XSync(dpy, False);
@@ -2047,7 +2049,8 @@ focusview(const char *arg) {
     for(c = clients; c; c = c->next){
         if (c->tags[i]) {
                 focus(c);
-                if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating || (layouts[ltidxs[curtag]].arrange == ifloating)){
+                if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating
+                        || (layouts[ltidxs[curtag]].arrange == ifloating)){
                     restack();
                     drawfloating();
                 }
@@ -2060,6 +2063,7 @@ unban(Client *c) {
     if(!c->isbanned)
             return;
     XMapWindow(dpy, c->frame);
+    XMapWindow(dpy, c->win);
     setclientstate(c, NormalState);
     c->isbanned = False;
 }
