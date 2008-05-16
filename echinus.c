@@ -393,7 +393,6 @@ ban(Client *c) {
         XUnmapWindow(dpy, c->title);
         XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
     }
-    setclientstate(c, IconicState);
     c->isbanned = True;
 }
 
@@ -1266,7 +1265,7 @@ ifloating(void){
     int f;
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon){
-                for(f=0;!c->isplaced;f++){ 
+                for(f=0; !c->isplaced; f++){ 
                     if(c->w > sw/2 && c->h > sw/2){
                         /* too big to deal with */
                         c->isplaced = True; 
@@ -1275,10 +1274,10 @@ ifloating(void){
                         for(y = way; y+c->h <= wah && !c->isplaced ; y+=c->h/4){
                             for(x = wax; x+c->w <= waw && !c->isplaced; x+=c->w/8){
                                 /* are you wondering about 0.9 & 0.8 ? */
-                            if(smartcheckarea(x,y,0.8*c->w,0.8*c->h)<=f){
+                            if(smartcheckarea(x, y, 0.8*c->w, 0.8*c->h)<=f){
                                 /* got it! a big chunk of "free" space */
                                 resize(c, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, False);
-                                c->isplaced = True;
+				c->isplaced = True;
                             }
                         }
                     }
@@ -1440,6 +1439,13 @@ resize(Client *c, int x, int y, int w, int h, Bool offscreen) {
     if(y + h + 2 * c->border < sy)
             y = sy;
     if(c->x != x || c->y != y || c->w != w || c->h != h) {
+	    if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)){
+		    c->sfx = x;
+		    c->sfy = y;
+		    c->sfw = w;
+		    c->sfh = h;
+		    c->isplaced = True;
+	    }
             c->x = wc.x = x;
             c->y = wc.y = y;
             c->w = wc.width = w;
@@ -1785,7 +1791,9 @@ setup(void) {
         tpos = atoi(getresource("titleposition", TITLEPOSITION));
         tbpos = atoi(getresource("tagbar", TAGBAR));
 
+	struts[RightStrut] = struts[LeftStrut] = struts[TopStrut] = struts[BotStrut] = 0;
         updategeom();
+
 	dc.drawable = XCreatePixmap(dpy, root, sw, dc.h, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
 
@@ -1794,7 +1802,6 @@ setup(void) {
         chdir(getenv("HOME"));
 
         /* free resource database */
- //       XrmDestroyDatabase(xrdb);
         dc.xftdrawable = XftDrawCreate(dpy, dc.drawable, DefaultVisual(dpy,screen),DefaultColormap(dpy,screen));
         if(!dc.xftdrawable)
              eprint("error, cannot create drawable\n");

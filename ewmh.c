@@ -176,10 +176,10 @@ updatestruts(Window win){
                           (unsigned char **) &data) == Success && data)
         state = (Atom *) data;
         if(n){
-            struts[LeftStrut] = state[0] > LeftStrut ? state[0] : struts[LeftStrut];
-            struts[RightStrut] = state[1] > RightStrut ? state[1] : struts[RightStrut];
-            struts[TopStrut] = state[2] > TopStrut ? state[2] : struts[TopStrut];
-            struts[BotStrut] = state[3] > BotStrut ? state[3] : struts[BotStrut];
+            struts[LeftStrut] = state[0] > struts[LeftStrut] ? state[0] : struts[LeftStrut];
+            struts[RightStrut] = state[1] > struts[RightStrut] ? state[1] : struts[RightStrut];
+            struts[TopStrut] = state[2] > struts[TopStrut] ? state[2] : struts[TopStrut];
+            struts[BotStrut] = state[3] > struts[BotStrut] ? state[3] : struts[BotStrut];
             updategeom();
             return 1;
         }
