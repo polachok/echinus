@@ -799,7 +799,6 @@ floating(void) { /* default floating layout */
 
     domwfact = dozoom = False;
     for(c = clients; c; c = c->next){
-        c->isplaced = False;
         if(isvisible(c) && !c->isicon) {
                 c->hastitle=c->hadtitle;
                 drawclient(c);
@@ -1260,12 +1259,11 @@ smartcheckarea(int x, int y, int w, int h){
 void
 ifloating(void){
     Client *c;
-    int x = wax;
-    int y = way;
-    int f;
+    int x, y, f;
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon){
-                for(f=0; !c->isplaced; f++){ 
+                for(f = 0; !c->isplaced; f++){ 
+			fprintf(stderr, "name: %s ; sfx = %d ; sfy = %d; x = %d ; y = %d\n", c->name, c->sfx, c->sfy, c->x, c->y);
                     if(c->w > sw/2 && c->h > sw/2){
                         /* too big to deal with */
                         c->isplaced = True; 
@@ -1295,8 +1293,8 @@ monocle(void) {
     Client *c;
     wasfloating = False;
     for(c = clients; c; c = c->next){
-        c->isplaced = False;
         if(isvisible(c)) {
+	    c->isplaced = False;
             if(!c->isfloating){
                 c->sfx = c->x;
                 c->sfy = c->y;
@@ -1439,7 +1437,7 @@ resize(Client *c, int x, int y, int w, int h, Bool offscreen) {
     if(y + h + 2 * c->border < sy)
             y = sy;
     if(c->x != x || c->y != y || c->w != w || c->h != h) {
-	    if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)){
+	    if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)) {
 		    c->sfx = x;
 		    c->sfy = y;
 		    c->sfw = w;
