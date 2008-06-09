@@ -1263,7 +1263,6 @@ ifloating(void){
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon){
                 for(f = 0; !c->isplaced; f++){ 
-			fprintf(stderr, "name: %s ; sfx = %d ; sfy = %d; x = %d ; y = %d\n", c->name, c->sfx, c->sfy, c->x, c->y);
                     if(c->w > sw/2 && c->h > sw/2){
                         /* too big to deal with */
                         c->isplaced = True; 
@@ -1684,7 +1683,6 @@ inittags(){
         tags[i] = emallocz(25*sizeof(char));
         snprintf(tmp, 24, "tags.name%d", i);
         snprintf(tags[i], 24, "%s", getresource(tmp, "null"));
-	fprintf(stderr, "tags[%d]=%s\n", i, tags[i]);
     }
 }
 
@@ -1704,9 +1702,8 @@ setup(void) {
 
         /* init EWMH atom */
         initatom();
-        fprintf(stderr, "atom inited\n");
-
-        /* init cursors */
+        
+	/* init cursors */
 	cursor[CurNormal] = XCreateFontCursor(dpy, XC_left_ptr);
 	cursor[CurResize] = XCreateFontCursor(dpy, XC_sizing);
 	cursor[CurMove] = XCreateFontCursor(dpy, XC_fleur);
