@@ -76,6 +76,8 @@ struct Client {
 	int tx, ty, tw, th; /* title window */
 	int rx, ry, rw, rh; /* revert geometry */
 	int sfx, sfy, sfw, sfh; /* stored float geometry, used on mode revert */
+	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
+	int minax, maxax, minay, maxay;
 	long flags;
 	unsigned int border, oldborder;
 	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon, hastitle, hadtitle;
@@ -194,7 +196,7 @@ Client *prevtiled(Client *c);
 void propertynotify(XEvent *e);
 void quit(const char *arg);
 void restart(const char *arg);
-void resize(Client *c, int x, int y, int w, int h, Bool offscreen);
+void resize(Client *c, int x, int y, int w, int h, Bool sizehints);
 void resizemouse(Client *c);
 void resizetitle(Client *c);
 void restack(void);
@@ -804,9 +806,9 @@ floating(void) { /* default floating layout */
                 drawclient(c);
                 if(!c->isfloating)
                         /*restore last known float dimensions*/
-                        resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
+                        resize(c, c->sfx, c->sfy, c->sfw, c->sfh, True);
                     else
-                        resize(c, c->x, c->y, c->w, c->h, False);
+                        resize(c, c->x, c->y, c->w, c->h, True);
         }
     }
     wasfloating = True;
@@ -841,9 +843,8 @@ focus(Client *c) {
     }
     else
             XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
-    if(o){
+    if(o)
         drawclient(o);
-    }
     updateatom[ActiveWindow](sel);
 }
 
@@ -1171,6 +1172,7 @@ manage(Window w, XWindowAttributes *wa) {
     XConfigureWindow(dpy, w, CWBorderWidth, &wc);
     XSetWindowBorder(dpy, w, dc.norm[ColBorder]);
     configure(c); /* propagates border_width, if size doesn't change */
+    updatesizehints(c);
     c->sfx = c->x;
     c->sfy = c->y;
     c->sfw = c->w;
@@ -1273,7 +1275,7 @@ ifloating(void){
                                 /* are you wondering about 0.9 & 0.8 ? */
                             if(smartcheckarea(x, y, 0.8*c->w, 0.8*c->h)<=f){
                                 /* got it! a big chunk of "free" space */
-                                resize(c, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, False);
+                                resize(c, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, True);
 				c->isplaced = True;
                             }
                         }
@@ -1389,6 +1391,7 @@ propertynotify(XEvent *e) {
                                     arrange();
                             break;
                     case XA_WM_NORMAL_HINTS:
+			    updatesizehints(c);
                             break;
             }
             if(ev->atom == XA_WM_NAME || ev->atom == atom[WindowName]) {
@@ -1415,8 +1418,47 @@ quit(const char *arg) {
 }
 
 void
-resize(Client *c, int x, int y, int w, int h, Bool offscreen) {
+resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
     XWindowChanges wc;
+
+    if(sizehints) {
+	/* set minimum possible */
+	if (w < 1)
+		w = 1;
+	if (h < 1)
+		h = 1;
+
+	/* temporarily remove base dimensions */
+	w -= c->basew;
+	h -= c->baseh;
+
+	/* adjust for aspect limits */
+	if (c->minay > 0 && c->maxay > 0 && c->minax > 0 && c->maxax > 0) {
+		if (w * c->maxay > h * c->maxax)
+			w = h * c->maxax / c->maxay;
+		else if (w * c->minay < h * c->minax)
+			h = w * c->minay / c->minax;
+	}
+
+	/* adjust for increment value */
+	if(c->incw)
+		w -= w % c->incw;
+	if(c->inch)
+		h -= h % c->inch;
+
+	/* restore base dimensions */
+	w += c->basew;
+	h += c->baseh;
+
+	if(c->minw > 0 && w < c->minw)
+		w = c->minw;
+	if(c->minh > 0 && h < c->minh)
+		h = c->minh;
+	if(c->maxw > 0 && w > c->maxw)
+		w = c->maxw;
+	if(c->maxh > 0 && h > c->maxh)
+		h = c->maxh;
+    }
 
     if(w <= 0 || h <= 0)
             return;
@@ -1425,12 +1467,6 @@ resize(Client *c, int x, int y, int w, int h, Bool offscreen) {
             x = sw - w - 2 * c->border;
     if(y > sh)
             y = sh - h - 2 * c->border;
-    if (offscreen){
-        if(x + w > sw)
-                x = sw - w - 2 * c->border;
-        if(y + w> sh)
-                y = sh - h - 2 * c->border;
-    }
     if(x + w + 2 * c->border < sx)
             x = sx;
     if(y + h + 2 * c->border < sy)
@@ -1488,7 +1524,7 @@ resizemouse(Client *c) {
                             nw = MINWIDTH;
                     if((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
                             nh = MINHEIGHT;
-                    resize(c, c->x, c->y, nw, nh, False);
+                    resize(c, c->x, c->y, nw, nh, True);
                     break;
             }
     }
@@ -2126,6 +2162,58 @@ unmapnotify(XEvent *e) {
 }
 
 void
+updatesizehints(Client *c) {
+	long msize;
+	XSizeHints size;
+
+	if(!XGetWMNormalHints(dpy, c->win, &size, &msize) || !size.flags)
+		size.flags = PSize;
+	c->flags = size.flags;
+	if(c->flags & PBaseSize) {
+		c->basew = size.base_width;
+		c->baseh = size.base_height;
+	}
+	else if(c->flags & PMinSize) {
+		c->basew = size.min_width;
+		c->baseh = size.min_height;
+	}
+	else
+		c->basew = c->baseh = 0;
+	if(c->flags & PResizeInc) {
+		c->incw = size.width_inc;
+		c->inch = size.height_inc;
+	}
+	else
+		c->incw = c->inch = 0;
+	if(c->flags & PMaxSize) {
+		c->maxw = size.max_width;
+		c->maxh = size.max_height;
+	}
+	else
+		c->maxw = c->maxh = 0;
+	if(c->flags & PMinSize) {
+		c->minw = size.min_width;
+		c->minh = size.min_height;
+	}
+	else if(c->flags & PBaseSize) {
+		c->minw = size.base_width;
+		c->minh = size.base_height;
+	}
+	else
+		c->minw = c->minh = 0;
+	if(c->flags & PAspect) {
+		c->minax = size.min_aspect.x;
+		c->maxax = size.max_aspect.x;
+		c->minay = size.min_aspect.y;
+		c->maxay = size.max_aspect.y;
+	}
+	else
+		c->minax = c->maxax = c->minay = c->maxay = 0;
+	c->isfixed = (c->maxw && c->minw && c->maxh && c->minh
+			&& c->maxw == c->minw && c->maxh == c->minh);
+}
+
+void
 updatetitle(Client *c) {
     if(!gettextprop(c->win, atom[WindowName], c->name, sizeof c->name))
             gettextprop(c->win, wmatom[WMName], c->name, sizeof c->name);
@@ -2195,6 +2283,7 @@ viewprevtag(const char *arg) {
     if (bpos[prevcurtag] != bpos[curtag])
 	updategeom();
     arrange();
+    updateatom[CurDesk](NULL);
 }
 
 void
