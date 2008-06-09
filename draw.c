@@ -117,8 +117,12 @@ drawclient(Client *c) {
 			0, 0, c->tw, c->th+2*borderpx, 0, 0);
     if (c==sel)
       opacity = OPAQUE;
-    else
-      opacity = (unsigned int) (uf_opacity * OPAQUE);
+    else {
+      if(opacity)
+	      opacity = (unsigned int) (uf_opacity * OPAQUE);
+      else
+	      opacity = OPAQUE;
+    }
     setopacity(c, opacity);
     XMapWindow(dpy, c->title);
 }

@@ -803,7 +803,7 @@ floating(void) { /* default floating layout */
         if(isvisible(c) && !c->isicon) {
                 c->hastitle=c->hadtitle;
                 drawclient(c);
-                if(!c->isfloating && !wasfloating)
+                if(!c->isfloating)
                         /*restore last known float dimensions*/
                         resize(c, c->sfx, c->sfy, c->sfw, c->sfh, False);
                     else
@@ -1682,10 +1682,11 @@ inittags(){
     prevtags = emallocz(ntags*sizeof(Bool));
     seltags = emallocz(ntags*sizeof(Bool));
     seltags[0] = True;
-    for(i=0; i < ntags; i++){
+    for(i = 0; i < ntags; i++){
         tags[i] = emallocz(25*sizeof(char));
         snprintf(tmp, 24, "tags.name%d", i);
         snprintf(tags[i], 24, "%s", getresource(tmp, "null"));
+	fprintf(stderr, "tags[%d]=%s\n", i, tags[i]);
     }
 }
 
@@ -1777,7 +1778,7 @@ setup(void) {
              eprint("error, cannot allocate colors\n");
         initfont(getresource("font", FONT));
         borderpx = atoi(getresource("border", BORDERPX));
-        uf_opacity = strtof(getresource("opacity", NF_OPACITY),NULL);
+        uf_opacity = atof(getresource("opacity", NF_OPACITY));
 
         strncpy(terminal, getresource("terminal", TERMINAL), 255);
 

@@ -96,17 +96,14 @@ ewmh_update_net_window_desktop(Client *c) {
 void
 ewmh_update_net_desktop_names() {
     char buf[1024], *pos;
-    ssize_t len, curr_size;
     int i;
+    int len = 0;
 
     pos = buf;
-    len = 0;
     for(i = 0; i < ntags; i++) {
-        curr_size = strlen(tags[i]);
-        strcpy(pos, tags[i]);
-        pos += curr_size;
-        strcpy(pos, "\0");
-        pos++;
+	fprintf(stderr, "ewmh:tags[%d]=%s\n",i, tags[i]);
+        sprintf(pos, "%s", tags[i]); 
+        pos += (strlen(tags[i])+1);
     }
     len = pos - buf;
 
