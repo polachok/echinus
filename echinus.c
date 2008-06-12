@@ -1402,15 +1402,8 @@ propertynotify(XEvent *e) {
 }
 
 void
-restart(const char *arg) {
-    cleanup();
-    running = False;
-    execvp(cargv[0], cargv);
-    eprint("Can't exec: %s\n", strerror(errno));
-}
-
-void
 quit(const char *arg) {
+    cleanup();
     running = False;
     if(arg){
 	execvp(cargv[0], cargv);
