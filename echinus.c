@@ -765,9 +765,10 @@ enternotify(XEvent *e) {
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
     if((c = getclient(ev->window))){
-	if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating))
+	if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)  )
             focus(c);
-        XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
+	else
+	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
                     BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
     }
     else if(ev->window == root) {
@@ -1552,20 +1553,19 @@ restack(void) {
 
     if(!sel)
             return;
-    XRaiseWindow(dpy, sel->win);
-    XRaiseWindow(dpy, sel->title);
+    if(sel->isfloating || layouts[ltidxs[curtag]].arrange == floating || layouts[ltidxs[curtag]].arrange == ifloating){
+        XRaiseWindow(dpy, sel->win);
+        XRaiseWindow(dpy, sel->title);
+    }
     if(layouts[ltidxs[curtag]].arrange != floating && layouts[ltidxs[curtag]].arrange != ifloating) {
             wc.stack_mode = Below;
-            if(!sel->isfloating) {
-                    XConfigureWindow(dpy, sel->win, CWSibling | CWStackMode, &wc);
-                    wc.sibling = sel->win;
+	    for(c = stack; c; c = c->snext){
+                    if(!c->isfloating && isvisible(c)) {
+                            XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
+                            wc.sibling = c->win;
+                    }
             }
-            for(c = nexttiled(clients); c; c = nexttiled(c->next)) {
-                    if(c == sel)
-                            continue;
-                    XConfigureWindow(dpy, c->win, CWSibling | CWStackMode, &wc);
-                    wc.sibling = c->win;
-            }
+
     }
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
