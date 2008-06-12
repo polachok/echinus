@@ -8,7 +8,7 @@
 #include <X11/Xatom.h>
 
 enum { ClientList, ActiveWindow, WindowDesk,
-      NumberOfDesk, DeskNames, CurDesk, ClientListStacking,
+      NumberOfDesk, DeskNames, CurDesk, ELayout, ClientListStacking,
       WindowOpacity, WindowType, WindowTypeDesk,
       WindowTypeDock, StrutPartial, ESelTags,
       WindowName, Utf8String, Supported, NATOMS };
@@ -24,6 +24,7 @@ char* atomnames[NATOMS][1] = {
     { "_NET_NUMBER_OF_DESKTOPS" },
     { "_NET_DESKTOP_NAMES" },
     { "_NET_CURRENT_DESKTOP" },
+    { "_ECHINUS_LAYOUT" },
     { "_NET_CLIENT_LIST_STACKING" },
     { "_NET_WM_WINDOW_OPACITY" },
     { "_NET_WM_WINDOW_TYPE" },
@@ -45,6 +46,13 @@ initatom(void) {
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     atom[Supported], XA_ATOM, 32,
                     PropModeReplace, (unsigned char *) atom, NATOMS);
+}
+
+void 
+update_echinus_layout_name(Client *c){
+	XChangeProperty(dpy, root, atom[ELayout], 
+                XA_STRING, 8, PropModeReplace, 
+                (unsigned char *) layouts[ltidxs[curtag]].symbol, 1L);
 }
 
 void
@@ -81,6 +89,7 @@ ewmh_update_net_current_desktop() {
                     atom[ESelTags], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) seltags, ntags);
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     atom[CurDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &curtag, 1);
+    update_echinus_layout_name(NULL);
 }
 
 void
@@ -101,7 +110,6 @@ ewmh_update_net_desktop_names() {
 
     pos = buf;
     for(i = 0; i < ntags; i++) {
-	fprintf(stderr, "ewmh:tags[%d]=%s\n",i, tags[i]);
         sprintf(pos, "%s", tags[i]); 
         pos += (strlen(tags[i])+1);
     }
@@ -190,4 +198,5 @@ void (*updateatom[LASTAtom]) (Client *) = {
     [NumberOfDesk] = ewmh_update_net_number_of_desktops,
     [DeskNames] = ewmh_update_net_desktop_names,
     [CurDesk] = ewmh_update_net_current_desktop,
+    [ELayout] = update_echinus_layout_name,
 };

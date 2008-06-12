@@ -1653,6 +1653,7 @@ setlayout(const char *arg) {
     }
     if(sel)
             arrange();
+    updateatom[ELayout](NULL);
 }
 
 void
@@ -1704,6 +1705,7 @@ initlayouts(){
     bpos = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
     for(i = 0; i < ntags; i++)
             bpos[i] = BARPOS;
+    updateatom[ELayout](NULL);
 }
 
 void
