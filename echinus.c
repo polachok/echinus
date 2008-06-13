@@ -56,10 +56,8 @@
 #define RESNAME                        "echinus"
 #define RESCLASS               "Echinus"
 #define OPAQUE	0xffffffff
-#define ROWS 4
-#define COLS 4
-#define INITCOLSROWS { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 }
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
+
 /* enums */
 enum { LeftStrut, RightStrut, BotStrut, TopStrut, LastStrut };
 enum { StrutsOn, StrutsOff, StrutsHide };			/* struts position */
@@ -164,9 +162,7 @@ void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
 void expose(XEvent *e);
 void floating(void); /* default floating layout */
-void rfloating(void); /* region floating layout */
 void ifloating(void); /* intellectual floating layout try */
-//void sfloating(void); /* intellectual floating layout */
 void iconifyit(const char *arg);
 void incnmaster(const char *arg);
 void focus(Client *c);
@@ -2017,16 +2013,13 @@ togglemax(const char *arg) {
     if(!sel || sel->isfixed)
             return;
     if((sel->ismax = !sel->ismax)) {
-            if((layouts[ltidxs[curtag]].arrange == floating) || sel->isfloating || (layouts[ltidxs[curtag]].arrange == ifloating)){
-                sel->wasfloating = True;
-                sel->rx = sel->x;
-                sel->ry = sel->y;
-                sel->rw = sel->w;
-                sel->rh = sel->h;
-                resize(sel, wax, way+sel->th, waw - 2 * sel->border, wah - 2 * sel->border - sel->th, True);
-            }
+            sel->rx = sel->x;
+            sel->ry = sel->y;
+            sel->rw = sel->w;
+            sel->rh = sel->h;
+            resize(sel, wax - sel->border, way - sel->th - sel->border, waw + 2*sel->border, wah + 2*sel->border + sel->th, True);
     }
-    else
+    else 
         resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, True);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }

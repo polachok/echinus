@@ -1,21 +1,26 @@
 /*
- *    EWMH atom support. borrowed from awesome wm
+ *    EWMH atom support. initial implementation borrowed from
+ *    awesome wm, then partially reworked.
  *
  *    Copyright © 2007-2008 Julien Danjou <julien@danjou.info>
+ *    Copyright © 2008 Alexander Polakov <polachok@gmail.com>
  *
  */
 
 #include <X11/Xatom.h>
 
 enum { ClientList, ActiveWindow, WindowDesk,
-      NumberOfDesk, DeskNames, CurDesk, ELayout, ClientListStacking,
-      WindowOpacity, WindowType, WindowTypeDesk,
-      WindowTypeDock, StrutPartial, ESelTags,
-      WindowName, Utf8String, Supported, NATOMS };
+      NumberOfDesk, DeskNames, CurDesk, ELayout,
+      ClientListStacking, WindowOpacity, WindowType,
+      WindowTypeDesk, WindowTypeDock, StrutPartial, ESelTags,
+      WindowName, WindowState, WindowStateFs, Utf8String, Supported, NATOMS };
 
 Atom atom[NATOMS];
 
 #define LASTAtom ClientListStacking
+
+#define _NET_WM_STATE_REMOVE 0
+#define _NET_WM_STATE_ADD 1
 
 char* atomnames[NATOMS][1] = {
     { "_NET_CLIENT_LIST" },
@@ -33,6 +38,8 @@ char* atomnames[NATOMS][1] = {
     { "_NET_WM_STRUT_PARTIAL" },
     { "_ECHINUS_SELTAGS" },
     { "_NET_WM_NAME" },
+    { "_NET_WM_STATE" },
+    { "_NET_WM_STATE_FULLSCREEN" },
     { "UTF8_STRING" }, 
     { "_NET_SUPPORTED" },
 };
@@ -130,15 +137,41 @@ ewmh_update_net_active_window() {
 }
 
 void
+ewmh_process_state_atom(Client *c, Atom state, int set) {
+    if(state == atom[WindowStateFs]) {
+        if(set == _NET_WM_STATE_ADD) {
+            c->oldborder = c->border;
+            c->border = 0;
+            configure(c);
+            togglemax(NULL);
+        }
+        else if(set == _NET_WM_STATE_REMOVE) {
+            c->border = c->oldborder;
+            configure(c);
+            togglemax(NULL);
+        }
+        arrange();
+    }
+}
+
+void
 clientmessage(XEvent *e) {
     XClientMessageEvent *ev = &e->xclient;
+    Client *c;
 
     if(ev->message_type == atom[ActiveWindow]) {
         focus(getclient(ev->window));
         restack();
     }
-    if(ev->message_type == atom[CurDesk]) {
+    else if(ev->message_type == atom[CurDesk]) {
         view(tags[ev->data.l[0]]);
+    }
+    if(ev->message_type == atom[WindowState]){ 
+        if((c = getclient(ev->window))){   
+            ewmh_process_state_atom(c, (Atom) ev->data.l[1], ev->data.l[0]);
+            if(ev->data.l[2])
+                    ewmh_process_state_atom(c, (Atom) ev->data.l[2], ev->data.l[0]);
+            }
     }
 }
 
