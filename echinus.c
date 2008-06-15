@@ -2042,6 +2042,7 @@ void
 toggleview(const char *arg) {
     unsigned int i, j;
 
+    memcpy(prevtags, seltags, ntags*(sizeof seltags));
     i = idxoftag(arg);
     seltags[i] = !seltags[i];
     for(j = 0; j < ntags && !seltags[j]; j++);
@@ -2067,8 +2068,8 @@ focusview(const char *arg) {
         if (c->tags[i]) {
                 focus(c);
                 if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating || (layouts[ltidxs[curtag]].arrange == ifloating)){
-                    restack();
                     drawfloating();
+                    restack();
                 }
                 return;
         }
