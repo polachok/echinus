@@ -476,7 +476,7 @@ buttonpress(XEvent *e) {
                     drawmouse(e);
                     break;
                 case Button4:
-                    for(i=0; i <= ntags; i++) {
+                    for(i = 0; i < ntags; i++) {
                         if(i && seltags[i]) {
                                 view(tags[i-1]);
                                 break;
@@ -484,7 +484,7 @@ buttonpress(XEvent *e) {
                     }
                     break;
                 case Button5:
-                    for(i=0; i < ntags; i++) {
+                    for(i = 0; i < ntags-1; i++) {
                         if(seltags[i]) {
                             view(tags[i+1]);
                             break;
