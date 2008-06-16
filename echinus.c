@@ -1375,11 +1375,14 @@ propertynotify(XEvent *e) {
     Client *c;
     Window trans;
     XPropertyEvent *ev = &e->xproperty;
+    XWindowAttributes wa;
 
     if(ev->state == PropertyDelete)
             return; /* ignore */
-    if(ev->atom == atom[StrutPartial])
-            updatestruts(ev->window);
+    if(ev->atom == atom[StrutPartial]){
+            if(XGetWindowAttributes(dpy, ev->window, &wa) || !wa.override_redirect)
+                manage(ev->window, &wa);
+    }
     if((c = getclient(ev->window))) {
             switch (ev->atom) {
                     default: break;
@@ -2018,7 +2021,7 @@ togglemax(const char *arg) {
             sel->ry = sel->y;
             sel->rw = sel->w;
             sel->rh = sel->h;
-            resize(sel, sx, sy, sw + 2*sel->border, sh + 2*sel->border + sel->th, False);
+            resize(sel, sx - sel->border, sy - sel->border, sw + 2*sel->border, sh + 2*sel->border + sel->th, False);
     }
     else 
         resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, True);

@@ -146,15 +146,13 @@ void
 ewmh_process_state_atom(Client *c, Atom state, int set) {
     if(state == atom[WindowStateFs]) {
         if(set == _NET_WM_STATE_ADD) {
-            c->oldborder = c->border;
-            c->border = 0;
             c->wasfloating = c->isfloating;
             c->isfloating = True;
             togglemax(NULL);
         }
         else if(set == _NET_WM_STATE_REMOVE) {
-            c->border = c->oldborder;
             c->isfloating = c->wasfloating;
+            c->wasfloating = True;
             togglemax(NULL);
         }
         arrange();
