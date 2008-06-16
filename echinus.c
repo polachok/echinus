@@ -2017,7 +2017,7 @@ togglemax(const char *arg) {
             sel->ry = sel->y;
             sel->rw = sel->w;
             sel->rh = sel->h;
-            resize(sel, wax - sel->border, way - sel->th - sel->border, waw + 2*sel->border, wah + 2*sel->border + sel->th, True);
+            resize(sel, sx, sy, sw + 2*sel->border, sh + 2*sel->border + sel->th, False);
     }
     else 
         resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, True);

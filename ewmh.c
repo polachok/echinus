@@ -148,15 +148,17 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
         if(set == _NET_WM_STATE_ADD) {
             c->oldborder = c->border;
             c->border = 0;
-            configure(c);
+            c->wasfloating = c->isfloating;
+            c->isfloating = True;
             togglemax(NULL);
         }
         else if(set == _NET_WM_STATE_REMOVE) {
             c->border = c->oldborder;
-            configure(c);
+            c->isfloating = c->wasfloating;
             togglemax(NULL);
         }
         arrange();
+        drawfloating();
     }
 }
 
