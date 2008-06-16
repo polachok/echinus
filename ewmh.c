@@ -214,21 +214,20 @@ isbastard(Window win){
 static int
 updatestruts(Window win){
     Atom real, *state;
-    int format;
+    int format, i;
     unsigned char *data = NULL;
     unsigned long n, extra;
     if(XGetWindowProperty(dpy, win, atom[StrutPartial], 0L, LONG_MAX, False,
                           XA_CARDINAL, &real, &format, &n, &extra,
-                          (unsigned char **) &data) == Success && data)
+                          (unsigned char **) &data) == Success && data){
         state = (Atom *) data;
         if(n){
-            struts[LeftStrut] = state[0] > struts[LeftStrut] ? state[0] : struts[LeftStrut];
-            struts[RightStrut] = state[1] > struts[RightStrut] ? state[1] : struts[RightStrut];
-            struts[TopStrut] = state[2] > struts[TopStrut] ? state[2] : struts[TopStrut];
-            struts[BotStrut] = state[3] > struts[BotStrut] ? state[3] : struts[BotStrut];
+            for(i = LeftStrut; i < LastStrut; i++)
+                struts[i] = (state[i] > struts[i]) ? state[i] : struts[i];
             updategeom();
             return 1;
         }
+    }
     return 0;
 }
 

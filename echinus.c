@@ -59,7 +59,7 @@
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 
 /* enums */
-enum { LeftStrut, RightStrut, BotStrut, TopStrut, LastStrut };
+enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };
 enum { StrutsOn, StrutsOff, StrutsHide };			/* struts position */
 enum { TitleLeft, TitleCenter, TitleRight };			/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
@@ -1108,7 +1108,8 @@ manage(Window w, XWindowAttributes *wa) {
     XWindowChanges wc;
     XSetWindowAttributes twa;
 
-    updatestruts(w);
+    XSelectInput(dpy, w, PropertyChangeMask);
+
     c = emallocz(sizeof(Client));
     c->win = w;
 
@@ -2128,6 +2129,7 @@ updategeom(void) {
     case StrutsOff:
         break;
     }
+    arrange();
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
