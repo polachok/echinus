@@ -1213,6 +1213,7 @@ manage(Window w, XWindowAttributes *wa) {
     attach(c);
     attachstack(c);
     XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h); /* some windows require this */
+    isfullscreen(c->win);
     XMapWindow(dpy, c->win);
     drawclient(c);
     updateatom[ClientList](NULL);

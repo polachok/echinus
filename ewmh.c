@@ -145,6 +145,7 @@ ewmh_update_net_active_window() {
 void
 ewmh_process_state_atom(Client *c, Atom state, int set) {
     if(state == atom[WindowStateFs]) {
+        focus(c);
         if(set == _NET_WM_STATE_ADD) {
             c->wasfloating = c->isfloating;
             c->isfloating = True;
@@ -205,6 +206,26 @@ isbastard(Window win){
         for(i = 0; i < n; i++){
             if(state[i] == atom[WindowTypeDock] || state[i] == atom[WindowTypeDesk])
                             return 1;
+        }
+    return 0;
+}
+
+static int
+isfullscreen(Window win){
+    Atom real, *state;
+    int format;
+    unsigned char *data = NULL;
+    unsigned long i, n, extra;
+    Client *c;
+    if(XGetWindowProperty(dpy, win, atom[WindowState], 0L, LONG_MAX, False,
+                          XA_ATOM, &real, &format, &n, &extra,
+                          (unsigned char **) &data) == Success && data)
+        state = (Atom *) data;
+        for(i = 0; i < n; i++){
+            if(state[i] == atom[WindowStateFs]){
+                if(c = getclient(win))
+                    ewmh_process_state_atom(c, atom[WindowStateFs], _NET_WM_STATE_ADD);
+            }
         }
     return 0;
 }
