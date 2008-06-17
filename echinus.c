@@ -712,6 +712,7 @@ destroynotify(XEvent *e) {
     }
     updategeom();
     arrange();
+    updateatom[ClientList](NULL);
 }
 
 void
@@ -899,6 +900,14 @@ getclient(Window w) {
     Client *c;
 
     for(c = clients; c && c->win != w; c = c->next);
+    return c;
+}
+
+Client *
+getbastard(Window w) {
+    Client *c;
+
+    for(c = bastards; c && c->win != w; c = c->next);
     return c;
 }
 
@@ -1380,7 +1389,7 @@ propertynotify(XEvent *e) {
     if(ev->state == PropertyDelete)
             return; /* ignore */
     if(ev->atom == atom[StrutPartial]){
-            if(XGetWindowAttributes(dpy, ev->window, &wa) || !wa.override_redirect)
+            if(XGetWindowAttributes(dpy, ev->window, &wa) && !wa.override_redirect && !getbastard(ev->window))
                 manage(ev->window, &wa);
     }
     if((c = getclient(ev->window))) {
