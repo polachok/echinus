@@ -167,14 +167,14 @@ clientmessage(XEvent *e) {
     Client *c;
 
     if(ev->message_type == atom[ActiveWindow]) {
-        focus(getclient(ev->window));
+        focus(getclient(ev->window, clients, False));
         restack();
     }
     else if(ev->message_type == atom[CurDesk]) {
         view(tags[ev->data.l[0]]);
     }
     if(ev->message_type == atom[WindowState]){ 
-        if((c = getclient(ev->window))){   
+        if((c = getclient(ev->window, clients, False))){   
             ewmh_process_state_atom(c, (Atom) ev->data.l[1], ev->data.l[0]);
             if(ev->data.l[2])
                     ewmh_process_state_atom(c, (Atom) ev->data.l[2], ev->data.l[0]);
@@ -223,7 +223,7 @@ isfullscreen(Window win){
         state = (Atom *) data;
         for(i = 0; i < n; i++){
             if(state[i] == atom[WindowStateFs]){
-                if(c = getclient(win))
+                if(c = getclient(win, clients, False))
                     ewmh_process_state_atom(c, atom[WindowStateFs], _NET_WM_STATE_ADD);
             }
         }

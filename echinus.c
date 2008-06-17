@@ -168,8 +168,7 @@ void incnmaster(const char *arg);
 void focus(Client *c);
 void focusnext(const char *arg);
 void focusprev(const char *arg);
-Client *getclient(Window w);
-Client *gettitle(Window w);
+Client *getclient(Window w, Client *list, Bool title);
 unsigned long getcolor(const char *colstr);
 char *getresource(const char *resource, char *defval);
 long getstate(Window w);
@@ -494,7 +493,7 @@ buttonpress(XEvent *e) {
             }
             return;
     }
-    if((c = getclient(ev->window))) {
+    if((c = getclient(ev->window, clients, False))) {
         focus(c);
         restack();
         XAllowEvents(dpy, ReplayPointer, CurrentTime);
@@ -519,7 +518,7 @@ buttonpress(XEvent *e) {
                 resizemouse(c);
         }
     }
-    else if((c = gettitle(ev->window))) {
+    else if((c = getclient(ev->window, clients, True))) {
         focus(c);
         if(tpos != TitleRight){
             if((ev->x > c->tw-3*c->th) && (ev->x < c->tw-2*c->th)){
@@ -652,7 +651,7 @@ configurerequest(XEvent *e) {
     XConfigureRequestEvent *ev = &e->xconfigurerequest;
     XWindowChanges wc;
 
-    if((c = getclient(ev->window))) {
+    if((c = getclient(ev->window, clients, False))) {
             c->ismax = False;
             if(ev->value_mask & CWBorderWidth)
                     c->border = ev->border_width;
@@ -699,7 +698,7 @@ destroynotify(XEvent *e) {
     Client *c;
     XDestroyWindowEvent *ev = &e->xdestroywindow;
 
-    if((c = getclient(ev->window)))
+    if((c = getclient(ev->window, clients, False)))
         unmanage(c);
     struts[RightStrut] = struts[LeftStrut] = struts[TopStrut] = struts[BotStrut] = 0;
     for(c = bastards; c ; c = c->next){
@@ -761,7 +760,7 @@ enternotify(XEvent *e) {
 
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
-    if((c = getclient(ev->window))){
+    if((c = getclient(ev->window, clients, False))){
 	if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)  )
             focus(c);
 	else
@@ -788,7 +787,7 @@ void
 expose(XEvent *e) {
     XExposeEvent *ev = &e->xexpose;
     Client *c;
-    if((c=gettitle(ev->window)))
+    if((c = getclient(ev->window, clients, True)))
         drawclient(c);
 }
 
@@ -896,26 +895,10 @@ incnmaster(const char *arg) {
 }
 
 Client *
-getclient(Window w) {
+getclient(Window w, Client *list, Bool title) {
     Client *c;
 
-    for(c = clients; c && c->win != w; c = c->next);
-    return c;
-}
-
-Client *
-getbastard(Window w) {
-    Client *c;
-
-    for(c = bastards; c && c->win != w; c = c->next);
-    return c;
-}
-
-Client *
-gettitle(Window w) {
-    Client *c;
-
-    for(c = clients; c && c->title != w; c = c->next);
+    for(c = list; c && (title ? c->title : c->win) != w; c = c->next);
     return c;
 }
 
@@ -1239,7 +1222,7 @@ maprequest(XEvent *e) {
             return;
     if(wa.override_redirect)
             return;
-    if(!getclient(ev->window))
+    if(!getclient(ev->window, clients, False))
             manage(ev->window, &wa);
     arrange();
 }
@@ -1390,15 +1373,15 @@ propertynotify(XEvent *e) {
     if(ev->state == PropertyDelete)
             return; /* ignore */
     if(ev->atom == atom[StrutPartial]){
-            if(XGetWindowAttributes(dpy, ev->window, &wa) && !wa.override_redirect && !getbastard(ev->window))
+            if(XGetWindowAttributes(dpy, ev->window, &wa) && !wa.override_redirect && !getclient(ev->window, bastards, False))
                 manage(ev->window, &wa);
     }
-    if((c = getclient(ev->window))) {
+    if((c = getclient(ev->window, clients, False))) {
             switch (ev->atom) {
                     default: break;
                     case XA_WM_TRANSIENT_FOR:
                             XGetTransientForHint(dpy, c->win, &trans);
-                            if(!c->isfloating && (c->isfloating = (getclient(trans) != NULL)))
+                            if(!c->isfloating && (c->isfloating = (getclient(trans, clients, False) != NULL)))
                                     arrange();
                             break;
                     case XA_WM_NORMAL_HINTS:
@@ -2153,7 +2136,7 @@ unmapnotify(XEvent *e) {
     XUnmapEvent *ev = &e->xunmap;
     XWindowAttributes wa;
 
-    if((c = getclient(ev->window))) {
+    if((c = getclient(ev->window, clients, False))) {
         if(c->isicon)
             return;
         XGetWindowAttributes(dpy, ev->window, &wa);
