@@ -19,9 +19,6 @@ Atom atom[NATOMS];
 
 #define LASTAtom ClientListStacking
 
-#define _NET_WM_STATE_REMOVE 0
-#define _NET_WM_STATE_ADD 1
-
 char* atomnames[NATOMS][1] = {
     { "_NET_CLIENT_LIST" },
     { "_NET_ACTIVE_WINDOW" },
@@ -146,12 +143,12 @@ void
 ewmh_process_state_atom(Client *c, Atom state, int set) {
     if(state == atom[WindowStateFs]) {
         focus(c);
-        if(set == _NET_WM_STATE_ADD) {
+        if(set == 1) {
             c->wasfloating = c->isfloating;
             c->isfloating = True;
             togglemax(NULL);
         }
-        else if(set == _NET_WM_STATE_REMOVE) {
+        else if(set == 0) {
             c->isfloating = c->wasfloating;
             c->wasfloating = True;
             togglemax(NULL);
@@ -194,38 +191,18 @@ setopacity(Client *c, unsigned int opacity) {
 
 
 static int
-isbastard(Window win){
+checkatom(Window win, Atom bigatom, Atom smallatom){
     Atom real, *state;
     int format;
     unsigned char *data = NULL;
     unsigned long i, n, extra;
-    if(XGetWindowProperty(dpy, win, atom[WindowType], 0L, LONG_MAX, False,
+    if(XGetWindowProperty(dpy, win, bigatom, 0L, LONG_MAX, False,
                           XA_ATOM, &real, &format, &n, &extra,
                           (unsigned char **) &data) == Success && data)
         state = (Atom *) data;
         for(i = 0; i < n; i++){
-            if(state[i] == atom[WindowTypeDock] || state[i] == atom[WindowTypeDesk])
-                            return 1;
-        }
-    return 0;
-}
-
-static int
-isfullscreen(Window win){
-    Atom real, *state;
-    int format;
-    unsigned char *data = NULL;
-    unsigned long i, n, extra;
-    Client *c;
-    if(XGetWindowProperty(dpy, win, atom[WindowState], 0L, LONG_MAX, False,
-                          XA_ATOM, &real, &format, &n, &extra,
-                          (unsigned char **) &data) == Success && data)
-        state = (Atom *) data;
-        for(i = 0; i < n; i++){
-            if(state[i] == atom[WindowStateFs]){
-                if(c = getclient(win, clients, False))
-                    ewmh_process_state_atom(c, atom[WindowStateFs], _NET_WM_STATE_ADD);
-            }
+            if(state[i] == smallatom)
+                        return 1;
         }
     return 0;
 }

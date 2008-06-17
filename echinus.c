@@ -1105,7 +1105,8 @@ manage(Window w, XWindowAttributes *wa) {
     c = emallocz(sizeof(Client));
     c->win = w;
 
-    if(isbastard(c->win)){
+    if(checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]) ||
+            checkatom(c->win, atom[WindowType], atom[WindowTypeDock])){
         if(updatestruts(c->win))
             attachspec(c);
         else
@@ -1196,7 +1197,8 @@ manage(Window w, XWindowAttributes *wa) {
     attach(c);
     attachstack(c);
     XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h); /* some windows require this */
-    isfullscreen(c->win);
+    if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
+        ewmh_process_state_atom(c, atom[WindowStateFs], 1);
     XMapWindow(dpy, c->win);
     drawclient(c);
     updateatom[ClientList](NULL);
