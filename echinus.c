@@ -1100,18 +1100,19 @@ manage(Window w, XWindowAttributes *wa) {
     XWindowChanges wc;
     XSetWindowAttributes twa;
 
-    XSelectInput(dpy, w, PropertyChangeMask);
-
     c = emallocz(sizeof(Client));
     c->win = w;
 
     if(checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]) ||
             checkatom(c->win, atom[WindowType], atom[WindowTypeDock])){
-        if(updatestruts(c->win))
+        XSelectInput(dpy, w, PropertyChangeMask);
+        if(updatestruts(w))
             attachspec(c);
         else
             free(c);
         XMapWindow(dpy, w);
+        updategeom();
+        arrange();
         return;
     }
 
@@ -1375,8 +1376,8 @@ propertynotify(XEvent *e) {
     if(ev->state == PropertyDelete)
             return; /* ignore */
     if(ev->atom == atom[StrutPartial]){
-            if(XGetWindowAttributes(dpy, ev->window, &wa) && !wa.override_redirect && !getclient(ev->window, bastards, False))
-                manage(ev->window, &wa);
+        updatestruts(ev->window);
+        arrange();
     }
     if((c = getclient(ev->window, clients, False))) {
             switch (ev->atom) {
@@ -1541,10 +1542,8 @@ restack(void) {
 
     if(!sel)
             return;
-    if(sel->isfloating || layouts[ltidxs[curtag]].arrange == floating || layouts[ltidxs[curtag]].arrange == ifloating){
-        XRaiseWindow(dpy, sel->win);
-        XRaiseWindow(dpy, sel->title);
-    }
+    XRaiseWindow(dpy, sel->win);
+    XRaiseWindow(dpy, sel->title);
     if(layouts[ltidxs[curtag]].arrange != floating && layouts[ltidxs[curtag]].arrange != ifloating) {
             wc.stack_mode = Below;
 	    for(c = stack; c; c = c->snext){
@@ -1555,6 +1554,7 @@ restack(void) {
             }
 
     }
+    drawfloating();
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -2127,7 +2127,6 @@ updategeom(void) {
     case StrutsOff:
         break;
     }
-    arrange();
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
