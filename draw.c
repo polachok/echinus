@@ -118,7 +118,7 @@ drawclient(Client *c) {
     if (c==sel)
       opacity = OPAQUE;
     else {
-      if(opacity)
+      if(uf_opacity)
 	      opacity = (unsigned int) (uf_opacity * OPAQUE);
       else
 	      opacity = OPAQUE;

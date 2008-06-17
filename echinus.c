@@ -2262,7 +2262,7 @@ viewprevtag(const char *arg) {
     unsigned int i, prevcurtag;
  
     i = 0;
-    while(i < ntags && !prevtags[i]) i++;
+    while(i < ntags-1 && !prevtags[i]) i++;
     prevcurtag = curtag;
     curtag = i;
 
