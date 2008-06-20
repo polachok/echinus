@@ -43,23 +43,20 @@ parsekey(char *s, Key *k) {
     char *tmp;
     int i;
     pos = strchr(s, '+');
-    if(!pos)
+    if(!s || !(pos-s) || !pos)
         return;
     opos = pos;
-    tmp = emallocz((pos-s)*sizeof(char));
-    strncpy(tmp, s, pos-s);
-    for(i = 0; i <= strlen(tmp); i++){
-        if(tmp[i]=='A')
+    for(i = 0, tmp = s; tmp < pos; i++, tmp++){
+        if(*tmp=='A')
             modmask = modmask | Mod1Mask;
-        if(tmp[i]=='S')
+        if(*tmp=='S')
             modmask = modmask | ShiftMask;
-        if(tmp[i]=='C')
+        if(*tmp=='C')
             modmask = modmask | ControlMask;
-        if(tmp[i]=='W')                                                                                                                           
+        if(*tmp=='W') 
             modmask = modmask | Mod4Mask; 
     }
     k->mod = modmask;
-    free(tmp);
     pos = strchr(s, '=');
     if(pos){
         tmp = emallocz((pos-opos)*sizeof(char));

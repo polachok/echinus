@@ -43,7 +43,7 @@ Echinus*focusnext: A + j
 Echinus*focusprev: A + k
 Echinus*viewprevtag: A + Tab
 Echinus*quit: A + q
-Echinus*restart: AS + q
+Echinus*restart: AS + q = echinus
 Echinus*killclient: AS + c
 Echinus*togglefloating: A + space
 Echinus*iconify: A + i
