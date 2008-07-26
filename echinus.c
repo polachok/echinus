@@ -221,6 +221,8 @@ void updatesizehints(Client *c);
 void updatetitle(Client *c);
 void view(const char *arg);
 void viewprevtag(const char *arg);	/* views previous selected tags */
+void viewlefttag(const char *arg);
+void viewrighttag(const char *arg);
 int xerror(Display *dpy, XErrorEvent *ee);
 int xerrordummy(Display *dsply, XErrorEvent *ee);
 int xerrorstart(Display *dsply, XErrorEvent *ee);
@@ -475,20 +477,10 @@ buttonpress(XEvent *e) {
                     drawmouse(e);
                     break;
                 case Button4:
-                    for(i = 0; i < ntags; i++) {
-                        if(i && seltags[i]) {
-                                view(tags[i-1]);
-                                break;
-                        }
-                    }
+                    viewlefttag(NULL);
                     break;
                 case Button5:
-                    for(i = 0; i < ntags-1; i++) {
-                        if(seltags[i]) {
-                            view(tags[i+1]);
-                            break;
-                        }
-                    }
+                    viewrighttag(NULL);
                     break;
             }
             return;
@@ -2280,6 +2272,28 @@ viewprevtag(const char *arg) {
 	updategeom();
     arrange();
     updateatom[CurDesk](NULL);
+}
+
+void
+viewlefttag(const char *arg) {
+    int i;
+    for(i = 0; i < ntags; i++) {
+        if(i && seltags[i]) {
+                view(tags[i-1]);
+                break;
+        }
+    }
+}
+
+void
+viewrighttag(const char *arg) {
+    int i;
+    for(i = 0; i < ntags-1; i++) {
+        if(seltags[i]) {
+            view(tags[i+1]);
+            break;
+        }
+    }
 }
 
 void

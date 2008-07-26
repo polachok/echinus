@@ -14,6 +14,8 @@ static KeyItem KeyItems[] =
     { "focusnext", focusnext },
     { "focusprev", focusprev },
     { "viewprevtag", viewprevtag },
+    { "viewlefttag", viewlefttag },
+    { "viewrighttag", viewrighttag },
     { "quit", quit },
     { "restart", quit },
     { "killclient", killclient },
