@@ -1542,19 +1542,27 @@ restack(void) {
 
     if(!sel)
             return;
-    XRaiseWindow(dpy, sel->win);
-    XRaiseWindow(dpy, sel->title);
+    //XRaiseWindow(dpy, sel->win);
+    //XRaiseWindow(dpy, sel->title);
     if(layouts[ltidxs[curtag]].arrange != floating && layouts[ltidxs[curtag]].arrange != ifloating) {
             wc.stack_mode = Below;
 	    for(c = stack; c; c = c->snext){
                     if(!c->isfloating && isvisible(c)) {
+                        if(c!=sel){
+                            XLowerWindow(dpy, c->win);
+                            XLowerWindow(dpy, c->title);
                             XConfigureWindow(dpy, c->win, CWSibling|CWStackMode, &wc);
                             wc.sibling = c->win;
+                        }
                     }
             }
 
     }
-    drawfloating();
+    if(sel->isfloating){
+        XRaiseWindow(dpy, sel->win);
+        XRaiseWindow(dpy, sel->title);
+    }
+    //drawfloating();
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }

@@ -130,7 +130,7 @@ drawclient(Client *c) {
 void
 drawfloating() {
     Client *c;
-    for(c = clients; c; c=c->next){
+    for(c = stack; c; c = c->snext){
         if(c->isfloating){
             c->hastitle = c->hadtitle;
             drawclient(c);
