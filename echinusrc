@@ -42,8 +42,8 @@ Echinus*togglestruts: A + b
 Echinus*focusnext: A + j
 Echinus*focusprev: A + k
 Echinus*viewprevtag: A + Tab
-Echinus*viewlefttag: A + Left
-Echinus*viewrighttag: A + Right
+Echinus*viewlefttag: AS + Left
+Echinus*viewrighttag: AS + Right
 Echinus*quit: A + q
 Echinus*restart: AS + q = echinus
 Echinus*killclient: AS + c
