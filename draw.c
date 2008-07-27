@@ -134,10 +134,6 @@ drawfloating() {
         if(c->isfloating){
             c->hastitle = c->hadtitle;
             drawclient(c);
-            if(layouts[ltidxs[curtag]].arrange != floating && layouts[ltidxs[curtag]].arrange != ifloating){
-                XRaiseWindow(dpy, c->win);
-                XRaiseWindow(dpy, c->title);
-            }
         }
     }
 }
