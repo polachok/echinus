@@ -34,15 +34,15 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     if(w > dc.w)
             return; /* too long */
     switch(position) {
-    case TitleCenter:
-            x = dc.x + dc.w/2 - w/2;
-            break;
-    case TitleLeft:
-            x = dc.x + h/2;
-            break;
-    case TitleRight:
-            x = dc.w - w - h;
-            break;
+        case TitleCenter:
+                x = dc.x + dc.w/2 - w/2;
+                break;
+        case TitleLeft:
+                x = dc.x + h/2;
+                break;
+        case TitleRight:
+                x = dc.w - w - h;
+                break;
     }
     while(x <= 0)
             x = dc.x++;

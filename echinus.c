@@ -401,7 +401,7 @@ iconifyit(const char *arg) {
     if(!sel)
         return;
     iconify(sel);
-    restack();
+    arrange();
     focusnext(NULL);
 }
 
@@ -2051,8 +2051,8 @@ focusview(const char *arg) {
         if (c->tags[i]) {
                 focus(c);
                 if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating || (layouts[ltidxs[curtag]].arrange == ifloating)){
-                    drawfloating();
                     restack();
+                    drawfloating();
                 }
                 return;
         }

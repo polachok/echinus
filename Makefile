@@ -10,7 +10,7 @@ SRC = echinus.c
 OBJ = ${SRC:.c=.o}
 CONF = ${HOME}/.echinus/
 
-all: clean options echinus ${HEADERS}
+all: options echinus ${HEADERS}
 
 options:
 	@echo echinus build options:

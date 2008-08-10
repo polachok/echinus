@@ -1,10 +1,10 @@
 # echinus wm version
-VERSION = 0.3.0
+VERSION = 0.3.1
 
 # Customize below to fit your system
 
 # paths
-PREFIX = ${HOME}
+PREFIX = /usr/local
 MANPREFIX = ${PREFIX}/share/man
 
 X11INC = /usr/X11R6/include
