@@ -1172,7 +1172,6 @@ manage(Window w, XWindowAttributes *wa) {
             c->isfloating = (rettrans == Success) || c->isfixed;
     attach(c);
     attachstack(c);
-    //XMoveResizeWindow(dpy, c->win, borderpx, c->th + borderpx, c->w - 2 * borderpx, c->h - 2 * borderpx - c->th); /* some windows require this */
     twa.event_mask = ColormapChangeMask | EnterWindowMask |
                         PropertyChangeMask | FocusChangeMask;
     twa.win_gravity = StaticGravity;
@@ -1398,8 +1397,6 @@ void
 resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
     XWindowChanges wc;
 
-    
-
     if(w <= 0 || h <= 0)
             return;
     /* offscreen appearance fixes */
@@ -1462,15 +1459,16 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
                 if(c->maxh > 0 && h > c->maxh)
                         h = c->maxh;
             }
+            c->th = c->hastitle ? dc.h : 0;
             wc.x = 0;
             wc.y = c->th;
             wc.width = w;
             wc.height = h;
             wc.border_width = c->border;
-            //XConfigureWindow(dpy, c->win, CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
+            XConfigureWindow(dpy, c->win, CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
             XMoveResizeWindow(dpy, c->win, 0, c->th, w, h);
             if(c->title)
-                XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
+                XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
             //XConfigureWindow(dpy, c->win, CWWidth | CWHeight | CWBorderWidth, &wc);
             configure(c);
             XSync(dpy, False);
