@@ -501,17 +501,17 @@ buttonpress(XEvent *e) {
     else if((c = getclient(ev->window, clients, True))) {
         focus(c);
         if(tpos != TitleRight){
-            if((ev->x > c->w-2*borderpx-3*c->th) && (ev->x < c->w-2*borderpx-2*c->th)){
+            if((ev->x > c->w-2*c->border-3*c->th) && (ev->x < c->w-2*c->border-2*c->th)){
                 /* min */
                 bleft.action(NULL);
                 return;
             }
-            if((ev->x > c->w-2*borderpx-2*c->th) && (ev->x < c->w-2*borderpx-c->th)){
+            if((ev->x > c->w-2*c->border-2*c->th) && (ev->x < c->w-2*c->border-c->th)){
                 /* max */
                 bcenter.action(NULL);
                 return;
             }
-            if((ev->x > c->w-2*borderpx-c->th) && (ev->x < c->w-2*borderpx)){
+            if((ev->x > c->w-2*c->border-c->th) && (ev->x < c->w-2*c->border)){
                 /* close */
                 bright.action(NULL);
                 return;
@@ -603,8 +603,8 @@ configure(Client *c) {
     ce.window = c->win;
     ce.x = 0;
     ce.y = c->th;
-    ce.width = c->w - 2*borderpx;
-    ce.height = c->h - 2*borderpx - c->th;
+    ce.width = c->w - 2*c->border;
+    ce.height = c->h - 2*c->border - c->th;
     ce.border_width = 0;
     ce.above = None;
     ce.override_redirect = False;
@@ -641,9 +641,9 @@ configurerequest(XEvent *e) {
                     if(ev->value_mask & CWY)
                             c->y = ev->y;
                     if(ev->value_mask & CWWidth)
-                            c->w = ev->width + 2*borderpx;
+                            c->w = ev->width + 2*c->border;
                     if(ev->value_mask & CWHeight)
-                            c->h = ev->height + 2*borderpx + c->th;
+                            c->h = ev->height + 2*c->border + c->th;
                     if((c->x + c->w) > sw && c->isfloating)
                             c->x = sw / 2 - c->w / 2; /* center in x direction */
                     if((c->y + c->h) > sh && c->isfloating)
@@ -1079,8 +1079,6 @@ manage(Window w, XWindowAttributes *wa) {
         c->isbastard = True;
         c->isfloating = True;
         c->isfixed = True;
-        c->oldborder = 0;
-        c->border = 0;
     }
 
     c->isicon = False;
@@ -1089,19 +1087,20 @@ manage(Window w, XWindowAttributes *wa) {
     c->tags = emallocz(ntags*(sizeof seltags));
 
     c->th = dc.h;
+    c->border = c->isbastard ? 0 : borderpx;
 
     if(cx && cy && cw && ch) {
             c->x = wa->x = cx;
             c->y = wa->y = cy;
-            c->w = wa->width = cw + 2 * borderpx;
-            c->h = wa->height = ch + 2 * borderpx + c->th;
+            c->w = wa->width = cw + 2 * c->border;
+            c->h = wa->height = ch + 2 * c->border + c->th;
             cx = cy = cw = ch = 0;
     }
     else {
             c->x = wa->x;
             c->y = wa->y;
-            c->w = wa->width + 2 * borderpx;
-            c->h = wa->height + 2 * borderpx + c->th;
+            c->w = wa->width + 2 * c->border;
+            c->h = wa->height + 2 * c->border + c->th;
     }
 
     if(wa->x && wa->y)
@@ -1114,7 +1113,6 @@ manage(Window w, XWindowAttributes *wa) {
     if(c->w == sw && c->h == sh) {
             c->x = sx;
             c->y = sy;
-            c->border = c->isbastard ? 0 : wa->border_width;
     }
     else {
             if(c->x + c->w + 2 * c->border > wax + waw)
@@ -1125,7 +1123,6 @@ manage(Window w, XWindowAttributes *wa) {
                     c->x = wax;
             if(c->y < way)
                     c->y = way;
-            c->border = c->isbastard ? 0 : borderpx;
     }
     wc.border_width = c->border;
     if(!c->isbastard){
@@ -1147,7 +1144,7 @@ manage(Window w, XWindowAttributes *wa) {
     //twa.border_width = borderpx;
     //
     c->frame = XCreateWindow(dpy, root, c->x, c->y - c->th, c->w, c->h,
-                    borderpx, DefaultDepth(dpy, screen), CopyFromParent,
+                    c->border, DefaultDepth(dpy, screen), CopyFromParent,
                     DefaultVisual(dpy, screen),
                     CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
 
@@ -1183,7 +1180,7 @@ manage(Window w, XWindowAttributes *wa) {
     XChangeWindowAttributes(dpy, c->win,
                         CWEventMask | CWWinGravity | CWDontPropagate, &twa);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
-    XMoveResizeWindow(dpy, c->win, 0, c->th, c->w - 2 * borderpx, c->h - 2 * borderpx - c->th); /* some windows require this */
+    XMoveResizeWindow(dpy, c->win, 0, c->th, c->w - 2 * c->border, c->h - 2 * c->border - c->th); /* some windows require this */
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
         ewmh_process_state_atom(c, atom[WindowStateFs], 1);
     XMapWindow(dpy, c->frame);
