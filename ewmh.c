@@ -193,12 +193,13 @@ checkatom(Window win, Atom bigatom, Atom smallatom){
     unsigned long i, n, extra;
     if(XGetWindowProperty(dpy, win, bigatom, 0L, LONG_MAX, False,
                           XA_ATOM, &real, &format, &n, &extra,
-                          (unsigned char **) &data) == Success && data)
+                          (unsigned char **) &data) == Success && data){
         state = (Atom *) data;
         for(i = 0; i < n; i++){
             if(state[i] == smallatom)
                         return 1;
         }
+    }
     return 0;
 }
 
