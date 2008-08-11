@@ -1551,7 +1551,7 @@ restack(void) {
     }
 
     for(c = clients; c; c = c->next)
-        if(checkatom(c->frame, atom[WindowType], atom[WindowTypeDesk]))
+        if(checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
             XLowerWindow(dpy, c->frame);
 
     XSync(dpy, False);
