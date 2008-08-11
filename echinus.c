@@ -71,7 +71,7 @@ typedef struct Client Client;
 struct Client {
 	char name[256];
 	int x, y, w, h;
-	int tx, ty, tw, th; /* title window */
+	int th; /* title window */
 	int rx, ry, rw, rh; /* revert geometry */
 	int sfx, sfy, sfw, sfh; /* stored float geometry, used on mode revert */
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
@@ -380,11 +380,7 @@ void
 ban(Client *c) {
     if(c->isbanned)
             return;
-    XUnmapWindow(dpy, c->win);
-    if(c->title){
-        XUnmapWindow(dpy, c->title);
-        XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
-    }
+    XUnmapWindow(dpy, c->frame);
     c->isbanned = True;
 }
 
@@ -505,17 +501,17 @@ buttonpress(XEvent *e) {
     else if((c = getclient(ev->window, clients, True))) {
         focus(c);
         if(tpos != TitleRight){
-            if((ev->x > c->tw-3*c->th) && (ev->x < c->tw-2*c->th)){
+            if((ev->x > c->w-2*borderpx-3*c->th) && (ev->x < c->w-2*borderpx-2*c->th)){
                 /* min */
                 bleft.action(NULL);
                 return;
             }
-            if((ev->x > c->tw-2*c->th) && (ev->x < c->tw-c->th)){
+            if((ev->x > c->w-2*borderpx-2*c->th) && (ev->x < c->w-2*borderpx-c->th)){
                 /* max */
                 bcenter.action(NULL);
                 return;
             }
-            if((ev->x > c->tw-c->th) && (ev->x < c->tw)){
+            if((ev->x > c->w-2*borderpx-c->th) && (ev->x < c->w-2*borderpx)){
                 /* close */
                 bright.action(NULL);
                 return;
@@ -605,10 +601,10 @@ configure(Client *c) {
     ce.display = dpy;
     ce.event = c->win;
     ce.window = c->win;
-    ce.x = c->x;
-    ce.y = c->y;
-    ce.width = c->w;
-    ce.height = c->h;
+    ce.x = borderpx;
+    ce.y = c->border + c->th;
+    ce.width = c->w - 2*borderpx;
+    ce.height = c->h - 2*borderpx - c->th;
     ce.border_width = c->border;
     ce.above = None;
     ce.override_redirect = False;
@@ -645,9 +641,9 @@ configurerequest(XEvent *e) {
                     if(ev->value_mask & CWY)
                             c->y = ev->y;
                     if(ev->value_mask & CWWidth)
-                            c->w = ev->width;
+                            c->w = ev->width + 2*borderpx;
                     if(ev->value_mask & CWHeight)
-                            c->h = ev->height;
+                            c->h = ev->height + 2*borderpx + c->th;
                     if((c->x + c->w) > sw && c->isfloating)
                             c->x = sw / 2 - c->w / 2; /* center in x direction */
                     if((c->y + c->h) > sh && c->isfloating)
@@ -656,7 +652,8 @@ configurerequest(XEvent *e) {
                     && !(ev->value_mask & (CWWidth | CWHeight)))
                             configure(c);
                     if(isvisible(c)){
-                            XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h);
+                            XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
+                            XMoveResizeWindow(dpy, c->win, borderpx, c->th, c->w-2*borderpx, c->h-2*borderpx-c->th);
                             drawclient(c);
                     }
             }
@@ -809,8 +806,6 @@ focus(Client *c) {
     if(c) {
             setclientstate(c, NormalState);
             drawclient(c);
-            XSetWindowBorder(dpy, c->win, dc.sel[ColBorder]);
-            XSetWindowBorder(dpy, c->title, dc.sel[ColBorder]);
             XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
     }
     else
@@ -1113,9 +1108,10 @@ manage(Window w, XWindowAttributes *wa) {
             c->isplaced = False;
 
     c->th = dc.h;
-    c->tx = c->x = wa->x;
-    c->ty = c->y - c->th;
-    c->tw = c->w = wa->width;
+    c->x = wa->x;
+    c->y = wa->y;
+    c->w = wa->width+2*borderpx;
+    c->h = wa->height+2*borderpx+c->th;
 
     c->oldborder = c->isbastard ? 0 : wa->border_width;
     if(c->w == sw && c->h == sh) {
@@ -1159,7 +1155,7 @@ manage(Window w, XWindowAttributes *wa) {
                     CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
 
     twa.event_mask = ExposureMask | MOUSEMASK;
-    c->title = XCreateWindow(dpy, c->frame, c->tx, c->ty, c->tw, c->th,
+    c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
                     0, DefaultDepth(dpy, screen), CopyFromParent,
                     DefaultVisual(dpy, screen),
                     CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
@@ -1182,7 +1178,7 @@ manage(Window w, XWindowAttributes *wa) {
         c->hadtitle = False;
     attach(c);
     attachstack(c);
-    XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w - 2 * borderpx, c->h - 2 * borderpx); /* some windows require this */
+    XMoveResizeWindow(dpy, c->win, borderpx, c->th + borderpx, c->w - 2 * borderpx, c->h - 2 * borderpx - c->th); /* some windows require this */
     twa.event_mask = ColormapChangeMask | EnterWindowMask |
                         PropertyChangeMask | FocusChangeMask;
     twa.win_gravity = StaticGravity;
@@ -1462,12 +1458,16 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
 		    c->sfh = h;
 		    c->isplaced = True;
 	    }
-            c->x = wc.x = x;
-            c->y = wc.y = y;
-            c->w = wc.width = w;
-            c->h = wc.height = h;
+            c->x = x;
+            c->y = y;
+            c->w = w;
+            c->h = h;
+            wc.width = w - 2*borderpx;
+            wc.height = h - 2*borderpx - 2*c->th;
             wc.border_width = c->border;
-            XConfigureWindow(dpy, c->win, CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
+            //XConfigureWindow(dpy, c->win, CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
+            XMoveResizeWindow(dpy, c->frame, x, y, c->w, c->h);
+            XConfigureWindow(dpy, c->win, CWWidth | CWHeight | CWBorderWidth, &wc);
             configure(c);
             XSync(dpy, False);
     }
@@ -1517,14 +1517,11 @@ void
 resizetitle(Client *c) {
     if(c->isicon)
         return;
-    c->tx = c->x;
-    c->ty = c->y-c->th-c->border;
-    c->tw = c->w;
     if(!c->hastitle){
         XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
         return;
     }
-    XMoveResizeWindow(dpy, c->title, c->tx, c->ty, c->tw, c->th);
+    XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
 }
 
 void
@@ -2083,8 +2080,7 @@ void
 unban(Client *c) {
     if(!c->isbanned)
             return;
-    XMapWindow(dpy, c->win);
-    XMapWindow(dpy, c->title);
+    XMapWindow(dpy, c->frame);
     setclientstate(c, NormalState);
     c->isbanned = False;
 }

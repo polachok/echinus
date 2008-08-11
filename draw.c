@@ -79,9 +79,9 @@ void
 drawbuttons(Client *c) {
     XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
-    XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-c->th, 0, 1);
-    XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-3*c->th, 0, 1);
-    XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->tw-2*c->th, 0, 1);
+    XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->w-2*borderpx-c->th, 0, 1);
+    XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->w-2*borderpx-3*c->th, 0, 1);
+    XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2, c->th, c->th*2, c->w-2*borderpx-2*c->th, 0, 1);
 }
 
 void
@@ -95,7 +95,7 @@ drawclient(Client *c) {
     resizetitle(c);
     XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, borderpx, LineSolid, CapNotLast, JoinMiter);
-    XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->tw, c->th);
+    XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w-2*borderpx, c->th);
     dc.x = dc.y = 0;
     dc.w = c->w;
     dc.h = c->th;
@@ -111,10 +111,10 @@ drawclient(Client *c) {
         }
     }
     drawtext(c->name, c == sel ? dc.sel : dc.norm, tpos);
-    if(c->tw>=6*c->th && dc.x <= c->tw-6*c->th && tpos != TitleRight)
+    if(c->w-2*borderpx>=6*c->th && dc.x <= c->w-2*borderpx-6*c->th && tpos != TitleRight)
         drawbuttons(c);
     XCopyArea(dpy, dc.drawable, c->title, dc.gc,
-			0, 0, c->tw, c->th+2*borderpx, 0, 0);
+			0, 0, c->w-2*borderpx, c->th+2*borderpx, 0, 0);
     if (c==sel)
       opacity = OPAQUE;
     else {
