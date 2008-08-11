@@ -736,7 +736,7 @@ enternotify(XEvent *e) {
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
     if((c = getclient(ev->window, clients, False))){
-	if(c->isbastard || c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)  )
+	if(c->isfloating || c->isbastard || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)  )
             focus(c);
 	else
 	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
@@ -1074,13 +1074,13 @@ manage(Window w, XWindowAttributes *wa) {
     Status rettrans;
     XWindowChanges wc;
     XSetWindowAttributes twa;
+    int i = 0;
 
     c = emallocz(sizeof(Client));
     c->win = w;
 
     if(checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]) ||
             checkatom(c->win, atom[WindowType], atom[WindowTypeDock])){
-        XSelectInput(dpy, w, PropertyChangeMask);
         c->isbastard = True;
         c->isfloating = True;
         c->isfixed = True;
@@ -1167,6 +1167,9 @@ manage(Window w, XWindowAttributes *wa) {
     if(t)
             memcpy(c->tags, t->tags, ntags*(sizeof seltags));
     applyrules(c);
+    if(c->isbastard)
+        for(i = 0; i < ntags; i++)
+            c->tags[i] = True;
     if(!c->isfloating)
             c->isfloating = (rettrans == Success) || c->isfixed;
     if(NOTITLES)
@@ -1538,6 +1541,10 @@ restack(void) {
 			wc.sibling = c->win;
 		}
     }
+
+    for(c = clients; c; c = c->next)
+        if(checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
+            XLowerWindow(dpy, c->win);
 
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
