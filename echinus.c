@@ -736,7 +736,7 @@ enternotify(XEvent *e) {
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
     if((c = getclient(ev->window, clients, False))){
-	if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)  )
+	if(c->isbastard || c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)  )
             focus(c);
 	else
 	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
@@ -790,7 +790,7 @@ void
 focus(Client *c) {
     Client *o;
     o = sel;
-    if((!c && selscreen) || (c && (!isvisible(c)) || c->isbastard))
+    if((!c && selscreen) || (c && !isvisible(c)))
             for(c = stack; c && (c->isbastard || !isvisible(c)); c = c->snext);
     if(sel && sel != c) {
             grabbuttons(sel, False);
@@ -2050,6 +2050,7 @@ focusview(const char *arg) {
     for(c = clients; c; c = c->next){
         if (c->tags[i]) {
                 focus(c);
+                c->isplaced = True;
                 if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating || (layouts[ltidxs[curtag]].arrange == ifloating)){
                     restack();
                     drawfloating();
