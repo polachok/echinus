@@ -1533,15 +1533,14 @@ restack(void) {
             return;
 
     if(sel->isfloating || layouts[ltidxs[curtag]].arrange == floating || layouts[ltidxs[curtag]].arrange == ifloating){
-        XRaiseWindow(dpy, sel->win);
-        XRaiseWindow(dpy, sel->title);
+        XRaiseWindow(dpy, sel->frame);
     }
 
     if(layouts[ltidxs[curtag]].arrange != floating && layouts[ltidxs[curtag]].arrange != ifloating){
 		wc.stack_mode = Below;
 		if(!sel->isfloating) {
-			XConfigureWindow(dpy, sel->win, CWSibling | CWStackMode, &wc);
-			wc.sibling = sel->win;
+			XConfigureWindow(dpy, sel->frame, CWSibling | CWStackMode, &wc);
+			wc.sibling = sel->frame;
 		}
 		for(c = nexttiled(clients); c; c = nexttiled(c->next)) {
 			if(c == sel)
