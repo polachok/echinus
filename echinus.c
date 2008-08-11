@@ -1181,7 +1181,8 @@ manage(Window w, XWindowAttributes *wa) {
                         CWEventMask | CWWinGravity | CWDontPropagate, &twa);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XMoveResizeWindow(dpy, c->win, 0, c->th, c->w - 2 * c->border, c->h - 2 * c->border - c->th); /* some windows require this */
-    XMoveResizeWindow(dpy, c->frame, c->x+2*sw, c->y, c->w, c->h);
+    if(!c->isbastard)
+        XMoveResizeWindow(dpy, c->frame, c->x+2*sw, c->y, c->w, c->h);
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
         ewmh_process_state_atom(c, atom[WindowStateFs], 1);
     XMapWindow(dpy, c->frame);
