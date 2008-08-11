@@ -92,7 +92,6 @@ drawclient(Client *c) {
         return;
     if(!isvisible(c))
         return;
-    resizetitle(c);
     XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, borderpx, LineSolid, CapNotLast, JoinMiter);
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);
@@ -124,18 +123,6 @@ drawclient(Client *c) {
 	      opacity = OPAQUE;
     }
     setopacity(c, opacity);
-    XMapWindow(dpy, c->title);
-}
-
-void
-drawfloating() {
-    Client *c;
-    for(c = stack; c; c = c->snext){
-        if(c->isfloating){
-            c->hastitle = c->hadtitle;
-            drawclient(c);
-        }
-    }
 }
 
 static void

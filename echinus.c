@@ -78,7 +78,7 @@ struct Client {
 	int minax, maxax, minay, maxay;
 	long flags;
 	unsigned int border, oldborder;
-	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon, hastitle, hadtitle;
+	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon, hastitle;
         Bool isplaced, isbastard;
 	Bool *tags;
 	Client *next;
@@ -155,7 +155,6 @@ void destroynotify(XEvent *e);
 void detach(Client *c);
 void detachstack(Client *c);
 void drawclient(Client *c);
-void drawfloating(void);
 void drawtext(const char *text, unsigned long col[ColLast], unsigned int position);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
@@ -193,7 +192,6 @@ void quit(const char *arg);
 void restart(const char *arg);
 void resize(Client *c, int x, int y, int w, int h, Bool sizehints);
 void resizemouse(Client *c);
-void resizetitle(Client *c);
 void restack(void);
 void run(void);
 void scan(void);
@@ -319,7 +317,7 @@ applyrules(Client *c) {
     for(i = 0; i < nrules; i++)
             if(regs[i].propregex && !regexec(regs[i].propregex, buf, 1, &tmp, 0)) {
                     c->isfloating = rules[i]->isfloating;
-                    c->hadtitle = rules[i]->hastitle;
+                    c->hastitle = rules[i]->hastitle;
                     for(j = 0; regs[i].tagregex && j < ntags; j++) {
                             if(!regexec(regs[i].tagregex, tags[j], 1, &tmp, 0)) {
                                     matched = True;
@@ -380,6 +378,7 @@ void
 ban(Client *c) {
     if(c->isbanned)
             return;
+    XMoveResizeWindow(dpy, c->frame, c->x+2*sw, c->y, c->w, c->h);
     XUnmapWindow(dpy, c->frame);
     c->isbanned = True;
 }
@@ -771,7 +770,7 @@ floating(void) { /* default floating layout */
     domwfact = dozoom = False;
     for(c = clients; c; c = c->next){
         if(isvisible(c) && !c->isicon) {
-                c->hastitle=c->hadtitle;
+                c->hastitle = c->title ? True : False;
                 drawclient(c);
                 if(!c->isfloating)
                         /*restore last known float dimensions*/
@@ -804,9 +803,9 @@ focus(Client *c) {
             return;
     if(c) {
             setclientstate(c, NormalState);
-            drawclient(c);
             XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
             XSetWindowBorder(dpy, sel->frame, dc.sel[ColBorder]);
+            drawclient(c);
     }
     else
             XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
@@ -1083,10 +1082,9 @@ manage(Window w, XWindowAttributes *wa) {
 
     c->isicon = False;
     c->hastitle = c->isbastard ? False : True;
-    c->hadtitle = c->isbastard ? False : True;
     c->tags = emallocz(ntags*(sizeof seltags));
 
-    c->th = dc.h;
+    c->th = c->isbastard ? 0 : dc.h;
     c->border = c->isbastard ? 0 : borderpx;
 
     if(cx && cy && cw && ch) {
@@ -1147,15 +1145,19 @@ manage(Window w, XWindowAttributes *wa) {
                     c->border, DefaultDepth(dpy, screen), CopyFromParent,
                     DefaultVisual(dpy, screen),
                     CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
-
-    twa.event_mask = ExposureMask | MOUSEMASK;
-    c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
-                    0, DefaultDepth(dpy, screen), CopyFromParent,
-                    DefaultVisual(dpy, screen),
-                    CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
-
+ 
     XConfigureWindow(dpy, c->frame, CWBorderWidth, &wc);
     XSetWindowBorder(dpy, c->frame, dc.norm[ColBorder]);
+
+    twa.event_mask = ExposureMask | MOUSEMASK;
+    if(!c->isbastard){
+        c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
+                        0, DefaultDepth(dpy, screen), CopyFromParent,
+                        DefaultVisual(dpy, screen),
+                        CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
+    }
+    else
+        c->title = (Window*)NULL;
 
     updatetitle(c);
     if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
@@ -1168,8 +1170,6 @@ manage(Window w, XWindowAttributes *wa) {
             c->tags[i] = True;
     if(!c->isfloating)
             c->isfloating = (rettrans == Success) || c->isfixed;
-    if(NOTITLES)
-        c->hadtitle = False;
     attach(c);
     attachstack(c);
     //XMoveResizeWindow(dpy, c->win, borderpx, c->th + borderpx, c->w - 2 * borderpx, c->h - 2 * borderpx - c->th); /* some windows require this */
@@ -1181,10 +1181,13 @@ manage(Window w, XWindowAttributes *wa) {
                         CWEventMask | CWWinGravity | CWDontPropagate, &twa);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XMoveResizeWindow(dpy, c->win, 0, c->th, c->w - 2 * c->border, c->h - 2 * c->border - c->th); /* some windows require this */
+    XMoveResizeWindow(dpy, c->frame, c->x+2*sw, c->y, c->w, c->h);
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
         ewmh_process_state_atom(c, atom[WindowStateFs], 1);
     XMapWindow(dpy, c->frame);
     XMapWindow(dpy, c->win);
+    if(c->title)
+        XMapWindow(dpy, c->title);
     drawclient(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
@@ -1260,7 +1263,7 @@ ifloating(void){
                         }
                     }
                 }
-            c->hastitle = c->hadtitle;
+            c->hastitle = c->title ? True : False;
             drawclient(c);
         }
     }
@@ -1292,7 +1295,6 @@ monocle(void) {
             }
         }
     }
-    drawfloating();
     focus(NULL);
     restack();
 }
@@ -1466,11 +1468,12 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
             wc.border_width = c->border;
             //XConfigureWindow(dpy, c->win, CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
             XMoveResizeWindow(dpy, c->win, 0, c->th, w, h);
+            if(c->title)
+                XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
             //XConfigureWindow(dpy, c->win, CWWidth | CWHeight | CWBorderWidth, &wc);
             configure(c);
             XSync(dpy, False);
     }
-    resizetitle(c);
 }
 
 void
@@ -1513,41 +1516,21 @@ resizemouse(Client *c) {
 }
 
 void
-resizetitle(Client *c) {
-    if(c->isicon)
-        return;
-    if(!c->hastitle){
-        XMoveWindow(dpy, c->title, c->x + 2 * sw, c->y);
-        return;
-    }
-    XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
-}
-
-void
 restack(void) {
     Client *c;
     XEvent ev;
-    XWindowChanges wc;
 
     if(!sel)
             return;
 
-    if(sel->isfloating || layouts[ltidxs[curtag]].arrange == floating || layouts[ltidxs[curtag]].arrange == ifloating){
+    if(sel->isfloating || layouts[ltidxs[curtag]].arrange == floating || layouts[ltidxs[curtag]].arrange == ifloating)
         XRaiseWindow(dpy, sel->frame);
-    }
 
     if(layouts[ltidxs[curtag]].arrange != floating && layouts[ltidxs[curtag]].arrange != ifloating){
-		wc.stack_mode = Below;
-		if(!sel->isfloating) {
-			XConfigureWindow(dpy, sel->frame, CWSibling | CWStackMode, &wc);
-			wc.sibling = sel->frame;
-		}
-		for(c = nexttiled(clients); c; c = nexttiled(c->next)) {
-			if(c == sel)
-				continue;
-			XConfigureWindow(dpy, c->frame, CWSibling | CWStackMode, &wc);
-			wc.sibling = c->frame;
-		}
+        for(c = stack; c; c = c->snext){
+            if(!c->isfloating && isvisible(c))
+                XLowerWindow(dpy, c->frame);
+        }
     }
 
     for(c = clients; c; c = c->next)
@@ -1616,8 +1599,9 @@ setclientstate(Client *c, long state) {
 
     XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
                     PropModeReplace, (unsigned char *)data, 2);
-    XChangeProperty(dpy, c->title, wmatom[WMState], wmatom[WMState], 32,
-                    PropModeReplace, (unsigned char *)data, 2);
+    if(c->title)
+        XChangeProperty(dpy, c->title, wmatom[WMState], wmatom[WMState], 32,
+                        PropModeReplace, (unsigned char *)data, 2);
     if(state == NormalState)
         c->isicon = False;
 }
@@ -1882,7 +1866,7 @@ bstack(void) {
     ny = way;
     nh = 0;
     for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
-        c->hastitle = dectiled ? c->hadtitle : False;
+        c->hastitle = (dectiled ? (c->title ? True : False) : False);
         c->ismax = False;
         if(i == 0) {
             nh = mh - 2 * c->border;
@@ -1910,7 +1894,6 @@ bstack(void) {
         if(n > 1 && tw != waw)
             nx = c->x + c->w + c->border;
     }
-    drawfloating();
 }
 
 void
@@ -1935,7 +1918,7 @@ tile(void) {
 	ny = way;
 	nw = 0; /* gcc stupidity requires this */
 	for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
-                c->hastitle = dectiled ? c->hadtitle : False;
+                c->hastitle = (dectiled ? (c->title ? True : False) : False);
 		c->ismax = False;
                 c->sfx = c->x;
                 c->sfy = c->y;
@@ -1976,7 +1959,6 @@ tile(void) {
                             ny += dc.h+c->border;
                 }
         }
-        drawfloating();
 }
 
 void
@@ -2068,7 +2050,6 @@ focusview(const char *arg) {
                 c->isplaced = True;
                 if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating || (layouts[ltidxs[curtag]].arrange == ifloating)){
                     restack();
-                    drawfloating();
                 }
                 return;
         }
@@ -2078,6 +2059,7 @@ void
 unban(Client *c) {
     if(!c->isbanned)
             return;
+    XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
     XMapWindow(dpy, c->frame);
     setclientstate(c, NormalState);
     c->isbanned = False;
@@ -2086,7 +2068,7 @@ unban(Client *c) {
 void
 unmanage(Client *c) {
     XWindowChanges wc;
-    if(c->hastitle || c->hadtitle)
+    if(c->title)
         XDestroyWindow(dpy, c->title);
     XReparentWindow(dpy, c->win, root, c->x, c->y);
     XDestroyWindow(dpy, c->frame);
@@ -2143,7 +2125,7 @@ unmapnotify(XEvent *e) {
         if(c->isicon)
             return;
         XGetWindowAttributes(dpy, ev->window, &wa);
-        if(wa.map_state == IsUnmapped){
+        if(wa.map_state == IsUnmapped && c->title){
                 XGetWindowAttributes(dpy, c->title, &wa);
                 if(wa.map_state == IsViewable)
                         unmanage(c);

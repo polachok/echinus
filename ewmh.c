@@ -149,7 +149,6 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
             togglemax(NULL);
         }
         arrange();
-        drawfloating();
     }
 }
 
