@@ -86,6 +86,7 @@ struct Client {
 	Client *snext;
 	Window win;
 	Window title;
+        Window frame;
 };
 
 typedef struct {
@@ -1095,13 +1096,13 @@ manage(Window w, XWindowAttributes *wa) {
     if(cx && cy && cw && ch) {
             c->x = wa->x = cx;
             c->y = wa->y = cy;
-            c->w = wa->width = cw;
-            c->h = wa->height = ch;
+            c->w = wa->width = cw + 2 * borderpx;
+            c->h = wa->height = ch + 2 * borderpx;
             cx = cy = cw = ch = 0;
     }
     else {
-            c->w = wa->width;
-            c->h = wa->height;
+            c->w = wa->width + 2 * borderpx;
+            c->h = wa->height + 2 * borderpx;
             c->x = wa->x;
             c->y = wa->y;
     }
@@ -1149,16 +1150,22 @@ manage(Window w, XWindowAttributes *wa) {
     grabbuttons(c, False);
     twa.override_redirect = 1;
     twa.background_pixmap = ParentRelative;
-    twa.event_mask = ExposureMask | MOUSEMASK;
+    twa.event_mask = ExposureMask | MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
     //twa.border_width = borderpx;
+    //
+    c->frame = XCreateWindow(dpy, root, c->x, c->y - c->th, c->w, c->h + c->th,
+                    borderpx, DefaultDepth(dpy, screen), CopyFromParent,
+                    DefaultVisual(dpy, screen),
+                    CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
 
-    c->title = XCreateWindow(dpy, root, c->tx, c->ty, c->tw, c->th,
+    twa.event_mask = ExposureMask | MOUSEMASK;
+    c->title = XCreateWindow(dpy, c->frame, c->tx, c->ty, c->tw, c->th,
                     0, DefaultDepth(dpy, screen), CopyFromParent,
                     DefaultVisual(dpy, screen),
                     CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
 
-    XConfigureWindow(dpy, c->title, CWBorderWidth, &wc);
-    XSetWindowBorder(dpy, c->title, dc.norm[ColBorder]);
+    XConfigureWindow(dpy, c->frame, CWBorderWidth, &wc);
+    XSetWindowBorder(dpy, c->frame, dc.norm[ColBorder]);
 
     updatetitle(c);
     if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
@@ -1175,9 +1182,17 @@ manage(Window w, XWindowAttributes *wa) {
         c->hadtitle = False;
     attach(c);
     attachstack(c);
-    XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w, c->h); /* some windows require this */
+    XMoveResizeWindow(dpy, c->win, c->x, c->y, c->w - 2 * borderpx, c->h - 2 * borderpx); /* some windows require this */
+    twa.event_mask = ColormapChangeMask | EnterWindowMask |
+                        PropertyChangeMask | FocusChangeMask;
+    twa.win_gravity = StaticGravity;
+    twa.do_not_propagate_mask = MOUSEMASK;
+    XChangeWindowAttributes(dpy, c->win,
+                        CWEventMask | CWWinGravity | CWDontPropagate, &twa);
+    XReparentWindow(dpy, c->win, c->frame, borderpx, borderpx + c->th);
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
         ewmh_process_state_atom(c, atom[WindowStateFs], 1);
+    XMapWindow(dpy, c->frame);
     XMapWindow(dpy, c->win);
     drawclient(c);
     updateatom[ClientList](NULL);
