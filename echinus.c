@@ -460,7 +460,6 @@ void
 buttonpress(XEvent *e) {
     Client *c;
     XButtonPressedEvent *ev = &e->xbutton;
-    int i;
 
     if(ev->window == root) {
             switch(ev->button) {
@@ -1351,7 +1350,6 @@ propertynotify(XEvent *e) {
     Client *c;
     Window trans;
     XPropertyEvent *ev = &e->xproperty;
-    XWindowAttributes wa;
 
     if(ev->state == PropertyDelete)
             return; /* ignore */
