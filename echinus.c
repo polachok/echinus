@@ -1198,6 +1198,7 @@ manage(Window w, XWindowAttributes *wa) {
     XMapWindow(dpy, c->win);
     if(c->title)
         XMapWindow(dpy, c->title);
+    c->isbanned = True;
     drawclient(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
