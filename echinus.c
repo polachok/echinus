@@ -1235,7 +1235,7 @@ maprequest(XEvent *e) {
             return;
     if(wa.override_redirect)
             return;
-    if(c = getclient(ev->window, clients, False))
+    if((c = getclient(ev->window, clients, False)))
             unban(c);
     else
             manage(ev->window, &wa);
@@ -2081,6 +2081,7 @@ unban(Client *c) {
             return;
     XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
     XMapWindow(dpy, c->frame);
+    XMapWindow(dpy, c->win);
     setclientstate(c, NormalState);
     c->isbanned = False;
 }
