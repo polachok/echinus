@@ -609,8 +609,8 @@ configure(Client *c) {
     ce.window = c->win;
     ce.x = 0;
     ce.y = c->th;
-    ce.width = c->w - 2*c->border;
-    ce.height = c->h - 2*c->border - c->th;
+    ce.width = c->w;
+    ce.height = c->h - c->th;
     ce.border_width = 0;
     ce.above = None;
     ce.override_redirect = False;
@@ -647,9 +647,9 @@ configurerequest(XEvent *e) {
                     if(ev->value_mask & CWY)
                             c->y = ev->y;
                     if(ev->value_mask & CWWidth)
-                            c->w = ev->width + 2*c->border;
+                            c->w = ev->width;
                     if(ev->value_mask & CWHeight)
-                            c->h = ev->height + 2*c->border + c->th;
+                            c->h = ev->height;
                     if((c->x + c->w) > sw && c->isfloating)
                             c->x = sw / 2 - c->w / 2; /* center in x direction */
                     if((c->y + c->h) > sh && c->isfloating)
@@ -1129,13 +1129,14 @@ manage(Window w, XWindowAttributes *wa) {
             if(c->y < way)
                     c->y = way;
     }
-    wc.border_width = c->border;
     if(!c->isbastard){
+        wc.border_width = 0;
         XConfigureWindow(dpy, w, CWBorderWidth, &wc);
         XSetWindowBorder(dpy, w, dc.norm[ColBorder]);
         configure(c); /* propagates border_width, if size doesn't change */
         updatesizehints(c);
     }
+    wc.border_width = c->border;
     c->sfx = c->x;
     c->sfy = c->y;
     c->sfw = c->w;
@@ -1189,7 +1190,7 @@ manage(Window w, XWindowAttributes *wa) {
     XChangeWindowAttributes(dpy, c->win,
                         CWEventMask | CWWinGravity | CWDontPropagate, &twa);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
-    XMoveResizeWindow(dpy, c->win, 0, c->th, c->w - 2 * c->border, c->h - 2 * c->border - c->th); /* some windows require this */
+    XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h - c->th); /* some windows require this */
     if(!c->isbastard)
         XMoveResizeWindow(dpy, c->frame, c->x+2*sw, c->y, c->w, c->h);
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
@@ -1300,7 +1301,7 @@ monocle(void) {
             else
                 continue;
             if(bpos[curtag] != StrutsOn) 
-                resize(c, sx-c->border, sy-c->border, sw, sh, False);
+                resize(c, sx, sy-c->border, sw, sh, False);
             else {
                 resize(c, wax, way, waw-2*c->border, wah-2*c->border, False);
             }
@@ -1427,11 +1428,7 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
 		    c->sfh = h;
 		    c->isplaced = True;
 	    }
-            c->x = x;
-            c->y = y;
-            c->w = w;
-            c->h = h;
-            XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
+            
             if(sizehints) {
                 /* set minimum possible */
                 if (w < 1)
@@ -1470,17 +1467,20 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
                 if(c->maxh > 0 && h > c->maxh)
                         h = c->maxh;
             }
+            c->x = x;
+            c->y = y;
+            c->w = w;
+            c->h = h;
+            XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
             c->th = c->hastitle ? dc.h : 0;
             wc.x = 0;
             wc.y = c->th;
             wc.width = w;
             wc.height = h;
-            wc.border_width = c->border;
+            wc.border_width = 0;
             XConfigureWindow(dpy, c->win, CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
-            XMoveResizeWindow(dpy, c->win, 0, c->th, w, h);
             if(c->title)
                 XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
-            //XConfigureWindow(dpy, c->win, CWWidth | CWHeight | CWBorderWidth, &wc);
             configure(c);
             XSync(dpy, False);
     }
