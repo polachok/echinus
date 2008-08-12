@@ -370,16 +370,15 @@ attach(Client *c) {
 
 void
 attachstack(Client *c) {
-    if(stack){
-        if(stack->isbastard && !c->isbastard){
-            c->snext = stack->snext;
-            stack->snext = c;
-        }
+    Client *t;
+    if(stack && c->isbastard){
+        for(t = stack; t->snext; t = t->snext);
+        t->snext = c;
+        c->snext = NULL;
+        return;
     }
-    else {
-        c->snext = stack;
-        stack = c;
-    }
+    c->snext = stack;
+    stack = c;
 }
 
 void
@@ -740,7 +739,7 @@ enternotify(XEvent *e) {
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
     if((c = getclient(ev->window, clients, False))){
-	if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)  )
+	if((c->isfloating && !c->isbastard) || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)  )
             focus(c);
 	else
 	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
@@ -794,7 +793,7 @@ void
 focus(Client *c) {
     Client *o;
     o = sel;
-    if((!c && selscreen) || (c && !isvisible(c)))
+    if((!c && selscreen) || (c && (c->isbastard || !isvisible(c))))
             for(c = stack; c && (c->isbastard || !isvisible(c)); c = c->snext);
     if(sel && sel != c) {
             grabbuttons(sel, False);
@@ -1536,12 +1535,16 @@ restack(void) {
     if(!sel)
             return;
 
-    for(n = 0, c = stack; c; c = c->snext)
-        if(isvisible(c))
+    for(n = 0, c = stack; c; c = c->snext){
+        if(isvisible(c)){
                 n++;
+        }
+    }
     wl = malloc(sizeof(Window)*n);
     for(i = 0, c = stack; c && i<n; c = c->snext)
-        wl[i++] = c->frame;
+        if(isvisible(c)){
+            wl[i++] = c->frame;
+        }
     XRestackWindows(dpy, wl, i);
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
@@ -2051,15 +2054,13 @@ focusview(const char *arg) {
     if (!seltags[i])
             return;
     for(c = clients; c; c = c->next){
-        if (c->tags[i]) {
+        if (c->tags[i] && !c->isbastard) {
                 focus(c);
                 c->isplaced = True;
-                if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating || (layouts[ltidxs[curtag]].arrange == ifloating)){
-                    restack();
-                }
-                return;
+
         }
     }
+    restack();
 }
 void
 unban(Client *c) {
@@ -2077,6 +2078,7 @@ unmanage(Client *c) {
     if(c->title)
         XDestroyWindow(dpy, c->title);
     XReparentWindow(dpy, c->win, root, c->x, c->y);
+    XMoveWindow(dpy, c->win, c->x, c->y);
     XDestroyWindow(dpy, c->frame);
     wc.border_width = c->oldborder;
     /* The server grab construct avoids race conditions. */
