@@ -15,6 +15,7 @@ Echinus*button.left.pixmap: iconify.xbm
 Echinus*button.center.pixmap: max.xbm
 Echinus*button.right.pixmap: close.xbm
 
+Echinus*sloppy: 0
 Echinus*opacity: 0.8
 Echinus*decoratetiled: 0
 Echinus*hidebastards: 0

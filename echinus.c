@@ -247,6 +247,7 @@ Bool otherwm;
 Bool running = True;
 Bool selscreen = True;
 Bool notitles = False;
+Bool sloppy = False;
 Client *clients = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
@@ -748,7 +749,7 @@ enternotify(XEvent *e) {
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
     if((c = getclient(ev->window, clients, False))){
-	if((c->isfloating && !c->isbastard) || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)  )
+	if((c->isfloating && !c->isbastard) || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating) || sloppy)
             focus(c);
 	else
 	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
@@ -1818,6 +1819,7 @@ setup(void) {
         hidebastards = atoi(getresource("hidebastards", "0"));
         tpos = atoi(getresource("titleposition", TITLEPOSITION));
         tbpos = atoi(getresource("tagbar", TAGBAR));
+        sloppy = atoi(getresource("sloppy", "0"));
 
 	struts[RightStrut] = struts[LeftStrut] = struts[TopStrut] = struts[BotStrut] = 0;
         updategeom();
