@@ -516,17 +516,17 @@ buttonpress(XEvent *e) {
     else if((c = getclient(ev->window, clients, True))) {
         focus(c);
         if(tpos != TitleRight){
-            if((ev->x > c->w-2*c->border-3*c->th) && (ev->x < c->w-2*c->border-2*c->th)){
+            if((ev->x > c->w-3*c->th) && (ev->x < c->w-2*c->th)){
                 /* min */
                 bleft.action(NULL);
                 return;
             }
-            if((ev->x > c->w-2*c->border-2*c->th) && (ev->x < c->w-2*c->border-c->th)){
+            if((ev->x > c->w-2*c->th) && (ev->x < c->w-c->th)){
                 /* max */
                 bcenter.action(NULL);
                 return;
             }
-            if((ev->x > c->w-2*c->border-c->th) && (ev->x < c->w-2*c->border)){
+            if((ev->x > c->w-c->th) && (ev->x < c->w)){
                 /* close */
                 bright.action(NULL);
                 return;
@@ -2146,16 +2146,12 @@ unmapnotify(XEvent *e) {
     if((c = getclient(ev->window, clients, False))) {
         if(c->isicon)
             return;
-        ban(c);
-        /*
         XGetWindowAttributes(dpy, ev->window, &wa);
         if(wa.map_state == IsUnmapped && c->title){
                 XGetWindowAttributes(dpy, c->title, &wa);
                 if(wa.map_state == IsViewable)
                         unmanage(c);
-                else
         }
-        */
     }
 }
 
