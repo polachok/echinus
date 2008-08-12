@@ -371,7 +371,7 @@ attach(Client *c) {
 void
 attachstack(Client *c) {
     Client *t;
-    if(stack && !c->isfloating){
+    if(stack && !c->isfloating && (layouts[ltidxs[curtag]].arrange != ifloating)){
         for(t = stack; t->snext; t = t->snext){
             if(!t->snext->isfloating){
                 c->snext = t->snext;
