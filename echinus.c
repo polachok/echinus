@@ -370,8 +370,16 @@ attach(Client *c) {
 
 void
 attachstack(Client *c) {
-    c->snext = stack;
-    stack = c;
+    if(stack){
+        if(stack->isbastard && !c->isbastard){
+            c->snext = stack->snext;
+            stack->snext = c;
+        }
+    }
+    else {
+        c->snext = stack;
+        stack = c;
+    }
 }
 
 void
@@ -732,7 +740,7 @@ enternotify(XEvent *e) {
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
     if((c = getclient(ev->window, clients, False))){
-	if(c->isfloating || c->isbastard || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)  )
+	if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)  )
             focus(c);
 	else
 	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
@@ -1133,8 +1141,11 @@ manage(Window w, XWindowAttributes *wa) {
     c->sfy = c->y;
     c->sfw = c->w;
     c->sfh = c->h;
-    XSelectInput(dpy, w,
-            StructureNotifyMask | PropertyChangeMask | EnterWindowMask | FocusChangeMask);
+    if(c->isbastard)
+        XSelectInput(dpy, w, PropertyChangeMask);
+    else
+        XSelectInput(dpy, w,
+            StructureNotifyMask | PropertyChangeMask | EnterWindowMask);
     grabbuttons(c, False);
     twa.override_redirect = 1;
     twa.background_pixmap = ParentRelative;
@@ -1172,7 +1183,7 @@ manage(Window w, XWindowAttributes *wa) {
             c->isfloating = (rettrans == Success) || c->isfixed;
     attach(c);
     attachstack(c);
-    twa.event_mask = ColormapChangeMask | EnterWindowMask |
+    twa.event_mask = EnterWindowMask |
                         PropertyChangeMask | FocusChangeMask;
     twa.win_gravity = StaticGravity;
     twa.do_not_propagate_mask = MOUSEMASK;
@@ -1518,24 +1529,20 @@ void
 restack(void) {
     Client *c;
     XEvent ev;
+    XWindowChanges wc;
+    Window *wl;
+    int i,n;
 
     if(!sel)
             return;
 
-    if(sel->isfloating || layouts[ltidxs[curtag]].arrange == floating || layouts[ltidxs[curtag]].arrange == ifloating)
-        XRaiseWindow(dpy, sel->frame);
-
-    if(layouts[ltidxs[curtag]].arrange != floating && layouts[ltidxs[curtag]].arrange != ifloating){
-        for(c = stack; c; c = c->snext){
-            if(!c->isfloating && isvisible(c))
-                XLowerWindow(dpy, c->frame);
-        }
-    }
-
-    for(c = clients; c; c = c->next)
-        if(checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
-            XLowerWindow(dpy, c->frame);
-
+    for(n = 0, c = stack; c; c = c->snext)
+        if(isvisible(c))
+                n++;
+    wl = malloc(sizeof(Window)*n);
+    for(i = 0, c = stack; c && i<n; c = c->snext)
+        wl[i++] = c->frame;
+    XRestackWindows(dpy, wl, i);
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
