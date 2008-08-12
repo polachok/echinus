@@ -1177,7 +1177,7 @@ manage(Window w, XWindowAttributes *wa) {
                         CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
     }
     else
-        c->title = (Window*)NULL;
+        c->title = (Window)NULL;
 
     updatetitle(c);
     if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
@@ -1541,7 +1541,6 @@ void
 restack(void) {
     Client *c;
     XEvent ev;
-    XWindowChanges wc;
     Window *wl;
     int i,n;
 
@@ -1674,7 +1673,7 @@ setmwfact(const char *arg) {
 void
 initlayouts(){
     int i,j;
-    char conf[32], xres[256];
+    char conf[32], xres[256], buf[5];
 
     /* init layouts */
     nmasters = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
@@ -1690,8 +1689,10 @@ initlayouts(){
                     break;
             }
         }
-        mwfacts[i] = MWFACT;
-        nmasters[i] = NMASTER;
+       sprintf(buf, "%.2f", MWFACT);
+       mwfacts[i] = atof(getresource("mwfact", buf));
+       sprintf(buf, "%d", NMASTER);
+       nmasters[i] = atoi(getresource("nmaster", buf));
     }
 
     /* init struts */

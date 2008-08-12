@@ -20,6 +20,8 @@ Echinus*decoratetiled: 0
 Echinus*hidebastards: 0
 Echinus*titleposition: 0
 Echinus*tagbar: 0
+Echinus*mwfact: 0.6
+Echinus*nmaster: 1
 
 Echinus*font: fixed-9
 Echinus*title: 12
