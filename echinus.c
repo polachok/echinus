@@ -371,6 +371,15 @@ attach(Client *c) {
 void
 attachstack(Client *c) {
     Client *t;
+    if(stack && !c->isfloating){
+        for(t = stack; t->snext; t = t->snext){
+            if(!t->snext->isfloating){
+                c->snext = t->snext;
+                t->snext = c;
+                return;
+            }
+        }
+    }
     if(stack && c->isbastard){
         for(t = stack; t->snext; t = t->snext);
         t->snext = c;
@@ -1219,13 +1228,16 @@ mappingnotify(XEvent *e) {
 void
 maprequest(XEvent *e) {
     static XWindowAttributes wa;
+    Client *c;
     XMapRequestEvent *ev = &e->xmaprequest;
 
     if(!XGetWindowAttributes(dpy, ev->window, &wa))
             return;
     if(wa.override_redirect)
             return;
-    if(!getclient(ev->window, clients, False))
+    if(c = getclient(ev->window, clients, False))
+            unban(c);
+    else
             manage(ev->window, &wa);
     arrange();
 }
@@ -2133,12 +2145,16 @@ unmapnotify(XEvent *e) {
     if((c = getclient(ev->window, clients, False))) {
         if(c->isicon)
             return;
+        ban(c);
+        /*
         XGetWindowAttributes(dpy, ev->window, &wa);
         if(wa.map_state == IsUnmapped && c->title){
                 XGetWindowAttributes(dpy, c->title, &wa);
                 if(wa.map_state == IsViewable)
                         unmanage(c);
+                else
         }
+        */
     }
 }
 
