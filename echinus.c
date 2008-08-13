@@ -381,7 +381,7 @@ attachstack(Client *c) {
             }
         }
     }
-    if(stack && c->isbastard){
+    if(stack && checkatom(c->win, atom[WindowType], atom[WindowTypeDesk])){
         for(t = stack; t->snext; t = t->snext);
         t->snext = c;
         c->snext = NULL;
