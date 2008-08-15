@@ -1157,7 +1157,9 @@ manage(Window w, XWindowAttributes *wa) {
         XSelectInput(dpy, w,
             StructureNotifyMask | PropertyChangeMask | EnterWindowMask);
     grabbuttons(c, False);
-    twa.override_redirect = 1;
+    twa.save_under = True;
+    twa.backing_store = Always;
+    twa.override_redirect = True;
     twa.background_pixmap = ParentRelative;
     twa.event_mask = ExposureMask | MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
     //twa.border_width = borderpx;
@@ -1165,7 +1167,7 @@ manage(Window w, XWindowAttributes *wa) {
     c->frame = XCreateWindow(dpy, root, c->x, c->y - c->th, c->w, c->h,
                     c->border, DefaultDepth(dpy, screen), CopyFromParent,
                     DefaultVisual(dpy, screen),
-                    CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
+                    CWOverrideRedirect | CWBackPixmap | CWEventMask | CWBackingStore | CWSaveUnder, &twa);
  
     XConfigureWindow(dpy, c->frame, CWBorderWidth, &wc);
     XSetWindowBorder(dpy, c->frame, dc.norm[ColBorder]);
@@ -1197,9 +1199,12 @@ manage(Window w, XWindowAttributes *wa) {
                         PropertyChangeMask | FocusChangeMask;
     twa.win_gravity = StaticGravity;
     twa.do_not_propagate_mask = MOUSEMASK;
+    twa.save_under = True;
+    twa.backing_store = Always;
     XChangeWindowAttributes(dpy, c->win,
-                        CWEventMask | CWWinGravity | CWDontPropagate, &twa);
+                        CWEventMask | CWWinGravity | CWDontPropagate | CWBackingStore | CWSaveUnder, &twa);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
+    XAddToSaveSet(dpy, c->win);
     XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h - c->th); /* some windows require this */
     if(!c->isbastard)
         XMoveResizeWindow(dpy, c->frame, c->x+2*sw, c->y, c->w, c->h);
@@ -2094,6 +2099,7 @@ unmanage(Client *c) {
     XWindowChanges wc;
     if(c->title)
         XDestroyWindow(dpy, c->title);
+    XMoveResizeWindow(dpy, c->frame, c->x+2*sw, c->y, c->w, c->h);
     XReparentWindow(dpy, c->win, root, c->x, c->y);
     XMoveWindow(dpy, c->win, c->x, c->y);
     XDestroyWindow(dpy, c->frame);
