@@ -2004,6 +2004,8 @@ void
 togglefloating(const char *arg) {
     if(!sel)
             return;
+    if(sel->title)
+        sel->hastitle = True;
     sel->isfloating = !sel->isfloating;
     if(sel->isfloating)
             /*restore last known float dimensions*/
