@@ -175,12 +175,19 @@ clientmessage(XEvent *e) {
 
 void 
 setopacity(Client *c, unsigned int opacity) {
-    if (opacity == OPAQUE)
+    if (opacity == OPAQUE) {
         XDeleteProperty (dpy, c->win, atom[WindowOpacity]);
-    else
+        XDeleteProperty (dpy, c->frame, atom[WindowOpacity]);
+    }
+    else {
         XChangeProperty(dpy, c->win, atom[WindowOpacity], 
                 XA_CARDINAL, 32, PropModeReplace, 
                 (unsigned char *) &opacity, 1L);
+        XChangeProperty(dpy, c->frame, atom[WindowOpacity], 
+                XA_CARDINAL, 32, PropModeReplace, 
+                (unsigned char *) &opacity, 1L);
+
+    }
 }
 
 
