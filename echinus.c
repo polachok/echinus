@@ -829,6 +829,7 @@ focus(Client *c) {
     if(o)
         drawclient(o);
     updateatom[ActiveWindow](sel);
+    updateatom[ClientList](NULL);
 }
 
 void
