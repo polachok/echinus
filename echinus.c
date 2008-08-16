@@ -617,8 +617,8 @@ configure(Client *c) {
     ce.display = dpy;
     ce.event = c->win;
     ce.window = c->win;
-    ce.x = 0;
-    ce.y = c->th;
+    ce.x = c->x;
+    ce.y = c->y;
     ce.width = c->w;
     ce.height = c->h - c->th;
     ce.border_width = 0;
@@ -1492,12 +1492,13 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
             c->h = h;
             XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
             c->th = c->hastitle ? dc.h : 0;
-            wc.x = 0;
-            wc.y = c->th;
+            wc.x = c->x;
+            wc.y = c->y;
             wc.width = w;
             wc.height = h;
             wc.border_width = 0;
             XConfigureWindow(dpy, c->win, CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
+            XMoveResizeWindow(dpy, c->win, 0, c->th, w, h);
             if(c->title)
                 XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
             configure(c);
