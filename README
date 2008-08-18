@@ -26,12 +26,23 @@ On new install:
 
 Name: ~/.echinus/echinusrc
 
-Default layout
+Main settings
 
     Echinus*deflayout
         Layout applied to tag if not explicitly set by tags.layout later.
         One of: i - ifloating, f - floating, t - tiled, b - bottomstack, m - maximized. 
 
+    Echinus*mwfact
+
+        Space occupied by master window in tiled layout (fraction of 1).
+
+    Echinus*nmaster
+
+        Number of clients in master area in tiled layout.
+
+    Echinus*sloppy
+       
+       Use sloppy focus (bool)
 
 Title settings
 
@@ -187,6 +198,11 @@ Keybindings
      
      Toggle view number # and focus the first client
      from it.
+
+    Echinus*viewlefttag
+    Echinus*viewrighttag
+
+     View tag on the left(right) of current
 
     Echinus*spawn#: <key> = program
 
