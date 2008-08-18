@@ -8,7 +8,7 @@ PIXMAPS = close.xbm iconify.xbm max.xbm
 FILES = draw.c parse.c ewmh.c config.h
 SRC = echinus.c
 OBJ = ${SRC:.c=.o}
-CONF = share/examples
+CONF = share/examples/echinus
 
 all: options echinus ${HEADERS}
 
