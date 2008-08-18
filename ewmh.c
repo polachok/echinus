@@ -71,7 +71,7 @@ ewmh_update_net_client_list() {
 
     wins = malloc(sizeof(Window*)*n);
 
-    for(i = n-1, c = stack; c && i; c = c->snext)
+    for(i = n-1, c = stack; c; c = c->snext)
             wins[i--] = c->win;
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
