@@ -16,7 +16,7 @@ options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
-	@echo "CONFIG   = ${CONFPREFIX}"
+	@echo "CONFPREFIXI   = ${CONFPREFIX}"
 
 .c.o:
 	@echo CC $<
@@ -46,9 +46,10 @@ install: all
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@cp -f echinus ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/echinus
-	@echo installing configuration file and pixmaps to ${CONF}
-	@cp echinusrc ${CONF}
-	@cp ${PIXMAPS} ${CONF}
+	@echo installing configuration file and pixmaps to ${CONFPREFIX}
+	@mkdir -p ${CONFPREFIX}
+	@cp echinusrc ${CONFPREFIX}
+	@cp ${PIXMAPS} ${CONFPREFIX}
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
