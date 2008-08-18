@@ -14,12 +14,13 @@ You need X11 and Xft headers to compile echinus wm and the pkg-config tool.
 Packages containing this stuff are probably named libx11-dev and libxft-dev
 (note "-dev" suffix).
 
-% make
-% make install
+# make
+# make install
 
 On new install:
 
-% make installconfig
+% mkdir ~/.echinus
+% cp /usr/local/share/examples/echinus/* ~/.echinus
 
 1.Configuration file
 --------------------

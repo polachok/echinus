@@ -6,6 +6,7 @@ VERSION = 0.3.1
 # paths
 PREFIX = /usr/local
 MANPREFIX = ${PREFIX}/share/man
+CONFPREFIX = ${PREFIX}/share/examples/echinus
 
 X11INC = /usr/X11R6/include
 X11LIB = /usr/X11R6/lib
@@ -17,8 +18,8 @@ LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 `pkg-config --libs xft`
 # flags
 CFLAGS = -Os ${INCS} -DVERSION=\"${VERSION}\"
 LDFLAGS = -s ${LIBS}
-CFLAGS = -g3 -ggdb3 -std=c99 -pedantic -Wall -O0 ${INCS} -DVERSION=\"${VERSION}\" 
-LDFLAGS = -g3 -ggdb3 ${LIBS}
+#CFLAGS = -g3 -ggdb3 -std=c99 -pedantic -Wall -O0 ${INCS} -DVERSION=\"${VERSION}\" 
+#LDFLAGS = -g3 -ggdb3 ${LIBS}
 
 # Solaris
 #CFLAGS = -fast ${INCS} -DVERSION=\"${VERSION}\"

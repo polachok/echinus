@@ -8,7 +8,6 @@ PIXMAPS = close.xbm iconify.xbm max.xbm
 FILES = draw.c parse.c ewmh.c config.h
 SRC = echinus.c
 OBJ = ${SRC:.c=.o}
-CONF = ${HOME}/.echinus/
 
 all: options echinus ${HEADERS}
 
@@ -17,7 +16,7 @@ options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
-	@echo "CONFIG   = ${CONF}"
+	@echo "CONFIG   = ${CONFPREFIX}"
 
 .c.o:
 	@echo CC $<
@@ -47,10 +46,7 @@ install: all
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@cp -f echinus ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/echinus
-
-installconfig:
 	@echo installing configuration file and pixmaps to ${CONF}
-	@mkdir ${CONF}
 	@cp echinusrc ${CONF}
 	@cp ${PIXMAPS} ${CONF}
 
