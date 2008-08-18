@@ -64,14 +64,15 @@ ewmh_update_net_client_list() {
     Window *wins;
     Client *c;
     int n = 0;
+    int i;
 
     for(c = stack; c; c = c->snext)
             n++;
 
     wins = malloc(sizeof(Window*)*n);
 
-    for(n = 0, c = stack; c; c = c->snext)
-            wins[n++] = c->win;
+    for(i = n-1, c = stack; c && i; c = c->snext)
+            wins[i--] = c->win;
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     atom[ClientList], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
