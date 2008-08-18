@@ -1497,7 +1497,6 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
             wc.width = w;
             wc.height = h;
             wc.border_width = 0;
-            XConfigureWindow(dpy, c->win, CWX | CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
             XMoveResizeWindow(dpy, c->win, 0, c->th, w, h);
             if(c->title)
                 XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
