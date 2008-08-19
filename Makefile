@@ -8,7 +8,7 @@ PIXMAPS = close.xbm iconify.xbm max.xbm
 FILES = draw.c parse.c ewmh.c config.h
 SRC = echinus.c
 OBJ = ${SRC:.c=.o}
-CONF = share/examples/echinus
+CONF = /share/examples/echinus
 
 all: options echinus ${HEADERS}
 
@@ -46,15 +46,17 @@ install: all
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@cp -f echinus ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/echinus
-	@echo installing configuration file and pixmaps to ${PREFIX}/${CONF}
-	@mkdir -p ${PREFIX}/${CONF}
-	@cp echinusrc ${PREFIX}/${CONF}
-	@cp ${PIXMAPS} ${PREFIX}/${CONF}
+	@echo installing configuration file and pixmaps to ${DESTDIR}${PREFIX}${CONF}
+	@mkdir -p ${DESTDIR}${PREFIX}${CONF}
+	@cp echinusrc ${DESTDIR}${PREFIX}${CONF}
+	@cp ${PIXMAPS} ${DESTDIR}${PREFIX}${CONF}
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
 	@rm -f ${DESTDIR}${PREFIX}/bin/echinus
 	@echo removing manual page from ${DESTDIR}${MANPREFIX}/man1
 	@rm -f ${DESTDIR}${MANPREFIX}/man1/echinus.1
+	@echo removing configuration file and pixmaps from ${DESTDIR}${PREFIX}${CONF}
+	@rm -rf ${DESTDIR}${PREFIX}${CONF}
 
 .PHONY: all options clean dist install uninstall
