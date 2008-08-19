@@ -401,21 +401,16 @@ ban(Client *c) {
 }
 
 void
-iconify(Client *c) {
+iconifyit(const char *arg) {
+    Client *c;
+    if(!sel)
+        return;
+    c = sel;
+    focusnext(NULL);
     ban(c);
     setclientstate(c, IconicState);
     c->isicon = True;
-    detach(c);
-    attach(c);
-}
-
-void
-iconifyit(const char *arg) {
-    if(!sel)
-        return;
-    iconify(sel);
     arrange();
-    focusnext(NULL);
 }
 
 void
@@ -749,8 +744,13 @@ enternotify(XEvent *e) {
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
     if((c = getclient(ev->window, clients, False))){
-	if((c->isfloating && !c->isbastard) || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating) || sloppy)
-            focus(c);
+	if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating) || sloppy){
+            if(c->isbastard){
+                grabbuttons(c, True);
+            }
+            else
+                focus(c);
+        }
 	else
 	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
                     BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
@@ -838,9 +838,9 @@ focusnext(const char *arg) {
 
     if(!sel)
             return;
-    for(c = sel->next; c && (c->isbastard || !isvisible(c)); c = c->next);
+    for(c = sel->next; c && (c->isbastard || c->isicon || !isvisible(c)); c = c->next);
     if(!c)
-            for(c = clients; c && (c->isbastard || !isvisible(c)); c = c->next);
+            for(c = clients; c && (c->isbastard || c->isicon || !isvisible(c)); c = c->next);
     if(c) {
             focus(c);
             restack();
@@ -853,10 +853,10 @@ focusprev(const char *arg) {
 
     if(!sel)
             return;
-    for(c = sel->prev; c && (c->isbastard || !isvisible(c)); c = c->prev);
+    for(c = sel->prev; c && (c->isbastard || c->isicon || !isvisible(c)); c = c->prev);
     if(!c) {
             for(c = clients; c && c->next; c = c->next);
-            for(; c && (c->isbastard || !isvisible(c)); c = c->prev);
+            for(; c && (c->isbastard || c->isicon || !isvisible(c)); c = c->prev);
     }
     if(c) {
             focus(c);
@@ -1555,13 +1555,13 @@ restack(void) {
             return;
 
     for(n = 0, c = stack; c; c = c->snext){
-        if(isvisible(c)){
+        if(isvisible(c) && !c->isicon){
                 n++;
         }
     }
     wl = malloc(sizeof(Window)*n);
     for(i = 0, c = stack; c && i<n; c = c->snext)
-        if(isvisible(c)){
+        if(isvisible(c) && !c->isicon){
             wl[i++] = c->frame;
         }
     XRestackWindows(dpy, wl, i);
