@@ -1903,17 +1903,11 @@ bstack(void) {
             nh = mh - 2 * c->border;
             nw = waw - 2 * c->border;
             nx = wax;
-            if(dectiled){
-                ny+=dc.h + c->border;
-                nh-=dc.h + c->border;
-            }
         }
         else {
             if(i == 1) {
                 nx = wax;
                 ny += mc->h+c->border;
-                if(dectiled)
-                    ny += dc.h + c->border;
                 nh = (way + wah) - ny - 2 * c->border;
             }
             if(i + 1 == n)
@@ -1961,17 +1955,11 @@ tile(void) {
                         nh = mh;
                         if(i + 1 == (n < nmasters[curtag] ? n : nmasters[curtag])) /* remainder */
                                 nh = way + wah - ny;
-                        if(dectiled){
-                            ny+=dc.h+c->border;
-                            nh-=dc.h+c->border;
-                        }
                         nh -= 2 * c->border;
                 }
                 else {  /* tile window */
                         if(i == nmasters[curtag]) {
                                 ny = way;
-                                if(dectiled)
-                                    ny+=dc.h+c->border;
                                 nx += mc->w + mc->border;
                                 nw = waw - nx - 2*c->border;
                         }
@@ -1986,8 +1974,6 @@ tile(void) {
                 drawclient(c);
                 if(n > nmasters[curtag] && th != wah){
                         ny = c->y + c->h + 2 * c->border;
-                        if(dectiled)
-                            ny += dc.h+c->border;
                 }
         }
 }
