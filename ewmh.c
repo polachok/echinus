@@ -160,7 +160,7 @@ clientmessage(XEvent *e) {
 
     if(ev->message_type == atom[ActiveWindow]) {
         focus(getclient(ev->window, clients, False));
-        restack();
+        arrange();
     }
     else if(ev->message_type == atom[CurDesk]) {
         view(tags[ev->data.l[0]]);

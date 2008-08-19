@@ -810,6 +810,7 @@ focus(Client *c) {
             XSetWindowBorder(dpy, sel->frame, dc.norm[ColBorder]);
     }
     if(c) {
+            c->isicon = False;
             detachstack(c);
             attachstack(c);
             grabbuttons(c, True);
