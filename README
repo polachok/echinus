@@ -53,7 +53,7 @@ Title settings
 
     Echinus*titleposition - 0 (left), 1 (center), 2 (right)
 
-        Window name position
+        Window name position. When on right buttons are disabled.
 
     Echinus*tagbar - boolean (1 or 0)
 
