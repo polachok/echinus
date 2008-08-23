@@ -1175,7 +1175,8 @@ manage(Window w, XWindowAttributes *wa) {
     XSetWindowBorder(dpy, c->frame, dc.norm[ColBorder]);
 
     twa.event_mask = ExposureMask | MOUSEMASK;
-    if(!c->isbastard){
+    applyrules(c);
+    if(!c->isbastard && c->hastitle){
         c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
                         0, DefaultDepth(dpy, screen), CopyFromParent,
                         DefaultVisual(dpy, screen),
@@ -1183,13 +1184,11 @@ manage(Window w, XWindowAttributes *wa) {
     }
     else
         c->title = (Window)NULL;
-
     updatetitle(c);
     if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
             for(t = clients; t && t->win != trans; t = t->next);
     if(t)
             memcpy(c->tags, t->tags, ntags*(sizeof seltags));
-    applyrules(c);
     if(c->isbastard)
         for(i = 0; i < ntags; i++)
             c->tags[i] = True;
@@ -1429,6 +1428,7 @@ void
 resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
     XWindowChanges wc;
     if(sizehints) {
+        h -= c->th;
         /* set minimum possible */
         if (w < 1)
                 w = 1;
@@ -1465,6 +1465,7 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
                 w = c->maxw;
         if(c->maxh > 0 && h > c->maxh)
                 h = c->maxh;
+        h += c->th;
     }
     if(w <= 0 || h <= 0)
             return;
