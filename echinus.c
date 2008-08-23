@@ -1568,6 +1568,7 @@ restack(void) {
         }
     XRestackWindows(dpy, wl, i);
     XSync(dpy, False);
+    free(wl);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
 
@@ -2146,11 +2147,12 @@ unmapnotify(XEvent *e) {
     if((c = getclient(ev->window, clients, False))) {
         if(c->isicon)
             return;
-        XGetWindowAttributes(dpy, ev->window, &wa);
-        if(wa.map_state == IsUnmapped && c->title){
-                XGetWindowAttributes(dpy, c->title, &wa);
-                if(wa.map_state == IsViewable)
-                        unmanage(c);
+        if(XGetWindowAttributes(dpy, ev->window, &wa)){
+            if(wa.map_state == IsUnmapped){
+                    XGetWindowAttributes(dpy, c->frame, &wa);
+                    if(wa.map_state == IsViewable)
+                            unmanage(c);
+            }
         }
     }
 }

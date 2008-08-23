@@ -207,6 +207,7 @@ checkatom(Window win, Atom bigatom, Atom smallatom){
                         return 1;
         }
     }
+    XFree(data);
     return 0;
 }
 
