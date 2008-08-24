@@ -1175,6 +1175,7 @@ manage(Window w, XWindowAttributes *wa) {
     XSetWindowBorder(dpy, c->frame, dc.norm[ColBorder]);
 
     twa.event_mask = ExposureMask | MOUSEMASK;
+    updatetitle(c);
     applyrules(c);
     if(!c->isbastard && c->hastitle){
         c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
@@ -1184,7 +1185,6 @@ manage(Window w, XWindowAttributes *wa) {
     }
     else
         c->title = (Window)NULL;
-    updatetitle(c);
     if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
             for(t = clients; t && t->win != trans; t = t->next);
     if(t)
