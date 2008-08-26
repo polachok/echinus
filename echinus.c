@@ -1327,10 +1327,9 @@ monocle(void) {
             else
                 continue;
             if(bpos[curtag] != StrutsOn) 
-                resize(c, sx, sy-c->border, sw, sh, False);
-            else {
+                resize(c, sx - c->border, sy - c->border, sw, sh, False);
+            else 
                 resize(c, wax, way, waw-2*c->border, wah-2*c->border, False);
-            }
         }
     }
     focus(NULL);
@@ -2026,7 +2025,7 @@ togglemax(const char *arg) {
             sel->ry = sel->y;
             sel->rw = sel->w;
             sel->rh = sel->h;
-            resize(sel, sx - sel->border, sy - sel->border, sw + 2*sel->border, sh + 2*sel->border + sel->th, False);
+            resize(sel, sx - sel->border, sy - sel->border, sw, sh, False);
     }
     else 
         resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, True);
