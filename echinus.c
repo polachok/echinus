@@ -189,7 +189,6 @@ Client *nexttiled(Client *c);
 Client *prevtiled(Client *c);
 void propertynotify(XEvent *e);
 void quit(const char *arg);
-void restart(const char *arg);
 void resize(Client *c, int x, int y, int w, int h, Bool sizehints);
 void resizemouse(Client *c);
 void restack(void);
@@ -557,12 +556,14 @@ checkotherwm(void) {
 
 void
 cleanup(void) {
+    int i;
     while(stack) {
             unban(stack);
             unmanage(stack);
     }
     free(tags);
-    free(keys);
+    for(i = 0; i < nkeys; i++)
+        free(keys[i]);
     /* free resource database */
     XrmDestroyDatabase(xrdb);
     /* free colors */
@@ -775,8 +776,10 @@ void
 expose(XEvent *e) {
     XExposeEvent *ev = &e->xexpose;
     Client *c;
-    if((c = getclient(ev->window, clients, True)))
+    if((c = getclient(ev->window, clients, True))){
+        fprintf(stderr, "EXPOSE [%s]\n", c->name);
         drawclient(c);
+    }
 }
 
 void
@@ -887,6 +890,8 @@ getclient(Window w, Client *list, Bool title) {
     Client *c;
 
     for(c = list; c && (title ? c->title : c->win) != w; c = c->next);
+    if(!c)
+        for(c = list; c && (title ? c->title : c->frame) != w; c = c->next);
     return c;
 }
 
@@ -1141,13 +1146,7 @@ manage(Window w, XWindowAttributes *wa) {
             if(c->y < way)
                     c->y = way;
     }
-    if(!c->isbastard){
-        wc.border_width = 0;
-        XConfigureWindow(dpy, w, CWBorderWidth, &wc);
-        XSetWindowBorder(dpy, w, dc.norm[ColBorder]);
-        configure(c); /* propagates border_width, if size doesn't change */
-        updatesizehints(c);
-    }
+    
     wc.border_width = c->border;
     c->sfx = c->x;
     c->sfy = c->y;
@@ -1213,14 +1212,21 @@ manage(Window w, XWindowAttributes *wa) {
         ewmh_process_state_atom(c, atom[WindowStateFs], 1);
     XMapWindow(dpy, c->frame);
     XMapWindow(dpy, c->win);
+    if(!c->isbastard){
+        wc.border_width = 0;
+        XConfigureWindow(dpy, w, CWBorderWidth, &wc);
+        XSetWindowBorder(dpy, w, dc.norm[ColBorder]);
+        updatesizehints(c);
+        configure(c); /* propagates border_width, if size doesn't change */
+    }
     if(c->title)
         XMapWindow(dpy, c->title);
     c->isbanned = True;
-    drawclient(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
     updatestruts(c->win);
     arrange();
+    drawclient(c);
 }
 
 void
@@ -1278,9 +1284,10 @@ ifloating(void){
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon && !c->isbastard){
                 for(f = 0; !c->isplaced; f++){ 
-                    if(c->w > sw/2 && c->h > sw/2){
+                    if(c->w > waw/2 && c->h > waw/2){
                         /* too big to deal with */
                         c->isplaced = True; 
+                        break;
                     }
                     /* i dunno if c->h/4 & c->w/8 are optimal */
                         for(y = way; y+c->h <= wah && !c->isplaced ; y+=c->h/4){

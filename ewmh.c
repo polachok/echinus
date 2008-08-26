@@ -196,6 +196,7 @@ static int
 checkatom(Window win, Atom bigatom, Atom smallatom){
     Atom real, *state;
     int format;
+    int result = 0;
     unsigned char *data = NULL;
     unsigned long i, n, extra;
     if(XGetWindowProperty(dpy, win, bigatom, 0L, LONG_MAX, False,
@@ -204,19 +205,20 @@ checkatom(Window win, Atom bigatom, Atom smallatom){
         state = (Atom *) data;
         for(i = 0; i < n; i++){
             if(state[i] == smallatom)
-                        return 1;
+                        result = 1;
         }
     }
     XFree(data);
-    return 0;
+    return result;
 }
 
 static int
 updatestruts(Window win){
     Atom real, *state;
-    int format, i;
+    int format;
+    int result = 0;
     unsigned char *data = NULL;
-    unsigned long n, extra;
+    unsigned long i, n, extra;
     if(XGetWindowProperty(dpy, win, atom[StrutPartial], 0L, LONG_MAX, False,
                           XA_CARDINAL, &real, &format, &n, &extra,
                           (unsigned char **) &data) == Success && data){
@@ -225,10 +227,11 @@ updatestruts(Window win){
             for(i = LeftStrut; i < LastStrut; i++)
                 struts[i] = (state[i] > struts[i]) ? state[i] : struts[i];
             updategeom();
-            return 1;
+            result = 1;
         }
     }
-    return 0;
+    XFree(data);
+    return result;
 }
 
 void (*updateatom[LASTAtom]) (Client *) = {
