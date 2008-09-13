@@ -1206,6 +1206,8 @@ manage(Window w, XWindowAttributes *wa) {
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XAddToSaveSet(dpy, c->win);
     XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h - c->th); /* some windows require this */
+    updatestruts(c->win);
+    resize(c, c->x, c->y, c->w, c->h, True);
     if(!c->isbastard)
         XMoveResizeWindow(dpy, c->frame, c->x+2*sw, c->y, c->w, c->h);
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
@@ -1224,8 +1226,6 @@ manage(Window w, XWindowAttributes *wa) {
     c->isbanned = True;
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
-    updatestruts(c->win);
-    resize(c, c->x, c->y, c->w, c->h, True);
     arrange();
     drawclient(c);
 }
@@ -1485,7 +1485,7 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
             x = sx;
     if(y + h + 2 * c->border < sy)
             y = sy;
-    if(c->x != x || c->y != y || c->w != w || c->h != h) {
+    if(c->x != x || c->y != y || c->w != w || c->h != h || sizehints) {
 	    if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)) {
 		    c->sfx = x;
 		    c->sfy = y;
@@ -1493,19 +1493,12 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
 		    c->sfh = h;
 		    c->isplaced = True;
 	    }
-            
-            
             c->x = x;
             c->y = y;
             c->w = w;
             c->h = h;
             XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
             c->th = c->hastitle ? dc.h : 0;
-            wc.x = c->x;
-            wc.y = c->y;
-            wc.width = w;
-            wc.height = h;
-            wc.border_width = 0;
             XMoveResizeWindow(dpy, c->win, 0, c->th, w, h);
             if(c->title)
                 XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
