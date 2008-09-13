@@ -1225,6 +1225,7 @@ manage(Window w, XWindowAttributes *wa) {
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
     updatestruts(c->win);
+    resize(c, c->x, c->y, c->w, c->h, True);
     arrange();
     drawclient(c);
 }
