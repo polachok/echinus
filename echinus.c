@@ -247,6 +247,7 @@ Bool running = True;
 Bool selscreen = True;
 Bool notitles = False;
 Bool sloppy = False;
+Bool drawoutline = True;
 Client *clients = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
@@ -1433,7 +1434,6 @@ quit(const char *arg) {
 
 void
 resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
-    XWindowChanges wc;
     if(sizehints) {
         h -= c->th;
         /* set minimum possible */

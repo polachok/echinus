@@ -17,7 +17,7 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     memcpy(buf, text, len);
     buf[len] = 0;
     h = dc.h;
-    y = dc.h-dc.font.height/2+1;
+    y = dc.h-dc.font.height/2;
     x = dc.x+h/2;
     /* shorten text if necessary */
     while(len && (w = textnw(buf, len)) > dc.w){
@@ -47,7 +47,11 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     while(x <= 0)
             x = dc.x++;
     XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel,
-            dc.font.xftfont, x, y, (unsigned char*)buf, len);
+            dc.font.xftfont, x, drawoutline ? y : y+1, (unsigned char*)buf, len);
+    if(drawoutline){
+                XSetForeground(dpy, dc.gc, col[ColBorder]);
+                XDrawLine(dpy, dc.drawable, dc.gc, 0, dc.h-1, dc.w, dc.h-1);
+    }
     dc.x = x + w;
 }
 
@@ -77,11 +81,17 @@ initbuttons() {
 
 void
 drawbuttons(Client *c) {
+    int x, y;
+    y = drawoutline ? dc.h * 2 : dc.h*2+2;
+    x = c->w-3*dc.h;
     XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
-    XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, dc.h*2, c->w-dc.h, 0, 1);
-    XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, dc.h*2, c->w-3*dc.h, 0, 1);
-    XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, dc.h*2, c->w-2*dc.h, 0, 1);
+
+    XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, y, x, 0, 1);
+    x+=dc.h;
+    XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, y, x, 0, 1);
+    x+=dc.h;
+    XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, y, x, 0, 1);
 }
 
 void
