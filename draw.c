@@ -69,29 +69,29 @@ initpixmap(const char *file) {
 
 void
 initbuttons() {
+    int i;
+    char t[64];
     XSetForeground(dpy, dc.gc, dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, dc.norm[ColBG]);
-    bleft.pm = initpixmap(getresource("button.left.pixmap", BLEFTPIXMAP));
-    bright.pm = initpixmap(getresource("button.right.pixmap", BRIGHTPIXMAP));
-    bcenter.pm = initpixmap(getresource("button.center.pixmap", BCENTERPIXMAP));
-    bleft.action = iconifyit;
-    bright.action = killclient;
-    bcenter.action = togglemax;
+    for(i = 0; i < ButtonLast; i++){
+        sprintf(t, "button.%d.action", i);
+        btn[i].action = parseaction(getresource(t, NULL));
+        if(!btn[i].action)
+            break;
+        sprintf(t, "button.%d.pixmap", i);
+        btn[i].pm = initpixmap(getresource(t, NULL));
+    }
 }
 
 void
 drawbuttons(Client *c) {
-    int x, y;
+    int x, y, i;
     y = drawoutline ? dc.h * 2 : dc.h*2+2;
     x = c->w-3*dc.h;
     XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
-
-    XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, y, x, 0, 1);
-    x+=dc.h;
-    XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, y, x, 0, 1);
-    x+=dc.h;
-    XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, y, x, 0, 1);
+    for(i = 0; i < ButtonLast; i++, x+=dc.h)
+        XCopyPlane(dpy, btn[i].pm, dc.drawable, dc.gc, px*2, py*2, dc.h, y, x, 0, 1);
 }
 
 void
