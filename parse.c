@@ -37,28 +37,6 @@ static KeyItem KeyItemsByTag[] =
     { "toggletag", toggletag },
 };
 
-void*
-parseaction(char *s) {
-    int i;
-    if(!s)
-        return NULL;
-    for(i = 0; i < strlen(s); i++){
-        if(s[i] == 'i')
-            return &iconifyit;
-        if(s[i] == 'k')
-            return (void*)killclient;
-        if(s[i] == 'm')
-            return togglemax;
-        if(s[i] == 'f')
-            return togglefloating;
-        if(s[i] == 'z')
-            return zoom;
-        if(s[i] == '0')
-            return NULL;
-    }
-    return NULL;
-}
-
 void
 parsekey(char *s, Key *k) {
     int l = strlen(s);

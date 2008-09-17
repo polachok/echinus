@@ -255,8 +255,9 @@ Cursor cursor[CurLast];
 unsigned long struts[LastStrut];
 Display *dpy;
 DC dc = {0};
-enum { ButtonLeft, ButtonCenter, ButtonRight, ButtonLast };
-button btn[ButtonLast];
+button bleft = {0};
+button bcenter = {0};
+button bright = {0};
 Window root;
 Regs *regs = NULL;
 XrmDatabase xrdb = NULL;
@@ -467,7 +468,7 @@ void
 buttonpress(XEvent *e) {
     Client *c;
     XButtonPressedEvent *ev = &e->xbutton;
-    int i,x;
+
     if(ev->window == root) {
             switch(ev->button) {
                 case Button3:
@@ -511,12 +512,20 @@ buttonpress(XEvent *e) {
     else if((c = getclient(ev->window, clients, True))) {
         focus(c);
         if(tpos != TitleRight){
-            for(i = 0, x=c->w; i < ButtonLast; i++, x-=dc.h){
-                if((ev->x > x-dc.h) && (ev->x < x)){
-                    /* min */
-                    btn[i].action(NULL);
-                    return;
-                }
+            if((ev->x > c->w-3*c->th) && (ev->x < c->w-2*c->th)){
+                /* min */
+                bleft.action(NULL);
+                return;
+            }
+            if((ev->x > c->w-2*c->th) && (ev->x < c->w-c->th)){
+                /* max */
+                bcenter.action(NULL);
+                return;
+            }
+            if((ev->x > c->w-c->th) && (ev->x < c->w)){
+                /* close */
+                bright.action(NULL);
+                return;
             }
         }
         if(ev->button == Button1) {
