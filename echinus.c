@@ -247,7 +247,7 @@ Bool running = True;
 Bool selscreen = True;
 Bool notitles = False;
 Bool sloppy = False;
-Bool drawoutline = True;
+Bool drawoutline = False;
 Client *clients = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
@@ -778,8 +778,10 @@ expose(XEvent *e) {
     XExposeEvent *ev = &e->xexpose;
     Client *c;
     if((c = getclient(ev->window, clients, True))){
-        fprintf(stderr, "EXPOSE [%s]\n", c->name);
-        drawclient(c);
+        if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)) {
+            fprintf(stderr, "EXPOSE [%s]\n", c->name);
+            drawclient(c);
+        }
     }
 }
 
@@ -1163,7 +1165,7 @@ manage(Window w, XWindowAttributes *wa) {
     twa.backing_store = Always;
     twa.override_redirect = True;
     twa.background_pixmap = ParentRelative;
-    twa.event_mask = ExposureMask | MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
+    twa.event_mask = ExposureMask | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
     //twa.border_width = borderpx;
     //
     c->frame = XCreateWindow(dpy, root, c->x, c->y - c->th, c->w, c->h,

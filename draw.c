@@ -82,16 +82,17 @@ initbuttons() {
 void
 drawbuttons(Client *c) {
     int x, y;
-    y = drawoutline ? dc.h * 2 : dc.h*2+2;
+    //y = drawoutline ? dc.h * 2 : dc.h*2+2;
+    y = dc.h*2+50;
     x = c->w-3*dc.h;
     XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
 
-    XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, y, x, 0, 1);
+    XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2-1, dc.h, y, x, 0, 1);
     x+=dc.h;
-    XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, y, x, 0, 1);
+    XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2-1, dc.h, y, x, 0, 1);
     x+=dc.h;
-    XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2, dc.h, y, x, 0, 1);
+    XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2-1, dc.h, y, x, 0, 1);
 }
 
 void
