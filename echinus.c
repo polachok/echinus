@@ -1209,6 +1209,7 @@ manage(Window w, XWindowAttributes *wa) {
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XAddToSaveSet(dpy, c->win);
     XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h - c->th); /* some windows require this */
+    updatesizehints(c);
     updatestruts(c->win);
     resize(c, c->x, c->y, c->w, c->h, True);
     if(!c->isbastard)
@@ -1217,13 +1218,6 @@ manage(Window w, XWindowAttributes *wa) {
         ewmh_process_state_atom(c, atom[WindowStateFs], 1);
     XMapWindow(dpy, c->frame);
     XMapWindow(dpy, c->win);
-    if(!c->isbastard){
-        wc.border_width = 0;
-        XConfigureWindow(dpy, w, CWBorderWidth, &wc);
-        XSetWindowBorder(dpy, w, dc.norm[ColBorder]);
-        updatesizehints(c);
-        configure(c); /* propagates border_width, if size doesn't change */
-    }
     if(c->title)
         XMapWindow(dpy, c->title);
     c->isbanned = True;
