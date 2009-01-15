@@ -779,6 +779,7 @@ expose(XEvent *e) {
     Client *c;
     if((c = getclient(ev->window, clients, True))){
         if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)) {
+            fprintf(stderr, "EXPOSE FLOAT [%s] %d\n", c->name, c->h);
             fprintf(stderr, "EXPOSE [%s]\n", c->name);
             drawclient(c);
         }
@@ -1165,6 +1166,7 @@ manage(Window w, XWindowAttributes *wa) {
     twa.backing_store = Always;
     twa.override_redirect = True;
     twa.background_pixmap = ParentRelative;
+    twa.event_mask =  MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
     twa.event_mask = ExposureMask | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
     //twa.border_width = borderpx;
     //
@@ -1211,6 +1213,7 @@ manage(Window w, XWindowAttributes *wa) {
     XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h - c->th); /* some windows require this */
     updatesizehints(c);
     updatestruts(c->win);
+    updatesizehints(c);
     resize(c, c->x, c->y, c->w, c->h, True);
     if(!c->isbastard)
         XMoveResizeWindow(dpy, c->frame, c->x+2*sw, c->y, c->w, c->h);
@@ -1431,7 +1434,6 @@ quit(const char *arg) {
 void
 resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
     if(sizehints) {
-        h -= c->th;
         /* set minimum possible */
         if (w < 1)
                 w = 1;
@@ -1468,7 +1470,6 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
                 w = c->maxw;
         if(c->maxh > 0 && h > c->maxh)
                 h = c->maxh;
-        h += c->th;
     }
     if(w <= 0 || h <= 0)
             return;
@@ -1493,12 +1494,12 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
             c->y = y;
             c->w = w;
             c->h = h;
-            XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
+            XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h + (sizehints ? c->th : 0));
             c->th = c->hastitle ? dc.h : 0;
             XMoveResizeWindow(dpy, c->win, 0, c->th, w, h);
             if(c->title)
                 XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
-            configure(c);
+            //configure(c);
             XSync(dpy, False);
     }
 }

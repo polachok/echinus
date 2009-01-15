@@ -17,8 +17,8 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     memcpy(buf, text, len);
     buf[len] = 0;
     h = dc.h;
-    y = (dc.h/2)+dc.font.height/2;
-    x = dc.x+h/2;
+    y = (dc.h)/2+dc.font.height/2;
+    x = dc.x+dc.font.height/2;
     /* shorten text if necessary */
     while(len && (w = textnw(buf, len)) > dc.w){
             buf[--len] = 0;
@@ -149,8 +149,8 @@ initfont(const char *fontstr) {
          eprint("error, cannot load font: '%s'\n", fontstr);
     dc.font.extents = emallocz(sizeof(XGlyphInfo));
     XftTextExtentsUtf8(dpy,dc.font.xftfont,(unsigned char*)fontstr, strlen(fontstr), dc.font.extents);
-    dc.font.height = dc.font.extents->y+dc.font.extents->yOff;
-    dc.font.width = (dc.font.extents->width)/strlen(fontstr);
+    dc.font.height = dc.font.extents->y+2*dc.font.extents->yOff;
+    dc.font.width = dc.font.extents->xOff;
 }
 
 unsigned int
