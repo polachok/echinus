@@ -4,10 +4,6 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     int x, y, w, h;
     char buf[256];
     unsigned int len, olen;
-    XRectangle r = { dc.x, 0, dc.w, dc.h };
-
-    XSetForeground(dpy, dc.gc, col[ColBG]);
-    XFillRectangles(dpy, dc.drawable, dc.gc, &r, 1);
     if(!text)
             return;
     olen = len = strlen(text);
@@ -102,15 +98,14 @@ drawclient(Client *c) {
         return;
     if(!isvisible(c))
         return;
-    /* if(c->isfloating)
+    if(c->isfloating)
         resize(c, c->x, c->y, c->w, c->h, True);
-        */
-    XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
+    XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, borderpx, LineSolid, CapNotLast, JoinMiter);
-    XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, dc.h);
+    XFillRectangle(dpy, dc.drawable, dc.gc, 0, 0, c->w, c->th);
     dc.x = dc.y = 0;
     dc.w = c->w;
-    dc.h = dc.h;
+    drawtext(NULL, c == sel ? dc.sel : dc.norm, tpos);
     if(tbpos){
         for(i=0; i < ntags; i++) {
             if(c->tags[i]){
@@ -126,7 +121,7 @@ drawclient(Client *c) {
     if(c->w>=6*dc.h && dc.x <= c->w-6*dc.h && tpos != TitleRight)
         drawbuttons(c);
     XCopyArea(dpy, dc.drawable, c->title, dc.gc,
-			0, 0, c->w, dc.h+2*borderpx, 0, 0);
+			0, 0, c->w, c->th, 0, 0);
     if (c==sel)
       opacity = OPAQUE;
     else {
