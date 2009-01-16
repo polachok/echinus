@@ -82,8 +82,7 @@ initbuttons() {
 void
 drawbuttons(Client *c) {
     int x, y;
-    //y = drawoutline ? dc.h * 2 : dc.h*2+2;
-    y = dc.h*2+50;
+    y = dc.h*2+50; // wtf is 50?
     x = c->w-3*dc.h;
     XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
@@ -103,8 +102,9 @@ drawclient(Client *c) {
         return;
     if(!isvisible(c))
         return;
-    if(c->isfloating)
+    /* if(c->isfloating)
         resize(c, c->x, c->y, c->w, c->h, True);
+        */
     XSetForeground(dpy, dc.gc, dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, borderpx, LineSolid, CapNotLast, JoinMiter);
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, dc.h);

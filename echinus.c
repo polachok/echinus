@@ -277,6 +277,7 @@ int nkeys = 0;
 int nrules = 0;
 Bool dectiled = 0;
 Bool hidebastards = 0;
+unsigned int modkey = 0;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 #include "ewmh.c"
@@ -489,7 +490,7 @@ buttonpress(XEvent *e) {
         focus(c);
         restack();
         XAllowEvents(dpy, ReplayPointer, CurrentTime);
-        if(CLEANMASK(ev->state) != MODKEY)
+        if(CLEANMASK(ev->state) != modkey)
            return;
         if(ev->button == Button1) {
                 if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating)
@@ -967,8 +968,8 @@ gettextprop(Window w, Atom atom, char *text, unsigned int size) {
 void
 grabbuttons(Client *c, Bool focused) {
     unsigned int Buttons[] = {Button1, Button2, Button3};            
-    unsigned int Modifiers[] = {MODKEY, MODKEY|LockMask,
-               MODKEY|numlockmask, MODKEY|numlockmask|LockMask};                                                                                              
+    unsigned int Modifiers[] = {modkey, modkey|LockMask,
+               modkey|numlockmask, modkey|numlockmask|LockMask};                                                                                              
     int i, j;   
     XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 

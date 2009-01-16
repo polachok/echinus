@@ -88,11 +88,27 @@ parsekey(char *s, Key *k) {
     }
 }
 
+void
+initmodkey(){
+    char tmp;
+    strncpy(&tmp, getresource("modkey", "A"), 1);
+    if(tmp=='S')
+        modkey = ShiftMask;
+    if(tmp=='C')
+        modkey = ControlMask;
+    if(tmp=='W') 
+        modkey = Mod4Mask; 
+    else
+        modkey = Mod1Mask;
+}
+
 int
 initkeys(){
     int i,j;
     char *tmp;
     char t[64];
+
+    initmodkey();
     keys = malloc(sizeof(Key*)*LENGTH(KeyItems));
     /* global functions */
     for(i = 0; i < LENGTH(KeyItems); i++){
