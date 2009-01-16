@@ -777,7 +777,7 @@ void
 expose(XEvent *e) {
     XExposeEvent *ev = &e->xexpose;
     Client *c;
-    if((c = getclient(ev->window, clients, True))){
+    if((c = getclient(ev->window, clients, False))){
         if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)) {
             fprintf(stderr, "EXPOSE FLOAT [%s] %d\n", c->name, c->h);
             fprintf(stderr, "EXPOSE [%s]\n", c->name);
