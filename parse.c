@@ -26,6 +26,14 @@ static KeyItem KeyItems[] =
     { "decnmaster", incnmaster },
     { "iconify", iconifyit },
     { "zoom", zoom },
+    { "moveright", moveresizekb },
+    { "moveleft", moveresizekb },
+    { "moveup", moveresizekb },
+    { "movedown", moveresizekb },
+    { "resizedecx", moveresizekb },
+    { "resizeincx", moveresizekb },
+    { "resizedecy", moveresizekb },
+    { "resizeincy", moveresizekb },
 };
 
 static KeyItem KeyItemsByTag[] = 

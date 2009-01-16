@@ -185,6 +185,7 @@ void mappingnotify(XEvent *e);
 void monocle(void);
 void maprequest(XEvent *e);
 void movemouse(Client *c);
+void moveresizekb(const char *arg);
 Client *nexttiled(Client *c);
 Client *prevtiled(Client *c);
 void propertynotify(XEvent *e);
@@ -779,8 +780,6 @@ expose(XEvent *e) {
     Client *c;
     if((c = getclient(ev->window, clients, False))){
         if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)) {
-            fprintf(stderr, "EXPOSE FLOAT [%s] %d\n", c->name, c->h);
-            fprintf(stderr, "EXPOSE [%s]\n", c->name);
             drawclient(c);
         }
     }
@@ -1335,6 +1334,19 @@ monocle(void) {
     }
     focus(NULL);
     restack();
+}
+
+void
+moveresizekb(const char *arg) {
+    int dw, dh, dx, dy;
+    dw = dh = dx = dy = 0;
+    if(!sel->isfloating)
+        return;
+    sscanf(arg, "%d %d %d %d", &dx, &dy, &dw, &dh);
+    if(dw && (dw < sel->incw)) dw = (dw/abs(dw))*sel->incw;
+    if(dh && (dh < sel->inch)) dh = (dh/abs(dh))*sel->inch;
+    resize(sel, sel->x+dx, sel->y+dy, sel->w+dw, sel->h+dh, True);
+    drawclient(sel);
 }
 
 void
@@ -2177,7 +2189,7 @@ updatesizehints(Client *c) {
 		c->inch = size.height_inc;
 	}
 	else
-		c->incw = c->inch = 0;
+		c->incw = c->inch = 1;
 	if(c->flags & PMaxSize) {
 		c->maxw = size.max_width;
 		c->maxh = size.max_height;
