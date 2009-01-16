@@ -51,7 +51,6 @@ Echinus*quit: A + q
 Echinus*restart: AS + q = echinus
 Echinus*killclient: AS + c
 Echinus*togglefloating: A + space
-Echinus*iconify: A + i
 Echinus*zoom: A + Return
 
 Echinus*view0: A + F1
@@ -73,9 +72,18 @@ Echinus*focusview6: A + s
 
 Echinus*setlayoutm: A + m
 Echinus*setlayoutf: A + f
-Echinus*setlayouti: A + a
+Echinus*setlayouti: A + i
 Echinus*setlayoutt: A + r
 Echinus*setlayoutb: A + w
+
+Echinus*moveright: A + d = 5
+Echinus*moveleft: A + a = -5
+Echinus*moveup: A + w = 0 -5
+Echinus*movedown: A + s = 0 5
+Echinus*resizedecx: AS + a = 0 0 -5 0
+Echinus*resizedecy: AS + s = 0 0 0 -5
+Echinus*resizeincx: AS + d = 0 0 5 0
+Echinus*resizeincy: AS + w = 0 0 0 5
 
 Echinus*spawn0: A + t = xterm
 
