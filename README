@@ -45,6 +45,10 @@ Main settings
        
        Use sloppy focus (bool)
 
+    Echinus*modkey
+
+       Choose modkey. A for alt, W - winkey, S - shift, C - control
+
 Title settings
 
     Echinus*decoratetiled - boolean (1 or 0)
