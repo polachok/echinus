@@ -487,6 +487,8 @@ buttonpress(XEvent *e) {
         if(ev->button == Button1) {
                 if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating)
                         restack();
+                else 
+                    togglefloating(NULL);
                 movemouse(c);
         }
         else if(ev->button == Button2) {
@@ -657,7 +659,7 @@ configurerequest(XEvent *e) {
                     && !(ev->value_mask & (CWWidth | CWHeight)))
                             configure(c);
                     if(isvisible(c)){
-                            XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
+                            XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h+c->th);
                             XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
                             drawclient(c);
                     }
@@ -1159,7 +1161,7 @@ manage(Window w, XWindowAttributes *wa) {
     twa.event_mask = ExposureMask | MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
     //twa.border_width = borderpx;
     //
-    c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
+    c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h+c->th,
                     c->border, DefaultDepth(dpy, screen), CopyFromParent,
                     DefaultVisual(dpy, screen),
                     CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
@@ -1196,21 +1198,19 @@ manage(Window w, XWindowAttributes *wa) {
     twa.do_not_propagate_mask = MOUSEMASK;
     XChangeWindowAttributes(dpy, c->win,
                         CWEventMask | CWWinGravity | CWDontPropagate, &twa);
+    updatestruts(c->win);
+    updatesizehints(c);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XAddToSaveSet(dpy, c->win);
-    XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h - c->th); /* some windows require this */
- //   if(!c->isbastard)
-   //     XMoveResizeWindow(dpy, c->frame, c->x+2*sw, c->y, c->w, c->h);
+    XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h); /* some windows require this */
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
         ewmh_process_state_atom(c, atom[WindowStateFs], 1);
+    //resize(c, c->x, c->y, c->w, c->h, True);
     XUnmapWindow(dpy, c->frame);
     XUnmapWindow(dpy, c->win);
     c->isbanned = True;
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
-    updatestruts(c->win);
-    updatesizehints(c);
-    drawclient(c);
     arrange();
 }
 
@@ -1489,8 +1489,6 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
 		    c->sfh = h;
 		    c->isplaced = True;
 	    }
-            
-            
             c->x = x;
             c->y = y;
             c->w = w;
