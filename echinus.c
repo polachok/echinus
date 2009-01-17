@@ -1325,6 +1325,8 @@ void
 moveresizekb(const char *arg) {
     int dw, dh, dx, dy;
     dw = dh = dx = dy = 0;
+    if(!sel)
+        return;
     if(!sel->isfloating)
         return;
     sscanf(arg, "%d %d %d %d", &dx, &dy, &dw, &dh);
