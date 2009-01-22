@@ -79,7 +79,7 @@ struct Client {
 	long flags;
 	unsigned int border, oldborder;
 	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon, hastitle;
-        Bool isplaced, isbastard;
+        Bool isplaced, isbastard, isfocusable;
 	Bool *tags;
 	Client *next;
 	Client *prev;
@@ -818,7 +818,8 @@ focus(Client *c) {
             return;
     if(c) {
             setclientstate(c, NormalState);
-            XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
+            if(c->isfocusable)
+                XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
             XSetWindowBorder(dpy, sel->frame, dc.sel[ColBorder]);
             drawclient(c);
     }
@@ -1084,6 +1085,7 @@ manage(Window w, XWindowAttributes *wa) {
     Status rettrans;
     XWindowChanges wc;
     XSetWindowAttributes twa;
+    XWMHints *wmh;
     int i = 0;
 
     c = emallocz(sizeof(Client));
@@ -1099,9 +1101,15 @@ manage(Window w, XWindowAttributes *wa) {
     c->isicon = False;
     c->hastitle = c->isbastard ? False : True;
     c->tags = emallocz(ntags*(sizeof seltags));
+    c->isfocusable = c->isbastard ? False : True;
 
     c->th = c->isbastard ? 0 : dc.h;
     c->border = c->isbastard ? 0 : borderpx;
+
+    if((wmh = XGetWMHints(dpy, c->win))) {
+     c->isfocusable = !(wmh->flags & InputHint) || wmh->input;
+     XFree(wmh);
+    } 
 
     if(cx && cy && cw && ch) {
             c->x = wa->x = cx;
@@ -2168,7 +2176,6 @@ void
 updatesizehints(Client *c) {
 	long msize;
 	XSizeHints size;
-
 	if(!XGetWMNormalHints(dpy, c->win, &size, &msize) || !size.flags)
 		size.flags = PSize;
 	c->flags = size.flags;
