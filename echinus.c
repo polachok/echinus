@@ -1326,7 +1326,7 @@ monocle(void) {
             else
                 continue;
             if(bpos[curtag] != StrutsOn) 
-                resize(c, sx, sy-c->border, sw, sh, False);
+                resize(c, sx-c->border, sy-c->border, sw, sh, False);
             else {
                 resize(c, wax, way, waw-2*c->border, wah-2*c->border, False);
             }
