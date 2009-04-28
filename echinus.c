@@ -662,6 +662,7 @@ configurerequest(XEvent *e) {
                             configure(c);
                     if(isvisible(c)){
                             XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h+c->th);
+                            XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
                             XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
                             drawclient(c);
                     }

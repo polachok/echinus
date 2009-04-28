@@ -42,7 +42,6 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     }
     while(x <= 0)
             x = dc.x++;
-    drawoutline = 1;
     XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel,
             dc.font.xftfont, x, drawoutline ? y : y+1, (unsigned char*)buf, len);
     if(drawoutline){
