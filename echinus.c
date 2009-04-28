@@ -615,7 +615,7 @@ configure(Client *c) {
     ce.width = c->w;
     ce.height = c->h - c->th;
     ce.border_width = 0;
-    ce.above = c->frame;
+    ce.above = None;
     ce.override_redirect = False;
     XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *)&ce);
 }
@@ -668,9 +668,8 @@ configurerequest(XEvent *e) {
                             drawclient(c);
 			}
             }
-            else {
-               configure(c);
-	}
+            else 
+		configure(c);
     }
     else {
             wc.x = ev->x;
