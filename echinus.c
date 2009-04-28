@@ -52,6 +52,7 @@
 #define BUTTONMASK		(ButtonPressMask | ButtonReleaseMask)
 #define CLEANMASK(mask)		(mask & ~(numlockmask | LockMask))
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
+#define CLIENTMASK            (StructureNotifyMask | PropertyChangeMask | EnterWindowMask)
 #define LENGTH(x)		(sizeof x / sizeof x[0])
 #define RESNAME                        "echinus"
 #define RESCLASS               "Echinus"
@@ -613,7 +614,7 @@ configure(Client *c) {
     ce.width = c->w;
     ce.height = c->h - c->th;
     ce.border_width = 0;
-    ce.above = None;
+    ce.above = c->frame;
     ce.override_redirect = False;
     XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *)&ce);
 }
@@ -1161,12 +1162,13 @@ manage(Window w, XWindowAttributes *wa) {
     if(c->isbastard)
         XSelectInput(dpy, w, PropertyChangeMask);
     else
-        XSelectInput(dpy, w,
-            StructureNotifyMask | PropertyChangeMask | EnterWindowMask);
+        XSelectInput(dpy, w, CLIENTMASK);
     grabbuttons(c, False);
     twa.override_redirect = True;
     twa.background_pixmap = ParentRelative;
-    twa.event_mask = ExposureMask | MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
+    //twa.event_mask = MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
+    twa.event_mask = SubstructureRedirectMask | ExposureMask | ButtonPressMask | PointerMotionMask;
+
     //twa.border_width = borderpx;
     //
     c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h+c->th,
@@ -1182,7 +1184,7 @@ manage(Window w, XWindowAttributes *wa) {
        c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
                         0, DefaultDepth(dpy, screen), CopyFromParent,
                         DefaultVisual(dpy, screen),
-                        CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
+                        CWBackPixmap | CWEventMask, &twa);
     }
     else
         c->title = (Window)NULL;
@@ -1208,7 +1210,12 @@ manage(Window w, XWindowAttributes *wa) {
                         CWEventMask | CWWinGravity | CWDontPropagate, &twa);
     updatestruts(c->win);
     updatesizehints(c);
+    XSelectInput(dpy, c->frame,
+               FocusChangeMask | SubstructureRedirectMask);
+    XSelectInput(dpy, c->win,
+               CLIENTMASK & ~StructureNotifyMask);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
+    XSelectInput(dpy, c->win, CLIENTMASK);
     XAddToSaveSet(dpy, c->win);
     XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h); /* some windows require this */
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
@@ -2097,7 +2104,9 @@ unban(Client *c) {
     if(c->isfloating)
         drawclient(c);
     XMapWindow(dpy, c->frame);
+    XSelectInput(dpy, c->win, CLIENTMASK & ~StructureNotifyMask);
     XMapWindow(dpy, c->win);
+    XSelectInput(dpy, c->win, CLIENTMASK);
     setclientstate(c, NormalState);
     c->isbanned = False;
 }
@@ -2166,8 +2175,10 @@ unmapnotify(XEvent *e) {
         XGetWindowAttributes(dpy, ev->window, &wa);
         if(wa.map_state == IsUnmapped && c->title){
                 XGetWindowAttributes(dpy, c->title, &wa);
-                if(wa.map_state == IsViewable)
+                if(wa.map_state == IsViewable) {
+                        ban(c);
                         unmanage(c);
+		}
         }
     }
 }
