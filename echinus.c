@@ -660,8 +660,13 @@ configurerequest(XEvent *e) {
                     if((ev->value_mask & (CWX | CWY))
                     && !(ev->value_mask & (CWWidth | CWHeight)))
                             configure(c);
-                    if(isvisible(c))
-			    resize(c, c->x, c->y, c->w, c->h, True);
+                    if(isvisible(c)) {
+			/* why not resize() ? */
+                            XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
+                            XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
+                            XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
+                            drawclient(c);
+			}
             }
             else {
                configure(c);
@@ -1145,13 +1150,6 @@ manage(Window w, XWindowAttributes *wa) {
             if(c->y < way)
                     c->y = way;
     }
-    if(!c->isbastard){
-        wc.border_width = 0;
-        XConfigureWindow(dpy, w, CWBorderWidth, &wc);
-        XSetWindowBorder(dpy, w, dc.norm[ColBorder]);
-        configure(c); /* propagates border_width, if size doesn't change */
-        updatesizehints(c);
-    }
     wc.border_width = c->border;
     c->sfx = c->x;
     c->sfy = c->y;
@@ -1199,26 +1197,29 @@ manage(Window w, XWindowAttributes *wa) {
     if(!c->isfloating)
             c->isfloating = (rettrans == Success) || c->isfixed;
     attach(c);
-    attachstack(c);
+    attachstack(c);/*
     twa.event_mask = EnterWindowMask |
                         PropertyChangeMask | FocusChangeMask;
     twa.win_gravity = StaticGravity;
     twa.do_not_propagate_mask = MOUSEMASK;
     XChangeWindowAttributes(dpy, c->win,
                         CWEventMask | CWWinGravity | CWDontPropagate, &twa);
+*/
     updatestruts(c->win);
     updatesizehints(c);
-    XSelectInput(dpy, c->frame,
-               FocusChangeMask | SubstructureRedirectMask);
-    XSelectInput(dpy, c->win,
-               CLIENTMASK & ~StructureNotifyMask);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
-    XSelectInput(dpy, c->win, CLIENTMASK);
     XAddToSaveSet(dpy, c->win);
-    XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h); /* some windows require this */
+    if(!c->isbastard){
+        wc.border_width = 0;
+        XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
+        XSetWindowBorder(dpy, c->win, dc.norm[ColBorder]);
+        configure(c); /* propagates border_width, if size doesn't change */
+        updatesizehints(c);
+    }
+    //XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h); /* some windows require this */
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
         ewmh_process_state_atom(c, atom[WindowStateFs], 1);
-    //resize(c, c->x, c->y, c->w, c->h, True);
+ //   resize(c, c->x, c->y, c->w, c->h, True);
     XUnmapWindow(dpy, c->frame);
     XUnmapWindow(dpy, c->win);
     c->isbanned = True;
