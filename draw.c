@@ -42,6 +42,7 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     }
     while(x <= 0)
             x = dc.x++;
+    drawoutline = 1;
     XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel,
             dc.font.xftfont, x, drawoutline ? y : y+1, (unsigned char*)buf, len);
     if(drawoutline){
@@ -52,14 +53,12 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
 }
 
 Pixmap
-initpixmap(const char *file) {
-    Pixmap pmap;
-    pmap = XCreatePixmap(dpy, root, 20, 20, 1);
-    unsigned int pw, ph;
-    if(BitmapSuccess == XReadBitmapFile(dpy, root, file, &pw, &ph, &pmap, &px, &py))
-        return pmap;
+initpixmap(const char *file, Button *b) {
+    b->pm = XCreatePixmap(dpy, root, dc.h, dc.h, 1);
+    if(BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph, &b->pm, &b->px, &b->py))
+        return 0;
     else
-        eprint("echinus: cannot load button pixmaps, check your ~/.echinusrc\n");
+        eprint("echinus: cannot load Button pixmaps, check your ~/.echinusrc\n");
     return 0;
 }
 
@@ -67,9 +66,9 @@ void
 initbuttons() {
     XSetForeground(dpy, dc.gc, dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, dc.norm[ColBG]);
-    bleft.pm = initpixmap(getresource("button.left.pixmap", BLEFTPIXMAP));
-    bright.pm = initpixmap(getresource("button.right.pixmap", BRIGHTPIXMAP));
-    bcenter.pm = initpixmap(getresource("button.center.pixmap", BCENTERPIXMAP));
+    initpixmap(getresource("button.left.pixmap", BLEFTPIXMAP), &bleft);
+    initpixmap(getresource("button.right.pixmap", BRIGHTPIXMAP), &bright);
+    initpixmap(getresource("button.center.pixmap", BCENTERPIXMAP), &bcenter);
     bleft.action = iconifyit;
     bright.action = killclient;
     bcenter.action = togglemax;
@@ -78,16 +77,16 @@ initbuttons() {
 void
 drawbuttons(Client *c) {
     int x, y;
-    y = dc.h*2+50; // wtf is 50?
+    y = (dc.h)/2-dc.font.height/2;
     x = c->w-3*dc.h;
     XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
 
-    XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, px*2, py*2-1, dc.h, y, x, 0, 1);
+    XCopyPlane(dpy, bleft.pm, dc.drawable, dc.gc, 0, 0, bleft.pw, bleft.ph, x, y+bleft.py, 1);
     x+=dc.h;
-    XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, px*2, py*2-1, dc.h, y, x, 0, 1);
+    XCopyPlane(dpy, bcenter.pm, dc.drawable, dc.gc, 0, 0, bcenter.pw, bcenter.ph, x, y+bcenter.py, 1);
     x+=dc.h;
-    XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, px*2, py*2-1, dc.h, y, x, 0, 1);
+    XCopyPlane(dpy, bright.pm, dc.drawable, dc.gc, 0, 0, bright.pw, bright.ph, x, y+bright.py, 1);
 }
 
 void

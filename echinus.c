@@ -133,11 +133,12 @@ typedef struct {
 
 typedef struct {
     Pixmap pm;
+    int px, py;
+    unsigned int pw, ph;
     void (*action)(const char *arg);
-} button;
+} Button;
 
 
-int px, py;
 /* function declarations */
 void applyrules(Client *c);
 void arrange(void);
@@ -258,9 +259,9 @@ Cursor cursor[CurLast];
 unsigned long struts[LastStrut];
 Display *dpy;
 DC dc = {0};
-button bleft = {0};
-button bcenter = {0};
-button bright = {0};
+Button bleft = {0};
+Button bcenter = {0};
+Button bright = {0};
 Window root;
 Regs *regs = NULL;
 XrmDatabase xrdb = NULL;
