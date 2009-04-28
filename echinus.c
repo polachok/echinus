@@ -1,15 +1,12 @@
 /* See LICENSE file for copyright and license details.
  *
- * dynamic window manager is designed like any other X client as well. It is
+ * echinus window manager is designed like any other X client as well. It is
  * driven through handling X events. In contrast to other X clients, a window
  * manager selects for SubstructureRedirectMask on the root window, to receive
  * events about window (dis-)appearance.  Only one X connection at a time is
  * allowed to select for this event mask.
  *
- * Calls to fetch an X event from the event queue are blocking.  Due reading
- * status text from standard input, a select()-driven main loop has been
- * implemented which selects for reads on the X connection and STDIN_FILENO to
- * handle all data smoothly. The event handlers of echinus are organized in an
+ * The event handlers of echinus are organized in an
  * array which is accessed whenever a new event has been fetched. This allows
  * event dispatching in O(1) time.
  *
