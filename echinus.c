@@ -652,7 +652,7 @@ configurerequest(XEvent *e) {
                     if(ev->value_mask & CWWidth)
                             c->w = ev->width;
                     if(ev->value_mask & CWHeight)
-                            c->h = ev->height;
+                            c->h = ev->height + c->th;
                     if((c->x + c->w) > sw && c->isfloating)
                             c->x = sw / 2 - c->w / 2; /* center in x direction */
                     if((c->y + c->h) > sh && c->isfloating)
@@ -660,16 +660,12 @@ configurerequest(XEvent *e) {
                     if((ev->value_mask & (CWX | CWY))
                     && !(ev->value_mask & (CWWidth | CWHeight)))
                             configure(c);
-                    if(isvisible(c)){
-                            XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h+c->th);
-                            XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
-                            XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
-                            drawclient(c);
-                    }
+                    if(isvisible(c))
+			    resize(c, c->x, c->y, c->w, c->h, True);
             }
-            else
-                    configure(c);
-
+            else {
+               configure(c);
+	}
     }
     else {
             wc.x = ev->x;
@@ -1168,12 +1164,12 @@ manage(Window w, XWindowAttributes *wa) {
     grabbuttons(c, False);
     twa.override_redirect = True;
     twa.background_pixmap = ParentRelative;
-    //twa.event_mask = MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
-    twa.event_mask = SubstructureRedirectMask | ExposureMask | ButtonPressMask | PointerMotionMask;
+    twa.event_mask = MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
+    //twa.event_mask = SubstructureRedirectMask | ExposureMask | ButtonPressMask | PointerMotionMask;
 
     //twa.border_width = borderpx;
     //
-    c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h+c->th,
+    c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
                     c->border, DefaultDepth(dpy, screen), CopyFromParent,
                     DefaultVisual(dpy, screen),
                     CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
@@ -1514,12 +1510,14 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
             c->h = h;
             XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
             c->th = c->hastitle ? dc.h : 0;
-            wc.x = c->x;
-            wc.y = c->y;
+            wc.x = 0;
+            wc.y = c->th;
             wc.width = w;
-            wc.height = h;
+            wc.height = h-c->th;
             wc.border_width = 0;
-            XMoveResizeWindow(dpy, c->win, 0, c->th, w, h);
+	    XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
+
+ //           XMoveResizeWindow(dpy, c->win, 0, c->th, w, h);
             if(c->title)
                 XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
             configure(c);
