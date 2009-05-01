@@ -388,8 +388,13 @@ void
 ban(Client *c) {
     if(c->isbanned)
             return;
-    //XMoveResizeWindow(dpy, c->frame, c->x+2*sw, c->y, c->w, c->h);
     XUnmapWindow(dpy, c->frame);
+    XGrabServer(dpy);
+    XSelectInput(dpy, c->win,
+               CLIENTMASK & ~StructureNotifyMask);
+    XUnmapWindow(dpy, c->win);
+    XSelectInput(dpy, c->win, CLIENTMASK);
+    XUngrabServer(dpy);
     c->isbanned = True;
 }
 
@@ -663,10 +668,10 @@ configurerequest(XEvent *e) {
                             XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
                             XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
                             drawclient(c);
-			}
+					}
             }
             else 
-		configure(c);
+				configure(c);
     }
     else {
             wc.x = ev->x;
@@ -1157,16 +1162,11 @@ manage(Window w, XWindowAttributes *wa) {
         XSelectInput(dpy, w, CLIENTMASK);
     grabbuttons(c, False);
     twa.override_redirect = True;
-    twa.background_pixmap = ParentRelative;
     twa.event_mask = MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
-    //twa.event_mask = SubstructureRedirectMask | ExposureMask | ButtonPressMask | PointerMotionMask;
-
-    //twa.border_width = borderpx;
-    //
     c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
-                    c->border, DefaultDepth(dpy, screen), CopyFromParent,
+                    c->border, DefaultDepth(dpy, screen), InputOutput,
                     DefaultVisual(dpy, screen),
-                    CWOverrideRedirect | CWBackPixmap | CWEventMask, &twa);
+                    CWOverrideRedirect | CWEventMask, &twa);
  
     XConfigureWindow(dpy, c->frame, CWBorderWidth, &wc);
     XSetWindowBorder(dpy, c->frame, dc.norm[ColBorder]);
@@ -1212,10 +1212,8 @@ manage(Window w, XWindowAttributes *wa) {
         configure(c); /* propagates border_width, if size doesn't change */
         updatesizehints(c);
     }
-    //XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h); /* some windows require this */
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
         ewmh_process_state_atom(c, atom[WindowStateFs], 1);
- //   resize(c, c->x, c->y, c->w, c->h, True);
     XUnmapWindow(dpy, c->frame);
     XUnmapWindow(dpy, c->win);
     c->isbanned = True;
@@ -1512,9 +1510,8 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
             wc.width = w;
             wc.height = h-c->th;
             wc.border_width = 0;
-	    XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
+			XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
 
- //           XMoveResizeWindow(dpy, c->win, 0, c->th, w, h);
             if(c->title)
                 XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
             configure(c);
@@ -2097,7 +2094,6 @@ void
 unban(Client *c) {
     if(!c->isbanned)
             return;
-    //XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
     if(c->isfloating)
         drawclient(c);
     XMapWindow(dpy, c->frame);
