@@ -213,6 +213,24 @@ Keybindings
 
      Run specified program. # is less than 64.
 
+    Echinus*moveright
+    Echinus*moveleft
+    Echinus*moveup
+    Echinus*movedown
+      
+     Syntax for this is rather untrivial: x y w h. For example move right for five pixels:
+
+       Echinus*moveright: AS + l = +5 0 0 0
+    
+    Echinus*resizedecx
+    Echinus*resizedecy
+    Echinus*resizeincy
+    Echinus*resizeincx
+      
+     Same as above, but change second group of values. Resize by y for 5 pixels:
+	
+       Echinus*resizedecy: AS + v = 0 0 0 -5
+
     Echinus*rule#
      
      Format is "<Window class|Window title> <tag> <isfloating> <hastitle>"
