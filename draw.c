@@ -120,15 +120,13 @@ drawclient(Client *c) {
         drawbuttons(c);
     XCopyArea(dpy, dc.drawable, c->title, dc.gc,
 			0, 0, c->w, c->th, 0, 0);
-    if (c==sel)
-      opacity = OPAQUE;
-    else {
-      if(uf_opacity)
-	      opacity = (unsigned int) (uf_opacity * OPAQUE);
-      else
-	      opacity = OPAQUE;
+    if(uf_opacity) {
+		  if (c==sel)
+			  opacity = OPAQUE;
+		  else
+	          opacity = uf_opacity * OPAQUE;
+	      setopacity(c, opacity);
     }
-    setopacity(c, opacity);
     if(c->title)
         XMapWindow(dpy, c->title);
 }
