@@ -1176,7 +1176,7 @@ manage(Window w, XWindowAttributes *wa) {
        c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
                         0, DefaultDepth(dpy, screen), CopyFromParent,
                         DefaultVisual(dpy, screen),
-                        CWBackPixmap | CWEventMask, &twa);
+                        CWEventMask, &twa);
     }
     else
         c->title = (Window)NULL;
