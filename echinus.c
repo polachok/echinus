@@ -1187,31 +1187,29 @@ manage(Window w, XWindowAttributes *wa) {
     if(t)
             memcpy(c->tags, t->tags, ntags*(sizeof seltags));
     applyrules(c);
+	if(!c->isbastard){
+        wc.border_width = 0;
+        XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
+        XSetWindowBorder(dpy, c->win, dc.norm[ColBorder]);
+        updatesizehints(c);
+        configure(c); /* propagates border_width, if size doesn't change */
+    }
     if(c->isbastard)
         for(i = 0; i < ntags; i++)
             c->tags[i] = True;
     if(!c->isfloating)
             c->isfloating = (rettrans == Success) || c->isfixed;
     attach(c);
-    attachstack(c);/*
+    attachstack(c);
     twa.event_mask = EnterWindowMask |
                         PropertyChangeMask | FocusChangeMask;
     twa.win_gravity = StaticGravity;
     twa.do_not_propagate_mask = MOUSEMASK;
     XChangeWindowAttributes(dpy, c->win,
                         CWEventMask | CWWinGravity | CWDontPropagate, &twa);
-*/
     updatestruts(c->win);
-    updatesizehints(c);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XAddToSaveSet(dpy, c->win);
-    if(!c->isbastard){
-        wc.border_width = 0;
-        XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
-        XSetWindowBorder(dpy, c->win, dc.norm[ColBorder]);
-        configure(c); /* propagates border_width, if size doesn't change */
-        updatesizehints(c);
-    }
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
         ewmh_process_state_atom(c, atom[WindowStateFs], 1);
     XUnmapWindow(dpy, c->frame);
@@ -1478,7 +1476,7 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
         if(c->maxw > 0 && w > c->maxw)
                 w = c->maxw;
         if(c->maxh > 0 && h > c->maxh)
-                h = c->maxh;
+                h = c->maxh + c->th;
     }
     if(w <= 0 || h <= 0)
             return;
