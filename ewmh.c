@@ -77,20 +77,11 @@ ewmh_update_net_client_list() {
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     atom[ClientListStacking], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
     
-    free(wins);
-    n = 0;
-
-    for(c = clients; c; c = c->next)
-            n++;
-
-    wins = malloc(sizeof(Window*)*n);
-
     for(i = 0, c = clients; c; c = c->next)
             wins[i++] = c->win;
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     atom[ClientList], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
-    /* free wins here */
     free(wins);
     XFlush(dpy);
 }
