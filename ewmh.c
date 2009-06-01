@@ -12,8 +12,8 @@
 enum { ClientList, ActiveWindow, WindowDesk,
       NumberOfDesk, DeskNames, CurDesk, ELayout,
       ClientListStacking, WindowOpacity, WindowType,
-      WindowTypeDesk, WindowTypeDock, StrutPartial, ESelTags,
-      WindowName, WindowState, WindowStateFs, Utf8String, Supported, NATOMS };
+      WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial, ESelTags,
+      WindowName, WindowState, WindowStateFs, WindowStateModal, Utf8String, Supported, NATOMS };
 
 Atom atom[NATOMS];
 
@@ -32,11 +32,13 @@ char* atomnames[NATOMS][1] = {
     { "_NET_WM_WINDOW_TYPE" },
     { "_NET_WM_WINDOW_TYPE_DESKTOP" },
     { "_NET_WM_WINDOW_TYPE_DOCK" },
+    { "_NET_WM_WINDOW_TYPE_DIALOG" },
     { "_NET_WM_STRUT_PARTIAL" },
     { "_ECHINUS_SELTAGS" },
     { "_NET_WM_NAME" },
     { "_NET_WM_STATE" },
     { "_NET_WM_STATE_FULLSCREEN" },
+    { "_NET_WM_STATE_MODAL" },
     { "UTF8_STRING" }, 
     { "_NET_SUPPORTED" },
 };
@@ -152,6 +154,11 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
             c->wasfloating = True;
             togglemax(NULL);
         }
+        arrange();
+    }
+    if(state == atom[WindowStateModal]) {
+        focus(c);
+        togglefloating(NULL);
         arrange();
     }
 }

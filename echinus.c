@@ -1096,7 +1096,10 @@ manage(Window w, XWindowAttributes *wa) {
         c->isfloating = True;
         c->isfixed = True;
     }
-
+    if(checkatom(c->win, atom[WindowType], atom[WindowTypeDialog])) {
+        c->isfloating = True;
+        c->isfixed = True;
+    }
     c->isicon = False;
     c->hastitle = c->isbastard ? False : True;
     c->tags = emallocz(ntags*(sizeof seltags));
@@ -1118,10 +1121,10 @@ manage(Window w, XWindowAttributes *wa) {
             cx = cy = cw = ch = 0;
     }
     else {
-            c->x = wa->x;
-            c->y = wa->y;
-            c->w = wa->width;
-            c->h = wa->height + c->th;
+            c->x = c->sfx = wa->x;
+            c->y = c->sfy = wa->y;
+            c->w = c->sfw = wa->width;
+            c->h = c->sfh = wa->height + c->th;
     }
 
     if(wa->x && wa->y)
@@ -1467,11 +1470,11 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
 
         if(c->minw > 0 && w < c->minw)
                 w = c->minw;
-        if(c->minh > 0 && h < c->minh)
+        if(c->minh > 0 && h - c->th < c->minh)
                 h = c->minh + c->th;
         if(c->maxw > 0 && w > c->maxw)
                 w = c->maxw;
-        if(c->maxh > 0 && h > c->maxh)
+        if(c->maxh > 0 && h - c->th > c->maxh)
                 h = c->maxh + c->th;
     }
     if(w <= 0 || h <= 0)
@@ -1501,7 +1504,7 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
             wc.x = 0;
             wc.y = c->th;
             wc.width = w;
-            wc.height = h-c->th;
+            wc.height = h - c->th;
             wc.border_width = 0;
 			XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
 
