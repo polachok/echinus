@@ -71,13 +71,25 @@ ewmh_update_net_client_list() {
 
     wins = malloc(sizeof(Window*)*n);
 
-    for(i = n-1, c = stack; c; c = c->snext)
-            wins[i--] = c->win;
+    for(i = 0, c = stack; c; c = c->snext)
+            wins[i++] = c->win;
+
+    XChangeProperty(dpy, RootWindow(dpy, screen),
+                    atom[ClientListStacking], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
+    
+    free(wins);
+    n = 0;
+
+    for(c = clients; c; c = c->next)
+            n++;
+
+    wins = malloc(sizeof(Window*)*n);
+
+    for(i = 0, c = clients; c; c = c->next)
+            wins[i++] = c->win;
 
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     atom[ClientList], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
-    XChangeProperty(dpy, RootWindow(dpy, screen),
-                    atom[ClientListStacking], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
     /* free wins here */
     free(wins);
     XFlush(dpy);
@@ -116,7 +128,7 @@ ewmh_update_net_desktop_names() {
 
     pos = buf;
     for(i = 0; i < ntags; i++) {
-        sprintf(pos, "%s", tags[i]); 
+        snprintf(pos, strlen(tags[i])+1, "%s", tags[i]); 
         pos += (strlen(tags[i])+1);
     }
     len = pos - buf;
