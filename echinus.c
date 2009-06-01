@@ -341,21 +341,15 @@ void
 arrange(void) {
     Client *c;
 
-    for(c = clients; c; c = c->next){
-            if(isvisible(c) && !c->isicon)
+    for(c = stack; c; c = c->snext){
+            if((!c->isbastard && isvisible(c) && !c->isicon) || (c->isbastard && bpos[curtag] == StrutsOn)) {
                     unban(c);
-            else
+					c->isicon = False;
+			}
+            else {
                     ban(c);
-    }
-
-    if(bpos[curtag] == StrutsOn) {
-        for(c = clients ; c; c = c->next)
-            if(c->isbastard)
-                unban(c);
-    } else if(bpos[curtag] == StrutsHide) {
-        for(c = clients ; c; c = c->next)
-            if(c->isbastard)
-                ban(c);
+					c->isicon = True;
+			}
     }
 
     layouts[ltidxs[curtag]].arrange();
@@ -663,7 +657,7 @@ configurerequest(XEvent *e) {
                     && !(ev->value_mask & (CWWidth | CWHeight)))
                             configure(c);
                     if(isvisible(c)) {
-			/* why not resize() ? */
+							/* why not resize() ? */
                             XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
                             XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
                             XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
@@ -1187,29 +1181,30 @@ manage(Window w, XWindowAttributes *wa) {
     if(t)
             memcpy(c->tags, t->tags, ntags*(sizeof seltags));
     applyrules(c);
-	if(!c->isbastard){
-        wc.border_width = 0;
-        XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
-        XSetWindowBorder(dpy, c->win, dc.norm[ColBorder]);
-        updatesizehints(c);
-        configure(c); /* propagates border_width, if size doesn't change */
-    }
     if(c->isbastard)
         for(i = 0; i < ntags; i++)
             c->tags[i] = True;
     if(!c->isfloating)
             c->isfloating = (rettrans == Success) || c->isfixed;
     attach(c);
-    attachstack(c);
+    attachstack(c);/*
     twa.event_mask = EnterWindowMask |
                         PropertyChangeMask | FocusChangeMask;
     twa.win_gravity = StaticGravity;
     twa.do_not_propagate_mask = MOUSEMASK;
     XChangeWindowAttributes(dpy, c->win,
                         CWEventMask | CWWinGravity | CWDontPropagate, &twa);
+*/
     updatestruts(c->win);
+    updatesizehints(c);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XAddToSaveSet(dpy, c->win);
+    if(!c->isbastard){
+        wc.border_width = 0;
+        XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
+        XSetWindowBorder(dpy, c->win, dc.norm[ColBorder]);
+        configure(c); /* propagates border_width, if size doesn't change */
+    }
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
         ewmh_process_state_atom(c, atom[WindowStateFs], 1);
     XUnmapWindow(dpy, c->frame);
@@ -1440,6 +1435,7 @@ quit(const char *arg) {
 void
 resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
     XWindowChanges wc;
+	c->th = c->hastitle ? dc.h : 0;
     if(sizehints) {
         /* set minimum possible */
         if (w < 1)
@@ -1472,7 +1468,7 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
         if(c->minw > 0 && w < c->minw)
                 w = c->minw;
         if(c->minh > 0 && h < c->minh)
-                h = c->minh;
+                h = c->minh + c->th;
         if(c->maxw > 0 && w > c->maxw)
                 w = c->maxw;
         if(c->maxh > 0 && h > c->maxh)
@@ -1502,7 +1498,6 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
             c->w = w;
             c->h = h;
             XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
-            c->th = c->hastitle ? dc.h : 0;
             wc.x = 0;
             wc.y = c->th;
             wc.width = w;
@@ -1573,10 +1568,21 @@ restack(void) {
     }
     wl = malloc(sizeof(Window)*n);
     for(i = 0, c = stack; c && i<n; c = c->snext)
+        if(isvisible(c) && !c->isicon && c->isbastard){
+				wl[i++] = c->frame;
+	}
+    for(c = stack; c && i<n; c = c->snext)
         if(isvisible(c) && !c->isicon){
-            wl[i++] = c->frame;
+            if(!c->isbastard && c->isfloating)
+				wl[i++] = c->frame;
         }
-    XRestackWindows(dpy, wl, i);
+    for(c = stack; c && i<n; c = c->snext)
+        if(isvisible(c) && !c->isicon){
+            if(!c->isfloating && !c->isbastard)
+				wl[i++] = c->frame;
+        }
+    XRestackWindows(dpy, wl, n);
+    free(wl);
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -1693,11 +1699,20 @@ void
 initlayouts(){
     int i,j;
     char conf[32], xres[256], buf[5];
+	float mwfact;
+	int nmaster;
 
     /* init layouts */
+	bzero(buf, 5);
     nmasters = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
     ltidxs = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
     mwfacts = (double*)emallocz(sizeof(double) * ntags);
+
+	snprintf(buf, 5, "%.2f", MWFACT);
+	mwfact = atof(getresource("mwfact", buf));
+	bzero(buf, 5);
+	snprintf(buf, 5, "%d", NMASTER);
+	nmaster = atoi(getresource("nmaster", buf));
     for(i = 0; i < ntags; i++) {
         ltidxs[i] = 0;
         snprintf(conf, 31, "tags.layout%d", i);
@@ -1708,10 +1723,8 @@ initlayouts(){
                     break;
             }
         }
-       sprintf(buf, "%.2f", MWFACT);
-       mwfacts[i] = atof(getresource("mwfact", buf));
-       sprintf(buf, "%d", NMASTER);
-       nmasters[i] = atoi(getresource("nmaster", buf));
+		mwfacts[i] = mwfact;
+		nmasters[i] = nmaster;
     }
 
     /* init struts */
@@ -1839,6 +1852,7 @@ setup(void) {
         tpos = atoi(getresource("titleposition", TITLEPOSITION));
         tbpos = atoi(getresource("tagbar", TAGBAR));
         sloppy = atoi(getresource("sloppy", "0"));
+        drawoutline = atoi(getresource("outline", "0"));
 
 	struts[RightStrut] = struts[LeftStrut] = struts[TopStrut] = struts[BotStrut] = 0;
         updategeom();
