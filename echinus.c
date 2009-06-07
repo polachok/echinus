@@ -344,11 +344,13 @@ arrange(void) {
     for(c = stack; c; c = c->snext){
             if((!c->isbastard && isvisible(c) && !c->isicon) || (c->isbastard && bpos[curtag] == StrutsOn)) {
                     unban(c);
-					c->isicon = False;
+                    if(c->isbastard)
+                        c->isicon = False;
 			}
             else {
                     ban(c);
-					c->isicon = True;
+                    if(c->isbastard)
+                        c->isicon = True;
 			}
     }
 
