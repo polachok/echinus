@@ -235,7 +235,6 @@ Bool wasfloating = True;
 float uf_opacity;
 int screen, sx, sy, sw, sh, wax, way, waw, wah;
 int borderpx;
-int cx, cy, cw, ch;
 unsigned int *nmasters;
 int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int bh, tpos, tbpos;
@@ -410,57 +409,6 @@ iconifyit(const char *arg) {
 }
 
 void
-drawmouse(XEvent *e) {
-    /* it's ugly, i know */
-    /* TODO: look at 9wm */
-    int x1, y1, ocx, ocy, di, nx, ny, rx, ry, rx1, ry1;
-    unsigned int dui;
-    Window dummy;
-    XButtonPressedEvent *ev = &e->xbutton;
-    XEvent ee;
-    rx = ry = 0;
-    ocx = nx = ev->x;
-    ocy = ny = ev->y;
-    if(XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
-                    None, cursor[CurMove], CurrentTime) != GrabSuccess)
-            return;
-    XQueryPointer(dpy, root, &dummy, &dummy, &x1, &y1, &di, &di, &dui);
-    for(;;) {
-        XMaskEvent(dpy, MOUSEMASK, &ee);
-        switch (ee.type) {
-            case ButtonRelease:
-                    XUngrabPointer(dpy, CurrentTime);
-                    spawn(terminal);
-                    cx=ev->x;
-                    cy=ev->y;
-                    cw=abs(nx-ev->x);
-                    ch=abs(ny-ev->y);
-                    XClearArea(dpy, root, ev->x-4, ev->y-4, rx1+4, ry1+4, False);
-                    return;
-            case MotionNotify:
-                    XSync(dpy, False);
-                    nx = ocx + (ee.xmotion.x - x1);
-                    ny = ocy + (ee.xmotion.y - y1);
-                    XSetLineAttributes(dpy, dc.gc, 4, LineSolid, CapNotLast, JoinMiter);
-                    if(rx > nx)
-                      rx1 = rx;
-                    else
-                      rx1 = nx;
-                    if(ry > ny)
-                      ry1 = ry;
-                    else
-                      ry1 = ny;
-                    XClearArea(dpy, root, ev->x-4, ev->y-4, rx1+4, ry1+4, False);
-                    XDrawRectangle(dpy, root, dc.gc, ev->x, ev->y, abs(nx-ev->x), abs(ny-ev->y));
-                    rx = nx;
-                    ry = ny;
-                    XSync(dpy, False);
-                    break;
-            }
-    }
-}
-
-void
 buttonpress(XEvent *e) {
     Client *c;
     XButtonPressedEvent *ev = &e->xbutton;
@@ -469,7 +417,7 @@ buttonpress(XEvent *e) {
             switch(ev->button) {
                 case Button3:
                     XSetForeground(dpy, dc.gc, dc.sel[ColBorder]);
-                    drawmouse(e);
+                    spawn(terminal);
                     break;
                 case Button4:
                     viewlefttag(NULL);
@@ -1117,26 +1065,19 @@ manage(Window w, XWindowAttributes *wa) {
      XFree(wmh);
     } 
 
-    if(cx && cy && cw && ch) {
-            c->x = wa->x = cx;
-            c->y = wa->y = cy;
-            c->w = wa->width = cw;
-            c->h = wa->height = ch + c->th;
-            cx = cy = cw = ch = 0;
-    }
-    else {
-            c->x = c->sfx = wa->x;
-            c->y = c->sfy = wa->y;
-            c->w = c->sfw = wa->width;
-            c->h = c->sfh = wa->height + c->th;
-    }
+    c->x = c->sfx = wa->x;
+    c->y = c->sfy = wa->y;
+    c->w = c->sfw = wa->width;
+    c->h = c->sfh = wa->height + c->th;
 
     if(wa->x && wa->y)
         c->isplaced = True;
-    else
-        if(!c->isbastard)
+    else {
+        if(!c->isbastard) {
             c->isplaced = False;
-
+            getpointer(&c->x, &c->y);
+        }
+    }
     c->oldborder = c->isbastard ? 0 : wa->border_width;
     if(c->w == sw && c->h == sh) {
             c->x = sx;
@@ -1342,6 +1283,19 @@ moveresizekb(const char *arg) {
     if(dh && (dh < sel->inch)) dh = (dh/abs(dh))*sel->inch;
     resize(sel, sel->x+dx, sel->y+dy, sel->w+dw, sel->h+dh, True);
     drawclient(sel);
+}
+
+void
+getpointer(int *x, int *y) {
+    int x1, y1, di, nx, ny;
+    unsigned int dui;
+    Window dummy;
+    XEvent ev;
+
+    XQueryPointer(dpy, root, &dummy, &dummy, &x1, &y1, &di, &di, &dui);
+    *x = x1;
+    *y = y1;
+    fprintf(stderr, "x1 = %d, y1 = %d\n", x1, y1);
 }
 
 void
@@ -1784,7 +1738,6 @@ setup(void) {
 	sw = DisplayWidth(dpy, screen);
 	sh = DisplayHeight(dpy, screen);
 
-	cx = cy = cw = ch = 0;
 	/* init modifier map */
 	modmap = XGetModifierMapping(dpy);
 	for(i = 0; i < 8; i++)
