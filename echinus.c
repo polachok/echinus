@@ -1301,9 +1301,7 @@ getpointer(int *x, int *y) {
 
 void
 movemouse(Client *c) {
-    int x1, y1, ocx, ocy, di, nx, ny;
-    unsigned int dui;
-    Window dummy;
+    int x1, y1, ocx, ocy, nx, ny;
     XEvent ev;
 
     ocx = nx = c->x;
@@ -1312,7 +1310,7 @@ movemouse(Client *c) {
                     None, cursor[CurMove], CurrentTime) != GrabSuccess)
             return;
     c->ismax = False;
-    XQueryPointer(dpy, root, &dummy, &dummy, &x1, &y1, &di, &di, &dui);
+    getpointer(&x1, &y1);
     for(;;) {
             XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
             switch (ev.type) {
