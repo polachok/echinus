@@ -174,6 +174,7 @@ char *getresource(const char *resource, char *defval);
 long getstate(Window w);
 Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
 void grabbuttons(Client *c, Bool focused);
+void getpointer(int *x, int *y);
 unsigned int idxoftag(const char *tag);
 Bool isoccupied(unsigned int t);
 Bool isprotodel(Client *c);
