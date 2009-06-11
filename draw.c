@@ -13,8 +13,8 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     memcpy(buf, text, len);
     buf[len] = 0;
     h = dc.h;
-    y = (dc.h)/2+dc.font.height/2;
-    x = dc.x+dc.font.height/2;
+    y = (dc.h / 2) - (h / 2) + dc.font.ascent;
+    x = dc.x + dc.font.height/2;
     /* shorten text if necessary */
     while(len && (w = textnw(buf, len)) > dc.w){
             buf[--len] = 0;
@@ -76,8 +76,8 @@ initbuttons() {
 void
 drawbuttons(Client *c) {
     int x, y;
-    y = (dc.h)/2-dc.font.height/2;
-    x = c->w-3*dc.h;
+    y = dc.h/2 - bleft.ph/2;
+    x = c->w - 3*dc.h;
     XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
 
@@ -139,18 +139,22 @@ initfont(const char *fontstr) {
     if(!dc.font.xftfont)
          eprint("error, cannot load font: '%s'\n", fontstr);
     dc.font.extents = emallocz(sizeof(XGlyphInfo));
-    XftTextExtentsUtf8(dpy,dc.font.xftfont,(unsigned char*)fontstr, strlen(fontstr), dc.font.extents);
-    dc.font.height = dc.font.extents->y+2*dc.font.extents->yOff;
-    dc.font.width = dc.font.extents->xOff;
+    XftTextExtentsUtf8(dpy, dc.font.xftfont, (unsigned char*)fontstr, strlen(fontstr), dc.font.extents);
+    dc.font.height = dc.font.xftfont->ascent + dc.font.xftfont->descent;
+    dc.font.ascent = dc.font.xftfont->ascent;
+    dc.font.descent = dc.font.xftfont->descent;
 }
 
 unsigned int
 textnw(const char *text, unsigned int len) {
-    XftTextExtentsUtf8(dpy,dc.font.xftfont,(unsigned char*)text, strlen(text), dc.font.extents);
-    return dc.font.extents->width;
+    XftTextExtentsUtf8(dpy, dc.font.xftfont, (unsigned char*)text, strlen(text), dc.font.extents);
+
+    if(dc.font.extents->height > dc.font.height)
+           dc.font.height = dc.font.extents->height;
+    return dc.font.extents->xOff;
 }
 
 unsigned int
 textw(const char *text) {
-    return textnw(text, strlen(text));
+    return textnw(text, strlen(text)) + dc.font.height;
 }

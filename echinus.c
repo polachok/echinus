@@ -99,6 +99,8 @@ typedef struct {
         struct {
            XftFont *xftfont;
            XGlyphInfo *extents;
+           int ascent;
+           int descent;
 	   int height;
            int width;
 	} font;
