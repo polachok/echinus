@@ -1061,6 +1061,14 @@ manage(Window w, XWindowAttributes *wa) {
     c->th = c->isbastard ? 0 : dc.h;
     c->border = c->isbastard ? 0 : borderpx;
 
+    updatesizehints(c);
+
+    if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
+            for(t = clients; t && t->win != trans; t = t->next);
+
+    if(!c->isfloating)
+            c->isfloating = (rettrans == Success) || c->isfixed;
+
     if((wmh = XGetWMHints(dpy, c->win))) {
      c->isfocusable = !(wmh->flags & InputHint) || wmh->input;
      XFree(wmh);
@@ -1074,8 +1082,8 @@ manage(Window w, XWindowAttributes *wa) {
     if(wa->x && wa->y)
         c->isplaced = True;
     else {
-        if(!c->isbastard) {
-            c->isplaced = False;
+        if(!c->isbastard && c->isfloating) {
+            c->isplaced = True;
             getpointer(&c->x, &c->y);
         }
     }
@@ -1125,16 +1133,12 @@ manage(Window w, XWindowAttributes *wa) {
         c->title = (Window)NULL;
 
     updatetitle(c);
-    if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
-            for(t = clients; t && t->win != trans; t = t->next);
     if(t)
             memcpy(c->tags, t->tags, ntags*(sizeof seltags));
     applyrules(c);
     if(c->isbastard)
         for(i = 0; i < ntags; i++)
             c->tags[i] = True;
-    if(!c->isfloating)
-            c->isfloating = (rettrans == Success) || c->isfixed;
     attach(c);
     attachstack(c);/*
     twa.event_mask = EnterWindowMask |
@@ -1145,7 +1149,6 @@ manage(Window w, XWindowAttributes *wa) {
                         CWEventMask | CWWinGravity | CWDontPropagate, &twa);
 */
     updatestruts(c->win);
-    updatesizehints(c);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XAddToSaveSet(dpy, c->win);
     if(!c->isbastard){
@@ -1156,9 +1159,7 @@ manage(Window w, XWindowAttributes *wa) {
     }
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
         ewmh_process_state_atom(c, atom[WindowStateFs], 1);
-    XUnmapWindow(dpy, c->frame);
-    XUnmapWindow(dpy, c->win);
-    c->isbanned = True;
+    ban(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
     arrange();
