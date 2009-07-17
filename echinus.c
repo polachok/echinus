@@ -242,6 +242,7 @@ int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int bh, tpos, tbpos;
 unsigned int blw = 0;
 unsigned int curtag = 0;
+unsigned int overlap = 0;
 unsigned int numlockmask = 0;
 Atom wmatom[WMLast];
 Bool domwfact = True;
@@ -437,22 +438,18 @@ buttonpress(XEvent *e) {
         if(CLEANMASK(ev->state) != modkey)
            return;
         if(ev->button == Button1) {
-                if(ISLTFLOATING || c->isfloating)
-                        restack();
-                else 
+                if(!ISLTFLOATING && !c->isfloating)
                     togglefloating(NULL);
                 movemouse(c);
         }
         else if(ev->button == Button2) {
-                if((floating != layouts[ltidxs[curtag]].arrange) && c->isfloating)
+                if(!ISLTFLOATING && c->isfloating)
                         togglefloating(NULL);
                 else
                         zoom(NULL);
         }
         else if(ev->button == Button3 && !c->isfixed) {
-                if((floating == layouts[ltidxs[curtag]].arrange) || c->isfloating)
-                        restack();
-                else
+                if(!ISLTFLOATING && !c->isfloating)
                         togglefloating(NULL);
                 resizemouse(c);
         }
@@ -1822,6 +1819,7 @@ setup(void) {
         tbpos = atoi(getresource("tagbar", TAGBAR));
         sloppy = atoi(getresource("sloppy", "0"));
         drawoutline = atoi(getresource("outline", "0"));
+        overlap = atoi(getresource("overlap", "0"));
 
 	struts[RightStrut] = struts[LeftStrut] = struts[TopStrut] = struts[BotStrut] = 0;
         updategeom();
@@ -1957,7 +1955,7 @@ tile(void) {
                 else {  /* tile window */
                         if(i == nmasters[curtag]) {
                                 ny = way;
-                                nx += mc->w + mc->border;
+                                nx += mc->w + mc->border - overlap;
                                 nw = waw - nx - 2*c->border;
                         }
                         else 
