@@ -689,17 +689,30 @@ enternotify(XEvent *e) {
 
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
+    enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise };
     if((c = getclient(ev->window, clients, False))){
-        if(c->isbastard) {
+        if(c->isbastard)
             grabbuttons(c, True);
-            return;
-        }
-        if(sloppy) {
-            focus(c);
-            return;
-        }
-        XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
+        switch(sloppy) {
+        case Clk2Focus:
+	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
                     BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
+            break;
+        case SloppyFloat:
+            if(ISLTFLOATING || c->isfloating) 
+                focus(c);
+            else
+                XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
+                    BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
+            break;
+        case AllSloppy:
+            focus(c);
+            break;
+        case SloppyRaise:
+            focus(c);
+            restack();
+            break;
+        }
     }
     else if(ev->window == root) {
         selscreen = True;
