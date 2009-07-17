@@ -690,15 +690,15 @@ enternotify(XEvent *e) {
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
     if((c = getclient(ev->window, clients, False))){
-	if(c->isfloating || ISLTFLOATING || sloppy){
-            if(c->isbastard){
-                grabbuttons(c, True);
-            }
-            else
-                focus(c);
+        if(c->isbastard) {
+            grabbuttons(c, True);
+            return;
         }
-	else
-	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
+        if(sloppy) {
+            focus(c);
+            return;
+        }
+        XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
                     BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
     }
     else if(ev->window == root) {
