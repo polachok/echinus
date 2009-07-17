@@ -1042,7 +1042,6 @@ manage(Window w, XWindowAttributes *wa) {
 
     c = emallocz(sizeof(Client));
     c->win = w;
-
     if(checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]) ||
             checkatom(c->win, atom[WindowType], atom[WindowTypeDock])){
         c->isbastard = True;
@@ -1053,6 +1052,7 @@ manage(Window w, XWindowAttributes *wa) {
         c->isfloating = True;
         c->isfixed = True;
     }
+
     c->isicon = False;
     c->hastitle = c->isbastard ? False : True;
     c->tags = emallocz(ntags*(sizeof seltags));
@@ -1065,6 +1065,13 @@ manage(Window w, XWindowAttributes *wa) {
 
     if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
             for(t = clients; t && t->win != trans; t = t->next);
+
+    updatetitle(c);
+
+    if(t)
+            memcpy(c->tags, t->tags, ntags*(sizeof seltags));
+
+    applyrules(c);
 
     if(!c->isfloating)
             c->isfloating = (rettrans == Success) || c->isfixed;
@@ -1083,10 +1090,10 @@ manage(Window w, XWindowAttributes *wa) {
         c->isplaced = True;
     else {
         if(!c->isbastard && c->isfloating) {
-            c->isplaced = True;
             getpointer(&c->x, &c->y);
         }
     }
+
     c->oldborder = c->isbastard ? 0 : wa->border_width;
     if(c->w == sw && c->h == sh) {
             c->x = sx;
@@ -1132,10 +1139,6 @@ manage(Window w, XWindowAttributes *wa) {
     else
         c->title = (Window)NULL;
 
-    updatetitle(c);
-    if(t)
-            memcpy(c->tags, t->tags, ntags*(sizeof seltags));
-    applyrules(c);
     if(c->isbastard)
         for(i = 0; i < ntags; i++)
             c->tags[i] = True;
@@ -1297,7 +1300,6 @@ getpointer(int *x, int *y) {
     XQueryPointer(dpy, root, &dummy, &dummy, &x1, &y1, &di, &di, &dui);
     *x = x1;
     *y = y1;
-    fprintf(stderr, "x1 = %d, y1 = %d\n", x1, y1);
 }
 
 void
@@ -1522,6 +1524,11 @@ restack(void) {
     if(!sel)
             return;
 
+    if((layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)) {
+        XRaiseWindow(dpy, sel->frame);
+        goto end;
+    }
+
     for(n = 0, c = stack; c; c = c->snext){
         if(isvisible(c) && !c->isicon){
                 n++;
@@ -1544,6 +1551,7 @@ restack(void) {
         }
     XRestackWindows(dpy, wl, n);
     free(wl);
+end:
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
