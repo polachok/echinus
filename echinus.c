@@ -699,10 +699,9 @@ enternotify(XEvent *e) {
                     BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
             break;
         case SloppyFloat:
-            if(ISLTFLOATING || c->isfloating) 
+            if(ISLTFLOATING || c->isfloating)
                 focus(c);
-            else
-                XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
+            XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
                     BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
             break;
         case AllSloppy:
