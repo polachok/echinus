@@ -55,6 +55,7 @@
 #define RESCLASS               "Echinus"
 #define OPAQUE	0xffffffff
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
+#define ISLTFLOATING ((layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating))
 
 /* enums */
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };
@@ -436,7 +437,7 @@ buttonpress(XEvent *e) {
         if(CLEANMASK(ev->state) != modkey)
            return;
         if(ev->button == Button1) {
-                if((layouts[ltidxs[curtag]].arrange == floating) || c->isfloating)
+                if(ISLTFLOATING || c->isfloating)
                         restack();
                 else 
                     togglefloating(NULL);
@@ -476,7 +477,7 @@ buttonpress(XEvent *e) {
             }
         }
         if(ev->button == Button1) {
-            if((layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating) || c->isfloating)
+            if(ISLTFLOATING || c->isfloating)
                 restack();
             movemouse(c);
         }
@@ -692,7 +693,7 @@ enternotify(XEvent *e) {
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
     if((c = getclient(ev->window, clients, False))){
-	if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating) || sloppy){
+	if(c->isfloating || ISLTFLOATING || sloppy){
             if(c->isbastard){
                 grabbuttons(c, True);
             }
@@ -1449,7 +1450,7 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
     if(y + h + 2 * c->border < sy)
             y = sy;
     if(c->x != x || c->y != y || c->w != w || c->h != h) {
-	    if(c->isfloating || (layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)) {
+	    if(c->isfloating || ISLTFLOATING) {
 		    c->sfx = x;
 		    c->sfy = y;
 		    c->sfw = w;
@@ -1524,7 +1525,7 @@ restack(void) {
     if(!sel)
             return;
 
-    if((layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating)) {
+    if(ISLTFLOATING) {
         XRaiseWindow(dpy, sel->frame);
         goto end;
     }
