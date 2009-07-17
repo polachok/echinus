@@ -1068,9 +1068,6 @@ manage(Window w, XWindowAttributes *wa) {
     c->tags = emallocz(ntags*(sizeof seltags));
     c->isfocusable = c->isbastard ? False : True;
 
-    c->th = c->isbastard ? 0 : dc.h;
-    c->border = c->isbastard ? 0 : borderpx;
-
     updatesizehints(c);
 
     if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
@@ -1082,6 +1079,9 @@ manage(Window w, XWindowAttributes *wa) {
             memcpy(c->tags, t->tags, ntags*(sizeof seltags));
 
     applyrules(c);
+
+    c->th = c->hastitle ? dc.h : 0;
+    c->border = c->isbastard ? 0 : borderpx;
 
     if(!c->isfloating)
             c->isfloating = (rettrans == Success) || c->isfixed;
@@ -1140,7 +1140,7 @@ manage(Window w, XWindowAttributes *wa) {
     XSetWindowBorder(dpy, c->frame, dc.norm[ColBorder]);
 
     twa.event_mask = ExposureMask | MOUSEMASK;
-    if(!c->isbastard){
+    if(c->hastitle){
        c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
                         0, DefaultDepth(dpy, screen), CopyFromParent,
                         DefaultVisual(dpy, screen),
