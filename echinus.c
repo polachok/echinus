@@ -242,7 +242,6 @@ int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int bh, tpos, tbpos;
 unsigned int blw = 0;
 unsigned int curtag = 0;
-unsigned int overlap = 0;
 unsigned int numlockmask = 0;
 Atom wmatom[WMLast];
 Bool domwfact = True;
@@ -1033,11 +1032,14 @@ killclient(const char *arg) {
 void
 leavenotify(XEvent *e) {
     XCrossingEvent *ev = &e->xcrossing;
+    Client *c;
 
     if((ev->window == root) && !ev->same_screen) {
             selscreen = False;
             focus(NULL);
     }
+    if((c = getclient(ev->window, clients, False)))
+        XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 }
 
 void
@@ -1130,7 +1132,7 @@ manage(Window w, XWindowAttributes *wa) {
         XSelectInput(dpy, w, CLIENTMASK);
     grabbuttons(c, False);
     twa.override_redirect = True;
-    twa.event_mask = MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask;
+    twa.event_mask = MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask;
     c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
                     c->border, DefaultDepth(dpy, screen), InputOutput,
                     DefaultVisual(dpy, screen),
@@ -1831,7 +1833,6 @@ setup(void) {
         tbpos = atoi(getresource("tagbar", TAGBAR));
         sloppy = atoi(getresource("sloppy", "0"));
         drawoutline = atoi(getresource("outline", "0"));
-        overlap = atoi(getresource("overlap", "0"));
 
 	struts[RightStrut] = struts[LeftStrut] = struts[TopStrut] = struts[BotStrut] = 0;
         updategeom();
@@ -1967,7 +1968,7 @@ tile(void) {
                 else {  /* tile window */
                         if(i == nmasters[curtag]) {
                                 ny = way;
-                                nx += mc->w + mc->border - overlap;
+                                nx += mc->w + mc->border;
                                 nw = waw - nx - 2*c->border;
                         }
                         else 
