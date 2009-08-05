@@ -191,7 +191,7 @@ long getstate(Window w);
 Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
 void grabbuttons(Client *c, Bool focused);
 void getpointer(int *x, int *y);
-Monitor* getmonitor();
+Monitor* curmonitor();
 unsigned int idxoftag(const char *tag);
 Bool isoccupied(unsigned int t);
 Bool isprotodel(Client *c);
@@ -233,7 +233,7 @@ void focusview(const char *arg);
 void saveconfig(Client *c);
 void unban(Client *c);
 void unmanage(Client *c);
-void updategeom(void);
+void updategeom(Monitor *m);
 void unmapnotify(XEvent *e);
 void updatesizehints(Client *c);
 void updatetitle(Client *c);
@@ -271,17 +271,17 @@ Monitor *monitors = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
 #ifdef XRANDR
-#define curseltags getmonitor()->seltags
-#define curprevtags getmonitor()->prevtags
-#define cursx getmonitor()->sx
-#define cursy getmonitor()->sy
-#define cursh getmonitor()->sh
-#define cursw getmonitor()->sw
-#define curwax getmonitor()->wax
-#define curway getmonitor()->way
-#define curwaw getmonitor()->waw
-#define curwah getmonitor()->wah
-#define curtag getmonitor()->curtag
+#define curseltags curmonitor()->seltags
+#define curprevtags curmonitor()->prevtags
+#define cursx curmonitor()->sx
+#define cursy curmonitor()->sy
+#define cursh curmonitor()->sh
+#define cursw curmonitor()->sw
+#define curwax curmonitor()->wax
+#define curway curmonitor()->way
+#define curwaw curmonitor()->waw
+#define curwah curmonitor()->wah
+#define curtag curmonitor()->curtag
 #else
 Bool *seltags = NULL;
 Bool *prevtags = NULL;
@@ -388,7 +388,7 @@ void
 arrange(void) {
     Client *c;
     Monitor *m;
-    m = getmonitor();
+    m = curmonitor();
 
     for(c = stack; c; c = c->snext){
             if((!c->isbastard && isvisible(c) && !c->isicon) || (c->isbastard && bpos[curtag] == StrutsOn)) {
@@ -647,7 +647,7 @@ scan_xrandr(void)
                     m->sh = ci->height;
 #undef curtag
                     m->curtag = c;
-#define curtag getmonitor()->curtag
+#define curtag curmonitor()->curtag
                     m->prevtags = emallocz(ntags*sizeof(Bool));
                     m->seltags = emallocz(ntags*sizeof(Bool));
                     m->seltags[c] = True;
@@ -664,7 +664,8 @@ scan_xrandr(void)
 void
 configurenotify(XEvent *e) {
     XConfigureEvent *ev = &e->xconfigure;
-    if(ev->window == root) {// && (ev->width != sw || ev->height != sh)) {
+    Monitor *m;
+    if(ev->window == root && (ev->width != cursw || ev->height != cursh)) {
         fprintf(stderr, "ololo inside\n");
 #ifdef XRANDR
             if(XRRUpdateConfiguration(ev))
@@ -680,7 +681,8 @@ configurenotify(XEvent *e) {
             XFreePixmap(dpy, dc.drawable);
             /* XXX */
             dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
-            updategeom();
+            for(m = monitors; m->next != NULL; m = m->next)
+                updategeom(m);
             arrange();
     }
 }
@@ -753,7 +755,7 @@ destroynotify(XEvent *e) {
             }
         }
     }
-    updategeom();
+    updategeom(curmonitor());
     arrange();
     updateatom[ClientList](NULL);
 }
@@ -848,7 +850,7 @@ floating(void) { /* default floating layout */
 
     domwfact = dozoom = False;
     for(c = clients; c; c = c->next){
-        if(isvisible(c) && !c->isicon && c->monitor == getmonitor()) {
+        if(isvisible(c) && !c->isicon && c->monitor == curmonitor()) {
                 c->hastitle = c->title ? True : False;
                 drawclient(c);
                 if(!c->isfloating)
@@ -1079,7 +1081,7 @@ isvisible(Client *c) {
 
     for(m = monitors; m->next != NULL; m = m->next) {
         for(i = 0; i < ntags; i++)
-            if(c->tags[i] && m->seltags[i] && c->monitor == m)
+            if(c->tags[i] && m->seltags[i])
                     return True;
     }
     return False;
@@ -1176,7 +1178,7 @@ manage(Window w, XWindowAttributes *wa) {
     c->hastitle = c->isbastard ? False : True;
     c->tags = emallocz(ntags*(sizeof curseltags));
     c->isfocusable = c->isbastard ? False : True;
-    c->monitor = getmonitor();
+    c->monitor = curmonitor();
 
     updatesizehints(c);
 
@@ -1349,7 +1351,7 @@ ifloating(void){
     Client *c;
     int x, y, f;
     for(c = clients; c; c = c->next){ 
-        if(isvisible(c) && !c->isicon && !c->isbastard && c->monitor == getmonitor()){
+        if(isvisible(c) && !c->isicon && !c->isbastard && c->monitor == curmonitor()){
                 for(f = 0; !c->isplaced; f++){ 
                     if((c->w > cursw/2 && c->h > cursw/2) || c->h < 4){
                         /* too big to deal with */
@@ -1379,7 +1381,7 @@ void
 monocle(void) {
     Client *c;
     Monitor *m;
-    m = getmonitor();
+    m = curmonitor();
     wasfloating = False;
     for(c = clients; c; c = c->next){
         if(isvisible(c) && !c->isicon && !c->isbastard && c->monitor == m ) {
@@ -1433,7 +1435,7 @@ getpointer(int *x, int *y) {
 }
 
 Monitor*
-getmonitor() {
+curmonitor() {
     int x, y, i;
     Monitor *m;
     getpointer(&x, &y);
@@ -1585,6 +1587,7 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
     if(w <= 0 || h <= 0)
             return;
     /* offscreen appearance fixes */
+    fprintf(stderr, "sw %d sh %d \n", cursw, cursh);
     if(x > cursw)
             x = cursw - w - 2 * c->border;
     if(y > cursh)
@@ -1881,15 +1884,6 @@ setup(void) {
 	cursor[CurResize] = XCreateFontCursor(dpy, XC_sizing);
 	cursor[CurMove] = XCreateFontCursor(dpy, XC_fleur);
 
-	/* init geometry */
-#ifdef XRANDR
-        scan_xrandr();
-#else
-	sx = sy = 0;
-	sw = DisplayWidth(dpy, screen);
-	sh = DisplayHeight(dpy, screen);
-#endif
-
 	/* init modifier map */
 	modmap = XGetModifierMapping(dpy);
 	for(i = 0; i < 8; i++)
@@ -1916,9 +1910,18 @@ setup(void) {
         if(!xrdb)
             eprint("echinus: cannot open configuration file\n");
 
-	/* init modkey */
         /* init tags */
         inittags();
+	/* init geometry */
+#ifdef XRANDR
+        scan_xrandr();
+#else
+	sx = sy = 0;
+	sw = DisplayWidth(dpy, screen);
+	sh = DisplayHeight(dpy, screen);
+#endif
+
+	/* init modkey */
         initrules();
         initkeys();
         initlayouts();
@@ -1967,7 +1970,7 @@ setup(void) {
         drawoutline = atoi(getresource("outline", "0"));
 
 	struts[RightStrut] = struts[LeftStrut] = struts[TopStrut] = struts[BotStrut] = 0;
-        updategeom();
+        updategeom(curmonitor());
 
 	dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
@@ -2067,7 +2070,7 @@ tile(void) {
 	Client *c, *mc;
         Monitor *m;
 
-        m = getmonitor();
+        m = curmonitor();
 
         wasfloating = False;
 
@@ -2124,7 +2127,7 @@ tile(void) {
 void
 togglestruts(const char *arg) {
     bpos[curtag] = (bpos[curtag] == StrutsOn) ? (hidebastards ? StrutsHide : StrutsOff) : StrutsOn;
-    updategeom();
+    updategeom(curmonitor());
     arrange();
 }
 
@@ -2260,19 +2263,19 @@ unmanage(Client *c) {
 }
 
 void
-updategeom(void) {
+updategeom(Monitor *m) {
     XEvent ev;
 
-    curwax = cursx;
-    curway = cursy;
-    curwah = cursh;
-    curwaw = cursw;
+    m->wax = m->sx;
+    m->way = m->sy;
+    m->wah = m->sh;
+    m->waw = m->sw;
     switch(bpos[curtag]){
     default:
-        curwax += struts[LeftStrut];
-        curwaw = cursw - curwax - struts[RightStrut];
-        curway += struts[TopStrut];
-        curwah = cursh - curway - struts[BotStrut];
+        m->wax += struts[LeftStrut];
+        m->waw = cursw - m->wax - struts[RightStrut];
+        m->way += struts[TopStrut];
+        m->wah = m->sh - m->way - struts[BotStrut];
         break;
     case StrutsHide:
     case StrutsOff:
@@ -2408,7 +2411,7 @@ view(const char *arg) {
     prevcurtag = curtag;
     curtag = idxoftag(arg);
     if (bpos[prevcurtag] != bpos[curtag])
-        updategeom();
+        updategeom(curmonitor());
     arrange();
     updateatom[CurDesk](NULL);
 }
@@ -2427,7 +2430,7 @@ viewprevtag(const char *arg) {
     memcpy(curseltags, curprevtags, ntags*(sizeof curseltags));
     memcpy(curprevtags, tmptags, ntags*(sizeof curseltags));
     if (bpos[prevcurtag] != bpos[curtag])
-	updategeom();
+	updategeom(curmonitor());
     arrange();
     updateatom[CurDesk](NULL);
 }

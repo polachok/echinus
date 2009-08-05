@@ -236,7 +236,7 @@ updatestruts(Window win){
         if(n){
             for(i = LeftStrut; i < LastStrut; i++)
                 struts[i] = (state[i] > struts[i]) ? state[i] : struts[i];
-            updategeom();
+            updategeom(curmonitor());
             result = 1;
         }
     }
