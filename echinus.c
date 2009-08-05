@@ -71,6 +71,15 @@ enum { WMProtocols, WMDelete, WMName, WMState, WMLast }; /* default atom */
 enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise }; /* focus model */
 
 /* typedefs */
+typedef struct Monitor Monitor;
+struct Monitor {
+        int sx, sy, sw, sh, wax, way, waw, wah;
+        unsigned int curtag;
+        Monitor *next;
+        Bool *seltags;
+        Bool *prevtags;
+};
+
 typedef struct Client Client;
 struct Client {
 	char name[256];
@@ -91,15 +100,7 @@ struct Client {
 	Window win;
 	Window title;
         Window frame;
-};
-
-typedef struct Monitor Monitor;
-struct Monitor {
-        int sx, sy, sw, sh, wax, way, waw, wah;
-        Monitor *next;
-        Bool *seltags;
-        Bool *prevtags;
-        unsigned int curtag;
+        Monitor *monitor;
 };
 
 typedef struct {
@@ -386,13 +387,15 @@ applyrules(Client *c) {
 void
 arrange(void) {
     Client *c;
+    Monitor *m;
+    m = getmonitor();
 
     for(c = stack; c; c = c->snext){
             if((!c->isbastard && isvisible(c) && !c->isicon) || (c->isbastard && bpos[curtag] == StrutsOn)) {
                     unban(c);
                     if(c->isbastard)
                         c->isicon = False;
-			}
+            }
             else {
                     ban(c);
                     if(c->isbastard)
@@ -618,7 +621,8 @@ scan_xrandr(void)
 	int			c;
 	int			ncrtc = 0;
         Monitor *m;
-        for(m = monitors; m->next != NULL; m = m->next)
+
+        for(m = monitors; m != NULL && m->next != NULL; m = m->next)
             free(m);
 
 	/* map virtual screens onto physical screens */
@@ -641,9 +645,12 @@ scan_xrandr(void)
                     m->sy = ci->y;
                     m->sw = ci->width;
                     m->sh = ci->height;
+#undef curtag
+                    m->curtag = c;
+#define curtag getmonitor()->curtag
                     m->prevtags = emallocz(ntags*sizeof(Bool));
                     m->seltags = emallocz(ntags*sizeof(Bool));
-                    m->seltags[0] = True;
+                    m->seltags[c] = True;
                     m->next = monitors;
                     monitors = m;
                     fprintf(stderr, "x=%d y=%d w=%d h=%d\n", ci->x, ci->y, ci->width, ci->height);
@@ -841,7 +848,7 @@ floating(void) { /* default floating layout */
 
     domwfact = dozoom = False;
     for(c = clients; c; c = c->next){
-        if(isvisible(c) && !c->isicon) {
+        if(isvisible(c) && !c->isicon && c->monitor == getmonitor()) {
                 c->hastitle = c->title ? True : False;
                 drawclient(c);
                 if(!c->isfloating)
@@ -1068,10 +1075,13 @@ isprotodel(Client *c) {
 Bool
 isvisible(Client *c) {
     unsigned int i;
+    Monitor *m;
 
-    for(i = 0; i < ntags; i++)
-            if(c->tags[i] && curseltags[i])
+    for(m = monitors; m->next != NULL; m = m->next) {
+        for(i = 0; i < ntags; i++)
+            if(c->tags[i] && m->seltags[i] && c->monitor == m)
                     return True;
+    }
     return False;
 }
 
@@ -1166,6 +1176,7 @@ manage(Window w, XWindowAttributes *wa) {
     c->hastitle = c->isbastard ? False : True;
     c->tags = emallocz(ntags*(sizeof curseltags));
     c->isfocusable = c->isbastard ? False : True;
+    c->monitor = getmonitor();
 
     updatesizehints(c);
 
@@ -1195,6 +1206,7 @@ manage(Window w, XWindowAttributes *wa) {
     c->w = c->sfw = wa->width;
     c->h = c->sfh = wa->height + c->th;
 
+    fprintf(stderr, "%s x:%d y:%d w:%d h:%d [%d]\n", c->name, c->x, c->y,c->w,c->h, __LINE__);
     if(wa->x && wa->y)
         c->isplaced = True;
     else {
@@ -1202,11 +1214,13 @@ manage(Window w, XWindowAttributes *wa) {
             getpointer(&c->x, &c->y);
         }
     }
+    fprintf(stderr, "%s x:%d y:%d w:%d h:%d [%d]\n", c->name, c->x, c->y,c->w,c->h, __LINE__);
 
     c->oldborder = c->isbastard ? 0 : wa->border_width;
     if(c->w == cursw && c->h == cursh) {
             c->x = cursx;
             c->y = cursy;
+    fprintf(stderr, "%s x:%d y:%d w:%d h:%d [%d]\n", c->name, c->x, c->y,c->w,c->h, __LINE__);
     }
     else {
             if(c->x + c->w > curwax + curwaw)
@@ -1217,7 +1231,11 @@ manage(Window w, XWindowAttributes *wa) {
                     c->x = curwax;
             if(c->y < curway)
                     c->y = curway;
+    fprintf(stderr, "%s x:%d y:%d w:%d h:%d [%d]\n", c->name, c->x, c->y,c->w,c->h, __LINE__);
+    fprintf(stderr, "wax: %d way: %d waw: %d wah: %d\n", curwax, curway, curwaw, curwah);
     }
+
+    fprintf(stderr, "%s x:%d y:%d w:%d h:%d [%d]\n", c->name, c->x, c->y,c->w,c->h, __LINE__);
     wc.border_width = c->border;
     c->sfx = c->x;
     c->sfy = c->y;
@@ -1275,6 +1293,7 @@ manage(Window w, XWindowAttributes *wa) {
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
     arrange();
+    fprintf(stderr, "%s x:%d y:%d w:%d h:%d [%d]\n", c->name, c->x, c->y,c->w,c->h, __LINE__);
 }
 
 void
@@ -1330,7 +1349,7 @@ ifloating(void){
     Client *c;
     int x, y, f;
     for(c = clients; c; c = c->next){ 
-        if(isvisible(c) && !c->isicon && !c->isbastard){
+        if(isvisible(c) && !c->isicon && !c->isbastard && c->monitor == getmonitor()){
                 for(f = 0; !c->isplaced; f++){ 
                     if((c->w > cursw/2 && c->h > cursw/2) || c->h < 4){
                         /* too big to deal with */
@@ -1359,9 +1378,11 @@ ifloating(void){
 void
 monocle(void) {
     Client *c;
+    Monitor *m;
+    m = getmonitor();
     wasfloating = False;
     for(c = clients; c; c = c->next){
-        if(isvisible(c) && !c->isicon && !c->isbastard) {
+        if(isvisible(c) && !c->isicon && !c->isbastard && c->monitor == m ) {
 	    c->isplaced = False;
             if(!c->isfloating){
                 c->sfx = c->x;
@@ -1401,7 +1422,7 @@ moveresizekb(const char *arg) {
 
 void
 getpointer(int *x, int *y) {
-    int x1, y1, di, nx, ny;
+    int x1, y1, di;
     unsigned int dui;
     Window dummy;
     XEvent ev;
@@ -1413,13 +1434,16 @@ getpointer(int *x, int *y) {
 
 Monitor*
 getmonitor() {
-    int x, y;
+    int x, y, i;
     Monitor *m;
     getpointer(&x, &y);
-    for(m = monitors; m->next != NULL; m = m->next)
+    for(i = 0, m = monitors; m->next != NULL; m = m->next, i++) {
         if((x >= m->sx && x <= m->sx + m->sw) &&
-            (y >= m->sy && y <= m->sy + m->sh))
+            (y >= m->sy && y <= m->sy + m->sh)) {
+            fprintf(stderr, "i = %d X:<%d %d %d> Y:<%d %d %d>\n", i, m->sx, x, m->sx + m->sw, m->sy, y, m->sy + m->sh);
             break;
+        }
+    }
     return m;
 }
 
@@ -1791,7 +1815,6 @@ initlayouts(){
         char conf[32], xres[256], buf[5];
 	float mwfact;
 	int nmaster;
-        Monitor *m;
 
         /* init layouts */
 	bzero(buf, 5);
@@ -2042,6 +2065,9 @@ void
 tile(void) {
 	unsigned int i, n, nx, ny, nw, nh, mw, mh, th;
 	Client *c, *mc;
+        Monitor *m;
+
+        m = getmonitor();
 
         wasfloating = False;
 
@@ -2059,7 +2085,7 @@ tile(void) {
 	nx = curwax;
 	ny = curway;
 	nw = 0; /* gcc stupidity requires this */
-	for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
+	for(i = 0, c = mc = nexttiled(clients); c && c->monitor == m ; c = nexttiled(c->next), i++) {
                 c->hastitle = (dectiled ? (c->title ? True : False) : False);
 		c->ismax = False;
                 c->sfx = c->x;
@@ -2369,6 +2395,12 @@ xerrorstart(Display *dsply, XErrorEvent *ee) {
 void
 view(const char *arg) {
     unsigned int i, prevcurtag;
+    Monitor *m;
+    for(m = monitors; m->next != NULL; m = m->next) {
+            if(m->seltags[idxoftag(arg)] == True)
+                return;
+    }
+
     memcpy(curprevtags, curseltags, ntags*(sizeof curseltags));
     for(i = 0; i < ntags; i++)
             curseltags[i] = (NULL == arg);
