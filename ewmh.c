@@ -97,7 +97,7 @@ ewmh_update_net_number_of_desktops() {
 void
 ewmh_update_net_current_desktop() {
     XChangeProperty(dpy, RootWindow(dpy, screen),
-                    atom[ESelTags], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) seltags, ntags);
+                    atom[ESelTags], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) curseltags, ntags);
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     atom[CurDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &curtag, 1);
     update_echinus_layout_name(NULL);

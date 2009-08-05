@@ -44,6 +44,10 @@
 #include <X11/Xutil.h>
 #include <X11/Xresource.h>
 #include <X11/Xft/Xft.h>
+#define XRANDR 1
+#ifdef XRANDR
+#include <X11/extensions/Xrandr.h>
+#endif
 
 /* macros */
 #define BUTTONMASK		(ButtonPressMask | ButtonReleaseMask)
@@ -64,6 +68,7 @@ enum { TitleLeft, TitleCenter, TitleRight };			/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColButton, ColLast };		/* color */
 enum { WMProtocols, WMDelete, WMName, WMState, WMLast }; /* default atom */
+enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise }; /* focus model */
 
 /* typedefs */
 typedef struct Client Client;
@@ -86,6 +91,15 @@ struct Client {
 	Window win;
 	Window title;
         Window frame;
+};
+
+typedef struct Monitor Monitor;
+struct Monitor {
+        int sx, sy, sw, sh, wax, way, waw, wah;
+        Monitor *next;
+        Bool *seltags;
+        Bool *prevtags;
+        unsigned int curtag;
 };
 
 typedef struct {
@@ -176,6 +190,7 @@ long getstate(Window w);
 Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
 void grabbuttons(Client *c, Bool focused);
 void getpointer(int *x, int *y);
+Monitor* getmonitor();
 unsigned int idxoftag(const char *tag);
 Bool isoccupied(unsigned int t);
 Bool isprotodel(Client *c);
@@ -235,13 +250,11 @@ char **cargv;
 char **environ;
 Bool wasfloating = True;
 float uf_opacity;
-int screen, sx, sy, sw, sh, wax, way, waw, wah;
+int screen;
 int borderpx;
-unsigned int *nmasters;
 int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int bh, tpos, tbpos;
 unsigned int blw = 0;
-unsigned int curtag = 0;
 unsigned int numlockmask = 0;
 Atom wmatom[WMLast];
 Bool domwfact = True;
@@ -253,8 +266,30 @@ Bool notitles = False;
 Bool sloppy = False;
 Bool drawoutline = False;
 Client *clients = NULL;
+Monitor *monitors = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
+#ifdef XRANDR
+#define curseltags getmonitor()->seltags
+#define curprevtags getmonitor()->prevtags
+#define cursx getmonitor()->sx
+#define cursy getmonitor()->sy
+#define cursh getmonitor()->sh
+#define cursw getmonitor()->sw
+#define curwax getmonitor()->wax
+#define curway getmonitor()->way
+#define curwaw getmonitor()->waw
+#define curwah getmonitor()->wah
+#define curtag getmonitor()->curtag
+#else
+Bool *seltags = NULL;
+Bool *prevtags = NULL;
+unsigned int curtag = 0;
+#endif
+unsigned int *nmasters;
+unsigned int *bpos;
+unsigned int *ltidxs;
+double *mwfacts;
 Cursor cursor[CurLast];
 unsigned long struts[LastStrut];
 Display *dpy;
@@ -266,15 +301,11 @@ Window root;
 Regs *regs = NULL;
 XrmDatabase xrdb = NULL;
 
-unsigned int *bpos;
-unsigned int *ltidxs;
-double *mwfacts;
 
 char terminal[255];
 char **tags;
 Key **keys;
 Rule **rules;
-Bool *seltags;
 int ntags = 0;
 int nkeys = 0;
 int nrules = 0;
@@ -304,7 +335,19 @@ void (*handler[LASTEvent]) (XEvent *) = {
 };
 
 
-Bool *prevtags;
+
+#ifdef XRANDR
+void
+screenchange(XEvent *e) {
+    if(XRRUpdateConfiguration(e))
+        fprintf(stderr, "xrr ok\n");
+    else
+        fprintf(stderr, "xrrnot ok\n");
+}
+
+    //XRRScreenChangeNotifyEvent *ev = &e->xunmap;
+#endif
+
 
 /* function implementations */
 void
@@ -336,7 +379,7 @@ applyrules(Client *c) {
     if(ch.res_name)
             XFree(ch.res_name);
     if(!matched) {
-            memcpy(c->tags, seltags, ntags*(sizeof seltags));
+            memcpy(c->tags, curseltags, ntags*(sizeof curseltags));
     }
 }
 
@@ -433,7 +476,8 @@ buttonpress(XEvent *e) {
     if((c = getclient(ev->window, clients, False))) {
         focus(c);
         restack();
-        XAllowEvents(dpy, ReplayPointer, CurrentTime);
+        //if(!sloppy || ((sloppy == SloppyFloat) && !c->isfloating))
+            XAllowEvents(dpy, ReplayPointer, CurrentTime);
         if(CLEANMASK(ev->state) != modkey)
            return;
         if(ev->button == Button1) {
@@ -567,14 +611,68 @@ configure(Client *c) {
 }
 
 void
+scan_xrandr(void)
+{
+	XRRCrtcInfo		*ci;
+	XRRScreenResources	*sr;
+	int			c;
+	int			ncrtc = 0;
+        Monitor *m;
+        for(m = monitors; m->next != NULL; m = m->next)
+            free(m);
+
+	/* map virtual screens onto physical screens */
+        sr = XRRGetScreenResources(dpy, root);
+        if (sr == NULL)
+            fprintf(stderr, "bad luck\n");
+        else 
+                ncrtc = sr->ncrtc;
+
+        for (c = 0, ci = NULL; c < ncrtc; c++) {
+                ci = XRRGetCrtcInfo(dpy, sr, sr->crtcs[c]);
+                if (ci->noutput == 0)
+                        continue;
+
+                if (ci != NULL && ci->mode == None)
+                    fprintf(stderr, "???\n");
+                else {
+                    m = malloc(sizeof(Monitor));
+                    m->sx = ci->x;
+                    m->sy = ci->y;
+                    m->sw = ci->width;
+                    m->sh = ci->height;
+                    m->prevtags = emallocz(ntags*sizeof(Bool));
+                    m->seltags = emallocz(ntags*sizeof(Bool));
+                    m->seltags[0] = True;
+                    m->next = monitors;
+                    monitors = m;
+                    fprintf(stderr, "x=%d y=%d w=%d h=%d\n", ci->x, ci->y, ci->width, ci->height);
+                }
+        }
+        if (ci)
+                XRRFreeCrtcInfo(ci);
+        XRRFreeScreenResources(sr);
+}
+
+void
 configurenotify(XEvent *e) {
     XConfigureEvent *ev = &e->xconfigure;
-
-    if(ev->window == root && (ev->width != sw || ev->height != sh)) {
-            sw = ev->width;
-            sh = ev->height;
+    if(ev->window == root) {// && (ev->width != sw || ev->height != sh)) {
+        fprintf(stderr, "ololo inside\n");
+#ifdef XRANDR
+            if(XRRUpdateConfiguration(ev))
+                fprintf(stderr, "Xrrupdate config\n");
+            else
+                fprintf(stderr, "Xrrupdate config nok\n");
+            scan_xrandr();
+#else
+            cursw = ev->width;
+            cursh = ev->height;
+            fprintf(stderr, "sw = %d sh = %d\n", sw, sh);
+#endif
             XFreePixmap(dpy, dc.drawable);
-            dc.drawable = XCreatePixmap(dpy, root, sw, dc.h, DefaultDepth(dpy, screen));
+            /* XXX */
+            dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
             updategeom();
             arrange();
     }
@@ -599,10 +697,10 @@ configurerequest(XEvent *e) {
                             c->w = ev->width;
                     if(ev->value_mask & CWHeight)
                             c->h = ev->height + c->th;
-                    if((c->x + c->w) > sw && c->isfloating)
-                            c->x = sw / 2 - c->w / 2; /* center in x direction */
-                    if((c->y + c->h) > sh && c->isfloating)
-                            c->y = sh / 2 - c->h / 2; /* center in y direction */
+                    if((c->x + c->w) > cursw && c->isfloating)
+                            c->x = cursw / 2 - c->w / 2; /* center in x direction */
+                    if((c->y + c->h) > cursh && c->isfloating)
+                            c->y = cursh / 2 - c->h / 2; /* center in y direction */
                     if((ev->value_mask & (CWX | CWY))
                     && !(ev->value_mask & (CWWidth | CWHeight)))
                             configure(c);
@@ -688,7 +786,6 @@ enternotify(XEvent *e) {
 
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
-    enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise };
     if((c = getclient(ev->window, clients, False))){
         if(c->isbastard)
             grabbuttons(c, True);
@@ -833,7 +930,7 @@ incnmaster(const char *arg) {
             nmasters[curtag] = NMASTER;
     else {
             i = atoi(arg);
-            if((nmasters[curtag] + i) < 1 || wah / (nmasters[curtag] + i) <= 2 * borderpx)
+            if((nmasters[curtag] + i) < 1 || curwah / (nmasters[curtag] + i) <= 2 * borderpx)
                     return;
             nmasters[curtag] += i;
     }
@@ -973,7 +1070,7 @@ isvisible(Client *c) {
     unsigned int i;
 
     for(i = 0; i < ntags; i++)
-            if(c->tags[i] && seltags[i])
+            if(c->tags[i] && curseltags[i])
                     return True;
     return False;
 }
@@ -1067,7 +1164,7 @@ manage(Window w, XWindowAttributes *wa) {
 
     c->isicon = False;
     c->hastitle = c->isbastard ? False : True;
-    c->tags = emallocz(ntags*(sizeof seltags));
+    c->tags = emallocz(ntags*(sizeof curseltags));
     c->isfocusable = c->isbastard ? False : True;
 
     updatesizehints(c);
@@ -1078,7 +1175,7 @@ manage(Window w, XWindowAttributes *wa) {
     updatetitle(c);
 
     if(t)
-            memcpy(c->tags, t->tags, ntags*(sizeof seltags));
+            memcpy(c->tags, t->tags, ntags*(sizeof curseltags));
 
     applyrules(c);
 
@@ -1107,19 +1204,19 @@ manage(Window w, XWindowAttributes *wa) {
     }
 
     c->oldborder = c->isbastard ? 0 : wa->border_width;
-    if(c->w == sw && c->h == sh) {
-            c->x = sx;
-            c->y = sy;
+    if(c->w == cursw && c->h == cursh) {
+            c->x = cursx;
+            c->y = cursy;
     }
     else {
-            if(c->x + c->w > wax + waw)
-                    c->x = wax + waw - c->w;
-            if(c->y + c->h > way + wah)
-                    c->y = way + wah - c->h;
-            if(c->x < wax)
-                    c->x = wax;
-            if(c->y < way)
-                    c->y = way;
+            if(c->x + c->w > curwax + curwaw)
+                    c->x = curwax + curwaw - c->w;
+            if(c->y + c->h > curway + curwah)
+                    c->y = curway + curwah - c->h;
+            if(c->x < curwax)
+                    c->x = curwax;
+            if(c->y < curway)
+                    c->y = curway;
     }
     wc.border_width = c->border;
     c->sfx = c->x;
@@ -1235,13 +1332,13 @@ ifloating(void){
     for(c = clients; c; c = c->next){ 
         if(isvisible(c) && !c->isicon && !c->isbastard){
                 for(f = 0; !c->isplaced; f++){ 
-                    if((c->w > sw/2 && c->h > sw/2) || c->h < 4){
+                    if((c->w > cursw/2 && c->h > cursw/2) || c->h < 4){
                         /* too big to deal with */
                         c->isplaced = True; 
                     }
                     /* i dunno if c->h/4 & c->w/8 are optimal */
-                        for(y = way; y+c->h <= wah && !c->isplaced ; y+=c->h/4){
-                            for(x = wax; x+c->w <= waw && !c->isplaced; x+=c->w/8){
+                        for(y = curway; y+c->h <= curwah && !c->isplaced ; y+=c->h/4){
+                            for(x = curwax; x+c->w <= curwaw && !c->isplaced; x+=c->w/8){
                                 /* are you wondering about 0.9 & 0.8 ? */
                             if(smartcheckarea(x, y, 0.8*c->w, 0.8*c->h)<=f){
                                 /* got it! a big chunk of "free" space */
@@ -1277,9 +1374,9 @@ monocle(void) {
             else
                 continue;
             if(bpos[curtag] != StrutsOn) 
-                resize(c, sx-c->border, sy-c->border, sw, sh, False);
+                resize(c, cursx-c->border, cursy-c->border, cursw, cursh, False);
             else {
-                resize(c, wax, way, waw-2*c->border, wah-2*c->border, False);
+                resize(c, curwax, curway, curwaw-2*c->border, curwah-2*c->border, False);
             }
         }
     }
@@ -1314,6 +1411,18 @@ getpointer(int *x, int *y) {
     *y = y1;
 }
 
+Monitor*
+getmonitor() {
+    int x, y;
+    Monitor *m;
+    getpointer(&x, &y);
+    for(m = monitors; m->next != NULL; m = m->next)
+        if((x >= m->sx && x <= m->sx + m->sw) &&
+            (y >= m->sy && y <= m->sy + m->sh))
+            break;
+    return m;
+}
+
 void
 movemouse(Client *c) {
     int x1, y1, ocx, ocy, nx, ny;
@@ -1341,14 +1450,14 @@ movemouse(Client *c) {
                     XSync(dpy, False);
                     nx = ocx + (ev.xmotion.x - x1);
                     ny = ocy + (ev.xmotion.y - y1);
-                    if(abs(wax + nx) < SNAP)
-                            nx = wax;
-                    else if(abs((wax + waw) - (nx + c->w + 2 * c->border)) < SNAP)
-                            nx = wax + waw - c->w - 2 * c->border;
-                    if(abs(way - ny) < SNAP)
-                            ny = way;
-                    else if(abs((way + wah) - (ny + c->h + 2 * c->border)) < SNAP)
-                            ny = way + wah - c->h - 2 * c->border;
+                    if(abs(curwax + nx) < SNAP)
+                            nx = curwax;
+                    else if(abs((curwax + curwaw) - (nx + c->w + 2 * c->border)) < SNAP)
+                            nx = curwax + curwaw - c->w - 2 * c->border;
+                    if(abs(curway - ny) < SNAP)
+                            ny = curway;
+                    else if(abs((curway + curwah) - (ny + c->h + 2 * c->border)) < SNAP)
+                            ny = curway + curwah - c->h - 2 * c->border;
                     resize(c, nx, ny, c->w, c->h, False);
                     drawclient(c);
                     break;
@@ -1452,14 +1561,14 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
     if(w <= 0 || h <= 0)
             return;
     /* offscreen appearance fixes */
-    if(x > sw)
-            x = sw - w - 2 * c->border;
-    if(y > sh)
-            y = sh - h - 2 * c->border;
-    if(x + w + 2 * c->border < sx)
-            x = sx;
-    if(y + h + 2 * c->border < sy)
-            y = sy;
+    if(x > cursw)
+            x = cursw - w - 2 * c->border;
+    if(y > cursh)
+            y = cursh - h - 2 * c->border;
+    if(x + w + 2 * c->border < cursx)
+            x = cursx;
+    if(y + h + 2 * c->border < cursy)
+            y = cursy;
     if(c->x != x || c->y != y || c->w != w || c->h != h) {
 	    if(c->isfloating || ISLTFLOATING) {
 		    c->sfx = x;
@@ -1678,40 +1787,39 @@ setmwfact(const char *arg) {
 
 void
 initlayouts(){
-    int i,j;
-    char conf[32], xres[256], buf[5];
+        int i,j;
+        char conf[32], xres[256], buf[5];
 	float mwfact;
 	int nmaster;
+        Monitor *m;
 
-    /* init layouts */
+        /* init layouts */
 	bzero(buf, 5);
-    nmasters = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
-    ltidxs = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
-    mwfacts = (double*)emallocz(sizeof(double) * ntags);
+        nmasters = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
+        ltidxs = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
+        mwfacts = (double*)emallocz(sizeof(double) * ntags);
+        bpos = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
 
 	snprintf(buf, 5, "%.2f", MWFACT);
 	mwfact = atof(getresource("mwfact", buf));
 	bzero(buf, 5);
 	snprintf(buf, 5, "%d", NMASTER);
 	nmaster = atoi(getresource("nmaster", buf));
-    for(i = 0; i < ntags; i++) {
-        ltidxs[i] = 0;
-        snprintf(conf, 31, "tags.layout%d", i);
-        strncpy(xres, getresource(conf, getresource("deflayout", "i")), 255);
-        for (j = 0; j < LENGTH(layouts); j++) {
-            if (!strcmp(layouts[j].symbol, xres)) {
-                    ltidxs[i] = j;
-                    break;
+            for(i = 0; i < ntags; i++) {
+                ltidxs[i] = 0;
+                snprintf(conf, 31, "tags.layout%d", i);
+                strncpy(xres, getresource(conf, getresource("deflayout", "i")), 255);
+                for (j = 0; j < LENGTH(layouts); j++) {
+                    if (!strcmp(layouts[j].symbol, xres)) {
+                        ltidxs[i] = j;
+                        break;
+                    }
+                }
+                mwfacts[i] = mwfact;
+                nmasters[i] = nmaster;
+                bpos[i] = BARPOS;
             }
-        }
-		mwfacts[i] = mwfact;
-		nmasters[i] = nmaster;
-    }
 
-    /* init struts */
-    bpos = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
-    for(i = 0; i < ntags; i++)
-            bpos[i] = BARPOS;
     updateatom[ELayout](NULL);
 }
 
@@ -1721,9 +1829,6 @@ inittags(){
     char tmp[25]="\0";
     ntags = atoi(getresource("tags.number", "5"));
     tags = emallocz(ntags*sizeof(char*));
-    prevtags = emallocz(ntags*sizeof(Bool));
-    seltags = emallocz(ntags*sizeof(Bool));
-    seltags[0] = True;
     for(i = 0; i < ntags; i++){
         tags[i] = emallocz(25*sizeof(char));
         snprintf(tmp, 24, "tags.name%d", i);
@@ -1754,9 +1859,13 @@ setup(void) {
 	cursor[CurMove] = XCreateFontCursor(dpy, XC_fleur);
 
 	/* init geometry */
+#ifdef XRANDR
+        scan_xrandr();
+#else
 	sx = sy = 0;
 	sw = DisplayWidth(dpy, screen);
 	sh = DisplayHeight(dpy, screen);
+#endif
 
 	/* init modifier map */
 	modmap = XGetModifierMapping(dpy);
@@ -1769,7 +1878,7 @@ setup(void) {
 	XFreeModifiermap(modmap);
 
 	/* select for events */
-	wa.event_mask = SubstructureRedirectMask | SubstructureNotifyMask
+	wa.event_mask = SubstructureRedirectMask | SubstructureNotifyMask 
 		| EnterWindowMask | LeaveWindowMask | StructureNotifyMask | ButtonPressMask | ButtonReleaseMask;
 	wa.cursor = cursor[CurNormal];
 	XChangeWindowAttributes(dpy, root, CWEventMask | CWCursor, &wa);
@@ -1837,7 +1946,7 @@ setup(void) {
 	struts[RightStrut] = struts[LeftStrut] = struts[TopStrut] = struts[BotStrut] = 0;
         updategeom();
 
-	dc.drawable = XCreatePixmap(dpy, root, sw, dc.h, DefaultDepth(dpy, screen));
+	dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
 
         /* buttons */
@@ -1897,34 +2006,34 @@ bstack(void) {
     for(n = 0, c = nexttiled(clients); c; c = nexttiled(c->next))
         n++;
 
-    mh = (n == 1) ? wah : mwfacts[curtag] * wah;
-    tw = (n > 1) ? waw / (n - 1) : 0;
+    mh = (n == 1) ? curwah : mwfacts[curtag] * curwah;
+    tw = (n > 1) ? curwaw / (n - 1) : 0;
 
-    nx = wax;
-    ny = way;
+    nx = curwax;
+    ny = curway;
     nh = 0;
     for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
         c->hastitle = (dectiled ? (c->title ? True : False) : False);
         c->ismax = False;
         if(i == 0) {
             nh = mh - 2 * c->border;
-            nw = waw - 2 * c->border;
-            nx = wax;
+            nw = curwaw - 2 * c->border;
+            nx = curwax;
         }
         else {
             if(i == 1) {
-                nx = wax;
+                nx = curwax;
                 ny += mc->h+c->border;
-                nh = (way + wah) - ny - 2 * c->border;
+                nh = (curway + curwah) - ny - 2 * c->border;
             }
             if(i + 1 == n)
-                nw = (wax + waw) - nx - 2 * c->border;
+                nw = (curwax + curwaw) - nx - 2 * c->border;
             else
                 nw = tw - c->border;
         }
         resize(c, nx, ny, nw, nh, False);
         drawclient(c);
-        if(n > 1 && tw != waw)
+        if(n > 1 && tw != curwaw)
             nx = c->x + c->w + c->border;
     }
 }
@@ -1939,16 +2048,16 @@ tile(void) {
 	domwfact = dozoom = True;
 	for(n = 0, c = nexttiled(clients); c; c = nexttiled(c->next))
 		n++;
-
 	/* window geoms */
-	mh = (n <= nmasters[curtag]) ? wah / (n > 0 ? n : 1) : wah / nmasters[curtag];
-	mw = (n <= nmasters[curtag]) ? waw : mwfacts[curtag] * waw;
-	th = (n > nmasters[curtag]) ? wah / (n - nmasters[curtag]) : 0;
-	if(n > nmasters[curtag] && th < bh)
-		th = wah;
+	mh = (n <= nmasters[curtag]) ? curwah / (n > 0 ? n : 1) : curwah / nmasters[curtag];
+	mw = (n <= nmasters[curtag]) ? curwaw : mwfacts[curtag] * curwaw;
+	th = (n > nmasters[curtag]) ? curwah / (n - nmasters[curtag]) : 0;
 
-	nx = wax;
-	ny = way;
+	if(n > nmasters[curtag] && th < bh)
+		th = curwah;
+
+	nx = curwax;
+	ny = curway;
 	nw = 0; /* gcc stupidity requires this */
 	for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
                 c->hastitle = (dectiled ? (c->title ? True : False) : False);
@@ -1958,29 +2067,29 @@ tile(void) {
                 c->sfw = c->w;
                 c->sfh = c->h;
                 if(i < nmasters[curtag]) { /* master */
-                        ny = way + i * (mh - c->border);
+                        ny = curway + i * (mh - c->border);
                         nw = mw - 2 * c->border;
                         nh = mh;
                         if(i + 1 == (n < nmasters[curtag] ? n : nmasters[curtag])) /* remainder */
-                                nh = way + wah - ny;
+                                nh = curway + curwah - ny;
                         nh -= 2 * c->border;
                 }
                 else {  /* tile window */
                         if(i == nmasters[curtag]) {
-                                ny = way;
+                                ny = curway;
                                 nx += mc->w + mc->border;
-                                nw = waw - nx - 2*c->border;
+                                nw = curwaw - nx - 2*c->border;
                         }
                         else 
                             ny -= c->border;
                         if(i + 1 == n) /* remainder */
-                                nh = (way + wah) - ny - 2 * c->border;
+                                nh = (curway + curwah) - ny - 2 * c->border;
                         else
                                 nh = th - 2 * c->border;
                 }
                 resize(c, nx, ny, nw, nh, False);
                 drawclient(c);
-                if(n > nmasters[curtag] && th != wah){
+                if(n > nmasters[curtag] && th != curwah){
                         ny = c->y + c->h + 2 * c->border;
                 }
         }
@@ -2026,7 +2135,7 @@ togglemax(const char *arg) {
             sel->ry = sel->y;
             sel->rw = sel->w;
             sel->rh = sel->h;
-            resize(sel, sx - sel->border, sy - sel->border, sw + 2*sel->border, sh + 2*sel->border + sel->th, False);
+            resize(sel, cursx - sel->border, cursy - sel->border, cursw + 2*sel->border, cursh + 2*sel->border + sel->th, False);
     }
     else 
         resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, True);
@@ -2051,12 +2160,12 @@ void
 toggleview(const char *arg) {
     unsigned int i, j;
 
-    memcpy(prevtags, seltags, ntags*(sizeof seltags));
+    memcpy(curprevtags, curseltags, ntags*(sizeof curseltags));
     i = idxoftag(arg);
-    seltags[i] = !seltags[i];
-    for(j = 0; j < ntags && !seltags[j]; j++);
+    curseltags[i] = !curseltags[i];
+    for(j = 0; j < ntags && !curseltags[j]; j++);
     if(j == ntags) {
-        seltags[i] = True; /* at least one tag must be viewed */
+        curseltags[i] = True; /* at least one tag must be viewed */
         j = i;
     }
     if(curtag == i)
@@ -2071,7 +2180,7 @@ focusview(const char *arg) {
     int i;
     toggleview(arg);
     i = idxoftag(arg);
-    if (!seltags[i])
+    if (!curseltags[i])
             return;
     for(c = clients; c; c = c->next){
         if (c->tags[i] && !c->isbastard) {
@@ -2101,7 +2210,6 @@ unmanage(Client *c) {
     XWindowChanges wc;
     if(c->title)
         XDestroyWindow(dpy, c->title);
-    XMoveResizeWindow(dpy, c->frame, c->x+2*sw, c->y, c->w, c->h);
     XReparentWindow(dpy, c->win, root, c->x, c->y);
     XMoveWindow(dpy, c->win, c->x, c->y);
     XDestroyWindow(dpy, c->frame);
@@ -2129,16 +2237,16 @@ void
 updategeom(void) {
     XEvent ev;
 
-    wax = sx;
-    way = sy;
-    wah = sh;
-    waw = sw;
+    curwax = cursx;
+    curway = cursy;
+    curwah = cursh;
+    curwaw = cursw;
     switch(bpos[curtag]){
     default:
-        wax += struts[LeftStrut];
-        waw = sw - wax - struts[RightStrut];
-        way += struts[TopStrut];
-        wah = sh - way - struts[BotStrut];
+        curwax += struts[LeftStrut];
+        curwaw = cursw - curwax - struts[RightStrut];
+        curway += struts[TopStrut];
+        curwah = cursh - curway - struts[BotStrut];
         break;
     case StrutsHide:
     case StrutsOff:
@@ -2261,10 +2369,10 @@ xerrorstart(Display *dsply, XErrorEvent *ee) {
 void
 view(const char *arg) {
     unsigned int i, prevcurtag;
-    memcpy(prevtags, seltags, ntags*(sizeof seltags));
+    memcpy(curprevtags, curseltags, ntags*(sizeof curseltags));
     for(i = 0; i < ntags; i++)
-            seltags[i] = (NULL == arg);
-    seltags[idxoftag(arg)] = True;
+            curseltags[i] = (NULL == arg);
+    curseltags[idxoftag(arg)] = True;
     prevcurtag = curtag;
     curtag = idxoftag(arg);
     if (bpos[prevcurtag] != bpos[curtag])
@@ -2279,13 +2387,13 @@ viewprevtag(const char *arg) {
     unsigned int i, prevcurtag;
  
     i = 0;
-    while(i < ntags-1 && !prevtags[i]) i++;
+    while(i < ntags-1 && !curprevtags[i]) i++;
     prevcurtag = curtag;
     curtag = i;
 
-    memcpy(tmptags, seltags, ntags*(sizeof seltags));
-    memcpy(seltags, prevtags, ntags*(sizeof seltags));
-    memcpy(prevtags, tmptags, ntags*(sizeof seltags));
+    memcpy(tmptags, curseltags, ntags*(sizeof curseltags));
+    memcpy(curseltags, curprevtags, ntags*(sizeof curseltags));
+    memcpy(curprevtags, tmptags, ntags*(sizeof curseltags));
     if (bpos[prevcurtag] != bpos[curtag])
 	updategeom();
     arrange();
@@ -2296,7 +2404,7 @@ void
 viewlefttag(const char *arg) {
     int i;
     for(i = 0; i < ntags; i++) {
-        if(i && seltags[i]) {
+        if(i && curseltags[i]) {
                 view(tags[i-1]);
                 break;
         }
@@ -2307,7 +2415,7 @@ void
 viewrighttag(const char *arg) {
     int i;
     for(i = 0; i < ntags-1; i++) {
-        if(seltags[i]) {
+        if(curseltags[i]) {
             view(tags[i+1]);
             break;
         }
