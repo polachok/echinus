@@ -94,7 +94,7 @@ drawclient(Client *c) {
     unsigned int opacity;
     if(NOTITLES)
         return;
-    if(!isvisible(c, 1))
+    if(!isvisible(c, curmonitor()))
         return;
     if(c->isfloating)
         resize(c, c->x, c->y, c->w, c->h, True);
