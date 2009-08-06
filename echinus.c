@@ -620,12 +620,14 @@ scan_xrandr(void)
 {
 	XRRCrtcInfo		*ci;
 	XRRScreenResources	*sr;
-	int			c;
+	int			c, n;
 	int			ncrtc = 0;
         Monitor *m;
 
-        for(m = monitors; m != NULL && m != NULL; m = m->next)
-            free(m);
+        for(m = monitors; m != NULL; m = m->next) {
+            if(m)
+                free(m);
+        }
 
 	/* map virtual screens onto physical screens */
         sr = XRRGetScreenResources(dpy, root);
@@ -634,7 +636,7 @@ scan_xrandr(void)
         else 
                 ncrtc = sr->ncrtc;
 
-        for (c = 0, ci = NULL; c < ncrtc; c++) {
+        for (c = 0 , n = 0, ci = NULL; c < ncrtc; c++) {
                 ci = XRRGetCrtcInfo(dpy, sr, sr->crtcs[c]);
                 if (ci->noutput == 0)
                         continue;
@@ -648,13 +650,14 @@ scan_xrandr(void)
                     m->sw = ci->width;
                     m->sh = ci->height;
 #undef curtag
-                    m->curtag = c;
+                    m->curtag = n;
 #define curtag curmonitor()->curtag
                     m->prevtags = emallocz(ntags*sizeof(Bool));
                     m->seltags = emallocz(ntags*sizeof(Bool));
                     m->seltags[c] = True;
                     m->next = monitors;
                     monitors = m;
+                    n++;
                     fprintf(stderr, "x=%d y=%d w=%d h=%d\n", ci->x, ci->y, ci->width, ci->height);
                 }
         }
@@ -1080,7 +1083,7 @@ Bool
 isvisible(Client *c) {
     unsigned int i;
     Monitor *m;
-
+#ifdef DEBUG
     fprintf(stderr, "name: %s [", c->name);
     for(i = 0; i < ntags; i++)
             fprintf(stderr,"%d ", c->tags[i]);
@@ -1092,7 +1095,7 @@ isvisible(Client *c) {
             fprintf(stderr,"%d ", m->seltags[i] ? 1 : 0);
     }
     fprintf(stderr, "]\n");
-
+#endif
     for(m = monitors; m != NULL; m = m->next) {
         for(i = 0; i < ntags; i++)
             if(c->tags[i] && m->seltags[i])
@@ -2423,7 +2426,6 @@ view(const char *arg) {
             if(m->seltags[idxoftag(arg)] == True)
                 return;
     }
-
     memcpy(curprevtags, curseltags, ntags*(sizeof curseltags));
     for(i = 0; i < ntags; i++)
             curseltags[i] = (NULL == arg);
