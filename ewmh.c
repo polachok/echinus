@@ -96,8 +96,16 @@ ewmh_update_net_number_of_desktops() {
 
 void
 ewmh_update_net_current_desktop() {
+    Monitor *m;
+    Bool seltags[ntags];
+    int i;
+    bzero(seltags, ntags);
+    for(m = monitors; m != NULL; m = m->next) {
+        for(i = 0; i < ntags; i++)
+            seltags[i]=seltags[i] | m->seltags[i];
+    }
     XChangeProperty(dpy, RootWindow(dpy, screen),
-                    atom[ESelTags], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) curseltags, ntags);
+                    atom[ESelTags], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) seltags, ntags);
     XChangeProperty(dpy, RootWindow(dpy, screen),
                     atom[CurDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &curtag, 1);
     update_echinus_layout_name(NULL);
