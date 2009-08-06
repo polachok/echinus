@@ -49,7 +49,7 @@ initatom(void) {
     for(i = 0; i < NATOMS; i++){
         atom[i] = XInternAtom(dpy, atomnames[i][0], False);
     }
-    XChangeProperty(dpy, RootWindow(dpy, screen),
+    XChangeProperty(dpy, root,
                     atom[Supported], XA_ATOM, 32,
                     PropModeReplace, (unsigned char *) atom, NATOMS);
 }
@@ -76,13 +76,13 @@ ewmh_update_net_client_list() {
     for(i = 0, c = stack; c; c = c->snext)
             wins[i++] = c->win;
 
-    XChangeProperty(dpy, RootWindow(dpy, screen),
+    XChangeProperty(dpy, root,
                     atom[ClientListStacking], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
     
     for(i = 0, c = clients; c; c = c->next)
             wins[i++] = c->win;
 
-    XChangeProperty(dpy, RootWindow(dpy, screen),
+    XChangeProperty(dpy, root,
                     atom[ClientList], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
     free(wins);
     XFlush(dpy);
@@ -90,23 +90,35 @@ ewmh_update_net_client_list() {
 
 void
 ewmh_update_net_number_of_desktops() {
-    XChangeProperty(dpy, RootWindow(dpy, screen),
+    XChangeProperty(dpy, root,
                     atom[NumberOfDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &ntags, 1);
 }
 
 void
 ewmh_update_net_current_desktop() {
     Monitor *m;
-    Bool seltags[ntags];
+    static Bool *seltags = NULL;
     int i;
-    bzero(seltags, ntags);
+    if(!seltags)
+        seltags = emallocz(ntags*sizeof(Bool));
+    bzero(seltags, ntags*sizeof(Bool));
+    fprintf(stderr, "tags before: [");
+    for(i = 0; i < ntags; i++)
+        fprintf(stderr, "%d", seltags[i]);
+    fprintf(stderr, "]\n");
+
     for(m = monitors; m != NULL; m = m->next) {
         for(i = 0; i < ntags; i++)
-            seltags[i]=seltags[i] | m->seltags[i];
+            seltags[i] |= m->seltags[i];
     }
-    XChangeProperty(dpy, RootWindow(dpy, screen),
+
+    fprintf(stderr, "tags after: [");
+    for(i = 0; i < ntags; i++)
+        fprintf(stderr, "%d", seltags[i]);
+    fprintf(stderr, "]\n");
+    XChangeProperty(dpy, root,
                     atom[ESelTags], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) seltags, ntags);
-    XChangeProperty(dpy, RootWindow(dpy, screen),
+    XChangeProperty(dpy, root,
                     atom[CurDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &curtag, 1);
     update_echinus_layout_name(NULL);
 }
@@ -134,7 +146,7 @@ ewmh_update_net_desktop_names() {
     }
     len = pos - buf;
 
-    XChangeProperty(dpy, RootWindow(dpy, screen),
+    XChangeProperty(dpy, root,
                     atom[DeskNames], atom[Utf8String], 8, PropModeReplace, (unsigned char *) buf, len);
 }
 
@@ -144,7 +156,7 @@ ewmh_update_net_active_window() {
 
     win = sel ? sel->win : None;
 
-    XChangeProperty(dpy, RootWindow(dpy, screen),
+    XChangeProperty(dpy, root,
                     atom[ActiveWindow], XA_WINDOW, 32,  PropModeReplace, (unsigned char *) &win, 1);
 }
 
@@ -244,7 +256,7 @@ updatestruts(Window win){
         if(n){
             for(i = LeftStrut; i < LastStrut; i++)
                 struts[i] = (state[i] > struts[i]) ? state[i] : struts[i];
-            updategeom();
+            updategeom(curmonitor());
             result = 1;
         }
     }
