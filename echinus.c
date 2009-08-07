@@ -75,9 +75,9 @@ typedef struct Monitor Monitor;
 struct Monitor {
         int sx, sy, sw, sh, wax, way, waw, wah;
         unsigned int curtag;
-        Monitor *next;
         Bool *seltags;
         Bool *prevtags;
+        Monitor *next;
 };
 
 typedef struct Client Client;
@@ -335,21 +335,6 @@ void (*handler[LASTEvent]) (XEvent *) = {
         [ClientMessage] = clientmessage,
 };
 
-
-
-#ifdef XRANDR
-void
-screenchange(XEvent *e) {
-    if(XRRUpdateConfiguration(e))
-        fprintf(stderr, "xrr ok\n");
-    else
-        fprintf(stderr, "xrrnot ok\n");
-}
-
-    //XRRScreenChangeNotifyEvent *ev = &e->xunmap;
-#endif
-
-
 /* function implementations */
 void
 applyrules(Client *c) {
@@ -393,13 +378,11 @@ arrange(void) {
     for(c = stack; c; c = c->snext){
             if((!c->isbastard && isvisible(c, NULL) && !c->isicon) || (c->isbastard && bpos[curtag] == StrutsOn)) {
                     unban(c);
-                    //fprintf(stderr, "name: %s visible\n", c->name);
                     if(c->isbastard)
                         c->isicon = False;
             }
             else {
                     ban(c);
-                    //fprintf(stderr, "name: %s invisible\n", c->name);
                     if(c->isbastard)
                         c->isicon = True;
 			}
@@ -619,17 +602,22 @@ configure(Client *c) {
 }
 
 void
-initmonitors(void)
-{
+initmonitors(void) {
 	XRRCrtcInfo		*ci;
 	XRRScreenResources	*sr;
 	int			c, n;
 	int			ncrtc = 0;
-        Monitor *m;
+        Monitor *m, *t;
 
-        for(m = monitors; m; m = m->next) {
-            if(m)
+        /* free */
+        if(monitors) {
+            m = monitors;
+            do {
+                t = m->next;
                 free(m);
+                m = t;
+            } while(m);
+            monitors = NULL;
         }
 
 	/* map virtual screens onto physical screens */
@@ -647,21 +635,24 @@ initmonitors(void)
                 if (ci != NULL && ci->mode == None)
                     fprintf(stderr, "???\n");
                 else {
+                    /* If monitor is a mirror, we don't care about it */
+                    if(n && ci->x == monitors->sx && ci->y == monitors->sy)
+                        continue;
                     m = emallocz(sizeof(Monitor));
-                    m->sx = ci->x;
-                    m->sy = ci->y;
-                    m->sw = ci->width;
-                    m->sh = ci->height;
+                    m->sx = m->wax = ci->x;
+                    m->sy = m->way = ci->y;
+                    m->sw = m->waw = ci->width;
+                    m->sh = m->wah = ci->height;
 #undef curtag
                     m->curtag = n;
 #define curtag curmonitor()->curtag
                     m->prevtags = emallocz(ntags*sizeof(Bool));
                     m->seltags = emallocz(ntags*sizeof(Bool));
-                    m->seltags[c] = True;
+                    m->seltags[n] = True;
                     m->next = monitors;
                     monitors = m;
+                    fprintf(stderr, "Monitor%d: x=%d y=%d w=%d h=%d\n", n, m->sx, m->sy, m->sw, m->sh);
                     n++;
-                    fprintf(stderr, "x=%d y=%d w=%d h=%d\n", ci->x, ci->y, ci->width, ci->height);
                 }
         }
         if (ci)
@@ -674,13 +665,11 @@ configurenotify(XEvent *e) {
     XConfigureEvent *ev = &e->xconfigure;
     Monitor *m;
     if(ev->window == root && (ev->width != cursw || ev->height != cursh)) {
-        fprintf(stderr, "ololo inside\n");
 #ifdef XRANDR
             if(XRRUpdateConfiguration((XEvent*)ev))
-                fprintf(stderr, "Xrrupdate config\n");
-            else
-                fprintf(stderr, "Xrrupdate config nok\n");
-            initmonitors();
+                initmonitors();
+            for(m = monitors; m; m = m->next)
+                updategeom(m);
 #else
             cursw = ev->width;
             cursh = ev->height;
@@ -689,8 +678,6 @@ configurenotify(XEvent *e) {
             XFreePixmap(dpy, dc.drawable);
             /* XXX */
             dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
-            for(m = monitors; m; m = m->next)
-                updategeom(m);
             arrange();
     }
 }
@@ -1316,7 +1303,7 @@ manage(Window w, XWindowAttributes *wa) {
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
     arrange();
-    fprintf(stderr, "%s x:%d y:%d w:%d h:%d [%d]\n", c->name, c->x, c->y,c->w,c->h, __LINE__);
+    //fprintf(stderr, "%s x:%d y:%d w:%d h:%d [%d]\n", c->name, c->x, c->y,c->w,c->h, __LINE__);
 }
 
 void
@@ -1413,9 +1400,8 @@ monocle(Monitor *m) {
             }
             else
                 continue;
-            if(bpos[curtag] != StrutsOn) {
+            if(bpos[curtag] != StrutsOn)
                 resize(c, m->sx - c->border, m->sy - c->border, m->sw, m->sh, False);
-            }
             else {
                 resize(c, m->wax, m->way, m->waw - 2*c->border, m->wah - 2*c->border, False);
             }
@@ -2436,7 +2422,7 @@ void
 view(const char *arg) {
     unsigned int i, prevcurtag;
     Monitor *m;
-    fprintf(stderr, "view tag#%d: %s\n", idxoftag(arg), tags[idxoftag(arg)]);
+    //fprintf(stderr, "view tag#%d: %s\n", idxoftag(arg), tags[idxoftag(arg)]);
     for(m = monitors; m ; m = m->next) {
             if(m->seltags[idxoftag(arg)] && m != curmonitor()) {
                 fprintf(stderr, "SWAPPING TAGS\n");
@@ -2452,10 +2438,12 @@ view(const char *arg) {
     curtag = idxoftag(arg);
     if (bpos[prevcurtag] != bpos[curtag])
         updategeom(curmonitor());
+#ifdef DEBUG
     fprintf(stderr, "TAGS: [");
     for(i = 0; i < ntags; i++)
         fprintf(stderr, "%d ", curseltags[i]);
     fprintf(stderr, "]\n");
+#endif
     arrange();
     updateatom[CurDesk](NULL);
 }

@@ -102,20 +102,12 @@ ewmh_update_net_current_desktop() {
     if(!seltags)
         seltags = emallocz(ntags*sizeof(Bool));
     bzero(seltags, ntags*sizeof(Bool));
-    fprintf(stderr, "tags before: [");
-    for(i = 0; i < ntags; i++)
-        fprintf(stderr, "%d", seltags[i]);
-    fprintf(stderr, "]\n");
 
     for(m = monitors; m != NULL; m = m->next) {
         for(i = 0; i < ntags; i++)
             seltags[i] |= m->seltags[i];
     }
 
-    fprintf(stderr, "tags after: [");
-    for(i = 0; i < ntags; i++)
-        fprintf(stderr, "%d", seltags[i]);
-    fprintf(stderr, "]\n");
     XChangeProperty(dpy, root,
                     atom[ESelTags], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) seltags, ntags);
     XChangeProperty(dpy, root,
