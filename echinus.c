@@ -209,7 +209,7 @@ Client *prevtiled(Client *c);
 void propertynotify(XEvent *e);
 void quit(const char *arg);
 void restart(const char *arg);
-void resize(Client *c, int x, int y, int w, int h, Bool sizehints);
+void resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints);
 void resizemouse(Client *c);
 void restack(Monitor *m);
 void run(void);
@@ -373,7 +373,6 @@ void
 arrange(void) {
     Client *c;
     Monitor *m;
-    m = curmonitor();
 
     for(c = stack; c; c = c->snext){
             if((!c->isbastard && isvisible(c, NULL) && !c->isicon) || (c->isbastard && bpos[curtag] == StrutsOn)) {
@@ -664,21 +663,22 @@ void
 configurenotify(XEvent *e) {
     XConfigureEvent *ev = &e->xconfigure;
     Monitor *m;
-    if(ev->window == root && (ev->width != cursw || ev->height != cursh)) {
+    if(ev->window == root) {
 #ifdef XRANDR
-            if(XRRUpdateConfiguration((XEvent*)ev))
+            if(XRRUpdateConfiguration((XEvent*)ev)) {
                 initmonitors();
-            for(m = monitors; m; m = m->next)
-                updategeom(m);
+                for(m = monitors; m; m = m->next)
+                    updategeom(m);
 #else
-            cursw = ev->width;
-            cursh = ev->height;
-            fprintf(stderr, "sw = %d sh = %d\n", sw, sh);
+                cursw = ev->width;
+                cursh = ev->height;
+                fprintf(stderr, "sw = %d sh = %d\n", sw, sh);
 #endif
-            XFreePixmap(dpy, dc.drawable);
-            /* XXX */
-            dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
-            arrange();
+                XFreePixmap(dpy, dc.drawable);
+                /* XXX */
+                dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
+                arrange();
+            }
     }
 }
 
@@ -701,9 +701,9 @@ configurerequest(XEvent *e) {
                             c->w = ev->width;
                     if(ev->value_mask & CWHeight)
                             c->h = ev->height + c->th;
-                    if((c->x + c->w) > cursw && c->isfloating)
+                    if((c->x + c->w) > (curwax + cursw) && c->isfloating)
                             c->x = cursw / 2 - c->w / 2; /* center in x direction */
-                    if((c->y + c->h) > cursh && c->isfloating)
+                    if((c->y + c->h) > (curway + cursh) && c->isfloating)
                             c->y = cursh / 2 - c->h / 2; /* center in y direction */
                     if((ev->value_mask & (CWX | CWY))
                     && !(ev->value_mask & (CWWidth | CWHeight)))
@@ -793,6 +793,8 @@ enternotify(XEvent *e) {
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
         return;
     if((c = getclient(ev->window, clients, False))){
+        if(!isvisible(sel, curmonitor()))
+            focus(c);
         if(c->isbastard)
             grabbuttons(c, True);
         switch(sloppy) {
@@ -852,9 +854,9 @@ floating(Monitor *m) { /* default floating layout */
                 drawclient(c);
                 if(!c->isfloating)
                         /*restore last known float dimensions*/
-                        resize(c, c->sfx, c->sfy, c->sfw, c->sfh, True);
+                        resize(c, m, c->sfx, c->sfy, c->sfw, c->sfh, True);
                     else
-                        resize(c, c->x, c->y, c->w, c->h, True);
+                        resize(c, m, c->x, c->y, c->w, c->h, True);
         }
     }
     wasfloating = True;
@@ -1074,6 +1076,8 @@ isprotodel(Client *c) {
 Bool
 isvisible(Client *c, Monitor *m) {
     unsigned int i;
+    if(!c)
+        return False;
 #ifdef DEBUG
     fprintf(stderr, "name: %s [", c->name);
     for(i = 0; i < ntags; i++)
@@ -1371,7 +1375,7 @@ ifloating(Monitor *m){
                                 /* are you wondering about 0.9 & 0.8 ? */
                             if(smartcheckarea(m, x, y, 0.8*c->w, 0.8*c->h)<=f){
                                 /* got it! a big chunk of "free" space */
-                                resize(c, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, True);
+                                resize(c, m, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, True);
 				c->isplaced = True;
                             }
                         }
@@ -1401,9 +1405,9 @@ monocle(Monitor *m) {
             else
                 continue;
             if(bpos[curtag] != StrutsOn)
-                resize(c, m->sx - c->border, m->sy - c->border, m->sw, m->sh, False);
+                resize(c, m, m->sx - c->border, m->sy - c->border, m->sw, m->sh, False);
             else {
-                resize(c, m->wax, m->way, m->waw - 2*c->border, m->wah - 2*c->border, False);
+                resize(c, m, m->wax, m->way, m->waw - 2*c->border, m->wah - 2*c->border, False);
             }
         }
     }
@@ -1420,7 +1424,7 @@ moveresizekb(const char *arg) {
     sscanf(arg, "%d %d %d %d", &dx, &dy, &dw, &dh);
     if(dw && (dw < sel->incw)) dw = (dw/abs(dw))*sel->incw;
     if(dh && (dh < sel->inch)) dh = (dh/abs(dh))*sel->inch;
-    resize(sel, sel->x+dx, sel->y+dy, sel->w+dw, sel->h+dh, True);
+    resize(sel, curmonitor(), sel->x+dx, sel->y+dy, sel->w+dw, sel->h+dh, True);
     drawclient(sel);
 }
 
@@ -1494,7 +1498,7 @@ movemouse(Client *c) {
                             ny = curway;
                     else if(abs((curway + curwah) - (ny + c->h + 2 * c->border)) < SNAP)
                             ny = curway + curwah - c->h - 2 * c->border;
-                    resize(c, nx, ny, c->w, c->h, False);
+                    resize(c, curmonitor(), nx, ny, c->w, c->h, False);
                     drawclient(c);
                     break;
             }
@@ -1554,7 +1558,7 @@ quit(const char *arg) {
 }
 
 void
-resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
+resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
     XWindowChanges wc;
     c->th = c->hastitle ? dc.h : 0;
     if(sizehints) {
@@ -1599,14 +1603,14 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
             return;
     /* offscreen appearance fixes */
     //fprintf(stderr, "sw %d sh %d \n", cursw, cursh);
-    if(x > curwax + cursw)
-            x = cursw - w - 2 * c->border;
-    if(y > curway + cursh)
-            y = cursh - h - 2 * c->border;
-    if(x + w + 2 * c->border < cursx)
-            x = cursx;
-    if(y + h + 2 * c->border < cursy)
-            y = cursy;
+    if(x > m->wax + m->sw)
+            x = m->sw - w - 2 * c->border;
+    if(y > m->way + m->sh)
+            y = m->sh - h - 2 * c->border;
+    if(x + w + 2 * c->border < m->sx)
+            x = m->sx;
+    if(y + h + 2 * c->border < m->sy)
+            y = m->sy;
     if(c->x != x || c->y != y || c->w != w || c->h != h) {
 	    if(c->isfloating || ISLTFLOATING) {
 		    c->sfx = x;
@@ -1625,7 +1629,7 @@ resize(Client *c, int x, int y, int w, int h, Bool sizehints) {
             wc.width = w;
             wc.height = h - c->th;
             wc.border_width = 0;
-			XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
+            XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
 
             if(c->title)
                 XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
@@ -1667,7 +1671,7 @@ resizemouse(Client *c) {
                             nw = MINWIDTH;
                     if((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
                             nh = MINHEIGHT;
-                    resize(c, c->x, c->y, nw, nh, True);
+                    resize(c, curmonitor(), c->x, c->y, nw, nh, True);
                     break;
             }
     }
@@ -2070,7 +2074,7 @@ bstack(Monitor *m) {
             else
                 nw = tw - c->border;
         }
-        resize(c, nx, ny, nw, nh, False);
+        resize(c, m, nx, ny, nw, nh, False);
         drawclient(c);
         if(n > 1 && tw != curwaw)
             nx = c->x + c->w + c->border;
@@ -2126,7 +2130,7 @@ tile(Monitor *m) {
                         else
                                 nh = th - 2 * c->border;
                 }
-                resize(c, nx, ny, nw, nh, False);
+                resize(c, m, nx, ny, nw, nh, False);
                 drawclient(c);
                 if(n > nmasters[curtag] && th != m->wah){
                         ny = c->y + c->h + 2 * c->border;
@@ -2150,7 +2154,7 @@ togglefloating(const char *arg) {
     sel->isfloating = !sel->isfloating;
     if(sel->isfloating) {
             /*restore last known float dimensions*/
-            resize(sel, sel->sfx, sel->sfy, sel->sfw, sel->sfh, False);
+            resize(sel, curmonitor(), sel->sfx, sel->sfy, sel->sfw, sel->sfh, False);
             drawclient(sel);
     }
     else {
@@ -2174,10 +2178,10 @@ togglemax(const char *arg) {
             sel->ry = sel->y;
             sel->rw = sel->w;
             sel->rh = sel->h;
-            resize(sel, cursx - sel->border, cursy - sel->border, cursw + 2*sel->border, cursh + 2*sel->border + sel->th, False);
+            resize(sel, curmonitor(), cursx - sel->border, cursy - sel->border, cursw + 2*sel->border, cursh + 2*sel->border + sel->th, False);
     }
     else {
-        resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, True);
+        resize(sel, curmonitor(), sel->rx, sel->ry, sel->rw, sel->rh, True);
     }
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
