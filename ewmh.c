@@ -154,24 +154,22 @@ ewmh_update_net_active_window() {
 
 void
 ewmh_process_state_atom(Client *c, Atom state, int set) {
-    if(state == atom[WindowStateFs]) {
+    if((state == atom[WindowStateFs]) && (set != c->ismax)) {
         focus(c);
-        if(set == 1) {
+        if(set) {
             c->wasfloating = c->isfloating;
             c->isfloating = True;
-            togglemax(NULL);
-        }
-        else if(set == 0) {
+        } else {
             c->isfloating = c->wasfloating;
             c->wasfloating = True;
-            togglemax(NULL);
         }
-        arrange();
+        togglemax(NULL);
+        arrange(curmonitor());
     }
     if(state == atom[WindowStateModal]) {
         focus(c);
         togglefloating(NULL);
-        arrange();
+        arrange(curmonitor());
     }
 }
 
@@ -182,7 +180,7 @@ clientmessage(XEvent *e) {
 
     if(ev->message_type == atom[ActiveWindow]) {
         focus(getclient(ev->window, clients, False));
-        arrange();
+        arrange(curmonitor());
     }
     else if(ev->message_type == atom[CurDesk]) {
         view(tags[ev->data.l[0]]);

@@ -155,7 +155,7 @@ typedef struct {
 
 /* function declarations */
 void applyrules(Client *c);
-void arrange(void);
+void arrange(Monitor *m);
 void attach(Client *c);
 void attachstack(Client *c);
 void ban(Client *c);
@@ -370,9 +370,8 @@ applyrules(Client *c) {
 }
 
 void
-arrange(void) {
+arrange(Monitor *m) {
     Client *c;
-    Monitor *m;
 
     for(c = stack; c; c = c->snext){
             if((!c->isbastard && isvisible(c, NULL) && !c->isicon) || (c->isbastard && bpos[curtag] == StrutsOn)) {
@@ -384,10 +383,15 @@ arrange(void) {
                     ban(c);
                     if(c->isbastard)
                         c->isicon = True;
-			}
+            }
+    }
+#undef curtag
+    if(m) { 
+        layouts[ltidxs[m->curtag]].arrange(m);
+        restack(m);
+        return;
     }
     for(m = monitors; m; m = m->next)
-#undef curtag
         layouts[ltidxs[m->curtag]].arrange(m);
 #define curtag curmonitor()->curtag
     focus(NULL);
@@ -440,7 +444,7 @@ iconifyit(const char *arg) {
     ban(c);
     setclientstate(c, IconicState);
     c->isicon = True;
-    arrange();
+    arrange(curmonitor());
 }
 
 void
@@ -677,7 +681,7 @@ configurenotify(XEvent *e) {
                 XFreePixmap(dpy, dc.drawable);
                 /* XXX */
                 dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
-                arrange();
+                arrange(NULL);
             }
     }
 }
@@ -753,7 +757,7 @@ destroynotify(XEvent *e) {
     }
     for(m = monitors; m; m = m->next)
         updategeom(m);
-    arrange();
+    arrange(curmonitor());
     updateatom[ClientList](NULL);
 }
 
@@ -943,7 +947,7 @@ incnmaster(const char *arg) {
             nmasters[curtag] += i;
     }
     if(sel)
-            arrange();
+            arrange(curmonitor());
 }
 
 Client *
@@ -1306,7 +1310,7 @@ manage(Window w, XWindowAttributes *wa) {
     ban(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
-    arrange();
+    arrange(curmonitor());
     //fprintf(stderr, "%s x:%d y:%d w:%d h:%d [%d]\n", c->name, c->x, c->y,c->w,c->h, __LINE__);
 }
 
@@ -1333,7 +1337,7 @@ maprequest(XEvent *e) {
             unban(c);
     else
             manage(ev->window, &wa);
-    arrange();
+    arrange(curmonitor());
 }
 
 int
@@ -1527,7 +1531,7 @@ propertynotify(XEvent *e) {
             return; /* ignore */
     if(ev->atom == atom[StrutPartial]){
         updatestruts(ev->window);
-        arrange();
+        arrange(curmonitor());
     }
     if((c = getclient(ev->window, clients, False))) {
             switch (ev->atom) {
@@ -1535,7 +1539,7 @@ propertynotify(XEvent *e) {
                     case XA_WM_TRANSIENT_FOR:
                             XGetTransientForHint(dpy, c->win, &trans);
                             if(!c->isfloating && (c->isfloating = (getclient(trans, clients, False) != NULL)))
-                                    arrange();
+                                    arrange(curmonitor());
                             break;
                     case XA_WM_NORMAL_HINTS:
 			    updatesizehints(c);
@@ -1800,7 +1804,7 @@ setlayout(const char *arg) {
             ltidxs[curtag] = i;
     }
     if(sel)
-            arrange();
+            arrange(curmonitor());
     updateatom[ELayout](NULL);
 }
 
@@ -1823,7 +1827,7 @@ setmwfact(const char *arg) {
             else if(mwfacts[curtag] > 0.9)
                     mwfacts[curtag] = 0.9;
     }
-    arrange();
+    arrange(curmonitor());
 }
 
 void
@@ -2037,7 +2041,7 @@ tag(const char *arg) {
 		sel->tags[i] = (NULL == arg);
 	sel->tags[idxoftag(arg)] = True;
         updateatom[WindowDesk](sel);
-	arrange();
+	arrange(NULL);
 }
 
 void
@@ -2142,7 +2146,7 @@ void
 togglestruts(const char *arg) {
     bpos[curtag] = (bpos[curtag] == StrutsOn) ? (hidebastards ? StrutsHide : StrutsOff) : StrutsOn;
     updategeom(curmonitor());
-    arrange();
+    arrange(curmonitor());
 }
 
 void
@@ -2164,7 +2168,7 @@ togglefloating(const char *arg) {
             sel->sfw = sel->w;
             sel->sfh = sel->h;
     }
-    arrange();
+    arrange(curmonitor());
 }
 
 void
@@ -2197,7 +2201,7 @@ toggletag(const char *arg) {
     for(j = 0; j < ntags && !sel->tags[j]; j++);
     if(j == ntags)
             sel->tags[i] = True; /* at least one tag must be enabled */
-    arrange();
+    arrange(NULL);
 }
 
 void
@@ -2224,7 +2228,7 @@ toggleview(const char *arg) {
     }
     if(curtag == i)
         curtag = j;
-    arrange();
+    arrange(curmonitor());
     updateatom[CurDesk](NULL);
 }
 
@@ -2283,7 +2287,7 @@ unmanage(Client *c) {
     XSync(dpy, False);
     XSetErrorHandler(xerror);
     XUngrabServer(dpy);
-    arrange();
+    arrange(curmonitor());
     updateatom[ClientList](NULL);
 }
 
@@ -2426,9 +2430,11 @@ void
 view(const char *arg) {
     unsigned int i, prevcurtag;
     Monitor *m;
+    int swapping = 0;
     //fprintf(stderr, "view tag#%d: %s\n", idxoftag(arg), tags[idxoftag(arg)]);
     for(m = monitors; m ; m = m->next) {
             if(m->seltags[idxoftag(arg)] && m != curmonitor()) {
+                swapping = 1;
                 fprintf(stderr, "SWAPPING TAGS\n");
                 m->seltags[idxoftag(arg)] = False;
                 m->seltags[curtag] = True;
@@ -2448,7 +2454,11 @@ view(const char *arg) {
         fprintf(stderr, "%d ", curseltags[i]);
     fprintf(stderr, "]\n");
 #endif
-    arrange();
+    if(swapping)
+        arrange(NULL);
+    else
+        arrange(curmonitor());
+    focus(NULL);
     updateatom[CurDesk](NULL);
 }
 
@@ -2467,7 +2477,7 @@ viewprevtag(const char *arg) {
     memcpy(curprevtags, tmptags, ntags*(sizeof curseltags));
     if (bpos[prevcurtag] != bpos[curtag])
 	updategeom(curmonitor());
-    arrange();
+    arrange(NULL);
     updateatom[CurDesk](NULL);
 }
 
@@ -2504,7 +2514,7 @@ zoom(const char *arg) {
                     return;
     detach(c);
     attach(c);
-    arrange();
+    arrange(curmonitor());
     focus(c);
 }
 
