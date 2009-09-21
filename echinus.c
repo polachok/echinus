@@ -1311,6 +1311,7 @@ manage(Window w, XWindowAttributes *wa) {
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
     arrange(curmonitor());
+    focus(NULL);
     //fprintf(stderr, "%s x:%d y:%d w:%d h:%d [%d]\n", c->name, c->x, c->y,c->w,c->h, __LINE__);
 }
 
