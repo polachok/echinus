@@ -47,6 +47,7 @@
 #define XRANDR 1
 #ifdef XRANDR
 #include <X11/extensions/Xrandr.h>
+#include <X11/extensions/randr.h>
 #endif
 
 /* macros */
@@ -195,6 +196,7 @@ unsigned int idxoftag(const char *tag);
 Bool isoccupied(unsigned int t);
 Bool isprotodel(Client *c);
 Bool isvisible(Client *c, Monitor *m);
+void initmonitors(XEvent *e);
 void keypress(XEvent *e);
 void killclient(const char *arg);
 void leavenotify(XEvent *e);
@@ -333,6 +335,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[PropertyNotify] = propertynotify,
 	[UnmapNotify] = unmapnotify,
         [ClientMessage] = clientmessage,
+        [RRScreenChangeNotify] = initmonitors,
 };
 
 /* function implementations */
@@ -372,6 +375,7 @@ applyrules(Client *c) {
 void
 arrange(Monitor *m) {
     Client *c;
+    Monitor *i;
 
     for(c = stack; c; c = c->snext){
             if((!c->isbastard && isvisible(c, NULL) && !c->isicon) || (c->isbastard && bpos[curtag] == StrutsOn)) {
@@ -391,12 +395,12 @@ arrange(Monitor *m) {
         restack(m);
         return;
     }
-    for(m = monitors; m; m = m->next)
-        layouts[ltidxs[m->curtag]].arrange(m);
+    for(i = monitors; i; i = i->next)
+        layouts[ltidxs[i->curtag]].arrange(i);
 #define curtag curmonitor()->curtag
     focus(NULL);
-    for(m = monitors; m; m = m->next)
-        restack(m);
+    for(i = monitors; i; i = i->next)
+        restack(i);
 }
 
 void
@@ -605,7 +609,7 @@ configure(Client *c) {
 }
 
 void
-initmonitors(void) {
+initmonitors(XEvent *e) {
 	XRRCrtcInfo		*ci;
 	XRRScreenResources	*sr;
 	int			c, n;
@@ -668,9 +672,11 @@ configurenotify(XEvent *e) {
     XConfigureEvent *ev = &e->xconfigure;
     Monitor *m;
     if(ev->window == root) {
+        fprintf(stderr, "root configure\n");
 #ifdef XRANDR
             if(XRRUpdateConfiguration((XEvent*)ev)) {
-                initmonitors();
+                fprintf(stderr, "root XRANDR configure\n");
+                initmonitors(e);
                 for(m = monitors; m; m = m->next)
                     updategeom(m);
 #else
@@ -1177,6 +1183,7 @@ leavenotify(XEvent *e) {
 void
 manage(Window w, XWindowAttributes *wa) {
     Client *c, *t = NULL;
+    Monitor *m;
     Window trans;
     Status rettrans;
     XWindowChanges wc;
@@ -1310,7 +1317,12 @@ manage(Window w, XWindowAttributes *wa) {
     ban(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
-    arrange(curmonitor());
+    for(m = monitors; m ; m = m->next)
+        for(i = 0; i < ntags; i++)
+            if(m->seltags[i] & c->tags[i]) {
+                arrange(m);
+                break;
+            }
     focus(NULL);
     //fprintf(stderr, "%s x:%d y:%d w:%d h:%d [%d]\n", c->name, c->x, c->y,c->w,c->h, __LINE__);
 }
@@ -1920,6 +1932,8 @@ setup(void) {
 	wa.cursor = cursor[CurNormal];
 	XChangeWindowAttributes(dpy, root, CWEventMask | CWCursor, &wa);
 	XSelectInput(dpy, root, wa.event_mask);
+        wa.event_mask = RROutputChangeNotifyMask | RROutputChangeNotifyMask | RRCrtcChangeNotifyMask | RRCrtcChangeNotifyMask;
+        XRRSelectInput(dpy, root, wa.event_mask);
 
         /* init resource database */
         XrmInitialize();
@@ -1934,7 +1948,7 @@ setup(void) {
         inittags();
 	/* init geometry */
 #ifdef XRANDR
-        initmonitors();
+        initmonitors(NULL);
 #else
 	sx = sy = 0;
 	sw = DisplayWidth(dpy, screen);
