@@ -1471,8 +1471,7 @@ curmonitor() {
 #endif
     getpointer(&x, &y);
     for(i = 0, m = monitors; m; m = m->next, i++) {
-        if((x >= m->sx && x <= m->sx + m->sw) &&
-            (y >= m->sy && y <= m->sy + m->sh)) {
+        if((x >= m->sx && x <= m->sx + m->sw)) {
             //fprintf(stderr, "i = %d X:<%d %d %d> Y:<%d %d %d>\n", i, m->sx, x, m->sx + m->sw, m->sy, y, m->sy + m->sh);
             break;
         }
@@ -1688,6 +1687,8 @@ resizemouse(Client *c) {
                             nw = MINWIDTH;
                     if((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
                             nh = MINHEIGHT;
+                    nw = nw > cursw ? cursw : nw;
+                    nh = nh > cursh ? cursh : nh;
                     resize(c, curmonitor(), c->x, c->y, nw, nh, True);
                     break;
             }
