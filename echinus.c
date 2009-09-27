@@ -274,7 +274,6 @@ Client *clients = NULL;
 Monitor *monitors = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
-#ifdef XRANDR
 #define curseltags curmonitor()->seltags
 #define curprevtags curmonitor()->prevtags
 #define cursx curmonitor()->sx
@@ -287,11 +286,6 @@ Client *stack = NULL;
 #define curwah curmonitor()->wah
 #define curtag curmonitor()->curtag
 #define curstruts curmonitor()->struts
-#else
-Bool *seltags = NULL;
-Bool *prevtags = NULL;
-unsigned int curtag = 0;
-#endif
 unsigned int *nmasters;
 unsigned int *bpos;
 unsigned int *ltidxs;
