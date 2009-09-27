@@ -162,6 +162,11 @@ Keybindings
      on top or bottom which won't be covered by windows in
      tiled or monocle mode.
 
+
+    Echinus*togglemonitor
+
+     Switch from one monitor to another.
+
     Echinus*focusnext
     Echinus*focusprev
 
