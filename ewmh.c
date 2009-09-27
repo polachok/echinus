@@ -237,16 +237,19 @@ updatestruts(Window win){
     Atom real, *state;
     int format;
     int result = 0;
+    Monitor *m;
     unsigned char *data = NULL;
     unsigned long i, n, extra;
+
+    m = clientmonitor(getclient(win, clients, False));
     if(XGetWindowProperty(dpy, win, atom[StrutPartial], 0L, LONG_MAX, False,
                           XA_CARDINAL, &real, &format, &n, &extra,
                           (unsigned char **) &data) == Success && data){
         state = (Atom *) data;
         if(n){
             for(i = LeftStrut; i < LastStrut; i++)
-                struts[i] = (state[i] > struts[i]) ? state[i] : struts[i];
-            updategeom(curmonitor());
+                m->struts[i] = (state[i] > m->struts[i]) ? state[i] : m->struts[i];
+            updategeom(m);
             result = 1;
         }
     }

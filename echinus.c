@@ -76,6 +76,7 @@ typedef struct Monitor Monitor;
 struct Monitor {
         int sx, sy, sw, sh, wax, way, waw, wah;
         unsigned int curtag;
+        unsigned long struts[LastStrut];
         Bool *seltags;
         Bool *prevtags;
         Monitor *next;
@@ -192,6 +193,7 @@ Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
 void grabbuttons(Client *c, Bool focused);
 void getpointer(int *x, int *y);
 Monitor* curmonitor();
+Monitor* clientmonitor(Client *c);
 unsigned int idxoftag(const char *tag);
 Bool isoccupied(unsigned int t);
 Bool isprotodel(Client *c);
@@ -284,6 +286,7 @@ Client *stack = NULL;
 #define curwaw curmonitor()->waw
 #define curwah curmonitor()->wah
 #define curtag curmonitor()->curtag
+#define curstruts curmonitor()->struts
 #else
 Bool *seltags = NULL;
 Bool *prevtags = NULL;
@@ -294,7 +297,6 @@ unsigned int *bpos;
 unsigned int *ltidxs;
 double *mwfacts;
 Cursor cursor[CurLast];
-unsigned long struts[LastStrut];
 Display *dpy;
 DC dc = {0};
 Button bleft = {0};
@@ -745,25 +747,26 @@ configurerequest(XEvent *e) {
 void
 destroynotify(XEvent *e) {
     Client *c;
-    Monitor *m;
+    Monitor *m = NULL;
     XDestroyWindowEvent *ev = &e->xdestroywindow;
 
     if((c = getclient(ev->window, clients, False)))
+        m = clientmonitor(c);
+    else
+        goto end;
+    if(!c->isbastard) {
         unmanage(c);
-    struts[RightStrut] = struts[LeftStrut] = struts[TopStrut] = struts[BotStrut] = 0;
-    for(c = clients; c ; c = c->next){
-        if(c->isbastard){
-            if(ev->window != c->win)
-                updatestruts(c->win);
-            else {
-                detach(c);
-                free(c);
-            }
-        }
+        goto end;
     }
-    for(m = monitors; m; m = m->next)
-        updategeom(m);
-    arrange(curmonitor());
+    unmanage(c);
+    m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] = m->struts[BotStrut] = 0;
+    for(c = clients; c ; c = c->next){
+        if(c->isbastard)
+                updatestruts(c->win);
+    }
+    updategeom(m);
+end:
+    arrange(m);
     updateatom[ClientList](NULL);
 }
 
@@ -1293,7 +1296,7 @@ manage(Window w, XWindowAttributes *wa) {
 
     if(c->isbastard)
         for(i = 0; i < ntags; i++)
-            c->tags[i] = True;
+            c->tags[i] = curmonitor()->seltags[i];
     attach(c);
     attachstack(c);/*
     twa.event_mask = EnterWindowMask |
@@ -1463,7 +1466,7 @@ clientmonitor(Client *c) {
     if(c) {
         for(m = monitors; m; m = m->next) {
             for(i = 0; i < ntags; i++)
-                if(sel->tags[i] & m->seltags[i])
+                if(c->tags[i] & m->seltags[i])
                     return m;
         }
     }
@@ -1551,7 +1554,7 @@ propertynotify(XEvent *e) {
                     case XA_WM_TRANSIENT_FOR:
                             XGetTransientForHint(dpy, c->win, &trans);
                             if(!c->isfloating && (c->isfloating = (getclient(trans, clients, False) != NULL)))
-                                    arrange(curmonitor());
+                                    arrange(clientmonitor(c));
                             break;
                     case XA_WM_NORMAL_HINTS:
 			    updatesizehints(c);
@@ -1562,7 +1565,7 @@ propertynotify(XEvent *e) {
             }
             if(ev->atom == atom[StrutPartial]) {
                     updatestruts(ev->window);
-                    arrange(curmonitor());
+                    arrange(clientmonitor(c));
             } else if(ev->atom == atom[WindowName]) 
                     updatetitle(c);
     }
@@ -2009,10 +2012,10 @@ setup(void) {
         sloppy = atoi(getresource("sloppy", "0"));
         drawoutline = atoi(getresource("outline", "0"));
 
-	struts[RightStrut] = struts[LeftStrut] = struts[TopStrut] = struts[BotStrut] = 0;
-
-        for(m = monitors; m; m = m->next)
+        for(m = monitors; m; m = m->next) {
+            m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] = m->struts[BotStrut] = 0;
             updategeom(m);
+        }
 
 	dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
@@ -2322,11 +2325,11 @@ updategeom(Monitor *m) {
     m->waw = m->sw;
     switch(bpos[curtag]){
     default:
-        m->wax += struts[LeftStrut];
+        m->wax += m->struts[LeftStrut];
         /* XXX wax??? */
-        m->waw = m->sw - struts[RightStrut] - struts[LeftStrut];
-        m->way += struts[TopStrut];
-        m->wah = m->sh - m->way - struts[BotStrut];
+        m->waw = m->sw - m->struts[RightStrut] - m->struts[LeftStrut];
+        m->way += m->struts[TopStrut];
+        m->wah = m->sh - m->way - m->struts[BotStrut];
         break;
     case StrutsHide:
     case StrutsOff:
