@@ -672,17 +672,17 @@ configurenotify(XEvent *e) {
     XConfigureEvent *ev = &e->xconfigure;
     Monitor *m;
     if(ev->window == root) {
-        fprintf(stderr, "root configure\n");
+        //fprintf(stderr, "root configure\n");
 #ifdef XRANDR
             if(XRRUpdateConfiguration((XEvent*)ev)) {
-                fprintf(stderr, "root XRANDR configure\n");
+                //fprintf(stderr, "root XRANDR configure\n");
                 initmonitors(e);
                 for(m = monitors; m; m = m->next)
                     updategeom(m);
 #else
                 cursw = ev->width;
                 cursh = ev->height;
-                fprintf(stderr, "sw = %d sh = %d\n", sw, sh);
+                //fprintf(stderr, "sw = %d sh = %d\n", sw, sh);
 #endif
                 XFreePixmap(dpy, dc.drawable);
                 /* XXX */
@@ -2327,7 +2327,7 @@ updategeom(Monitor *m) {
     case StrutsOff:
         break;
     }
-    fprintf(stderr, "wax %d waw %d way %d wah %d\n", m->wax, m->waw, m->way, m->wah);
+    //fprintf(stderr, "wax %d waw %d way %d wah %d\n", m->wax, m->waw, m->way, m->wah);
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
