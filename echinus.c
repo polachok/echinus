@@ -1382,13 +1382,13 @@ ifloating(Monitor *m){
     for(c = clients; c; c = c->next){ 
         if(isvisible(c, m) && !c->isicon && !c->isbastard) {
                 for(f = 0; !c->isplaced; f++){ 
-                    if((c->w > cursw/2 && c->h > cursw/2) || c->h < 4){
+                    if((c->w > m->sw/2 && c->h > m->sw/2) || c->h < 4){
                         /* too big to deal with */
                         c->isplaced = True; 
                     }
                     /* i dunno if c->h/4 & c->w/8 are optimal */
-                        for(y = curway; y+c->h <= curwah && !c->isplaced ; y+=c->h/4){
-                            for(x = curwax; x+c->w <= curwaw && !c->isplaced; x+=c->w/8){
+                        for(y = m->way; y+c->h <= m->wah && !c->isplaced ; y+=c->h/4){
+                            for(x = m->wax; x+c->w <= m->waw && !c->isplaced; x+=c->w/8){
                                 /* are you wondering about 0.9 & 0.8 ? */
                             if(smartcheckarea(m, x, y, 0.8*c->w, 0.8*c->h)<=f){
                                 /* got it! a big chunk of "free" space */
@@ -1457,18 +1457,23 @@ getpointer(int *x, int *y) {
 }
 
 Monitor*
-curmonitor() {
-    int x, y, i;
+clientmonitor(Client *c) {
     Monitor *m;
-#if 0
-    if(sel) {
+    int i;
+    if(c) {
         for(m = monitors; m; m = m->next) {
             for(i = 0; i < ntags; i++)
-                if(sel->tags[i] && m->seltags[i])
+                if(sel->tags[i] & m->seltags[i])
                     return m;
         }
     }
-#endif
+    return NULL;
+}
+
+Monitor*
+curmonitor() {
+    int x, y, i;
+    Monitor *m;
     getpointer(&x, &y);
     for(i = 0, m = monitors; m; m = m->next, i++) {
         if((x >= m->sx && x <= m->sx + m->sw)) {
@@ -1541,13 +1546,8 @@ propertynotify(XEvent *e) {
 
     if(ev->state == PropertyDelete)
             return; /* ignore */
-    if(ev->atom == atom[StrutPartial]){
-        updatestruts(ev->window);
-        arrange(curmonitor());
-    }
     if((c = getclient(ev->window, clients, False))) {
             switch (ev->atom) {
-                    default: break;
                     case XA_WM_TRANSIENT_FOR:
                             XGetTransientForHint(dpy, c->win, &trans);
                             if(!c->isfloating && (c->isfloating = (getclient(trans, clients, False) != NULL)))
@@ -1556,10 +1556,15 @@ propertynotify(XEvent *e) {
                     case XA_WM_NORMAL_HINTS:
 			    updatesizehints(c);
                             break;
+                    case XA_WM_NAME:
+                            updatetitle(c);
+                            break;
             }
-            if(ev->atom == XA_WM_NAME || ev->atom == atom[WindowName]) {
+            if(ev->atom == atom[StrutPartial]) {
+                    updatestruts(ev->window);
+                    arrange(curmonitor());
+            } else if(ev->atom == atom[WindowName]) 
                     updatetitle(c);
-            }
     }
 }
 
