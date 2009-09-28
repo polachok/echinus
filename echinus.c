@@ -1073,17 +1073,6 @@ idxoftag(const char *tag) {
 }
 
 Bool
-isoccupied(unsigned int t) {
-    Client *c;
-
-    for(c = clients; c; c = c->next){
-            if(c->tags[t])
-                    return True;
-    }
-    return False;
-}
-
-Bool
 isprotodel(Client *c) {
     int i, n;
     Atom *protocols;
