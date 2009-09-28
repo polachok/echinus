@@ -104,6 +104,25 @@ struct Client {
 };
 
 typedef struct {
+        Pixmap pm;
+        int px, py;
+        unsigned int pw, ph;
+        int visible;
+        void (*action)(const char *arg);
+} Button;
+
+typedef struct Look Look;
+struct Look { 
+        unsigned int tpos, tbpos, bpos;
+        int borderpx;
+        float uf_opacity;
+        int drawoutline;
+        Button bleft;
+        Button bcenter;
+        Button bright;
+};
+
+typedef struct {
 	int x, y, w, h;
 	unsigned long norm[ColLast];
 	unsigned long sel[ColLast];
@@ -145,14 +164,6 @@ typedef struct {
 	regex_t *propregex;
 	regex_t *tagregex;
 } Regs;
-
-typedef struct {
-    Pixmap pm;
-    int px, py;
-    unsigned int pw, ph;
-    void (*action)(const char *arg);
-} Button;
-
 
 /* function declarations */
 void applyrules(Client *c);
@@ -251,13 +262,9 @@ void zoom(const char *arg);
 
 /* variables */
 char **cargv;
-char **environ;
 Bool wasfloating = True;
-float uf_opacity;
 int screen;
-int borderpx;
 int (*xerrorxlib)(Display *, XErrorEvent *);
-unsigned int tpos, tbpos;
 unsigned int numlockmask = 0;
 Atom wmatom[WMLast];
 Bool domwfact = True;
@@ -267,7 +274,6 @@ Bool running = True;
 Bool selscreen = True;
 Bool notitles = False;
 Bool sloppy = False;
-Bool drawoutline = False;
 Client *clients = NULL;
 Monitor *monitors = NULL;
 Client *sel = NULL;
@@ -291,13 +297,10 @@ double *mwfacts;
 Cursor cursor[CurLast];
 Display *dpy;
 DC dc = {0};
-Button bleft = {0};
-Button bcenter = {0};
-Button bright = {0};
+Look look = {0};
 Window root;
 Regs *regs = NULL;
 XrmDatabase xrdb = NULL;
-
 
 char terminal[255];
 char **tags;
@@ -306,8 +309,8 @@ Rule **rules;
 int ntags = 0;
 int nkeys = 0;
 int nrules = 0;
-Bool dectiled = 0;
 Bool hidebastards = 0;
+Bool dectiled = 0;
 unsigned int modkey = 0;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
@@ -493,20 +496,20 @@ buttonpress(XEvent *e) {
     }
     else if((c = getclient(ev->window, clients, True))) {
         focus(c);
-        if(tpos != TitleRight){
+        if(look.tpos != TitleRight){
             if((ev->x > c->w-3*c->th) && (ev->x < c->w-2*c->th)){
                 /* min */
-                bleft.action(NULL);
+                look.bleft.action(NULL);
                 return;
             }
             if((ev->x > c->w-2*c->th) && (ev->x < c->w-c->th)){
                 /* max */
-                bcenter.action(NULL);
+                look.bcenter.action(NULL);
                 return;
             }
             if((ev->x > c->w-c->th) && (ev->x < c->w)){
                 /* close */
-                bright.action(NULL);
+                look.bright.action(NULL);
                 return;
             }
         }
@@ -962,7 +965,7 @@ incnmaster(const char *arg) {
             nmasters[curtag] = NMASTER;
     else {
             i = atoi(arg);
-            if((nmasters[curtag] + i) < 1 || curwah / (nmasters[curtag] + i) <= 2 * borderpx)
+            if((nmasters[curtag] + i) < 1 || curwah / (nmasters[curtag] + i) <= 2 * look.borderpx)
                     return;
             nmasters[curtag] += i;
     }
@@ -1212,7 +1215,7 @@ manage(Window w, XWindowAttributes *wa) {
     applyrules(c);
 
     c->th = c->hastitle ? dc.h : 0;
-    c->border = c->isbastard ? 0 : borderpx;
+    c->border = c->isbastard ? 0 : look.borderpx;
 
     if(!c->isfloating)
             c->isfloating = (rettrans == Success) || c->isfixed;
@@ -1971,8 +1974,11 @@ setup(void) {
         if(!dc.xftnorm || !dc.xftnorm)
              eprint("error, cannot allocate colors\n");
         initfont(getresource("font", FONT));
-        borderpx = atoi(getresource("border", BORDERPX));
-        uf_opacity = atof(getresource("opacity", NF_OPACITY));
+        look.borderpx = atoi(getresource("border", BORDERPX));
+        look.uf_opacity = atof(getresource("opacity", NF_OPACITY));
+        look.tpos = atoi(getresource("titleposition", TITLEPOSITION));
+        look.tbpos = atoi(getresource("tagbar", TAGBAR));
+        look.drawoutline = atoi(getresource("outline", "0"));
 
         strncpy(terminal, getresource("terminal", TERMINAL), 255);
 
@@ -1983,10 +1989,7 @@ setup(void) {
         }
         dectiled = atoi(getresource("decoratetiled", DECORATETILED));
         hidebastards = atoi(getresource("hidebastards", "0"));
-        tpos = atoi(getresource("titleposition", TITLEPOSITION));
-        tbpos = atoi(getresource("tagbar", TAGBAR));
         sloppy = atoi(getresource("sloppy", "0"));
-        drawoutline = atoi(getresource("outline", "0"));
 
         for(m = monitors; m; m = m->next) {
             m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] = m->struts[BotStrut] = 0;
