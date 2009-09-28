@@ -257,8 +257,7 @@ float uf_opacity;
 int screen;
 int borderpx;
 int (*xerrorxlib)(Display *, XErrorEvent *);
-unsigned int bh, tpos, tbpos;
-unsigned int blw = 0;
+unsigned int tpos, tbpos;
 unsigned int numlockmask = 0;
 Atom wmatom[WMLast];
 Bool domwfact = True;
@@ -2101,7 +2100,7 @@ tile(Monitor *m) {
 	mh = (n <= nmasters[m->curtag]) ? m->wah / (n > 0 ? n : 1) : m->wah / nmasters[m->curtag];
 	mw = (n <= nmasters[m->curtag]) ? m->waw : mwfacts[m->curtag] * m->waw;
 	th = (n > nmasters[m->curtag]) ? m->wah / (n - nmasters[m->curtag]) : 0;
-	if(n > nmasters[m->curtag] && th < bh)
+	if(n > nmasters[m->curtag])
 		th = m->wah;
 
 	nx = m->wax;
