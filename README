@@ -45,7 +45,10 @@ Main settings
 
     Echinus*sloppy
        
-       Use sloppy focus (bool)
+       0 - Click to focus
+       1 - Sloppy focus for floating clients
+       2 - Sloppy focus for everything
+       3 - Sloppy focus + raise on focus
 
     Echinus*modkey
 
