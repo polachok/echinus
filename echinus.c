@@ -44,7 +44,6 @@
 #include <X11/Xutil.h>
 #include <X11/Xresource.h>
 #include <X11/Xft/Xft.h>
-#define XRANDR 1
 #ifdef XRANDR
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/randr.h>
@@ -331,7 +330,9 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[PropertyNotify] = propertynotify,
 	[UnmapNotify] = unmapnotify,
         [ClientMessage] = clientmessage,
+#ifdef XRANDR
         [RRScreenChangeNotify] = initmonitors,
+#endif
 };
 
 /* function implementations */
@@ -606,11 +607,13 @@ configure(Client *c) {
 
 void
 initmonitors(XEvent *e) {
+        Monitor *m;
+#ifdef XRANDR
+        Monitor *t;
 	XRRCrtcInfo		*ci;
 	XRRScreenResources	*sr;
 	int			c, n;
 	int			ncrtc = 0;
-        Monitor *m, *t;
 
         /* free */
         if(monitors) {
@@ -660,12 +663,29 @@ initmonitors(XEvent *e) {
         if (ci)
                 XRRFreeCrtcInfo(ci);
         XRRFreeScreenResources(sr);
+#else
+        m = emallocz(sizeof(Monitor));
+        m->sx = m->wax = 0;
+        m->sy = m->way = 0;
+        m->sw = m->waw = DisplayWidth(dpy, screen);
+        m->sh = m->wah = DisplayHeight(dpy, screen);
+#undef curtag
+        m->curtag = 0;
+#define curtag curmonitor()->curtag
+        m->prevtags = emallocz(ntags*sizeof(Bool));
+        m->seltags = emallocz(ntags*sizeof(Bool));
+        m->seltags[0] = True;
+        m->next = NULL;
+        monitors = m;
+#endif
 }
 
 void
 configurenotify(XEvent *e) {
     XConfigureEvent *ev = &e->xconfigure;
+#ifdef XRANDR
     Monitor *m;
+#endif
     if(ev->window == root) {
 #ifdef XRANDR
             if(XRRUpdateConfiguration((XEvent*)ev)) {
@@ -680,7 +700,9 @@ configurenotify(XEvent *e) {
                 /* XXX */
                 dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
                 arrange(NULL);
+#ifdef XRANDR
             }
+#endif
     }
 }
 
@@ -1915,8 +1937,6 @@ setup(void) {
 	wa.cursor = cursor[CurNormal];
 	XChangeWindowAttributes(dpy, root, CWEventMask | CWCursor, &wa);
 	XSelectInput(dpy, root, wa.event_mask);
-        wa.event_mask = RROutputChangeNotifyMask | RROutputChangeNotifyMask | RRCrtcChangeNotifyMask | RRCrtcChangeNotifyMask;
-        XRRSelectInput(dpy, root, wa.event_mask);
 
         /* init resource database */
         XrmInitialize();
@@ -1930,13 +1950,7 @@ setup(void) {
         /* init tags */
         inittags();
 	/* init geometry */
-#ifdef XRANDR
         initmonitors(NULL);
-#else
-	sx = sy = 0;
-	sw = DisplayWidth(dpy, screen);
-	sh = DisplayHeight(dpy, screen);
-#endif
 
 	/* init modkey */
         initrules();
@@ -2208,7 +2222,7 @@ togglemonitor(const char *arg) {
     Monitor *m, *cm;
     int x, y;
     getpointer(&x, &y);
-    for(cm = curmonitor(), m = monitors; m == cm && m; m = m->next);
+    for(cm = curmonitor(), m = monitors; m == cm && m && m->next; m = m->next);
     XWarpPointer(dpy, None, root, 0, 0, 0, 0, m->sx + x % m->sw, m->sy + y % m->sh);
     focus(NULL);
 }
