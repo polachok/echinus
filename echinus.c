@@ -208,8 +208,8 @@ void monocle(Monitor *m);
 void maprequest(XEvent *e);
 void movemouse(Client *c);
 void moveresizekb(const char *arg);
-Client *nexttiled(Client *c);
-Client *prevtiled(Client *c);
+Client *nexttiled(Client *c, Monitor *m);
+Client *prevtiled(Client *c, Monitor *m);
 void propertynotify(XEvent *e);
 void quit(const char *arg);
 void restart(const char *arg);
@@ -654,7 +654,6 @@ initmonitors(XEvent *e) {
                     m->seltags[n] = True;
                     m->next = monitors;
                     monitors = m;
-                    fprintf(stderr, "Monitor%d: x=%d y=%d w=%d h=%d\n", n, m->sx, m->sy, m->sw, m->sh);
                     n++;
                 }
         }
@@ -668,17 +667,14 @@ configurenotify(XEvent *e) {
     XConfigureEvent *ev = &e->xconfigure;
     Monitor *m;
     if(ev->window == root) {
-        //fprintf(stderr, "root configure\n");
 #ifdef XRANDR
             if(XRRUpdateConfiguration((XEvent*)ev)) {
-                //fprintf(stderr, "root XRANDR configure\n");
                 initmonitors(e);
                 for(m = monitors; m; m = m->next)
                     updategeom(m);
 #else
                 cursw = ev->width;
                 cursh = ev->height;
-                //fprintf(stderr, "sw = %d sh = %d\n", sw, sh);
 #endif
                 XFreePixmap(dpy, dc.drawable);
                 /* XXX */
@@ -1085,19 +1081,6 @@ isvisible(Client *c, Monitor *m) {
     unsigned int i;
     if(!c)
         return False;
-#ifdef DEBUG
-    fprintf(stderr, "name: %s [", c->name);
-    for(i = 0; i < ntags; i++)
-            fprintf(stderr,"%d ", c->tags[i]);
-    fprintf(stderr, "]\n");
-
-    for(m = monitors; m; m = m->next) {
-        fprintf(stderr, "m: 0x%x: [", m);
-        for(i = 0; i < ntags; i++)
-            fprintf(stderr,"%d ", m->seltags[i] ? 1 : 0);
-    }
-    fprintf(stderr, "]\n");
-#endif
     if(!m) {
         for(m = monitors; m; m = m->next) {
             for(i = 0; i < ntags; i++)
@@ -1321,7 +1304,6 @@ manage(Window w, XWindowAttributes *wa) {
                 break;
             }
     focus(NULL);
-    //fprintf(stderr, "%s x:%d y:%d w:%d h:%d [%d]\n", c->name, c->x, c->y,c->w,c->h, __LINE__);
 }
 
 void
@@ -1474,7 +1456,6 @@ curmonitor() {
     getpointer(&x, &y);
     for(i = 0, m = monitors; m; m = m->next, i++) {
         if((x >= m->sx && x <= m->sx + m->sw)) {
-            //fprintf(stderr, "i = %d X:<%d %d %d> Y:<%d %d %d>\n", i, m->sx, x, m->sx + m->sw, m->sy, y, m->sy + m->sh);
             break;
         }
     }
@@ -1524,14 +1505,14 @@ movemouse(Client *c) {
 }
 
 Client *
-nexttiled(Client *c) {
-    for(; c && (c->isfloating || !isvisible(c, curmonitor()) || c->isbastard || c->isicon); c = c->next);
+nexttiled(Client *c, Monitor *m) {
+    for(; c && (c->isfloating || !isvisible(c, m) || c->isbastard || c->isicon); c = c->next);
     return c;
 }
 
 Client *
-prevtiled(Client *c) {
-    for(; c && (c->isfloating || !isvisible(c, curmonitor()) || c->isbastard || c->isicon); c = c->prev);
+prevtiled(Client *c, Monitor *m) {
+    for(; c && (c->isfloating || !isvisible(c, m) || c->isbastard || c->isicon); c = c->prev);
     return c;
 }
 
@@ -1620,7 +1601,6 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
     if(w <= 0 || h <= 0)
             return;
     /* offscreen appearance fixes */
-    //fprintf(stderr, "sw %d sh %d \n", cursw, cursh);
     if(x > m->wax + m->sw)
             x = m->sw - w - 2 * c->border;
     if(y > m->way + m->sh)
@@ -2068,7 +2048,7 @@ bstack(Monitor *m) {
     Client *c, *mc;
 
     domwfact = dozoom = True;
-    for(n = 0, c = nexttiled(clients); c; c = nexttiled(c->next))
+    for(n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
         n++;
 
     mh = (n == 1) ? m->wah : mwfacts[curtag] * m->wah;
@@ -2077,7 +2057,7 @@ bstack(Monitor *m) {
     nx = m->wax;
     ny = m->way;
     nh = 0;
-    for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
+    for(i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
         c->hastitle = (dectiled ? (c->title ? True : False) : False);
         c->ismax = False;
         if(i == 0) {
@@ -2107,43 +2087,43 @@ void
 tile(Monitor *m) {
 	unsigned int i, n, nx, ny, nw, nh, mw, mh, th;
 	Client *c, *mc;
-
+#undef curtag
         wasfloating = False;
 
 	domwfact = dozoom = True;
-	for(n = 0, c = nexttiled(clients); c; c = nexttiled(c->next))
+	for(n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
 		n++;
-	/* window geoms */
-	mh = (n <= nmasters[curtag]) ? m->wah / (n > 0 ? n : 1) : m->wah / nmasters[curtag];
-	mw = (n <= nmasters[curtag]) ? m->waw : mwfacts[curtag] * m->waw;
-	th = (n > nmasters[curtag]) ? m->wah / (n - nmasters[curtag]) : 0;
 
-	if(n > nmasters[curtag] && th < bh)
+	/* window geoms */
+	mh = (n <= nmasters[m->curtag]) ? m->wah / (n > 0 ? n : 1) : m->wah / nmasters[m->curtag];
+	mw = (n <= nmasters[m->curtag]) ? m->waw : mwfacts[m->curtag] * m->waw;
+	th = (n > nmasters[m->curtag]) ? m->wah / (n - nmasters[m->curtag]) : 0;
+	if(n > nmasters[m->curtag] && th < bh)
 		th = m->wah;
 
 	nx = m->wax;
 	ny = m->way;
 	nw = 0; /* gcc stupidity requires this */
-	for(i = 0, c = mc = nexttiled(clients); c; c = nexttiled(c->next), i++) {
+	for(i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
                 c->hastitle = (dectiled ? (c->title ? True : False) : False);
 		c->ismax = False;
                 c->sfx = c->x;
                 c->sfy = c->y;
                 c->sfw = c->w;
                 c->sfh = c->h;
-                if(i < nmasters[curtag]) { /* master */
+                if(i < nmasters[m->curtag]) { /* master */
                         ny = m->way + i * (mh - c->border);
                         nw = mw - 2 * c->border;
                         nh = mh;
-                        if(i + 1 == (n < nmasters[curtag] ? n : nmasters[curtag])) /* remainder */
+                        if(i + 1 == (n < nmasters[m->curtag] ? n : nmasters[m->curtag])) /* remainder */
                                 nh = m->way + m->wah - ny;
                         nh -= 2 * c->border;
                 }
                 else {  /* tile window */
-                        if(i == nmasters[curtag]) {
+                        if(i == nmasters[m->curtag]) {
                                 ny = m->way;
                                 nx += mc->w + mc->border;
-                                nw = m->waw - nx - 2*c->border;
+                                nw = m->waw - nx - 2*c->border + m->wax;
                         }
                         else 
                             ny -= c->border;
@@ -2154,10 +2134,11 @@ tile(Monitor *m) {
                 }
                 resize(c, m, nx, ny, nw, nh, False);
                 drawclient(c);
-                if(n > nmasters[curtag] && th != m->wah){
+                if(n > nmasters[m->curtag] && th != m->wah){
                         ny = c->y + c->h + 2 * c->border;
                 }
         }
+#define curtag curmonitor()->curtag
 }
 
 void
@@ -2329,7 +2310,6 @@ updategeom(Monitor *m) {
     case StrutsOff:
         break;
     }
-    //fprintf(stderr, "wax %d waw %d way %d wah %d\n", m->wax, m->waw, m->way, m->wah);
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -2449,11 +2429,9 @@ view(const char *arg) {
     unsigned int i, prevcurtag;
     Monitor *m;
     int swapping = 0;
-    //fprintf(stderr, "view tag#%d: %s\n", idxoftag(arg), tags[idxoftag(arg)]);
     for(m = monitors; m ; m = m->next) {
             if(m->seltags[idxoftag(arg)] && m != curmonitor()) {
                 swapping = 1;
-                fprintf(stderr, "SWAPPING TAGS\n");
                 m->seltags[idxoftag(arg)] = False;
                 m->seltags[curtag] = True;
             }
@@ -2466,12 +2444,6 @@ view(const char *arg) {
     curtag = idxoftag(arg);
     if (bpos[prevcurtag] != bpos[curtag])
         updategeom(curmonitor());
-#ifdef DEBUG
-    fprintf(stderr, "TAGS: [");
-    for(i = 0; i < ntags; i++)
-        fprintf(stderr, "%d ", curseltags[i]);
-    fprintf(stderr, "]\n");
-#endif
     if(swapping)
         arrange(NULL);
     else
@@ -2527,8 +2499,8 @@ zoom(const char *arg) {
 
     if(!sel || !dozoom || sel->isfloating)
             return;
-    if((c = sel) == nexttiled(clients))
-            if(!(c = nexttiled(c->next)))
+    if((c = sel) == nexttiled(clients, curmonitor()))
+            if(!(c = nexttiled(c->next, curmonitor())))
                     return;
     detach(c);
     attach(c);
