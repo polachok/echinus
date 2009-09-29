@@ -55,37 +55,37 @@ parsekey(char *s, Key *k) {
     int i;
     pos = strchr(s, '+');
     if(!s || !(pos-s) || !pos)
-        return;
+	return;
     opos = pos;
     for(i = 0, tmp = s; tmp < pos; i++, tmp++){
-        if(*tmp=='A')
-            modmask = modmask | Mod1Mask;
-        if(*tmp=='S')
-            modmask = modmask | ShiftMask;
-        if(*tmp=='C')
-            modmask = modmask | ControlMask;
-        if(*tmp=='W') 
-            modmask = modmask | Mod4Mask; 
+	if(*tmp=='A')
+	    modmask = modmask | Mod1Mask;
+	if(*tmp=='S')
+	    modmask = modmask | ShiftMask;
+	if(*tmp=='C')
+	    modmask = modmask | ControlMask;
+	if(*tmp=='W') 
+	    modmask = modmask | Mod4Mask; 
     }
     k->mod = modmask;
     pos = strchr(s, '=');
     if(pos){
-        tmp = emallocz((pos-opos)*sizeof(char));
-        for(opos++;!isalnum(opos[0]);opos++);
-        strncpy(tmp, opos, pos-opos-1);
-        k->keysym = XStringToKeysym(tmp);
-        free(tmp);
-        tmp = emallocz((s+l-pos+1)*sizeof(char));
-        for(pos++;!isgraph(pos[0]);pos++);
-        strncpy(tmp, pos, s+l-pos);
-        k->arg = tmp;
+	tmp = emallocz((pos-opos)*sizeof(char));
+	for(opos++;!isalnum(opos[0]);opos++);
+	strncpy(tmp, opos, pos-opos-1);
+	k->keysym = XStringToKeysym(tmp);
+	free(tmp);
+	tmp = emallocz((s+l-pos+1)*sizeof(char));
+	for(pos++;!isgraph(pos[0]);pos++);
+	strncpy(tmp, pos, s+l-pos);
+	k->arg = tmp;
     }
     else {
-        tmp = emallocz((s+l-opos)*sizeof(char));
-        for(opos++;!isalnum(opos[0]);opos++);
-        strncpy(tmp, opos, s+l-opos);
-        k->keysym = XStringToKeysym(tmp);
-        free(tmp);
+	tmp = emallocz((s+l-opos)*sizeof(char));
+	for(opos++;!isalnum(opos[0]);opos++);
+	strncpy(tmp, opos, s+l-opos);
+	k->keysym = XStringToKeysym(tmp);
+	free(tmp);
     }
 }
 
@@ -94,13 +94,13 @@ initmodkey(){
     char tmp;
     strncpy(&tmp, getresource("modkey", "A"), 1);
     if(tmp=='S')
-        modkey = ShiftMask;
+	modkey = ShiftMask;
     if(tmp=='C')
-        modkey = ControlMask;
+	modkey = ControlMask;
     if(tmp=='W') 
-        modkey = Mod4Mask; 
+	modkey = Mod4Mask; 
     else
-        modkey = Mod1Mask;
+	modkey = Mod1Mask;
 }
 
 int
@@ -113,55 +113,55 @@ initkeys(){
     keys = malloc(sizeof(Key*)*LENGTH(KeyItems));
     /* global functions */
     for(i = 0; i < LENGTH(KeyItems); i++){
-        tmp = getresource(KeyItems[i].name, NULL);
-        if(!tmp)
-            continue;
-        keys[nkeys] = malloc(sizeof(Key));
-        keys[nkeys]->func = KeyItems[i].action;
-        keys[nkeys]->arg = NULL;
-        parsekey(tmp, keys[nkeys]);
-        nkeys++;
+	tmp = getresource(KeyItems[i].name, NULL);
+	if(!tmp)
+	    continue;
+	keys[nkeys] = malloc(sizeof(Key));
+	keys[nkeys]->func = KeyItems[i].action;
+	keys[nkeys]->arg = NULL;
+	parsekey(tmp, keys[nkeys]);
+	nkeys++;
     }
     /* per tag functions */
     for(j = 0; j < LENGTH(KeyItemsByTag); j++){
-        for(i = 0; i < ntags; i++){
-            snprintf(t, 63, "%s%d", KeyItemsByTag[j].name, i);
-            tmp = getresource(t, NULL);
-            if(!tmp)
-                continue;
-            keys = realloc(keys, sizeof(Key*)*(nkeys+1));
-            keys[nkeys] = malloc(sizeof(Key));
-            keys[nkeys]->func = KeyItemsByTag[j].action;
-            keys[nkeys]->arg = tags[i];
-            parsekey(tmp, keys[nkeys]);
-            nkeys++;
-        }
+	for(i = 0; i < ntags; i++){
+	    snprintf(t, 63, "%s%d", KeyItemsByTag[j].name, i);
+	    tmp = getresource(t, NULL);
+	    if(!tmp)
+		continue;
+	    keys = realloc(keys, sizeof(Key*)*(nkeys+1));
+	    keys[nkeys] = malloc(sizeof(Key));
+	    keys[nkeys]->func = KeyItemsByTag[j].action;
+	    keys[nkeys]->arg = tags[i];
+	    parsekey(tmp, keys[nkeys]);
+	    nkeys++;
+	}
     }
     /* layout setting */
     for(i = 0; i<LENGTH(layouts); i++){
-            snprintf(t, 63, "setlayout%s", layouts[i].symbol);
-            tmp = getresource(t, NULL);
-            if(!tmp)
-                continue;
-            keys = realloc(keys, sizeof(Key*)*(nkeys+1));
-            keys[nkeys] = malloc(sizeof(Key));
-            keys[nkeys]->func = setlayout;
-            keys[nkeys]->arg = layouts[i].symbol;
-            parsekey(tmp, keys[nkeys]);
-            nkeys++;
+	    snprintf(t, 63, "setlayout%s", layouts[i].symbol);
+	    tmp = getresource(t, NULL);
+	    if(!tmp)
+		continue;
+	    keys = realloc(keys, sizeof(Key*)*(nkeys+1));
+	    keys[nkeys] = malloc(sizeof(Key));
+	    keys[nkeys]->func = setlayout;
+	    keys[nkeys]->arg = layouts[i].symbol;
+	    parsekey(tmp, keys[nkeys]);
+	    nkeys++;
     }
     /* spawn */
     for(i = 0; i<64; i++){
-            snprintf(t, 63, "spawn%d", i);
-            tmp = getresource(t, NULL);
-            if(!tmp)
-                continue;
-            keys = realloc(keys, sizeof(Key*)*(nkeys+1));
-            keys[nkeys] = malloc(sizeof(Key));
-            keys[nkeys]->func = spawn;
-            keys[nkeys]->arg = NULL;
-            parsekey(tmp, keys[nkeys]);
-            nkeys++;
+	    snprintf(t, 63, "spawn%d", i);
+	    tmp = getresource(t, NULL);
+	    if(!tmp)
+		continue;
+	    keys = realloc(keys, sizeof(Key*)*(nkeys+1));
+	    keys[nkeys] = malloc(sizeof(Key));
+	    keys[nkeys]->func = spawn;
+	    keys[nkeys]->arg = NULL;
+	    parsekey(tmp, keys[nkeys]);
+	    nkeys++;
     }
     return 0;
 }
@@ -182,13 +182,13 @@ initrules(){
     char *tmp;
     rules = emallocz(64*sizeof(Rule*));
     for(i = 0; i < 64; i++){
-            snprintf(t, 63, "rule%d", i);
-            tmp = getresource(t, NULL);
-            if(!tmp)
-                continue;
-            rules[nrules] = emallocz(sizeof(Rule));
-            parserule(tmp, rules[nrules]);
-            nrules++;
+	    snprintf(t, 63, "rule%d", i);
+	    tmp = getresource(t, NULL);
+	    if(!tmp)
+		continue;
+	    rules[nrules] = emallocz(sizeof(Rule));
+	    parserule(tmp, rules[nrules]);
+	    nrules++;
     }
     rules = realloc(rules, nrules*sizeof(Rule*));
 }

@@ -5,11 +5,11 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     char buf[256];
     unsigned int len, olen;
     if(!text)
-            return;
+	    return;
     olen = len = strlen(text);
     w = 0;
     if(len >= sizeof buf)
-            len = sizeof buf - 1;
+	    len = sizeof buf - 1;
     memcpy(buf, text, len);
     buf[len] = 0;
     h = dc.h;
@@ -17,36 +17,36 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     x = dc.x + dc.font.height/2;
     /* shorten text if necessary */
     while(len && (w = textnw(buf, len)) > dc.w){
-            buf[--len] = 0;
+	    buf[--len] = 0;
     }
     if(len < olen) {
-            if(len > 1)
-                    buf[len - 1] = '.';
-            if(len > 2)
-                    buf[len - 2] = '.';
-            if(len > 3)
-                    buf[len - 3] = '.';
+	    if(len > 1)
+		    buf[len - 1] = '.';
+	    if(len > 2)
+		    buf[len - 2] = '.';
+	    if(len > 3)
+		    buf[len - 3] = '.';
     }
     if(w > dc.w)
-            return; /* too long */
+	    return; /* too long */
     switch(position) {
-        case TitleCenter:
-                x = dc.x + dc.w/2 - w/2;
-                break;
-        case TitleLeft:
-                x = dc.x + h/2;
-                break;
-        case TitleRight:
-                x = dc.w - w - h;
-                break;
+	case TitleCenter:
+		x = dc.x + dc.w/2 - w/2;
+		break;
+	case TitleLeft:
+		x = dc.x + h/2;
+		break;
+	case TitleRight:
+		x = dc.w - w - h;
+		break;
     }
     while(x <= 0)
-            x = dc.x++;
+	    x = dc.x++;
     XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel,
-            dc.font.xftfont, x, look.drawoutline ? y : y+1, (unsigned char*)buf, len);
+	    dc.font.xftfont, x, look.drawoutline ? y : y+1, (unsigned char*)buf, len);
     if(look.drawoutline){
-                XSetForeground(dpy, dc.gc, col[ColBorder]);
-                XDrawLine(dpy, dc.drawable, dc.gc, 0, dc.h-1, dc.w, dc.h-1);
+		XSetForeground(dpy, dc.gc, col[ColBorder]);
+		XDrawLine(dpy, dc.drawable, dc.gc, 0, dc.h-1, dc.w, dc.h-1);
     }
     dc.x = x + w;
 }
@@ -55,9 +55,9 @@ Pixmap
 initpixmap(const char *file, Button *b) {
     b->pm = XCreatePixmap(dpy, root, dc.h, dc.h, 1);
     if(BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph, &b->pm, &b->px, &b->py))
-        return 0;
+	return 0;
     else
-        eprint("echinus: cannot load Button pixmaps, check your ~/.echinusrc\n");
+	eprint("echinus: cannot load Button pixmaps, check your ~/.echinusrc\n");
     return 0;
 }
 
@@ -93,11 +93,11 @@ drawclient(Client *c) {
     unsigned int i;
     unsigned int opacity;
     if(NOTITLES)
-        return;
+	return;
     if(!isvisible(c, curmonitor()))
-        return;
+	return;
     if(c->isfloating && !c->isbastard)
-        resize(c, curmonitor(), c->x, c->y, c->w, c->h, True);
+	resize(c, curmonitor(), c->x, c->y, c->w, c->h, True);
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
     XFillRectangle(dpy, dc.drawable, dc.gc, 0, 0, c->w, c->th);
@@ -105,39 +105,39 @@ drawclient(Client *c) {
     dc.w = c->w;
     drawtext(NULL, c == sel ? dc.sel : dc.norm, look.tpos);
     if(look.tbpos){
-        for(i=0; i < ntags; i++) {
-            if(c->tags[i]){
-                drawtext(tags[i], c == sel ? dc.sel : dc.norm, TitleLeft);
-                XSetForeground(dpy, dc.gc, c== sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
-                if(c->border)
-                    XDrawLine(dpy, dc.drawable, dc.gc, dc.x+dc.h/2, 0, dc.x+dc.h/2, dc.h);
-                dc.x+=dc.h/2+1;
-            }
-        }
+	for(i=0; i < ntags; i++) {
+	    if(c->tags[i]){
+		drawtext(tags[i], c == sel ? dc.sel : dc.norm, TitleLeft);
+		XSetForeground(dpy, dc.gc, c== sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
+		if(c->border)
+		    XDrawLine(dpy, dc.drawable, dc.gc, dc.x+dc.h/2, 0, dc.x+dc.h/2, dc.h);
+		dc.x+=dc.h/2+1;
+	    }
+	}
     }
     drawtext(c->name, c == sel ? dc.sel : dc.norm, look.tpos);
     if(c->w>=6*dc.h && dc.x <= c->w-6*dc.h && look.tpos != TitleRight)
-        drawbuttons(c);
+	drawbuttons(c);
     XCopyArea(dpy, dc.drawable, c->title, dc.gc,
 			0, 0, c->w, c->th, 0, 0);
     if(look.uf_opacity) {
 		  if (c==sel)
 			  opacity = OPAQUE;
 		  else
-                          opacity = look.uf_opacity * OPAQUE;
+			  opacity = look.uf_opacity * OPAQUE;
 	      setopacity(c, opacity);
     }
     if(c->title)
-        XMapWindow(dpy, c->title);
+	XMapWindow(dpy, c->title);
 }
 
 static void
 initfont(const char *fontstr) {
     dc.font.xftfont = XftFontOpenXlfd(dpy,screen,fontstr);
     if(!dc.font.xftfont)
-         dc.font.xftfont = XftFontOpenName(dpy,screen,fontstr);
+	 dc.font.xftfont = XftFontOpenName(dpy,screen,fontstr);
     if(!dc.font.xftfont)
-         eprint("error, cannot load font: '%s'\n", fontstr);
+	 eprint("error, cannot load font: '%s'\n", fontstr);
     dc.font.extents = emallocz(sizeof(XGlyphInfo));
     XftTextExtentsUtf8(dpy, dc.font.xftfont, (unsigned char*)fontstr, strlen(fontstr), dc.font.extents);
     dc.font.height = dc.font.xftfont->ascent + dc.font.xftfont->descent;
@@ -150,7 +150,7 @@ textnw(const char *text, unsigned int len) {
     XftTextExtentsUtf8(dpy, dc.font.xftfont, (unsigned char*)text, strlen(text), dc.font.extents);
 
     if(dc.font.extents->height > dc.font.height)
-           dc.font.height = dc.font.extents->height;
+	   dc.font.height = dc.font.extents->height;
     return dc.font.extents->xOff;
 }
 

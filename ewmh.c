@@ -47,18 +47,18 @@ void
 initatom(void) {
     int i;
     for(i = 0; i < NATOMS; i++){
-        atom[i] = XInternAtom(dpy, atomnames[i][0], False);
+	atom[i] = XInternAtom(dpy, atomnames[i][0], False);
     }
     XChangeProperty(dpy, root,
-                    atom[Supported], XA_ATOM, 32,
-                    PropModeReplace, (unsigned char *) atom, NATOMS);
+		    atom[Supported], XA_ATOM, 32,
+		    PropModeReplace, (unsigned char *) atom, NATOMS);
 }
 
 void 
 update_echinus_layout_name(Client *c){
 	XChangeProperty(dpy, root, atom[ELayout], 
-                XA_STRING, 8, PropModeReplace, 
-                (unsigned char *) layouts[ltidxs[curtag]].symbol, 1L);
+		XA_STRING, 8, PropModeReplace, 
+		(unsigned char *) layouts[ltidxs[curtag]].symbol, 1L);
 }
 
 void
@@ -69,21 +69,21 @@ ewmh_update_net_client_list() {
     int i;
 
     for(c = stack; c; c = c->snext)
-            n++;
+	    n++;
 
     wins = malloc(sizeof(Window*)*n);
 
     for(i = 0, c = stack; c; c = c->snext)
-            wins[i++] = c->win;
+	    wins[i++] = c->win;
 
     XChangeProperty(dpy, root,
-                    atom[ClientListStacking], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
+		    atom[ClientListStacking], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
     
     for(i = 0, c = clients; c; c = c->next)
-            wins[i++] = c->win;
+	    wins[i++] = c->win;
 
     XChangeProperty(dpy, root,
-                    atom[ClientList], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
+		    atom[ClientList], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
     free(wins);
     XFlush(dpy);
 }
@@ -91,7 +91,7 @@ ewmh_update_net_client_list() {
 void
 ewmh_update_net_number_of_desktops() {
     XChangeProperty(dpy, root,
-                    atom[NumberOfDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &ntags, 1);
+		    atom[NumberOfDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &ntags, 1);
 }
 
 void
@@ -100,18 +100,18 @@ ewmh_update_net_current_desktop() {
     static Bool *seltags = NULL;
     int i;
     if(!seltags)
-        seltags = emallocz(ntags*sizeof(Bool));
+	seltags = emallocz(ntags*sizeof(Bool));
     bzero(seltags, ntags*sizeof(Bool));
 
     for(m = monitors; m != NULL; m = m->next) {
-        for(i = 0; i < ntags; i++)
-            seltags[i] |= m->seltags[i];
+	for(i = 0; i < ntags; i++)
+	    seltags[i] |= m->seltags[i];
     }
 
     XChangeProperty(dpy, root,
-                    atom[ESelTags], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) seltags, ntags);
+		    atom[ESelTags], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) seltags, ntags);
     XChangeProperty(dpy, root,
-                    atom[CurDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &curtag, 1);
+		    atom[CurDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &curtag, 1);
     update_echinus_layout_name(NULL);
 }
 
@@ -122,7 +122,7 @@ ewmh_update_net_window_desktop(Client *c) {
     for(i = 0; i < ntags && !c->tags[i]; i++);
 
     XChangeProperty(dpy, c->win,
-                    atom[WindowDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &i, 1);
+		    atom[WindowDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &i, 1);
 }
 
 void
@@ -133,13 +133,13 @@ ewmh_update_net_desktop_names() {
 
     pos = buf;
     for(i = 0; i < ntags; i++) {
-        snprintf(pos, strlen(tags[i])+1, "%s", tags[i]); 
-        pos += (strlen(tags[i])+1);
+	snprintf(pos, strlen(tags[i])+1, "%s", tags[i]); 
+	pos += (strlen(tags[i])+1);
     }
     len = pos - buf;
 
     XChangeProperty(dpy, root,
-                    atom[DeskNames], atom[Utf8String], 8, PropModeReplace, (unsigned char *) buf, len);
+		    atom[DeskNames], atom[Utf8String], 8, PropModeReplace, (unsigned char *) buf, len);
 }
 
 void
@@ -149,27 +149,27 @@ ewmh_update_net_active_window() {
     win = sel ? sel->win : None;
 
     XChangeProperty(dpy, root,
-                    atom[ActiveWindow], XA_WINDOW, 32,  PropModeReplace, (unsigned char *) &win, 1);
+		    atom[ActiveWindow], XA_WINDOW, 32,	PropModeReplace, (unsigned char *) &win, 1);
 }
 
 void
 ewmh_process_state_atom(Client *c, Atom state, int set) {
     if((state == atom[WindowStateFs]) && (set != c->ismax)) {
-        focus(c);
-        if(set) {
-            c->wasfloating = c->isfloating;
-            c->isfloating = True;
-        } else {
-            c->isfloating = c->wasfloating;
-            c->wasfloating = True;
-        }
-        togglemax(NULL);
-        arrange(curmonitor());
+	focus(c);
+	if(set) {
+	    c->wasfloating = c->isfloating;
+	    c->isfloating = True;
+	} else {
+	    c->isfloating = c->wasfloating;
+	    c->wasfloating = True;
+	}
+	togglemax(NULL);
+	arrange(curmonitor());
     }
     if(state == atom[WindowStateModal]) {
-        focus(c);
-        togglefloating(NULL);
-        arrange(curmonitor());
+	focus(c);
+	togglefloating(NULL);
+	arrange(curmonitor());
     }
 }
 
@@ -179,34 +179,34 @@ clientmessage(XEvent *e) {
     Client *c;
 
     if(ev->message_type == atom[ActiveWindow]) {
-        focus(getclient(ev->window, clients, False));
-        arrange(curmonitor());
+	focus(getclient(ev->window, clients, False));
+	arrange(curmonitor());
     }
     else if(ev->message_type == atom[CurDesk]) {
-        view(tags[ev->data.l[0]]);
+	view(tags[ev->data.l[0]]);
     }
     if(ev->message_type == atom[WindowState]){ 
-        if((c = getclient(ev->window, clients, False))){   
-            ewmh_process_state_atom(c, (Atom) ev->data.l[1], ev->data.l[0]);
-            if(ev->data.l[2])
-                    ewmh_process_state_atom(c, (Atom) ev->data.l[2], ev->data.l[0]);
-            }
+	if((c = getclient(ev->window, clients, False))){   
+	    ewmh_process_state_atom(c, (Atom) ev->data.l[1], ev->data.l[0]);
+	    if(ev->data.l[2])
+		    ewmh_process_state_atom(c, (Atom) ev->data.l[2], ev->data.l[0]);
+	    }
     }
 }
 
 void 
 setopacity(Client *c, unsigned int opacity) {
     if (opacity == OPAQUE) {
-        XDeleteProperty (dpy, c->win, atom[WindowOpacity]);
-        XDeleteProperty (dpy, c->frame, atom[WindowOpacity]);
+	XDeleteProperty (dpy, c->win, atom[WindowOpacity]);
+	XDeleteProperty (dpy, c->frame, atom[WindowOpacity]);
     }
     else {
-        XChangeProperty(dpy, c->win, atom[WindowOpacity], 
-                XA_CARDINAL, 32, PropModeReplace, 
-                (unsigned char *) &opacity, 1L);
-        XChangeProperty(dpy, c->frame, atom[WindowOpacity], 
-                XA_CARDINAL, 32, PropModeReplace, 
-                (unsigned char *) &opacity, 1L);
+	XChangeProperty(dpy, c->win, atom[WindowOpacity], 
+		XA_CARDINAL, 32, PropModeReplace, 
+		(unsigned char *) &opacity, 1L);
+	XChangeProperty(dpy, c->frame, atom[WindowOpacity], 
+		XA_CARDINAL, 32, PropModeReplace, 
+		(unsigned char *) &opacity, 1L);
 
     }
 }
@@ -220,13 +220,13 @@ checkatom(Window win, Atom bigatom, Atom smallatom){
     unsigned char *data = NULL;
     unsigned long i, n, extra;
     if(XGetWindowProperty(dpy, win, bigatom, 0L, LONG_MAX, False,
-                          XA_ATOM, &real, &format, &n, &extra,
-                          (unsigned char **) &data) == Success && data){
-        state = (Atom *) data;
-        for(i = 0; i < n; i++){
-            if(state[i] == smallatom)
-                        result = 1;
-        }
+			  XA_ATOM, &real, &format, &n, &extra,
+			  (unsigned char **) &data) == Success && data){
+	state = (Atom *) data;
+	for(i = 0; i < n; i++){
+	    if(state[i] == smallatom)
+			result = 1;
+	}
     }
     XFree(data);
     return result;
@@ -243,15 +243,15 @@ updatestruts(Window win){
 
     m = clientmonitor(getclient(win, clients, False));
     if(XGetWindowProperty(dpy, win, atom[StrutPartial], 0L, LONG_MAX, False,
-                          XA_CARDINAL, &real, &format, &n, &extra,
-                          (unsigned char **) &data) == Success && data){
-        state = (Atom *) data;
-        if(n){
-            for(i = LeftStrut; i < LastStrut; i++)
-                m->struts[i] = (state[i] > m->struts[i]) ? state[i] : m->struts[i];
-            updategeom(m);
-            result = 1;
-        }
+			  XA_CARDINAL, &real, &format, &n, &extra,
+			  (unsigned char **) &data) == Success && data){
+	state = (Atom *) data;
+	if(n){
+	    for(i = LeftStrut; i < LastStrut; i++)
+		m->struts[i] = (state[i] > m->struts[i]) ? state[i] : m->struts[i];
+	    updategeom(m);
+	    result = 1;
+	}
     }
     XFree(data);
     return result;
