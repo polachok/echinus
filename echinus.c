@@ -616,6 +616,7 @@ initmonitors(XEvent *e) {
 	XRRScreenResources	*sr;
 	int			c, n;
 	int			ncrtc = 0;
+	int                     dummy1, dummy2, major, minor;
 
 	/* free */
 	if(monitors) {
@@ -627,11 +628,15 @@ initmonitors(XEvent *e) {
 	    } while(m);
 	    monitors = NULL;
 	}
+	/* initial Xrandr setup */
+	if(XRRQueryExtension(dpy, &dummy1, &dummy2))
+	     if (XRRQueryVersion(dpy, &major, &minor) && major < 1)
+		 goto no_xrandr;
 
 	/* map virtual screens onto physical screens */
 	sr = XRRGetScreenResources(dpy, root);
 	if (sr == NULL)
-	    fprintf(stderr, "bad luck\n");
+		fprintf(stderr, "bad luck\n");
 	else 
 		ncrtc = sr->ncrtc;
 
@@ -665,7 +670,9 @@ initmonitors(XEvent *e) {
 	if (ci)
 		XRRFreeCrtcInfo(ci);
 	XRRFreeScreenResources(sr);
-#else
+	return;
+#endif
+no_xrandr:
 	m = emallocz(sizeof(Monitor));
 	m->sx = m->wax = 0;
 	m->sy = m->way = 0;
@@ -679,7 +686,6 @@ initmonitors(XEvent *e) {
 	m->seltags[0] = True;
 	m->next = NULL;
 	monitors = m;
-#endif
 }
 
 void
