@@ -2109,7 +2109,7 @@ tile(Monitor *m) {
 	mh = (n <= nmasters[m->curtag]) ? m->wah / (n > 0 ? n : 1) : m->wah / nmasters[m->curtag];
 	mw = (n <= nmasters[m->curtag]) ? m->waw : mwfacts[m->curtag] * m->waw;
 	th = (n > nmasters[m->curtag]) ? m->wah / (n - nmasters[m->curtag]) : 0;
-	if(n > nmasters[m->curtag])
+	if(n > nmasters[m->curtag] && th < dc.h)
 		th = m->wah;
 
 	nx = m->wax;
