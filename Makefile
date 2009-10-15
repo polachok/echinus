@@ -50,6 +50,10 @@ install: all
 	@mkdir -p ${DESTDIR}${PREFIX}${CONF}
 	@cp echinusrc ${DESTDIR}${PREFIX}${CONF}
 	@cp ${PIXMAPS} ${DESTDIR}${PREFIX}${CONF}
+	@echo installing manual page to ${DESTDIR}${PREFIX}/man/man1
+	@cp echinus.1 ${DESTDIR}${PREFIX}/man/man1
+	@echo install README to ${DESTDIR}${PREFIX}/share/doc/echinus
+	@cp README ${DESTDIR}${PREFIX}/share/doc/echinus
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
