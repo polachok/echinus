@@ -105,7 +105,7 @@ drawclient(Client *c) {
     dc.w = c->w;
     drawtext(NULL, c == sel ? dc.sel : dc.norm, look.tpos);
     if(look.tbpos){
-	for(i=0; i < ntags; i++) {
+	for(i = 0; i < ntags; i++) {
 	    if(c->tags[i]){
 		drawtext(tags[i], c == sel ? dc.sel : dc.norm, TitleLeft);
 		XSetForeground(dpy, dc.gc, c== sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);

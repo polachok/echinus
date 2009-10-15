@@ -110,7 +110,7 @@ initkeys(){
     char t[64];
 
     initmodkey();
-    keys = malloc(sizeof(Key*)*LENGTH(KeyItems));
+    keys = malloc(sizeof(Key*) * LENGTH(KeyItems));
     /* global functions */
     for(i = 0; i < LENGTH(KeyItems); i++){
 	tmp = getresource(KeyItems[i].name, NULL);
@@ -138,7 +138,7 @@ initkeys(){
 	}
     }
     /* layout setting */
-    for(i = 0; i<LENGTH(layouts); i++){
+    for(i = 0; i < LENGTH(layouts); i++){
 	    snprintf(t, 63, "setlayout%s", layouts[i].symbol);
 	    tmp = getresource(t, NULL);
 	    if(!tmp)
