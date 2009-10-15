@@ -434,6 +434,7 @@ ban(Client *c) {
     XUnmapWindow(dpy, c->win);
     XSelectInput(dpy, c->win, CLIENTMASK);
     XUngrabServer(dpy);
+    setclientstate(c, IconicState);
     c->isbanned = True;
 }
 
@@ -445,7 +446,6 @@ iconifyit(const char *arg) {
     c = sel;
     focusnext(NULL);
     ban(c);
-    setclientstate(c, IconicState);
     c->isicon = True;
     arrange(curmonitor());
 }
@@ -1792,14 +1792,21 @@ scan(void) {
 void
 setclientstate(Client *c, long state) {
     long data[] = {state, None};
+    long winstate[2];
 
     XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
 		    PropModeReplace, (unsigned char *)data, 2);
     if(c->title)
 	XChangeProperty(dpy, c->title, wmatom[WMState], wmatom[WMState], 32,
 			PropModeReplace, (unsigned char *)data, 2);
-    if(state == NormalState)
+    if(state == NormalState) {
 	c->isicon = False;
+	XDeleteProperty(dpy, c->win, atom[WindowState]);
+    } else {
+	winstate[0] = atom[WindowStateHidden];
+	XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
+		PropModeReplace, (unsigned char*)winstate, 1);
+    }
 }
 
 void

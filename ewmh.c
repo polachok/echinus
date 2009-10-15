@@ -13,7 +13,8 @@ enum { ClientList, ActiveWindow, WindowDesk,
       NumberOfDesk, DeskNames, CurDesk, ELayout,
       ClientListStacking, WindowOpacity, WindowType,
       WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial, ESelTags,
-      WindowName, WindowState, WindowStateFs, WindowStateModal, Utf8String, Supported, NATOMS };
+      WindowName, WindowState, WindowStateFs, WindowStateModal, WindowStateHidden,
+      Utf8String, Supported, NATOMS };
 
 Atom atom[NATOMS];
 
@@ -39,6 +40,7 @@ char* atomnames[NATOMS][1] = {
     { "_NET_WM_STATE" },
     { "_NET_WM_STATE_FULLSCREEN" },
     { "_NET_WM_STATE_MODAL" },
+    { "_NET_WM_STATE_HIDDEN" },
     { "UTF8_STRING" }, 
     { "_NET_SUPPORTED" },
 };
