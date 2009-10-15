@@ -8,7 +8,6 @@ PIXMAPS = close.xbm iconify.xbm max.xbm
 FILES = draw.c parse.c ewmh.c config.h
 SRC = echinus.c
 OBJ = ${SRC:.c=.o}
-CONF = /share/examples/echinus
 
 all: options echinus ${HEADERS}
 
@@ -53,9 +52,9 @@ install: all
 	@echo installing manual page to ${DESTDIR}${MANPREFIX}/man1
 	@mkdir -p ${DESTDIR}${MANPREFIX}/man1
 	@sed "s/VERSION/${VERSION}/g;s|CONFDIR|${DESTDIR}${PREFIX}${CONF}|g" < echinus.1 > ${DESTDIR}${MANPREFIX}/man1/echinus.1
-	@echo install README to ${DESTDIR}${PREFIX}/share/doc/echinus
+	@echo installing README to ${DESTDIR}${PREFIX}/share/doc/echinus
 	@mkdir -p ${DESTDIR}${PREFIX}/share/doc/echinus
-	@cp README ${DESTDIR}${PREFIX}/share/doc/echinus
+	@sed "s|CONFDIR|${PREFIX}${CONF}|" < README > ${DESTDIR}${PREFIX}/share/doc/echinus/README
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin

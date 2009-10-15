@@ -22,7 +22,7 @@ with single monitor configurations.
 On new install:
 
 % mkdir ~/.echinus
-% cp /usr/local/share/examples/echinus/* ~/.echinus
+% cp -r CONFDIR ~/.echinus
 
 1.Configuration file
 --------------------
