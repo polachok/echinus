@@ -1948,8 +1948,13 @@ setup(void) {
 	snprintf(conf, 255, "%s/%s", getenv("HOME"), "/.echinus");
 	chdir(conf);
 	xrdb = XrmGetFileDatabase("echinusrc");
-	if(!xrdb)
-	    eprint("echinus: cannot open configuration file\n");
+	if(!xrdb) {
+	    fprintf(stderr, "echinus: cannot open configuration file in %s\n", conf);
+	    chdir(SYSCONFPATH);
+	    xrdb = XrmGetFileDatabase("echinusrc");
+	    if(!xrdb)
+		eprint("echinus: cannot open configuration file\n");
+	}
 
 	/* init tags */
 	inittags();

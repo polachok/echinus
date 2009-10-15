@@ -51,6 +51,7 @@ install: all
 	@cp echinusrc ${DESTDIR}${PREFIX}${CONF}
 	@cp ${PIXMAPS} ${DESTDIR}${PREFIX}${CONF}
 	@echo installing manual page to ${DESTDIR}${MANPREFIX}/man1
+	@mkdir -p ${DESTDIR}${MANPREFIX}/man1
 	@sed "s/VERSION/${VERSION}/g;s|CONFDIR|${DESTDIR}${PREFIX}${CONF}|g" < echinus.1 > ${DESTDIR}${MANPREFIX}/man1/echinus.1
 	@echo install README to ${DESTDIR}${PREFIX}/share/doc/echinus
 	@mkdir -p ${DESTDIR}${PREFIX}/share/doc/echinus
