@@ -636,7 +636,7 @@ initmonitors(XEvent *e) {
 	/* map virtual screens onto physical screens */
 	sr = XRRGetScreenResources(dpy, root);
 	if (sr == NULL)
-		fprintf(stderr, "bad luck\n");
+		goto no_xrandr;
 	else 
 		ncrtc = sr->ncrtc;
 
