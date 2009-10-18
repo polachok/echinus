@@ -1574,9 +1574,9 @@ propertynotify(XEvent *e) {
 
 void
 quit(const char *arg) {
-    cleanup();
     running = False;
     if(arg){
+	cleanup();
 	execvp(cargv[0], cargv);
 	eprint("Can't exec: %s\n", strerror(errno));
     }
