@@ -673,8 +673,8 @@ initmonitors(XEvent *e) {
 		XRRFreeCrtcInfo(ci);
 	XRRFreeScreenResources(sr);
 	return;
-#endif
 no_xrandr:
+#endif
 	m = emallocz(sizeof(Monitor));
 	m->sx = m->wax = 0;
 	m->sy = m->way = 0;
@@ -693,22 +693,19 @@ no_xrandr:
 void
 configurenotify(XEvent *e) {
     XConfigureEvent *ev = &e->xconfigure;
-#ifdef XRANDR
     Monitor *m;
-#endif
     if(ev->window == root) {
 #ifdef XRANDR
 	    if(XRRUpdateConfiguration((XEvent*)ev)) {
+#endif
 		initmonitors(e);
 		for(m = monitors; m; m = m->next)
 		    updategeom(m);
-#else
-		cursw = ev->width;
-		cursh = ev->height;
-#endif
 		XFreePixmap(dpy, dc.drawable);
+		XftDrawDestroy(dc.xftdrawable);
 		/* XXX */
 		dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
+		dc.xftdrawable = XftDrawCreate(dpy, dc.drawable, DefaultVisual(dpy,screen),DefaultColormap(dpy,screen));
 		arrange(NULL);
 #ifdef XRANDR
 	    }
