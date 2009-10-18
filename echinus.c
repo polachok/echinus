@@ -221,6 +221,7 @@ void moveresizekb(const char *arg);
 Client *nexttiled(Client *c, Monitor *m);
 Client *prevtiled(Client *c, Monitor *m);
 void propertynotify(XEvent *e);
+void reparentnotify(XEvent *e);
 void quit(const char *arg);
 void restart(const char *arg);
 void resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints);
@@ -330,6 +331,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[MappingNotify] = mappingnotify,
 	[MapRequest] = maprequest,
 	[PropertyNotify] = propertynotify,
+	[ReparentNotify] = reparentnotify,
 	[UnmapNotify] = unmapnotify,
 	[ClientMessage] = clientmessage,
 #ifdef XRANDR
@@ -1533,6 +1535,16 @@ Client *
 prevtiled(Client *c, Monitor *m) {
     for(; c && (c->isfloating || !isvisible(c, m) || c->isbastard || c->isicon); c = c->prev);
     return c;
+}
+
+void
+reparentnotify(XEvent *e) {
+    Client *c;
+    XReparentEvent *ev = &e->xreparent;
+
+    if((c = getclient(ev->window, clients, False))) 
+	if(ev->parent != c->frame)
+	    unmanage(c);
 }
 
 void
