@@ -1447,13 +1447,11 @@ moveresizekb(const char *arg) {
 
 void
 getpointer(int *x, int *y) {
-    int x1, y1, di;
+    int di;
     unsigned int dui;
     Window dummy;
 
-    XQueryPointer(dpy, root, &dummy, &dummy, &x1, &y1, &di, &di, &dui);
-    *x = x1;
-    *y = y1;
+    XQueryPointer(dpy, root, &dummy, &dummy, x, y, &di, &di, &dui);
 }
 
 Monitor*
