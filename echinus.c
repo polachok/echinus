@@ -59,7 +59,7 @@
 #define RESCLASS	       "Echinus"
 #define OPAQUE	0xffffffff
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
-#define ISLTFLOATING ((layouts[ltidxs[curtag]].arrange == floating) || (layouts[ltidxs[curtag]].arrange == ifloating))
+#define ISLTFLOATING ((layouts[ltidxs[curmontag]].arrange == floating) || (layouts[ltidxs[curmontag]].arrange == ifloating))
 
 /* enums */
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };
@@ -289,7 +289,7 @@ Client *stack = NULL;
 #define curway curmonitor()->way
 #define curwaw curmonitor()->waw
 #define curwah curmonitor()->wah
-#define curtag curmonitor()->curtag
+#define curmontag curmonitor()->curtag
 #define curstruts curmonitor()->struts
 unsigned int *nmasters;
 unsigned int *bpos;
@@ -379,7 +379,7 @@ arrange(Monitor *m) {
     Monitor *i;
 
     for(c = stack; c; c = c->snext){
-	    if((!c->isbastard && isvisible(c, NULL) && !c->isicon) || (c->isbastard && bpos[curtag] == StrutsOn)) {
+	    if((!c->isbastard && isvisible(c, NULL) && !c->isicon) || (c->isbastard && bpos[curmontag] == StrutsOn)) {
 		    unban(c);
 		    if(c->isbastard)
 			c->isicon = False;
@@ -390,7 +390,6 @@ arrange(Monitor *m) {
 			c->isicon = True;
 	    }
     }
-#undef curtag
     if(m) { 
 	layouts[ltidxs[m->curtag]].arrange(m);
 	restack(m);
@@ -398,7 +397,6 @@ arrange(Monitor *m) {
     }
     for(i = monitors; i; i = i->next)
 	layouts[ltidxs[i->curtag]].arrange(i);
-#define curtag curmonitor()->curtag
     focus(NULL);
     for(i = monitors; i; i = i->next)
 	restack(i);
@@ -658,9 +656,7 @@ initmonitors(XEvent *e) {
 		    m->sy = m->way = ci->y;
 		    m->sw = m->waw = ci->width;
 		    m->sh = m->wah = ci->height;
-#undef curtag
 		    m->curtag = n;
-#define curtag curmonitor()->curtag
 		    m->prevtags = emallocz(ntags*sizeof(Bool));
 		    m->seltags = emallocz(ntags*sizeof(Bool));
 		    m->seltags[n] = True;
@@ -680,9 +676,7 @@ no_xrandr:
 	m->sy = m->way = 0;
 	m->sw = m->waw = DisplayWidth(dpy, screen);
 	m->sh = m->wah = DisplayHeight(dpy, screen);
-#undef curtag
 	m->curtag = 0;
-#define curtag curmonitor()->curtag
 	m->prevtags = emallocz(ntags*sizeof(Bool));
 	m->seltags = emallocz(ntags*sizeof(Bool));
 	m->seltags[0] = True;
@@ -723,7 +717,7 @@ configurerequest(XEvent *e) {
 	    c->ismax = False;
 	    if(ev->value_mask & CWBorderWidth)
 		    c->border = ev->border_width;
-	    if(c->isfixed || c->isfloating || (floating == layouts[ltidxs[curtag]].arrange)) {
+	    if(c->isfixed || c->isfloating || (floating == layouts[ltidxs[curmontag]].arrange)) {
 		    if(ev->value_mask & CWX)
 			    c->x = ev->x;
 		    if(ev->value_mask & CWY)
@@ -964,15 +958,15 @@ focusprev(const char *arg) {
 void
 incnmaster(const char *arg) {
     int i;
-    if(layouts[ltidxs[curtag]].arrange != tile)
+    if(layouts[ltidxs[curmontag]].arrange != tile)
 	    return;
     if(!arg)
-	    nmasters[curtag] = NMASTER;
+	    nmasters[curmontag] = NMASTER;
     else {
 	    i = atoi(arg);
-	    if((nmasters[curtag] + i) < 1 || curwah / (nmasters[curtag] + i) <= 2 * look.borderpx)
+	    if((nmasters[curmontag] + i) < 1 || curwah / (nmasters[curmontag] + i) <= 2 * look.borderpx)
 		    return;
-	    nmasters[curtag] += i;
+	    nmasters[curmontag] += i;
     }
     if(sel)
 	    arrange(curmonitor());
@@ -1418,7 +1412,7 @@ monocle(Monitor *m) {
 	    }
 	    else
 		continue;
-	    if(bpos[curtag] != StrutsOn)
+	    if(bpos[curmontag] != StrutsOn)
 		resize(c, m, m->sx - c->border, m->sy - c->border, m->sw, m->sh, False);
 	    else {
 		resize(c, m, m->wax, m->way, m->waw - 2*c->border, m->wah - 2*c->border, False);
@@ -1635,12 +1629,10 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 		    break;
 	    }
 	    if(t) {
-#undef curtag
 		for(i = 0; i < ntags; i++)
 		    c->tags[i] = t->seltags[i];
 		updateatom[WindowDesk](c);
 		arrange(NULL);
-#define curtag curmonitor()->curtag
 	    }
 	    else
 		x = m->sw - w - 2 * c->border;
@@ -1837,8 +1829,8 @@ setlayout(const char *arg) {
     unsigned int i;
 
     if(!arg) {
-	    if(&layouts[++ltidxs[curtag]] == &layouts[LENGTH(layouts)])
-		    ltidxs[curtag] = 0;
+	    if(&layouts[++ltidxs[curmontag]] == &layouts[LENGTH(layouts)])
+		    ltidxs[curmontag] = 0;
     }
     else {
 	    for(i = 0; i < LENGTH(layouts); i++)
@@ -1846,7 +1838,7 @@ setlayout(const char *arg) {
 			    break;
 	    if(i == LENGTH(layouts))
 		    return;
-	    ltidxs[curtag] = i;
+	    ltidxs[curmontag] = i;
     }
     if(sel)
 	    arrange(curmonitor());
@@ -1861,16 +1853,16 @@ setmwfact(const char *arg) {
 	    return;
     /* arg handling, manipulate mwfact */
     if(arg == NULL)
-	    mwfacts[curtag] = MWFACT;
+	    mwfacts[curmontag] = MWFACT;
     else if(sscanf(arg, "%lf", &delta) == 1) {
 	    if(arg[0] == '+' || arg[0] == '-')
-		    mwfacts[curtag] += delta;
+		    mwfacts[curmontag] += delta;
 	    else
-		    mwfacts[curtag] = delta;
-	    if(mwfacts[curtag] < 0.1)
-		    mwfacts[curtag] = 0.1;
-	    else if(mwfacts[curtag] > 0.9)
-		    mwfacts[curtag] = 0.9;
+		    mwfacts[curmontag] = delta;
+	    if(mwfacts[curmontag] < 0.1)
+		    mwfacts[curmontag] = 0.1;
+	    else if(mwfacts[curmontag] > 0.9)
+		    mwfacts[curmontag] = 0.9;
     }
     arrange(curmonitor());
 }
@@ -2097,7 +2089,7 @@ bstack(Monitor *m) {
     for(n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
 	n++;
 
-    mh = (n == 1) ? m->wah : mwfacts[curtag] * m->wah;
+    mh = (n == 1) ? m->wah : mwfacts[curmontag] * m->wah;
     tw = (n > 1) ? m->waw / (n - 1) : 0;
 
     nx = m->wax;
@@ -2133,7 +2125,6 @@ void
 tile(Monitor *m) {
 	unsigned int i, n, nx, ny, nw, nh, mw, mh, th;
 	Client *c, *mc;
-#undef curtag
 	wasfloating = False;
 
 	domwfact = dozoom = True;
@@ -2184,12 +2175,11 @@ tile(Monitor *m) {
 			ny = c->y + c->h + 2 * c->border;
 		}
 	}
-#define curtag curmonitor()->curtag
 }
 
 void
 togglestruts(const char *arg) {
-    bpos[curtag] = (bpos[curtag] == StrutsOn) ? (hidebastards ? StrutsHide : StrutsOff) : StrutsOn;
+    bpos[curmontag] = (bpos[curmontag] == StrutsOn) ? (hidebastards ? StrutsHide : StrutsOff) : StrutsOn;
     updategeom(curmonitor());
     arrange(curmonitor());
 }
@@ -2271,8 +2261,8 @@ toggleview(const char *arg) {
 	curseltags[i] = True; /* at least one tag must be viewed */
 	j = i;
     }
-    if(curtag == i)
-	curtag = j;
+    if(curmontag == i)
+	curmontag = j;
     arrange(curmonitor());
     updateatom[CurDesk](NULL);
 }
@@ -2344,7 +2334,7 @@ updategeom(Monitor *m) {
     m->way = m->sy;
     m->wah = m->sh;
     m->waw = m->sw;
-    switch(bpos[curtag]){
+    switch(bpos[curmontag]){
     default:
 	m->wax += m->struts[LeftStrut];
 	/* XXX wax??? */
@@ -2479,16 +2469,16 @@ view(const char *arg) {
 	    if(m->seltags[idxoftag(arg)] && m != curmonitor()) {
 		swapping = 1;
 		m->seltags[idxoftag(arg)] = False;
-		m->seltags[curtag] = True;
+		m->seltags[curmontag] = True;
 	    }
     }
     memcpy(curprevtags, curseltags, ntags*(sizeof curseltags));
     for(i = 0; i < ntags; i++)
 	    curseltags[i] = (NULL == arg);
     curseltags[idxoftag(arg)] = True;
-    prevcurtag = curtag;
-    curtag = idxoftag(arg);
-    if (bpos[prevcurtag] != bpos[curtag])
+    prevcurtag = curmontag;
+    curmontag = idxoftag(arg);
+    if (bpos[prevcurtag] != bpos[curmontag])
 	updategeom(curmonitor());
     if(swapping)
 	arrange(NULL);
@@ -2505,13 +2495,13 @@ viewprevtag(const char *arg) {
  
     i = 0;
     while(i < ntags-1 && !curprevtags[i]) i++;
-    prevcurtag = curtag;
-    curtag = i;
+    prevcurtag = curmontag;
+    curmontag = i;
 
     memcpy(tmptags, curseltags, ntags*(sizeof curseltags));
     memcpy(curseltags, curprevtags, ntags*(sizeof curseltags));
     memcpy(curprevtags, tmptags, ntags*(sizeof curseltags));
-    if (bpos[prevcurtag] != bpos[curtag])
+    if (bpos[prevcurtag] != bpos[curmontag])
 	updategeom(curmonitor());
     arrange(NULL);
     updateatom[CurDesk](NULL);
