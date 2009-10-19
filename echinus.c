@@ -1585,6 +1585,8 @@ quit(const char *arg) {
 void
 resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
     XWindowChanges wc;
+    Monitor *t;
+    int i;
     c->th = c->hastitle ? dc.h : 0;
     if(sizehints) {
 	/* set minimum possible */
@@ -1627,8 +1629,22 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
     if(w <= 0 || h <= 0)
 	    return;
     /* offscreen appearance fixes */
-    if(x > m->wax + m->sw)
-	    x = m->sw - w - 2 * c->border;
+    if(x > m->wax + m->sw) {
+	    for(i = 0, t = monitors; t; t = t->next, i++) {
+		if((x >= t->sx && x <= t->sx + t->sw))
+		    break;
+	    }
+	    if(t) {
+#undef curtag
+		for(i = 0; i < ntags; i++)
+		    c->tags[i] = t->seltags[i];
+		updateatom[WindowDesk](c);
+		arrange(NULL);
+#define curtag curmonitor()->curtag
+	    }
+	    else
+		x = m->sw - w - 2 * c->border;
+    }
     if(y > m->way + m->sh)
 	    y = m->sh - h - 2 * c->border;
     if(x + w + 2 * c->border < m->sx)
