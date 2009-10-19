@@ -2549,6 +2549,7 @@ main(int argc, char *argv[]) {
     setlocale(LC_CTYPE, "");
     if(!(dpy = XOpenDisplay(0)))
 	    eprint("echinus: cannot open display\n");
+    signal(SIGHUP, quit);
     cargv = argv;
     screen = DefaultScreen(dpy);
     root = RootWindow(dpy, screen);
