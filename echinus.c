@@ -480,7 +480,10 @@ buttonpress(XEvent *e) {
 	if(ev->button == Button1) {
 		if(!ISLTFLOATING && !c->isfloating)
 		    togglefloating(NULL);
+		restack(curmonitor());
 		movemouse(c);
+		arrange(NULL);
+		restack(curmonitor());
 	}
 	else if(ev->button == Button2) {
 		if(!ISLTFLOATING && c->isfloating)
@@ -517,6 +520,8 @@ buttonpress(XEvent *e) {
 	    if(ISLTFLOATING || c->isfloating)
 		restack(curmonitor());
 	    movemouse(c);
+	    arrange(NULL);
+	    restack(curmonitor());
 	}
 	else if(ev->button == Button3 && !c->isfixed) {
 	    resizemouse(c);
@@ -1579,7 +1584,6 @@ quit(const char *arg) {
 void
 resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
     XWindowChanges wc;
-    Monitor *t;
     int i;
     c->th = c->hastitle ? dc.h : 0;
     if(sizehints) {
@@ -1622,21 +1626,13 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
     }
     if(w <= 0 || h <= 0)
 	    return;
+    /* we are probably moving to a different monitor */
+    for(i = 0; i < ntags; i++)
+	c->tags[i] = m->seltags[i];
+    updateatom[WindowDesk](c);
     /* offscreen appearance fixes */
-    if(x > m->wax + m->sw) {
-	    for(i = 0, t = monitors; t; t = t->next, i++) {
-		if((x >= t->sx && x <= t->sx + t->sw))
-		    break;
-	    }
-	    if(t) {
-		for(i = 0; i < ntags; i++)
-		    c->tags[i] = t->seltags[i];
-		updateatom[WindowDesk](c);
-		arrange(NULL);
-	    }
-	    else
-		x = m->sw - w - 2 * c->border;
-    }
+    if(x > m->wax + m->sw)
+	    x = m->sw - w - 2 * c->border;
     if(y > m->way + m->sh)
 	    y = m->sh - h - 2 * c->border;
     if(x + w + 2 * c->border < m->sx)
