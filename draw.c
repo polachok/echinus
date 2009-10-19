@@ -96,8 +96,10 @@ drawclient(Client *c) {
 	return;
     if(!isvisible(c, curmonitor()))
 	return;
+    /* WTF?
     if(c->isfloating && !c->isbastard)
 	resize(c, curmonitor(), c->x, c->y, c->w, c->h, True);
+	*/
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
     XFillRectangle(dpy, dc.drawable, dc.gc, 0, 0, c->w, c->th);

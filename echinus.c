@@ -1479,7 +1479,7 @@ curmonitor() {
 
 void
 movemouse(Client *c) {
-    int x1, y1, ocx, ocy, nx, ny;
+    int x1, y1, ocx, ocy, nx, ny, i;
     XEvent ev;
 
     ocx = nx = c->x;
@@ -1513,6 +1513,10 @@ movemouse(Client *c) {
 		    else if(abs((curway + curwah) - (ny + c->h + 2 * c->border)) < SNAP)
 			    ny = curway + curwah - c->h - 2 * c->border;
 		    resize(c, curmonitor(), nx, ny, c->w, c->h, False);
+		    /* we are probably moving to a different monitor */
+		    for(i = 0; i < ntags; i++)
+			c->tags[i] = curmonitor()->seltags[i];
+		    updateatom[WindowDesk](c);
 		    drawclient(c);
 		    break;
 	    }
@@ -1584,7 +1588,6 @@ quit(const char *arg) {
 void
 resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
     XWindowChanges wc;
-    int i;
     c->th = c->hastitle ? dc.h : 0;
     if(sizehints) {
 	/* set minimum possible */
@@ -1626,10 +1629,6 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
     }
     if(w <= 0 || h <= 0)
 	    return;
-    /* we are probably moving to a different monitor */
-    for(i = 0; i < ntags; i++)
-	c->tags[i] = m->seltags[i];
-    updateatom[WindowDesk](c);
     /* offscreen appearance fixes */
     if(x > m->wax + m->sw)
 	    x = m->sw - w - 2 * c->border;
@@ -1668,8 +1667,7 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 
 void
 resizemouse(Client *c) {
-    int ocx, ocy;
-    int nw, nh;
+    int ocx, ocy, nw, nh;
     XEvent ev;
 
     ocx = c->x;
@@ -2232,6 +2230,7 @@ toggletag(const char *arg) {
     for(j = 0; j < ntags && !sel->tags[j]; j++);
     if(j == ntags)
 	    sel->tags[i] = True; /* at least one tag must be enabled */
+    drawclient(sel);
     arrange(NULL);
 }
 
