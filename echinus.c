@@ -473,7 +473,7 @@ buttonpress(XEvent *e) {
     if((c = getclient(ev->window, clients, False))) {
 	focus(c);
 	restack(curmonitor());
-	//if(!sloppy || ((sloppy == SloppyFloat) && !c->isfloating))
+	if(!sloppy || ((sloppy == SloppyFloat) && !c->isfloating))
 	    XAllowEvents(dpy, ReplayPointer, CurrentTime);
 	if(CLEANMASK(ev->state) != modkey)
 	   return;
