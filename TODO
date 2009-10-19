@@ -1,7 +1,5 @@
 * bug reports
 * fix issues with tagging on multihead 
-* fix NetBSD problem
-* impement drag'n'drop between monitors
 * fix focus problems
 * do code cleanup
 * ...
