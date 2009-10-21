@@ -480,10 +480,8 @@ buttonpress(XEvent *e) {
 	if(ev->button == Button1) {
 		if(!ISLTFLOATING && !c->isfloating)
 		    togglefloating(NULL);
-		restack(curmonitor());
 		movemouse(c);
 		arrange(NULL);
-		restack(curmonitor());
 	}
 	else if(ev->button == Button2) {
 		if(!ISLTFLOATING && c->isfloating)
@@ -521,7 +519,6 @@ buttonpress(XEvent *e) {
 		restack(curmonitor());
 	    movemouse(c);
 	    arrange(NULL);
-	    restack(curmonitor());
 	}
 	else if(ev->button == Button3 && !c->isfixed) {
 	    resizemouse(c);
@@ -836,7 +833,8 @@ enternotify(XEvent *e) {
 	case SloppyFloat:
 	    if(ISLTFLOATING || c->isfloating)
 		focus(c);
-	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
+	    else
+		XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
 		    BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
 	    break;
 	case AllSloppy:
@@ -1481,6 +1479,7 @@ void
 movemouse(Client *c) {
     int x1, y1, ocx, ocy, nx, ny, i;
     XEvent ev;
+    Monitor *m;
 
     ocx = nx = c->x;
     ocy = ny = c->y;
@@ -1488,6 +1487,8 @@ movemouse(Client *c) {
 		    None, cursor[CurMove], CurrentTime) != GrabSuccess)
 	    return;
     c->ismax = False;
+    XRaiseWindow(dpy, c->frame);
+    m = curmonitor();
     getpointer(&x1, &y1);
     for(;;) {
 	    XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
@@ -1514,10 +1515,12 @@ movemouse(Client *c) {
 			    ny = curway + curwah - c->h - 2 * c->border;
 		    resize(c, curmonitor(), nx, ny, c->w, c->h, False);
 		    /* we are probably moving to a different monitor */
-		    for(i = 0; i < ntags; i++)
-			c->tags[i] = curmonitor()->seltags[i];
-		    updateatom[WindowDesk](c);
-		    drawclient(c);
+		    if(m != curmonitor()) {
+			for(i = 0; i < ntags; i++)
+			    c->tags[i] = curmonitor()->seltags[i];
+			updateatom[WindowDesk](c);
+			drawclient(c);
+		    }
 		    break;
 	    }
     }
@@ -2274,7 +2277,6 @@ focusview(const char *arg) {
 	if (c->tags[i] && !c->isbastard) {
 		focus(c);
 		c->isplaced = True;
-
 	}
     }
     restack(curmonitor());
