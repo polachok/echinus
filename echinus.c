@@ -475,6 +475,7 @@ buttonpress(XEvent *e) {
 	    return;
     }
     if((c = getclient(ev->window, clients, False))) {
+	fprintf(stderr, "buttonpress for %s\n", c->name);
 	focus(c);
 	restack(curmonitor());
 	if(!sloppy || ((sloppy == SloppyFloat) && !c->isfloating))
@@ -623,9 +624,14 @@ initmonitors(XEvent *e) {
 	int			c, n;
 	int			ncrtc = 0;
 	int                     dummy1, dummy2, major, minor;
+	unsigned int	 	w, h;
+	unsigned int		dui[4];
+	Window			dummywin;
 
-	if(slave)
+	if(slave) {
+	    XGetGeometry(dpy, root, &dummywin, &dui[0], &dui[1], &w, &h, &dui[2], &dui[3]);
 	    goto no_xrandr;
+	}
 
 	/* free */
 	if(monitors) {
@@ -684,8 +690,8 @@ no_xrandr:
 	m = emallocz(sizeof(Monitor));
 	m->sx = m->wax = 0;
 	m->sy = m->way = 0;
-	m->sw = m->waw = DisplayWidth(dpy, screen);
-	m->sh = m->wah = DisplayHeight(dpy, screen);
+	m->sw = m->waw = slave ? w : DisplayWidth(dpy, screen);
+	m->sh = m->wah = slave ? h : DisplayHeight(dpy, screen);
 	m->curtag = 0;
 	m->prevtags = emallocz(ntags*sizeof(Bool));
 	m->seltags = emallocz(ntags*sizeof(Bool));
@@ -704,11 +710,11 @@ configurenotify(XEvent *e) {
 #endif
 		initmonitors(e);
 		for(m = monitors; m; m = m->next) {
-		    if(slave) {
+		    if(slave && ev->height != m->sh && ev->width != m->sw) {
 			m->sw = ev->width;
 			m->sh = ev->height;
+			fprintf(stderr, "w:%d h:%d\n", m->sw, m->sh);
 		    }
-		    fprintf(stderr, "w:%d h:%d\n", m->sw, m->sh);
 		    updategeom(m);
 		}
 		XFreePixmap(dpy, dc.drawable);
@@ -839,6 +845,10 @@ enternotify(XEvent *e) {
 	    focus(c);
 	if(c->isbastard)
 	    grabbuttons(c, True);
+	if(c->isslave) {
+	    XUngrabKey(dpy, AnyKey, AnyModifier, c->frame);
+	    XUngrabKey(dpy, AnyKey, AnyModifier, c->win);
+	}
 	switch(sloppy) {
 	case Clk2Focus:
 	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
@@ -1287,7 +1297,8 @@ manage(Window w, XWindowAttributes *wa) {
 	XSelectInput(dpy, w, CLIENTMASK);
     grabbuttons(c, False);
     twa.override_redirect = True;
-    twa.event_mask = MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask;
+    //twa.event_mask = MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask;
+    twa.event_mask = MOUSEMASK | StructureNotifyMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask;
     c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
 		    c->border, DefaultDepth(dpy, screen), InputOutput,
 		    DefaultVisual(dpy, screen),
@@ -2077,6 +2088,8 @@ setup(void) {
 	dectiled = atoi(getresource("decoratetiled", DECORATETILED));
 	hidebastards = atoi(getresource("hidebastards", "0"));
 	sloppy = atoi(getresource("sloppy", "0"));
+	if(slave)
+	    sloppy = AllSloppy;
 
 	for(m = monitors; m; m = m->next) {
 	    m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] = m->struts[BotStrut] = 0;
