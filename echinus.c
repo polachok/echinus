@@ -311,6 +311,7 @@ Rule **rules;
 int ntags = 0;
 int nkeys = 0;
 int nrules = 0;
+int slave = 0;
 Bool hidebastards = 0;
 Bool dectiled = 0;
 unsigned int modkey = 0;
@@ -2555,8 +2556,10 @@ main(int argc, char *argv[]) {
     if(argc == 2 && !strcmp("-v", argv[1]))
 	    eprint("echinus-"VERSION", © 2006-2008 Anselm R. Garbe, Sander van Dijk, "
 		   "Jukka Salmi, Premysl Hruby, Szabolcs Nagy, Alexander Polakov\n");
+    if(argc == 2 && !strcmp("-w", argv[1]))
+	    slave = 1;
     else if(argc != 1)
-	    eprint("usage: echinus [-v]\n");
+	    eprint("usage: echinus [-v] [-w]\n");
 
     setlocale(LC_CTYPE, "");
     if(!(dpy = XOpenDisplay(0)))
@@ -2566,7 +2569,13 @@ main(int argc, char *argv[]) {
     signal(SIGQUIT, sighandler);
     cargv = argv;
     screen = DefaultScreen(dpy);
-    root = RootWindow(dpy, screen);
+    if(slave) {
+	root = XCreateSimpleWindow(dpy, RootWindow(dpy, screen), 50, 50, 800, 600, 0,
+		WhitePixel(dpy, screen), BlackPixel(dpy, screen));
+	XMapWindow(dpy, root);
+    }
+    else
+	root = RootWindow(dpy, screen);
 
     checkotherwm();
     setup();
