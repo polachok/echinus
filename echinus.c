@@ -1192,6 +1192,7 @@ manage(Window w, XWindowAttributes *wa) {
 
     if(sel && sel->isslave) {
 	XReparentWindow(dpy, w, sel->win, 0, 0);
+	XMapWindow(dpy, w);
 	return;
     }
 
