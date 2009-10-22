@@ -623,8 +623,9 @@ initmonitors(XEvent *e) {
 	int			c, n;
 	int			ncrtc = 0;
 	int                     dummy1, dummy2, major, minor;
-	Window 			dummy;
-	unsigned int            w, h, d1, d2;
+
+	if(slave)
+	    goto no_xrandr;
 
 	/* free */
 	if(monitors) {
@@ -636,10 +637,7 @@ initmonitors(XEvent *e) {
 	    } while(m);
 	    monitors = NULL;
 	}
-	if(slave) {
-	    if(XGetGeometry(dpy, root, &dummy, &dummy1, &dummy2, &w, &h, &d1, &d2))
-	    goto no_xrandr;
-	}
+	
 	/* initial Xrandr setup */
 	if(XRRQueryExtension(dpy, &dummy1, &dummy2))
 	     if (XRRQueryVersion(dpy, &major, &minor) && major < 1)
@@ -686,8 +684,8 @@ no_xrandr:
 	m = emallocz(sizeof(Monitor));
 	m->sx = m->wax = 0;
 	m->sy = m->way = 0;
-	m->sw = m->waw = slave ? w : DisplayWidth(dpy, screen);
-	m->sh = m->wah = slave ? h : DisplayHeight(dpy, screen);
+	m->sw = m->waw = DisplayWidth(dpy, screen);
+	m->sh = m->wah = DisplayHeight(dpy, screen);
 	m->curtag = 0;
 	m->prevtags = emallocz(ntags*sizeof(Bool));
 	m->seltags = emallocz(ntags*sizeof(Bool));
@@ -702,11 +700,17 @@ configurenotify(XEvent *e) {
     Monitor *m;
     if(ev->window == root) {
 #ifdef XRANDR
-	    if(XRRUpdateConfiguration((XEvent*)ev)) {
+	    if(XRRUpdateConfiguration((XEvent*)ev) ^ slave ) {
 #endif
 		initmonitors(e);
-		for(m = monitors; m; m = m->next)
+		for(m = monitors; m; m = m->next) {
+		    if(slave) {
+			m->sw = ev->width;
+			m->sh = ev->height;
+		    }
+		    fprintf(stderr, "w:%d h:%d\n", m->sw, m->sh);
 		    updategeom(m);
+		}
 		XFreePixmap(dpy, dc.drawable);
 		XftDrawDestroy(dc.xftdrawable);
 		/* XXX */
@@ -1458,10 +1462,24 @@ moveresizekb(const char *arg) {
 void
 getpointer(int *x, int *y) {
     int di;
-    unsigned int dui;
-    Window dummy;
-
-    XQueryPointer(dpy, root, &dummy, &dummy, x, y, &di, &di, &dui);
+    unsigned int dui[4];
+    Window dummy, dummy2;
+    int tx, ty;
+    int x1, y1;
+DPRINT
+    XQueryPointer(dpy, root, &dummy, &dummy, &tx, &ty, &di, &di, &dui[0]);
+    if(slave) {
+DPRINT
+	XGetGeometry(dpy, root, &dummy2, &x1, &y1, &dui[0], &dui[1], &dui[2], &dui[3]);
+DPRINT
+	*x = tx - x1;
+	*y = ty - y1;
+DPRINT
+    }
+    else {
+	*x = tx;
+	*y = ty;
+    }
 }
 
 Monitor*
@@ -1482,7 +1500,10 @@ Monitor*
 curmonitor() {
     int x, y, i;
     Monitor *m;
+    if(slave)
+	return(monitors);
     getpointer(&x, &y);
+    fprintf(stderr, "%d %d\n", x, y);
     for(i = 0, m = monitors; m; m = m->next, i++) {
 	if((x >= m->sx && x <= m->sx + m->sw)) {
 	    break;
