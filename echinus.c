@@ -623,6 +623,8 @@ initmonitors(XEvent *e) {
 	int			c, n;
 	int			ncrtc = 0;
 	int                     dummy1, dummy2, major, minor;
+	Window 			dummy;
+	unsigned int            w, h, d1, d2;
 
 	/* free */
 	if(monitors) {
@@ -633,6 +635,10 @@ initmonitors(XEvent *e) {
 		m = t;
 	    } while(m);
 	    monitors = NULL;
+	}
+	if(slave) {
+	    if(XGetGeometry(dpy, root, &dummy, &dummy1, &dummy2, &w, &h, &d1, &d2))
+	    goto no_xrandr;
 	}
 	/* initial Xrandr setup */
 	if(XRRQueryExtension(dpy, &dummy1, &dummy2))
@@ -680,8 +686,8 @@ no_xrandr:
 	m = emallocz(sizeof(Monitor));
 	m->sx = m->wax = 0;
 	m->sy = m->way = 0;
-	m->sw = m->waw = DisplayWidth(dpy, screen);
-	m->sh = m->wah = DisplayHeight(dpy, screen);
+	m->sw = m->waw = slave ? w : DisplayWidth(dpy, screen);
+	m->sh = m->wah = slave ? h : DisplayHeight(dpy, screen);
 	m->curtag = 0;
 	m->prevtags = emallocz(ntags*sizeof(Bool));
 	m->seltags = emallocz(ntags*sizeof(Bool));
