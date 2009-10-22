@@ -840,6 +840,9 @@ enternotify(XEvent *e) {
 
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
 	return;
+    if(slave && ev->window == root)
+	XGrabKeyboard(dpy, root, True,
+		    GrabModeAsync, GrabModeAsync, CurrentTime);
     if((c = getclient(ev->window, clients, False))){
 	if(!isvisible(sel, curmonitor()))
 	    focus(c);
@@ -1190,6 +1193,9 @@ void
 leavenotify(XEvent *e) {
     XCrossingEvent *ev = &e->xcrossing;
     Client *c;
+
+    if(slave && (ev->window == root))
+	XUngrabKeyboard(dpy, CurrentTime);
 
     if((ev->window == root) && !ev->same_screen) {
 	    selscreen = False;
