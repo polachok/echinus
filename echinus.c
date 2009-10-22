@@ -94,7 +94,7 @@ struct Client {
 	long flags;
 	unsigned int border, oldborder;
 	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon, hastitle;
-	Bool isplaced, isbastard, isfocusable;
+	Bool isplaced, isbastard, isfocusable, isslave;
 	Bool *tags;
 	Client *next;
 	Client *prev;
@@ -159,6 +159,7 @@ typedef struct {
 	const char *tags;
 	Bool isfloating;
 	Bool hastitle;
+	Bool isslave;
 } Rule;
 
 typedef struct {
@@ -359,6 +360,7 @@ applyrules(Client *c) {
 	    if(regs[i].propregex && !regexec(regs[i].propregex, buf, 1, &tmp, 0)) {
 		    c->isfloating = rules[i]->isfloating;
 		    c->hastitle = rules[i]->hastitle;
+		    c->isslave = rules[i]->isslave;
 		    for(j = 0; regs[i].tagregex && j < ntags; j++) {
 			    if(!regexec(regs[i].tagregex, tags[j], 1, &tmp, 0)) {
 				    matched = True;
@@ -1188,6 +1190,11 @@ manage(Window w, XWindowAttributes *wa) {
     XWMHints *wmh;
     int i = 0;
 
+    if(sel && sel->isslave) {
+	XReparentWindow(dpy, w, sel->win, 0, 0);
+	return;
+    }
+
     c = emallocz(sizeof(Client));
     c->win = w;
     if(checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]) ||
@@ -1801,6 +1808,18 @@ scan(void) {
     }
     if(wins)
 	    XFree(wins);
+}
+
+void 
+setclass(void) {
+    XClassHint *xch;
+    if(!slave)
+	return;
+    xch = XAllocClassHint();
+    xch->res_name = "echinus";
+    xch->res_class = "Echinus";
+    XSetClassHint(dpy, root, xch);
+    XStoreName(dpy, root, "Echinus");
 }
 
 void
@@ -2573,6 +2592,7 @@ main(int argc, char *argv[]) {
 	root = XCreateSimpleWindow(dpy, RootWindow(dpy, screen), 50, 50, 800, 600, 0,
 		WhitePixel(dpy, screen), BlackPixel(dpy, screen));
 	XMapWindow(dpy, root);
+	setclass();
     }
     else
 	root = RootWindow(dpy, screen);
