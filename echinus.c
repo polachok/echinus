@@ -1974,7 +1974,7 @@ inittags(){
     ntags = atoi(getresource("tags.number", "5"));
     tags = emallocz(ntags*sizeof(char*));
     for(i = 0; i < ntags; i++){
-	tags[i] = emallocz(25*sizeof(char));
+	tags[i] = emallocz(25);
 	snprintf(tmp, 24, "tags.name%d", i);
 	snprintf(tags[i], 24, "%s", getresource(tmp, "null"));
     }
