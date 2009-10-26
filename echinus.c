@@ -1915,6 +1915,14 @@ inittags(){
     }
 }
 
+void 
+sighandler(int signum) {
+    if(signum == SIGHUP)
+	quit((char*)signum);
+    else
+	quit(0);
+}
+
 void
 setup(void) {
 	int d;
@@ -2553,7 +2561,9 @@ main(int argc, char *argv[]) {
     setlocale(LC_CTYPE, "");
     if(!(dpy = XOpenDisplay(0)))
 	    eprint("echinus: cannot open display\n");
-    signal(SIGHUP, quit);
+    signal(SIGHUP, sighandler);
+    signal(SIGINT, sighandler);
+    signal(SIGQUIT, sighandler);
     cargv = argv;
     screen = DefaultScreen(dpy);
     root = RootWindow(dpy, screen);
