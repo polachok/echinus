@@ -58,8 +58,8 @@
 #define LENGTH(x)		(sizeof x / sizeof x[0])
 #define RESNAME			"echinus"
 #define RESCLASS		"Echinus"
-#define SLAVERESNAME		"echinus"
-#define SLAVERESCLASS		"Echinus-frame"
+#define SLAVERESNAME		"echinus.frame"
+#define SLAVERESCLASS		"Echinus.frame"
 #define OPAQUE	0xffffffff
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 #define ISLTFLOATING ((layouts[ltidxs[curmontag]].arrange == floating) || (layouts[ltidxs[curmontag]].arrange == ifloating))
