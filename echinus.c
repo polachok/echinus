@@ -56,8 +56,10 @@
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
 #define CLIENTMASK	      (StructureNotifyMask | PropertyChangeMask | EnterWindowMask)
 #define LENGTH(x)		(sizeof x / sizeof x[0])
-#define RESNAME			       "echinus"
-#define RESCLASS	       "Echinus"
+#define RESNAME			"echinus"
+#define RESCLASS		"Echinus"
+#define SLAVERESNAME		"echinus"
+#define SLAVERESCLASS		"Echinus-frame"
 #define OPAQUE	0xffffffff
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 #define ISLTFLOATING ((layouts[ltidxs[curmontag]].arrange == floating) || (layouts[ltidxs[curmontag]].arrange == ifloating))
@@ -118,6 +120,7 @@ struct Look {
 	int borderpx;
 	float uf_opacity;
 	int drawoutline;
+	int drawbuttons;
 	Button bleft;
 	Button bcenter;
 	Button bright;
@@ -840,6 +843,10 @@ enternotify(XEvent *e) {
 
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
 	return;
+    if(ev->window == root) {
+	fprintf(stderr, "blah\n");
+	focus(NULL);
+    }
     if((c = getclient(ev->window, clients, False))){
 	if(!isvisible(sel, curmonitor()))
 	    focus(c);
@@ -1039,8 +1046,8 @@ char *
 getresource(const char *resource, char *defval) {
    static char name[256], class[256], *type;
    XrmValue value;
-   snprintf(name, sizeof(name), "%s.%s", RESNAME, resource);
-   snprintf(class, sizeof(class), "%s.%s", RESCLASS, resource);
+   snprintf(name, sizeof(name), "%s.%s", slave ? SLAVERESNAME : RESNAME, resource);
+   snprintf(class, sizeof(class), "%s.%s", slave ? SLAVERESCLASS : RESCLASS, resource);
    XrmGetResource(xrdb, name, class, &type, &value);
    if(value.addr)
 	   return value.addr;
@@ -2077,6 +2084,7 @@ setup(void) {
 	look.tpos = atoi(getresource("titleposition", TITLEPOSITION));
 	look.tbpos = atoi(getresource("tagbar", TAGBAR));
 	look.drawoutline = atoi(getresource("outline", "0"));
+	look.drawbuttons = atoi(getresource("buttons", "0"));
 
 	strncpy(terminal, getresource("terminal", TERMINAL), 255);
 

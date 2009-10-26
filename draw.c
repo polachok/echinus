@@ -51,13 +51,13 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     dc.x = x + w;
 }
 
-Pixmap
+int
 initpixmap(const char *file, Button *b) {
     b->pm = XCreatePixmap(dpy, root, dc.h, dc.h, 1);
-    if(BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph, &b->pm, &b->px, &b->py))
-	return 0;
-    else
-	eprint("echinus: cannot load Button pixmaps, check your ~/.echinusrc\n");
+    if(BitmapSuccess != XReadBitmapFile(dpy, root, file, &b->pw, &b->ph, &b->pm, &b->px, &b->py)) {
+	fprintf(stderr, "echinus: cannot load Button pixmaps, check your ~/.echinusrc\n");
+	return -1;
+    }
     return 0;
 }
 
@@ -65,9 +65,10 @@ void
 initbuttons() {
     XSetForeground(dpy, dc.gc, dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, dc.norm[ColBG]);
-    initpixmap(getresource("button.left.pixmap", BLEFTPIXMAP), &look.bleft);
-    initpixmap(getresource("button.right.pixmap", BRIGHTPIXMAP), &look.bright);
-    initpixmap(getresource("button.center.pixmap", BCENTERPIXMAP), &look.bcenter);
+    if(initpixmap(getresource("button.left.pixmap", BLEFTPIXMAP), &look.bleft) ||
+	initpixmap(getresource("button.right.pixmap", BRIGHTPIXMAP), &look.bright) ||
+	initpixmap(getresource("button.center.pixmap", BCENTERPIXMAP), &look.bcenter))
+	look.drawbuttons = 0;
     look.bleft.action = iconifyit;
     look.bright.action = killclient;
     look.bcenter.action = togglemax;
@@ -76,6 +77,9 @@ initbuttons() {
 void
 drawbuttons(Client *c) {
     int x, y;
+
+    if(!look.drawbuttons)
+	return;
     y = dc.h/2 - look.bleft.ph/2;
     x = c->w - 3*dc.h;
     XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
