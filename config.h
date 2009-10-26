@@ -1,6 +1,6 @@
 /* See LICENSE file for copyright and license details. */
 #define BARPOS			StrutsOn /* BarTop, BarOff */
-#define BORDERPX		"3"
+#define BORDERPX		"1"
 #define NF_OPACITY "0.9"
 #define FONT		"fixed-9"
 Bool NOTITLES=0;

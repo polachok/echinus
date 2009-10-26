@@ -1953,7 +1953,7 @@ initlayouts(){
 	    for(i = 0; i < ntags; i++) {
 		ltidxs[i] = 0;
 		snprintf(conf, 31, "tags.layout%d", i);
-		strncpy(xres, getresource(conf, getresource("deflayout", "i")), 255);
+		strncpy(xres, getresource(conf, getresource("deflayout", slave ? "m" : "i")), 255);
 		for (j = 0; j < LENGTH(layouts); j++) {
 		    if (!strcmp(layouts[j].symbol, xres)) {
 			ltidxs[i] = j;
