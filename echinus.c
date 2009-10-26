@@ -632,7 +632,7 @@ initmonitors(XEvent *e) {
 	Window			dummywin;
 
 	if(slave) {
-	    XGetGeometry(dpy, root, &dummywin, &dummy1, &dummy2, &w, &h, &dui[2], &dui[3]);
+	    XGetGeometry(dpy, root, &dummywin, &dummy1, &dummy2, &w, &h, &dui[0], &dui[1]);
 	    goto no_xrandr;
 	}
 
@@ -2378,7 +2378,7 @@ unmanage(Client *c) {
     XWindowChanges wc;
     if(c->title)
 	XDestroyWindow(dpy, c->title);
-    XReparentWindow(dpy, c->win, root, c->x, c->y);
+    XReparentWindow(dpy, c->win, RootWindow(dpy, screen), c->x, c->y);
     XMoveWindow(dpy, c->win, c->x, c->y);
     XDestroyWindow(dpy, c->frame);
     wc.border_width = c->oldborder;
