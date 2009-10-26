@@ -162,7 +162,6 @@ typedef struct {
 	const char *tags;
 	Bool isfloating;
 	Bool hastitle;
-	Bool isslave;
 } Rule;
 
 typedef struct {
@@ -365,7 +364,6 @@ applyrules(Client *c) {
 	    if(regs[i].propregex && !regexec(regs[i].propregex, buf, 1, &tmp, 0)) {
 		    c->isfloating = rules[i]->isfloating;
 		    c->hastitle = rules[i]->hastitle;
-		    c->isslave = rules[i]->isslave;
 		    for(j = 0; regs[i].tagregex && j < ntags; j++) {
 			    if(!regexec(regs[i].tagregex, tags[j], 1, &tmp, 0)) {
 				    matched = True;
@@ -1221,6 +1219,7 @@ manage(Window w, XWindowAttributes *wa) {
     XWindowChanges wc;
     XSetWindowAttributes twa;
     XWMHints *wmh;
+    XClassHint ch = { 0 };
     int i = 0;
 
     if(sel && sel->isslave) {
@@ -1259,6 +1258,8 @@ manage(Window w, XWindowAttributes *wa) {
 
     applyrules(c);
 
+    XGetClassHint(dpy, c->win, &ch);
+    c->isslave = !strncmp(ch.res_class, RESCLASS, 7);
     c->th = c->hastitle ? dc.h : 0;
     c->border = c->isbastard ? 0 : look.borderpx;
 
