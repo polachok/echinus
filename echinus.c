@@ -1258,8 +1258,8 @@ manage(Window w, XWindowAttributes *wa) {
 
     applyrules(c);
 
-    XGetClassHint(dpy, c->win, &ch);
-    c->isslave = !strncmp(ch.res_class, RESCLASS, 7);
+    XGetClassHint(dpy, w, &ch);
+    c->isslave = !strncmp(ch.res_class ? ch.res_class : "", RESCLASS, 7);
     c->th = c->hastitle ? dc.h : 0;
     c->border = c->isbastard ? 0 : look.borderpx;
 
@@ -1491,15 +1491,11 @@ getpointer(int *x, int *y) {
     Window dummy, dummy2;
     int tx, ty;
     int x1, y1;
-DPRINT
     XQueryPointer(dpy, root, &dummy, &dummy, &tx, &ty, &di, &di, &dui[0]);
     if(slave) {
-DPRINT
 	XGetGeometry(dpy, root, &dummy2, &x1, &y1, &dui[0], &dui[1], &dui[2], &dui[3]);
-DPRINT
 	*x = tx - x1;
 	*y = ty - y1;
-DPRINT
     }
     else {
 	*x = tx;
@@ -1528,7 +1524,6 @@ curmonitor() {
     if(slave)
 	return(monitors);
     getpointer(&x, &y);
-    fprintf(stderr, "%d %d\n", x, y);
     for(i = 0, m = monitors; m; m = m->next, i++) {
 	if((x >= m->sx && x <= m->sx + m->sw)) {
 	    break;
