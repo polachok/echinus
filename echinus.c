@@ -2084,7 +2084,7 @@ setup(void) {
 	look.tpos = atoi(getresource("titleposition", TITLEPOSITION));
 	look.tbpos = atoi(getresource("tagbar", TAGBAR));
 	look.drawoutline = atoi(getresource("outline", "0"));
-	look.drawbuttons = atoi(getresource("buttons", "0"));
+	look.drawbuttons = atoi(getresource("buttons", "1"));
 
 	strncpy(terminal, getresource("terminal", TERMINAL), 255);
 
