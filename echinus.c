@@ -20,10 +20,13 @@
  *
  * To understand everything else, start reading main().
  */
-#include <ctype.h>
-#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/select.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <ctype.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <locale.h>
@@ -31,10 +34,8 @@
 #include <stdio.h>
 #include <strings.h>
 #include <unistd.h>
-#include <sys/select.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <regex.h>
+#include <signal.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <X11/XF86keysym.h>
