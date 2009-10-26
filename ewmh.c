@@ -152,6 +152,8 @@ ewmh_update_net_active_window() {
 
     XChangeProperty(dpy, root,
 		    atom[ActiveWindow], XA_WINDOW, 32,	PropModeReplace, (unsigned char *) &win, 1);
+    if(slave && sel)
+	XStoreName(dpy, root, sel->name);
 }
 
 void

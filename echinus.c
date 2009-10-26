@@ -2510,6 +2510,8 @@ updatetitle(Client *c) {
     if(!gettextprop(c->win, atom[WindowName], c->name, sizeof c->name))
 	    gettextprop(c->win, wmatom[WMName], c->name, sizeof c->name);
     drawclient(c);
+    if(slave && c==sel)
+	updateatom[ActiveWindow](sel);
 }
 
 /* There's no way to check accesses to destroyed windows, thus those cases are
