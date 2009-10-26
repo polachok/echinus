@@ -628,11 +628,11 @@ initmonitors(XEvent *e) {
 	int			ncrtc = 0;
 	int                     dummy1, dummy2, major, minor;
 	unsigned int	 	w, h;
-	unsigned int		dui[4];
+	unsigned int		dui[2];
 	Window			dummywin;
 
 	if(slave) {
-	    XGetGeometry(dpy, root, &dummywin, &dui[0], &dui[1], &w, &h, &dui[2], &dui[3]);
+	    XGetGeometry(dpy, root, &dummywin, &dummy1, &dummy2, &w, &h, &dui[2], &dui[3]);
 	    goto no_xrandr;
 	}
 
