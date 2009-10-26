@@ -198,6 +198,7 @@ void ifloating(Monitor *m); /* intellectual floating layout try */
 void iconifyit(const char *arg);
 void incnmaster(const char *arg);
 void focus(Client *c);
+void focusin(XEvent *e);
 void focusnext(const char *arg);
 void focusprev(const char *arg);
 Client *getclient(Window w, Client *list, Bool title);
@@ -331,6 +332,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[ConfigureNotify] = configurenotify,
 	[DestroyNotify] = destroynotify,
 	[EnterNotify] = enternotify,
+	[FocusIn] = focusin,
 	[LeaveNotify] = leavenotify,
 	[Expose] = expose,
 	[KeyPress] = keypress,
@@ -843,10 +845,6 @@ enternotify(XEvent *e) {
 
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
 	return;
-    if(ev->window == root) {
-	fprintf(stderr, "blah\n");
-	focus(NULL);
-    }
     if((c = getclient(ev->window, clients, False))){
 	if(!isvisible(sel, curmonitor()))
 	    focus(c);
@@ -955,6 +953,14 @@ focus(Client *c) {
 	drawclient(o);
     updateatom[ActiveWindow](sel);
     updateatom[ClientList](NULL);
+}
+
+void
+focusin(XEvent *e) {
+    XFocusChangeEvent *ev = &e->xfocus;
+
+    if(ev->window == root && sel)
+	focus(NULL);
 }
 
 void
@@ -2026,6 +2032,8 @@ setup(void) {
 	wa.event_mask = SubstructureRedirectMask | SubstructureNotifyMask 
 		| EnterWindowMask | LeaveWindowMask | StructureNotifyMask | ButtonPressMask | ButtonReleaseMask;
 	wa.cursor = cursor[CurNormal];
+	if(slave)
+	    wa.event_mask |= FocusChangeMask;
 	XChangeWindowAttributes(dpy, root, CWEventMask | CWCursor, &wa);
 	XSelectInput(dpy, root, wa.event_mask);
 
