@@ -1311,8 +1311,7 @@ manage(Window w, XWindowAttributes *wa) {
 	XSelectInput(dpy, w, CLIENTMASK);
     grabbuttons(c, False);
     twa.override_redirect = True;
-    //twa.event_mask = MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask;
-    twa.event_mask = MOUSEMASK | StructureNotifyMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask;
+    twa.event_mask = MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask;
     c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
 		    c->border, DefaultDepth(dpy, screen), InputOutput,
 		    DefaultVisual(dpy, screen),
