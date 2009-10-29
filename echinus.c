@@ -1313,7 +1313,7 @@ manage(Window w, XWindowAttributes *wa) {
     c->sfh = c->h;
     grabbuttons(c, False);
     twa.override_redirect = True;
-    twa.background_pixel = WhitePixel(dpy, screen);
+    twa.background_pixel = dc.norm[ColBG];
     twa.event_mask = FRAMEMASK;
     c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
 		    c->border, DefaultDepth(dpy, screen), InputOutput,
@@ -1324,12 +1324,11 @@ manage(Window w, XWindowAttributes *wa) {
     XSetWindowBorder(dpy, c->frame, dc.norm[ColBorder]);
 
     twa.event_mask = ExposureMask | MOUSEMASK;
-    if(c->hastitle){
-       c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->h,
+    if(c->hastitle)
+       c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
 			0, DefaultDepth(dpy, screen), CopyFromParent,
 			DefaultVisual(dpy, screen),
 			CWEventMask, &twa);
-    }
     else
 	c->title = (Window)NULL;
 
