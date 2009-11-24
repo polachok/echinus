@@ -54,7 +54,8 @@
 #define BUTTONMASK		(ButtonPressMask | ButtonReleaseMask)
 #define CLEANMASK(mask)		(mask & ~(numlockmask | LockMask))
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
-#define CLIENTMASK	      (StructureNotifyMask | PropertyChangeMask | EnterWindowMask)
+#define CLIENTMASK	        (PropertyChangeMask | EnterWindowMask)
+#define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask)
 #define LENGTH(x)		(sizeof x / sizeof x[0])
 #define RESNAME			       "echinus"
 #define RESCLASS	       "Echinus"
@@ -385,7 +386,9 @@ arrange(Monitor *m) {
 		    if(c->isbastard)
 			c->isicon = False;
 	    }
-	    else {
+    }
+    for(c = stack; c; c = c->snext){
+	    if((!c->isbastard && (!isvisible(c, NULL) || c->isicon)) || (c->isbastard && bpos[curmontag] != StrutsOn)) {
 		    ban(c);
 		    if(c->isbastard)
 			c->isicon = True;
@@ -428,14 +431,14 @@ void
 ban(Client *c) {
     if(c->isbanned)
 	    return;
-    XUnmapWindow(dpy, c->frame);
-    XGrabServer(dpy);
-    XSelectInput(dpy, c->win,
-	       CLIENTMASK & ~StructureNotifyMask);
-    XUnmapWindow(dpy, c->win);
-    XSelectInput(dpy, c->win, CLIENTMASK);
-    XUngrabServer(dpy);
     setclientstate(c, IconicState);
+    XSelectInput(dpy, c->win,
+		     CLIENTMASK&~(StructureNotifyMask|EnterWindowMask));
+    XSelectInput(dpy, c->frame, NoEventMask);
+    XUnmapWindow(dpy, c->frame);
+    //XUnmapWindow(dpy, c->win);
+    XSelectInput(dpy, c->win, CLIENTMASK);
+    XSelectInput(dpy, c->frame, FRAMEMASK);
     c->isbanned = True;
 }
 
@@ -866,7 +869,10 @@ eprint(const char *errstr, ...) {
 void
 expose(XEvent *e) {
     XExposeEvent *ev = &e->xexpose;
+    XEvent tmp;
     Client *c;
+    while(XCheckWindowEvent(dpy, ev->window, ExposureMask, &tmp));
+
     if((c = getclient(ev->window, clients, True))
     || (c = getclient(ev->window, clients, False)))
 	drawclient(c);
@@ -1262,28 +1268,24 @@ manage(Window w, XWindowAttributes *wa) {
     c->sfy = c->y;
     c->sfw = c->w;
     c->sfh = c->h;
-    if(c->isbastard)
-	XSelectInput(dpy, w, PropertyChangeMask);
-    else
-	XSelectInput(dpy, w, CLIENTMASK);
     grabbuttons(c, False);
     twa.override_redirect = True;
-    twa.event_mask = MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask;
+    twa.background_pixel = dc.norm[ColBG];
+    twa.event_mask = FRAMEMASK;
     c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
 		    c->border, DefaultDepth(dpy, screen), InputOutput,
 		    DefaultVisual(dpy, screen),
-		    CWOverrideRedirect | CWEventMask, &twa);
+		    CWOverrideRedirect | CWEventMask | CWBackPixel, &twa);
  
     XConfigureWindow(dpy, c->frame, CWBorderWidth, &wc);
     XSetWindowBorder(dpy, c->frame, dc.norm[ColBorder]);
 
     twa.event_mask = ExposureMask | MOUSEMASK;
-    if(c->hastitle){
+    if(c->hastitle)
        c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
 			0, DefaultDepth(dpy, screen), CopyFromParent,
 			DefaultVisual(dpy, screen),
 			CWEventMask, &twa);
-    }
     else
 	c->title = (Window)NULL;
 
@@ -1302,6 +1304,7 @@ manage(Window w, XWindowAttributes *wa) {
     updatestruts(c->win);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XAddToSaveSet(dpy, c->win);
+    XMapWindow(dpy, c->win);
     if(!c->isbastard){
 	wc.border_width = 0;
 	XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
@@ -1310,6 +1313,11 @@ manage(Window w, XWindowAttributes *wa) {
     }
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
 	ewmh_process_state_atom(c, atom[WindowStateFs], 1);
+
+    if(c->isbastard)
+	XSelectInput(dpy, w, PropertyChangeMask);
+    else
+	XSelectInput(dpy, w, CLIENTMASK);
     ban(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
@@ -1319,6 +1327,7 @@ manage(Window w, XWindowAttributes *wa) {
 		arrange(m);
 		break;
 	    }
+    
     focus(NULL);
 }
 
@@ -1728,6 +1737,8 @@ restack(Monitor *m) {
 		n++;
 	}
     }
+    if(n==1)
+	return;
     wl = malloc(sizeof(Window)*n);
     for(i = 0, c = stack; c && i<n; c = c->snext)
 	if(isvisible(c, m) && !c->isicon && c->isbastard){
@@ -2294,13 +2305,16 @@ void
 unban(Client *c) {
     if(!c->isbanned)
 	    return;
+    XSelectInput(dpy, c->win,
+		     CLIENTMASK&~(StructureNotifyMask|EnterWindowMask));
+    XSelectInput(dpy, c->frame, NoEventMask);
+    XMapWindow(dpy, c->frame);
+    //XMapWindow(dpy, c->win);
+    XSelectInput(dpy, c->win, CLIENTMASK);
+    XSelectInput(dpy, c->frame, FRAMEMASK);
+    setclientstate(c, NormalState);
     if(c->isfloating)
 	drawclient(c);
-    XMapWindow(dpy, c->frame);
-    XSelectInput(dpy, c->win, CLIENTMASK & ~StructureNotifyMask);
-    XMapWindow(dpy, c->win);
-    XSelectInput(dpy, c->win, CLIENTMASK);
-    setclientstate(c, NormalState);
     c->isbanned = False;
 }
 
@@ -2309,7 +2323,10 @@ unmanage(Client *c) {
     XWindowChanges wc;
     if(c->title)
 	XDestroyWindow(dpy, c->title);
-    XReparentWindow(dpy, c->win, root, c->x, c->y);
+    XSelectInput(dpy, c->win,
+		     CLIENTMASK&~(StructureNotifyMask|EnterWindowMask));
+    XSelectInput(dpy, c->frame, NoEventMask);
+    XReparentWindow(dpy, c->win, RootWindow(dpy, screen), c->x, c->y);
     XMoveWindow(dpy, c->win, c->x, c->y);
     XDestroyWindow(dpy, c->frame);
     wc.border_width = c->oldborder;
