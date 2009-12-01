@@ -388,9 +388,10 @@ arrange(Monitor *m) {
 	    }
     }
     for(c = stack; c; c = c->snext){
-	    if((!c->isbastard && (!isvisible(c, NULL) || c->isicon)) || (c->isbastard && bpos[curmontag] != StrutsOn)) {
+	    if((!c->isbastard && (!isvisible(c, NULL) || c->isicon)) ||
+		    (c->isbastard && bpos[curmontag] == StrutsHide && clientmonitor(c) == curmonitor())) {
 		    ban(c);
-		    if(c->isbastard)
+		    if(c->isbastard) 
 			c->isicon = True;
 	    }
     }
@@ -739,7 +740,7 @@ configurerequest(XEvent *e) {
 		    if((ev->value_mask & (CWX | CWY))
 		    && !(ev->value_mask & (CWWidth | CWHeight)))
 			    configure(c);
-		    if(isvisible(c, NULL)) {
+		    if(isvisible(c, NULL) && !c->isbastard) {
 			    /* why not resize() ? */
 			    XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
 			    XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th : 1);
@@ -1185,13 +1186,11 @@ leavenotify(XEvent *e) {
 void
 manage(Window w, XWindowAttributes *wa) {
     Client *c, *t = NULL;
-    Monitor *m;
     Window trans;
     Status rettrans;
     XWindowChanges wc;
     XSetWindowAttributes twa;
     XWMHints *wmh;
-    int i = 0;
 
     c = emallocz(sizeof(Client));
     c->win = w;
@@ -1246,7 +1245,10 @@ manage(Window w, XWindowAttributes *wa) {
 	    getpointer(&c->x, &c->y);
 	}
     }
-
+    if(c->isbastard) {
+	c->x = wa->x + curmonitor()->wax;
+	c->x = wa->y + curmonitor()->way;
+    }
     c->oldborder = c->isbastard ? 0 : wa->border_width;
     if(c->w == cursw && c->h == cursh) {
 	    c->x = cursx;
@@ -1290,8 +1292,7 @@ manage(Window w, XWindowAttributes *wa) {
 	c->title = (Window)NULL;
 
     if(c->isbastard)
-	for(i = 0; i < ntags; i++)
-	    c->tags[i] = curmonitor()->seltags[i];
+	c->tags = curmonitor()->seltags;
     attach(c);
     attachstack(c);/*
     twa.event_mask = EnterWindowMask |
@@ -1301,7 +1302,6 @@ manage(Window w, XWindowAttributes *wa) {
     XChangeWindowAttributes(dpy, c->win,
 			CWEventMask | CWWinGravity | CWDontPropagate, &twa);
 */
-    updatestruts(c->win);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XAddToSaveSet(dpy, c->win);
     XMapWindow(dpy, c->win);
@@ -1321,12 +1321,8 @@ manage(Window w, XWindowAttributes *wa) {
     ban(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
-    for(m = monitors; m ; m = m->next)
-	for(i = 0; i < ntags; i++)
-	    if(m->seltags[i] & c->tags[i]) {
-		arrange(m);
-		break;
-	    }
+    arrange(clientmonitor(c));
+    updatestruts(c->win);
     
     focus(NULL);
 }
@@ -2320,6 +2316,8 @@ unban(Client *c) {
 
 void
 unmanage(Client *c) {
+    Monitor *m;
+    m = clientmonitor(c);
     XWindowChanges wc;
     if(c->title)
 	XDestroyWindow(dpy, c->title);
@@ -2340,12 +2338,14 @@ unmanage(Client *c) {
 	focus(NULL);
     XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
     setclientstate(c, WithdrawnState);
-    free(c->tags);
+    /* c->tags points to monitor */
+    if(!c->isbastard)
+	free(c->tags);
     free(c);
     XSync(dpy, False);
     XSetErrorHandler(xerror);
     XUngrabServer(dpy);
-    arrange(curmonitor());
+    arrange(m);
     updateatom[ClientList](NULL);
 }
 
