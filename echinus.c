@@ -2278,6 +2278,7 @@ toggleview(const char *arg) {
     if(curmontag == i)
 	curmontag = j;
     arrange(curmonitor());
+    focus(NULL);
     updateatom[CurDesk](NULL);
 }
 
