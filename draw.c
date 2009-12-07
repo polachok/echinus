@@ -92,8 +92,6 @@ void
 drawclient(Client *c) {
     unsigned int i;
     unsigned int opacity;
-    if(NOTITLES)
-	return;
     if(!isvisible(c, curmonitor()))
 	return;
     /* WTF?

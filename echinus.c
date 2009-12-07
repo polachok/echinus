@@ -1355,7 +1355,6 @@ maprequest(XEvent *e) {
 
 int
 smartcheckarea(Monitor *m, int x, int y, int w, int h){
-    /* this one is called for *every*(!) client */
     Client *c;
     int n = 0;
     for(c = clients; c; c = c->next){ 
@@ -1386,12 +1385,9 @@ ifloating(Monitor *m){
 			/* too big to deal with */
 			c->isplaced = True; 
 		    }
-		    /* i dunno if c->h/4 & c->w/8 are optimal */
-			for(y = m->way; y+c->h <= m->wah && !c->isplaced ; y+=c->h/4){
-			    for(x = m->wax; x+c->w <= m->waw && !c->isplaced; x+=c->w/8){
-				/* are you wondering about 0.9 & 0.8 ? */
+		    for(y = m->way; y+c->h <= m->way + m->wah && !c->isplaced ; y+=c->h/4) {
+			for(x = m->wax; x+c->w <= m->wax + m->waw && !c->isplaced; x+=c->w/8) {
 			    if(smartcheckarea(m, x, y, 0.8*c->w, 0.8*c->h)<=f){
-				/* got it! a big chunk of "free" space */
 				resize(c, m, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, True);
 				c->isplaced = True;
 			    }
@@ -2029,10 +2025,8 @@ setup(void) {
 	strncpy(terminal, getresource("terminal", TERMINAL), 255);
 
 	dc.h = atoi(getresource("title", TITLEHEIGHT));
-	if(!dc.h){
-	    NOTITLES = 1;
+	if(!dc.h)
 	    dc.h = 1;
-	}
 	dectiled = atoi(getresource("decoratetiled", DECORATETILED));
 	hidebastards = atoi(getresource("hidebastards", "0"));
 	sloppy = atoi(getresource("sloppy", "0"));
