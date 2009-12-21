@@ -1247,7 +1247,7 @@ manage(Window w, XWindowAttributes *wa) {
     }
     if(c->isbastard) {
 	c->x = wa->x + curmonitor()->wax;
-	c->x = wa->y + curmonitor()->way;
+	c->y = wa->y + curmonitor()->way;
     }
     c->oldborder = c->isbastard ? 0 : wa->border_width;
     if(c->w == cursw && c->h == cursh) {
