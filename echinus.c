@@ -293,9 +293,9 @@ Client *stack = NULL;
 #define curwah curmonitor()->wah
 #define curmontag curmonitor()->curtag
 #define curstruts curmonitor()->struts
-unsigned int *nmasters;
-unsigned int *bpos;
-unsigned int *ltidxs;
+int *nmasters;
+int *bpos;
+int *ltidxs;
 double *mwfacts;
 Cursor cursor[CurLast];
 Display *dpy;
@@ -572,7 +572,7 @@ cleanup(void) {
 
 void
 compileregs(void) {
-    unsigned int i;
+    int i;
     regex_t *reg;
 
     if(regs)
@@ -1078,7 +1078,7 @@ grabbuttons(Client *c, Bool focused) {
 
 int
 idxoftag(const char *tag) {
-    unsigned int i;
+    int i;
 
     for(i = 0; (i < ntags) && strcmp(tag, tags[i]); i++);
     return (i < ntags) ? i : 0;
@@ -1877,10 +1877,10 @@ initlayouts(){
 
 	/* init layouts */
 	bzero(buf, 5);
-	nmasters = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
-	ltidxs = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
+	nmasters = (int*)emallocz(sizeof(unsigned int) * ntags);
+	ltidxs = (int*)emallocz(sizeof(unsigned int) * ntags);
 	mwfacts = (double*)emallocz(sizeof(double) * ntags);
-	bpos = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
+	bpos = (int*)emallocz(sizeof(unsigned int) * ntags);
 
 	snprintf(buf, 5, "%.2f", MWFACT);
 	mwfact = atof(getresource("mwfact", buf));
@@ -1908,7 +1908,7 @@ initlayouts(){
 void
 inittags(){
     int i;
-    char tmp[25]="\0";
+    char tmp[25] = "\0";
     ntags = atoi(getresource("tags.number", "5"));
     tags = emallocz(ntags*sizeof(char*));
     for(i = 0; i < ntags; i++){
@@ -2235,7 +2235,7 @@ togglemax(const char *arg) {
 
 void
 toggletag(const char *arg) {
-    unsigned int i, j;
+    int i, j;
 
     if(!sel)
 	    return;
@@ -2485,7 +2485,7 @@ xerrorstart(Display *dsply, XErrorEvent *ee) {
 
 void
 view(const char *arg) {
-    unsigned int i, prevcurtag;
+    int i, prevcurtag;
     Monitor *m;
     int swapping = 0;
 
@@ -2515,7 +2515,7 @@ view(const char *arg) {
 void
 viewprevtag(const char *arg) {
     Bool tmptags[ntags];
-    unsigned int i, prevcurtag;
+    int i, prevcurtag;
  
     i = 0;
     while(i < ntags-1 && !curprevtags[i]) i++;
