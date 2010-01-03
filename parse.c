@@ -47,24 +47,25 @@ static KeyItem KeyItemsByTag[] =
 };
 
 void
-parsekey(char *s, Key *k) {
+parsekey(const char *s, Key *k) {
     int l = strlen(s);
     unsigned long modmask = 0;
     char *pos, *opos;
+    const char *stmp;
     char *tmp;
     int i;
     pos = strchr(s, '+');
     if(!s || !(pos-s) || !pos)
 	return;
     opos = pos;
-    for(i = 0, tmp = s; tmp < pos; i++, tmp++){
-	if(*tmp=='A')
+    for(i = 0, stmp = s; stmp < pos; i++, stmp++){
+	if(*stmp=='A')
 	    modmask = modmask | Mod1Mask;
-	if(*tmp=='S')
+	if(*stmp=='S')
 	    modmask = modmask | ShiftMask;
-	if(*tmp=='C')
+	if(*stmp=='C')
 	    modmask = modmask | ControlMask;
-	if(*tmp=='W') 
+	if(*stmp=='W') 
 	    modmask = modmask | Mod4Mask; 
     }
     k->mod = modmask;
@@ -106,7 +107,7 @@ initmodkey(){
 int
 initkeys(){
     int i,j;
-    char *tmp;
+    const char *tmp;
     char t[64];
 
     initmodkey();
@@ -167,7 +168,7 @@ initkeys(){
 }
 
 void 
-parserule(char *s, Rule *r){
+parserule(const char *s, Rule *r){
     char *prop = emallocz(sizeof(char)*128);
     char *tags = emallocz(sizeof(char)*64);
     sscanf(s, "%s %s %d %d", prop, tags, &r->isfloating, &r->hastitle);
@@ -179,7 +180,7 @@ void
 initrules(){
     int i;
     char t[64];
-    char *tmp;
+    const char *tmp;
     rules = emallocz(64*sizeof(Rule*));
     for(i = 0; i < 64; i++){
 	    snprintf(t, 63, "rule%d", i);
