@@ -200,7 +200,7 @@ void focusnext(const char *arg);
 void focusprev(const char *arg);
 Client *getclient(Window w, Client *list, Bool title);
 unsigned long getcolor(const char *colstr);
-char *getresource(const char *resource, char *defval);
+const char *getresource(const char *resource, const char *defval);
 long getstate(Window w);
 Bool gettextprop(Window w, Atom a, char *text, unsigned int size);
 void grabbuttons(Client *c, Bool focused);
@@ -1033,8 +1033,8 @@ getstate(Window w) {
     return result;
 }
 
-char *
-getresource(const char *resource, char *defval) {
+const char *
+getresource(const char *resource, const char *defval) {
    static char name[256], class[256], *type;
    XrmValue value;
    snprintf(name, sizeof(name), "%s.%s", RESNAME, resource);
