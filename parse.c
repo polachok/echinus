@@ -110,7 +110,7 @@ initmodkey(){
 
 int
 initkeys(){
-    int i,j;
+    int i, j;
     const char *tmp;
     char t[64];
 
