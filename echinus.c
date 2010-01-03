@@ -76,7 +76,7 @@ enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise }; /* focus model */
 typedef struct Monitor Monitor;
 struct Monitor {
 	int sx, sy, sw, sh, wax, way, waw, wah;
-	unsigned int curtag;
+	int curtag;
 	unsigned long struts[LastStrut];
 	Bool *seltags;
 	Bool *prevtags;
@@ -93,7 +93,7 @@ struct Client {
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
 	int minax, maxax, minay, maxay;
 	long flags;
-	unsigned int border, oldborder;
+	int border, oldborder;
 	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon, hastitle;
 	Bool isplaced, isbastard, isfocusable;
 	Bool *tags;
@@ -115,7 +115,7 @@ typedef struct {
 
 typedef struct Look Look;
 struct Look { 
-	unsigned int tpos, tbpos, bpos;
+	int tpos, tbpos, bpos;
 	int borderpx;
 	float uf_opacity;
 	int drawoutline;
@@ -199,14 +199,14 @@ void focusnext(const char *arg);
 void focusprev(const char *arg);
 Client *getclient(Window w, Client *list, Bool title);
 unsigned long getcolor(const char *colstr);
-char *getresource(const char *resource, char *defval);
+const char *getresource(const char *resource, const char *defval);
 long getstate(Window w);
 Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
 void grabbuttons(Client *c, Bool focused);
 void getpointer(int *x, int *y);
 Monitor* curmonitor();
 Monitor* clientmonitor(Client *c);
-unsigned int idxoftag(const char *tag);
+int idxoftag(const char *tag);
 Bool isoccupied(unsigned int t);
 Bool isprotodel(Client *c);
 Bool isvisible(Client *c, Monitor *m);
@@ -345,7 +345,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 void
 applyrules(Client *c) {
     static char buf[512];
-    unsigned int i, j;
+    int i, j;
     regmatch_t tmp;
     Bool matched = False;
     XClassHint ch = { 0 };
@@ -1019,8 +1019,8 @@ getstate(Window w) {
     return result;
 }
 
-char *
-getresource(const char *resource, char *defval) {
+const char *
+getresource(const char *resource, const char *defval) {
    static char name[256], class[256], *type;
    XrmValue value;
    snprintf(name, sizeof(name), "%s.%s", RESNAME, resource);
@@ -1076,7 +1076,7 @@ grabbuttons(Client *c, Bool focused) {
 			    GrabModeAsync, GrabModeSync, None, None);
 }
 
-unsigned int
+int
 idxoftag(const char *tag) {
     unsigned int i;
 
@@ -1101,7 +1101,7 @@ isprotodel(Client *c) {
 
 Bool
 isvisible(Client *c, Monitor *m) {
-    unsigned int i;
+    int i;
     if(!c)
 	return False;
     if(!m) {
@@ -1121,7 +1121,7 @@ isvisible(Client *c, Monitor *m) {
 
 void
 keypress(XEvent *e) {
-    unsigned int i;
+    int i;
     KeyCode code;
     KeySym keysym;
     XKeyEvent *ev;
@@ -1929,7 +1929,8 @@ sighandler(int signum) {
 void
 setup(void) {
 	int d;
-	unsigned int i, j, mask;
+	int i, j;
+	unsigned int mask;
 	Window w;
 	Monitor *m;
 	XModifierKeymap *modmap;
@@ -2076,20 +2077,20 @@ spawn(const char *arg) {
 
 void
 tag(const char *arg) {
-	unsigned int i;
+    int i;
 
-	if(!sel)
-		return;
-	for(i = 0; i < ntags; i++)
-		sel->tags[i] = (NULL == arg);
-	sel->tags[idxoftag(arg)] = True;
-	updateatom[WindowDesk](sel);
-	arrange(NULL);
+    if(!sel)
+	    return;
+    for(i = 0; i < ntags; i++)
+	    sel->tags[i] = (NULL == arg);
+    sel->tags[idxoftag(arg)] = True;
+    updateatom[WindowDesk](sel);
+    arrange(NULL);
 }
 
 void
 bstack(Monitor *m) {
-    unsigned int i, n, nx, ny, nw, nh, mh, tw;
+    int i, n, nx, ny, nw, nh, mh, tw;
     Client *c, *mc;
 
     domwfact = dozoom = True;
@@ -2130,7 +2131,7 @@ bstack(Monitor *m) {
 
 void
 tile(Monitor *m) {
-	unsigned int i, n, nx, ny, nw, nh, mw, mh, th;
+	int i, n, nx, ny, nw, nh, mw, mh, th;
 	Client *c, *mc;
 	wasfloating = False;
 
@@ -2147,7 +2148,7 @@ tile(Monitor *m) {
 
 	nx = m->wax;
 	ny = m->way;
-	nw = 0; /* gcc stupidity requires this */
+	nw = 0;
 	for(i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
 		c->hastitle = (dectiled ? (c->title ? True : False) : False);
 		c->ismax = False;
@@ -2251,6 +2252,7 @@ void
 togglemonitor(const char *arg) {
     Monitor *m, *cm;
     int x, y;
+
     getpointer(&x, &y);
     for(cm = curmonitor(), m = monitors; m == cm && m && m->next; m = m->next);
     XWarpPointer(dpy, None, root, 0, 0, 0, 0, m->sx + x % m->sw, m->sy + y % m->sh);
@@ -2259,7 +2261,7 @@ togglemonitor(const char *arg) {
 
 void
 toggleview(const char *arg) {
-    unsigned int i, j;
+    int i, j;
 
     memcpy(curprevtags, curseltags, ntags*(sizeof curseltags));
     i = idxoftag(arg);
@@ -2280,6 +2282,7 @@ void
 focusview(const char *arg) {
     Client *c;
     int i;
+
     toggleview(arg);
     i = idxoftag(arg);
     if (!curseltags[i])
@@ -2312,8 +2315,9 @@ unban(Client *c) {
 void
 unmanage(Client *c) {
     Monitor *m;
-    m = clientmonitor(c);
     XWindowChanges wc;
+
+    m = clientmonitor(c);
     if(c->title)
 	XDestroyWindow(dpy, c->title);
     XSelectInput(dpy, c->win,
@@ -2392,6 +2396,7 @@ void
 updatesizehints(Client *c) {
 	long msize;
 	XSizeHints size;
+
 	if(!XGetWMNormalHints(dpy, c->win, &size, &msize) || !size.flags)
 		size.flags = PSize;
 	c->flags = size.flags;
@@ -2483,6 +2488,7 @@ view(const char *arg) {
     unsigned int i, prevcurtag;
     Monitor *m;
     int swapping = 0;
+
     for(m = monitors; m ; m = m->next) {
 	    if(m->seltags[idxoftag(arg)] && m != curmonitor()) {
 		swapping = 1;
@@ -2528,6 +2534,7 @@ viewprevtag(const char *arg) {
 void
 viewlefttag(const char *arg) {
     int i;
+
     for(i = 0; i < ntags; i++) {
 	if(i && curseltags[i]) {
 		view(tags[i-1]);
@@ -2539,6 +2546,7 @@ viewlefttag(const char *arg) {
 void
 viewrighttag(const char *arg) {
     int i;
+
     for(i = 0; i < ntags-1; i++) {
 	if(curseltags[i]) {
 	    view(tags[i+1]);
