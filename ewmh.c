@@ -14,7 +14,7 @@ enum { ClientList, ActiveWindow, WindowDesk,
       ClientListStacking, WindowOpacity, WindowType,
       WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial, ESelTags,
       WindowName, WindowState, WindowStateFs, WindowStateModal, WindowStateHidden,
-      Utf8String, Supported, NATOMS };
+      Utf8String, Supported, WMProto, WMDelete, WMName, WMState, NATOMS };
 
 Atom atom[NATOMS];
 
@@ -43,6 +43,10 @@ const char * atomnames[NATOMS][1] = {
     { "_NET_WM_STATE_HIDDEN" },
     { "UTF8_STRING" }, 
     { "_NET_SUPPORTED" },
+    { "WM_PROTOCOLS" },
+    { "WM_DELETE_WINDOW" },
+    { "WM_NAME" },
+    { "WM_STATE" },
 };
 
 void

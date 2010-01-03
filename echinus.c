@@ -69,7 +69,6 @@ enum { StrutsOn, StrutsOff, StrutsHide };			/* struts position */
 enum { TitleLeft, TitleCenter, TitleRight };			/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColButton, ColLast };		/* color */
-enum { WMProtocols, WMDelete, WMName, WMState, WMLast }; /* default atom */
 enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise }; /* focus model */
 
 /* typedefs */
@@ -269,7 +268,6 @@ Bool wasfloating = True;
 int screen;
 int (*xerrorxlib)(Display *, XErrorEvent *);
 unsigned int numlockmask = 0;
-Atom wmatom[WMLast];
 Bool domwfact = True;
 Bool dozoom = True;
 Bool otherwm;
@@ -1009,7 +1007,7 @@ getstate(Window w) {
     unsigned long n, extra;
     Atom real;
 
-    status = XGetWindowProperty(dpy, w, wmatom[WMState], 0L, 2L, False, wmatom[WMState],
+    status = XGetWindowProperty(dpy, w, atom[WMState], 0L, 2L, False, atom[WMState],
 		    &real, &format, &n, &extra, (unsigned char **)&p);
     if(status != Success)
 	    return -1;
@@ -1092,7 +1090,7 @@ isprotodel(Client *c) {
 
     if(XGetWMProtocols(dpy, c->win, &protocols, &n)) {
 	    for(i = 0; !ret && i < n; i++)
-		    if(protocols[i] == wmatom[WMDelete])
+		    if(protocols[i] == atom[WMDelete])
 			    ret = True;
 	    XFree(protocols);
     }
@@ -1160,9 +1158,9 @@ killclient(const char *arg) {
     if(isprotodel(sel)) {
 	    ev.type = ClientMessage;
 	    ev.xclient.window = sel->win;
-	    ev.xclient.message_type = wmatom[WMProtocols];
+	    ev.xclient.message_type = atom[WMProto];
 	    ev.xclient.format = 32;
-	    ev.xclient.data.l[0] = wmatom[WMDelete];
+	    ev.xclient.data.l[0] = atom[WMDelete];
 	    ev.xclient.data.l[1] = CurrentTime;
 	    XSendEvent(dpy, sel->win, False, NoEventMask, &ev);
     }
@@ -1810,10 +1808,10 @@ setclientstate(Client *c, long state) {
     long data[] = {state, None};
     long winstate[2];
 
-    XChangeProperty(dpy, c->win, wmatom[WMState], wmatom[WMState], 32,
+    XChangeProperty(dpy, c->win, atom[WMState], atom[WMState], 32,
 		    PropModeReplace, (unsigned char *)data, 2);
     if(c->title)
-	XChangeProperty(dpy, c->title, wmatom[WMState], wmatom[WMState], 32,
+	XChangeProperty(dpy, c->title, atom[WMState], atom[WMState], 32,
 			PropModeReplace, (unsigned char *)data, 2);
     if(state == NormalState) {
 	c->isicon = False;
@@ -1935,12 +1933,6 @@ setup(void) {
 	Monitor *m;
 	XModifierKeymap *modmap;
 	XSetWindowAttributes wa;
-
-	/* init atom */
-	wmatom[WMProtocols] = XInternAtom(dpy, "WM_PROTOCOLS", False);
-	wmatom[WMDelete] = XInternAtom(dpy, "WM_DELETE_WINDOW", False);
-	wmatom[WMName] = XInternAtom(dpy, "WM_NAME", False);
-	wmatom[WMState] = XInternAtom(dpy, "WM_STATE", False);
 
 	/* init EWMH atom */
 	initatom();
@@ -2447,7 +2439,7 @@ updatesizehints(Client *c) {
 void
 updatetitle(Client *c) {
     if(!gettextprop(c->win, atom[WindowName], c->name, sizeof c->name))
-	    gettextprop(c->win, wmatom[WMName], c->name, sizeof c->name);
+	    gettextprop(c->win, atom[WMName], c->name, sizeof c->name);
     drawclient(c);
 }
 
