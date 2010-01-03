@@ -61,7 +61,7 @@ update_echinus_layout_name(Client *c) {
 	UNUSED(c);
 	XChangeProperty(dpy, root, atom[ELayout], 
 		XA_STRING, 8, PropModeReplace, 
-		(const unsigned char *) layouts[ltidxs[curmontag]].symbol, 1);
+		(const unsigned char *) layouts[ltidxs[curmontag]].symbol, 1L);
 }
 
 void
@@ -156,7 +156,7 @@ ewmh_update_net_active_window() {
 }
 
 void
-ewmh_process_state_atom(Client *c, Atom state, long set) {
+ewmh_process_state_atom(Client *c, Atom state, int set) {
     if((state == atom[WindowStateFs]) && (set != c->ismax)) {
 	focus(c);
 	if(set) {
@@ -206,10 +206,10 @@ setopacity(Client *c, unsigned int opacity) {
     else {
 	XChangeProperty(dpy, c->win, atom[WindowOpacity], 
 		XA_CARDINAL, 32, PropModeReplace, 
-		(unsigned char *) &opacity, 1);
+		(unsigned char *) &opacity, 1L);
 	XChangeProperty(dpy, c->frame, atom[WindowOpacity], 
 		XA_CARDINAL, 32, PropModeReplace, 
-		(unsigned char *) &opacity, 1);
+		(unsigned char *) &opacity, 1L);
 
     }
 }
