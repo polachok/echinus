@@ -54,6 +54,7 @@ parsekey(const char *s, Key *k) {
     const char *stmp;
     char *tmp;
     int i;
+
     pos = strchr(s, '+');
     if(!s || !(pos-s) || !pos)
 	return;
@@ -80,8 +81,7 @@ parsekey(const char *s, Key *k) {
 	for(pos++;!isgraph(pos[0]);pos++);
 	strncpy(tmp, pos, s+l-pos);
 	k->arg = tmp;
-    }
-    else {
+    } else {
 	tmp = emallocz((s+l-opos)*sizeof(char));
 	for(opos++;!isalnum(opos[0]);opos++);
 	strncpy(tmp, opos, s+l-opos);
