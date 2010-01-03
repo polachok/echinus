@@ -3,14 +3,14 @@ void
 drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     int x, y, w, h;
     char buf[256];
-    unsigned int len, olen;
+    size_t len, olen;
     if(!text)
 	    return;
     olen = len = strlen(text);
     w = 0;
     if(len >= sizeof buf)
 	    len = sizeof buf - 1;
-    memcpy(buf, text, len);
+    memcpy(buf, text, (size_t) len);
     buf[len] = 0;
     h = dc.h;
     y = (dc.h / 2) - (h / 2) + dc.font.ascent;
@@ -43,7 +43,7 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     while(x <= 0)
 	    x = dc.x++;
     XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel,
-	    dc.font.xftfont, x, look.drawoutline ? y : y+1, (unsigned char*)buf, len);
+	    dc.font.xftfont, x, look.drawoutline ? y : y+1, (unsigned char*)buf, (int) len);
     if(look.drawoutline){
 		XSetForeground(dpy, dc.gc, col[ColBorder]);
 		XDrawLine(dpy, dc.drawable, dc.gc, 0, dc.h-1, dc.w, dc.h-1);
@@ -53,7 +53,7 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
 
 Pixmap
 initpixmap(const char *file, Button *b) {
-    b->pm = XCreatePixmap(dpy, root, dc.h, dc.h, 1);
+    b->pm = XCreatePixmap(dpy, root, (unsigned int) dc.h, (unsigned int) dc.h, 1);
     if(BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph, &b->pm, &b->px, &b->py))
 	return 0;
     else
@@ -81,11 +81,14 @@ drawbuttons(Client *c) {
     XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
 
-    XCopyPlane(dpy, look.bleft.pm, dc.drawable, dc.gc, 0, 0, look.bleft.pw, look.bleft.ph, x, y+look.bleft.py, 1);
+    XCopyPlane(dpy, look.bleft.pm, dc.drawable, dc.gc, 0, 0, look.bleft.pw,
+	look.bleft.ph, x, y+look.bleft.py, 1L);
     x+=dc.h;
-    XCopyPlane(dpy, look.bcenter.pm, dc.drawable, dc.gc, 0, 0, look.bcenter.pw, look.bcenter.ph, x, y+look.bcenter.py, 1);
+    XCopyPlane(dpy, look.bcenter.pm, dc.drawable, dc.gc, 0, 0,
+	look.bcenter.pw, look.bcenter.ph, x, y+look.bcenter.py, 1L);
     x+=dc.h;
-    XCopyPlane(dpy, look.bright.pm, dc.drawable, dc.gc, 0, 0, look.bright.pw, look.bright.ph, x, y+look.bright.py, 1);
+    XCopyPlane(dpy, look.bright.pm, dc.drawable, dc.gc, 0, 0, look.bright.pw,
+	look.bright.ph, x, y+look.bright.py, 1L);
 }
 
 void
@@ -100,8 +103,8 @@ drawclient(Client *c) {
 	resize(c, curmonitor(), c->x, c->y, c->w, c->h, True);
 #endif
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
-    XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
-    XFillRectangle(dpy, dc.drawable, dc.gc, 0, 0, c->w, c->th);
+    XSetLineAttributes(dpy, dc.gc, (unsigned int) look.borderpx, LineSolid, CapNotLast, JoinMiter);
+    XFillRectangle(dpy, dc.drawable, dc.gc, 0, 0, (unsigned int) c->w, (unsigned int) c->th);
     dc.x = dc.y = 0;
     dc.w = c->w;
     drawtext(NULL, c == sel ? dc.sel : dc.norm, look.tpos);
@@ -120,7 +123,7 @@ drawclient(Client *c) {
     if(c->w>=6*dc.h && dc.x <= c->w-6*dc.h && look.tpos != TitleRight)
 	drawbuttons(c);
     XCopyArea(dpy, dc.drawable, c->title, dc.gc,
-			0, 0, c->w, c->th, 0, 0);
+			0, 0, (unsigned int) c->w, (unsigned int) c->th, 0, 0);
     if(look.uf_opacity) {
 		  if (c==sel)
 			  opacity = OPAQUE;
@@ -141,17 +144,16 @@ initfont(const char *fontstr) {
 	 eprint("error, cannot load font: '%s'\n", fontstr);
     dc.font.extents = emallocz(sizeof(XGlyphInfo));
     XftTextExtentsUtf8(dpy, dc.font.xftfont,
-	(const unsigned char*)fontstr, strlen(fontstr), dc.font.extents);
+	(const unsigned char*)fontstr, (int) strlen(fontstr), dc.font.extents);
     dc.font.height = dc.font.xftfont->ascent + dc.font.xftfont->descent;
     dc.font.ascent = dc.font.xftfont->ascent;
     dc.font.descent = dc.font.xftfont->descent;
 }
 
 unsigned int
-textnw(const char *text, unsigned int len) {
-    UNUSED(len);
+textnw(const char *text, size_t len) {
     XftTextExtentsUtf8(dpy, dc.font.xftfont,
-	(const unsigned char*)text, strlen(text), dc.font.extents);
+	(const unsigned char*)text, (int) len, dc.font.extents);
 
     if(dc.font.extents->height > dc.font.height)
 	   dc.font.height = dc.font.extents->height;

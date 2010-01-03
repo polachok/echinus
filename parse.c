@@ -73,18 +73,18 @@ parsekey(const char *s, Key *k) {
     if(pos){
 	tmp = emallocz((pos-opos)*sizeof(char));
 	for(opos++;!isalnum(opos[0]);opos++);
-	strncpy(tmp, opos, pos-opos-1);
+	strncpy(tmp, opos, (size_t) (pos-opos-1));
 	k->keysym = XStringToKeysym(tmp);
 	free(tmp);
 	tmp = emallocz((s+l-pos+1)*sizeof(char));
 	for(pos++;!isgraph(pos[0]);pos++);
-	strncpy(tmp, pos, s+l-pos);
+	strncpy(tmp, pos, (size_t) (s+l-pos));
 	k->arg = tmp;
     }
     else {
 	tmp = emallocz((s+l-opos)*sizeof(char));
 	for(opos++;!isalnum(opos[0]);opos++);
-	strncpy(tmp, opos, s+l-opos);
+	strncpy(tmp, opos, (size_t) (s+l-opos));
 	k->keysym = XStringToKeysym(tmp);
 	free(tmp);
     }
@@ -93,7 +93,7 @@ parsekey(const char *s, Key *k) {
 void
 initmodkey(){
     char tmp;
-    strncpy(&tmp, getresource("modkey", "A"), 1);
+    strncpy(&tmp, getresource("modkey", "A"), 1L);
     if(tmp=='S')
 	modkey = ShiftMask;
     if(tmp=='C')
@@ -126,7 +126,7 @@ initkeys(){
     /* per tag functions */
     for(j = 0; j < LENGTH(KeyItemsByTag); j++){
 	for(i = 0; i < ntags; i++){
-	    snprintf(t, 63, "%s%d", KeyItemsByTag[j].name, i);
+	    snprintf(t, 63L, "%s%d", KeyItemsByTag[j].name, i);
 	    tmp = getresource(t, NULL);
 	    if(!tmp)
 		continue;
@@ -140,7 +140,7 @@ initkeys(){
     }
     /* layout setting */
     for(i = 0; i < LENGTH(layouts); i++){
-	    snprintf(t, 63, "setlayout%s", layouts[i].symbol);
+	    snprintf(t, 63L, "setlayout%s", layouts[i].symbol);
 	    tmp = getresource(t, NULL);
 	    if(!tmp)
 		continue;
@@ -153,7 +153,7 @@ initkeys(){
     }
     /* spawn */
     for(i = 0; i<64; i++){
-	    snprintf(t, 63, "spawn%d", i);
+	    snprintf(t, 63L, "spawn%d", i);
 	    tmp = getresource(t, NULL);
 	    if(!tmp)
 		continue;
@@ -183,7 +183,7 @@ initrules(){
     const char *tmp;
     rules = emallocz(64*sizeof(Rule*));
     for(i = 0; i < 64; i++){
-	    snprintf(t, 63, "rule%d", i);
+	    snprintf(t, 63L, "rule%d", i);
 	    tmp = getresource(t, NULL);
 	    if(!tmp)
 		continue;

@@ -187,7 +187,7 @@ void detach(Client *c);
 void detachstack(Client *c);
 void drawclient(Client *c);
 void drawtext(const char *text, unsigned long col[ColLast], unsigned int position);
-void *emallocz(unsigned int size);
+void *emallocz(size_t size);
 void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
 void expose(XEvent *e);
@@ -202,7 +202,7 @@ Client *getclient(Window w, Client *list, Bool title);
 unsigned long getcolor(const char *colstr);
 const char *getresource(const char *resource, const char *defval);
 long getstate(Window w);
-Bool gettextprop(Window w, Atom a, char *text, unsigned int size);
+Bool gettextprop(Window w, Atom a, char *text, size_t size);
 void grabbuttons(Client *c, Bool focused);
 void getpointer(int *x, int *y);
 Monitor* curmonitor();
@@ -239,7 +239,7 @@ void setmwfact(const char *arg);
 void setup(void);
 void spawn(const char *arg);
 void tag(const char *arg);
-unsigned int textnw(const char *text, unsigned int len);
+unsigned int textnw(const char *text, size_t len);
 unsigned int textw(const char *text);
 void tile(Monitor *m);
 void togglestruts(const char *arg);
@@ -360,11 +360,11 @@ applyrules(Client *c) {
 		    ch.res_class ? ch.res_class : "",
 		    ch.res_name ? ch.res_name : "", c->name);
     for(i = 0; i < nrules; i++)
-	    if(regs[i].propregex && !regexec(regs[i].propregex, buf, 1, &tmp, 0)) {
+	    if(regs[i].propregex && !regexec(regs[i].propregex, buf, 1L, &tmp, 0)) {
 		    c->isfloating = rules[i]->isfloating;
 		    c->hastitle = rules[i]->hastitle;
 		    for(j = 0; regs[i].tagregex && j < ntags; j++) {
-			    if(!regexec(regs[i].tagregex, tags[j], 1, &tmp, 0)) {
+			    if(!regexec(regs[i].tagregex, tags[j], 1L, &tmp, 0)) {
 				    matched = True;
 				    c->tags[j] = True;
 			    }
@@ -436,7 +436,7 @@ void
 ban(Client *c) {
     if(c->isbanned)
 	    return;
-    setclientstate(c, IconicState);
+    setclientstate(c, (long) IconicState);
     XSelectInput(dpy, c->win,
 		     CLIENTMASK&~(StructureNotifyMask|EnterWindowMask));
     XSelectInput(dpy, c->frame, NoEventMask);
@@ -565,7 +565,7 @@ cleanup(void) {
     /* free colors */
     XftColorFree(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen), dc.xftnorm);
     XftColorFree(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen), dc.xftsel);
-    XUngrabKey(dpy, AnyKey, AnyModifier, root);
+    XUngrabKey(dpy, (int) AnyKey, AnyModifier, root);
     XFreePixmap(dpy, dc.drawable);
     XFreeGC(dpy, dc.gc);
     XFreeCursor(dpy, cursor[CurNormal]);
@@ -717,7 +717,8 @@ configurenotify(XEvent *e) {
 		XFreePixmap(dpy, dc.drawable);
 		XftDrawDestroy(dc.xftdrawable);
 		/* XXX */
-		dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
+		dc.drawable = XCreatePixmap(dpy, root, (unsigned int) cursw,
+		    (unsigned int) dc.h, (unsigned int) DefaultDepth(dpy, screen));
 		dc.xftdrawable = XftDrawCreate(dpy, dc.drawable, DefaultVisual(dpy,screen),DefaultColormap(dpy,screen));
 		arrange(NULL);
 #ifdef XRANDR
@@ -754,9 +755,12 @@ configurerequest(XEvent *e) {
 			    configure(c);
 		    if(isvisible(c, NULL) && !c->isbastard) {
 			    /* why not resize() ? */
-			    XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
-			    XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th : 1);
-			    XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
+			    XMoveResizeWindow(dpy, c->frame, c->x, c->y,
+				(unsigned int) c->w, (unsigned int) c->h);
+			    XMoveResizeWindow(dpy, c->title, 0, 0,
+				(unsigned int) c->w, c->hastitle ? (unsigned int) c->th : 1);
+			    XMoveResizeWindow(dpy, c->win, 0, c->th,
+				(unsigned int) ev->width, (unsigned int) ev->height);
 			    drawclient(c);
 		    }
 	    }
@@ -771,7 +775,7 @@ configurerequest(XEvent *e) {
 	    wc.border_width = ev->border_width;
 	    wc.sibling = ev->above;
 	    wc.stack_mode = ev->detail;
-	    XConfigureWindow(dpy, ev->window, ev->value_mask, &wc);
+	    XConfigureWindow(dpy, ev->window, (unsigned int) ev->value_mask, &wc);
     }
     XSync(dpy, False);
 }
@@ -822,8 +826,8 @@ detachstack(Client *c) {
 }
 
 void *
-emallocz(unsigned int size) {
-    void *res = calloc(1, size);
+emallocz(size_t size) {
+    void *res = calloc(1L, size);
 
     if(!res)
 	    eprint("fatal: could not malloc() %u bytes\n", size);
@@ -844,15 +848,15 @@ enternotify(XEvent *e) {
 	    grabbuttons(c, True);
 	switch(sloppy) {
 	case Clk2Focus:
-	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
-		    BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
+	    XGrabButton(dpy, (unsigned int) AnyButton, AnyModifier, c->win, False,
+		    (unsigned int) BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
 	    break;
 	case SloppyFloat:
 	    if(ISLTFLOATING || c->isfloating)
 		focus(c);
 	    else
-		XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
-		    BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
+		XGrabButton(dpy, (unsigned int) AnyButton, AnyModifier, c->win, False,
+		    (unsigned int) BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
 	    break;
 	case AllSloppy:
 	    focus(c);
@@ -932,7 +936,7 @@ focus(Client *c) {
     if(!selscreen)
 	    return;
     if(c) {
-	    setclientstate(c, NormalState);
+	    setclientstate(c, (long) NormalState);
 	    if(c->isfocusable)
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 	    XSetWindowBorder(dpy, sel->frame, dc.sel[ColBorder]);
@@ -1046,7 +1050,7 @@ getresource(const char *resource, const char *defval) {
 }
 
 Bool
-gettextprop(Window w, Atom a, char *text, unsigned int size) {
+gettextprop(Window w, Atom a, char *text, size_t size) {
     char **list = NULL;
     int n;
     XTextProperty name;
@@ -1077,17 +1081,19 @@ grabbuttons(Client *c, Bool focused) {
     unsigned int Modifiers[] = {modkey, modkey|LockMask,
 	       modkey|numlockmask, modkey|numlockmask|LockMask};											      
     int i, j;	
-    XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
+    XUngrabButton(dpy, (unsigned int) AnyButton, AnyModifier, c->win);
 
     if(focused) {
 	   for (i = 0; i < LENGTH(Buttons); i++)													  
 		   for (j = 0; j < LENGTH(Modifiers); j++)												  
 			   XGrabButton(dpy, Buttons[i], Modifiers[j], c->win, False,									  
-				   BUTTONMASK, GrabModeAsync, GrabModeSync, None, None);    
+				(unsigned int) BUTTONMASK, GrabModeAsync,
+				GrabModeSync, None, None);    
     }
     else
-	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False, BUTTONMASK,
-			    GrabModeAsync, GrabModeSync, None, None);
+	    XGrabButton(dpy, (unsigned int) AnyButton, AnyModifier, c->win, False,
+			    (unsigned int) BUTTONMASK, GrabModeAsync,
+			    GrabModeSync, None, None);
 }
 
 unsigned int
@@ -1141,22 +1147,22 @@ keypress(XEvent *e) {
     XKeyEvent *ev;
 
     if(!e) { /* grabkeys */
-	    XUngrabKey(dpy, AnyKey, AnyModifier, root);
+	    XUngrabKey(dpy, (unsigned int) AnyKey, AnyModifier, root);
 	    for(i = 0; i < nkeys; i++) {
 		    code = XKeysymToKeycode(dpy, keys[i]->keysym);
-		    XGrabKey(dpy, code, keys[i]->mod, root, True,
+		    XGrabKey(dpy, code, (unsigned int) keys[i]->mod, root, True,
 				    GrabModeAsync, GrabModeAsync);
-		    XGrabKey(dpy, code, keys[i]->mod | LockMask, root, True,
+		    XGrabKey(dpy, code, (unsigned int) keys[i]->mod | LockMask, root, True,
 				    GrabModeAsync, GrabModeAsync);
-		    XGrabKey(dpy, code, keys[i]->mod | numlockmask, root, True,
+		    XGrabKey(dpy, code, (unsigned int) keys[i]->mod | numlockmask, root, True,
 				    GrabModeAsync, GrabModeAsync);
-		    XGrabKey(dpy, code, keys[i]->mod | numlockmask | LockMask, root, True,
-				    GrabModeAsync, GrabModeAsync);
+		    XGrabKey(dpy, code, (unsigned int) keys[i]->mod | numlockmask | LockMask,
+				    root, True, GrabModeAsync, GrabModeAsync);
 	    }
 	    return;
     }
     ev = &e->xkey;
-    keysym = XKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0);
+    keysym = XKeycodeToKeysym(dpy, (KeyCode) ev->keycode, 0);
     for(i = 0; i < nkeys; i++)
 	    if(keysym == keys[i]->keysym
 	    && CLEANMASK(keys[i]->mod) == CLEANMASK(ev->state))
@@ -1195,7 +1201,7 @@ leavenotify(XEvent *e) {
 	    focus(NULL);
     }
     if((c = getclient(ev->window, clients, False)))
-	XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
+	XUngrabButton(dpy, (unsigned int) AnyButton, AnyModifier, c->win);
 }
 
 void
@@ -1289,8 +1295,9 @@ manage(Window w, XWindowAttributes *wa) {
     twa.override_redirect = True;
     twa.background_pixel = dc.norm[ColBG];
     twa.event_mask = FRAMEMASK;
-    c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
-		    c->border, DefaultDepth(dpy, screen), InputOutput,
+    c->frame = XCreateWindow(dpy, root, c->x, c->y, (unsigned int) c->w,
+		    (unsigned int) c->h, c->border,
+		    DefaultDepth(dpy, screen), InputOutput,
 		    DefaultVisual(dpy, screen),
 		    CWOverrideRedirect | CWEventMask | CWBackPixel, &twa);
  
@@ -1299,10 +1306,10 @@ manage(Window w, XWindowAttributes *wa) {
 
     twa.event_mask = ExposureMask | MOUSEMASK;
     if(c->hastitle)
-       c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
-			0, DefaultDepth(dpy, screen), CopyFromParent,
-			DefaultVisual(dpy, screen),
-			CWEventMask, &twa);
+       c->title = XCreateWindow(dpy, c->frame, 0, 0, (unsigned int) c->w,
+			(unsigned int) c->th, 0, DefaultDepth(dpy, screen),
+			(unsigned int) CopyFromParent,
+			DefaultVisual(dpy, screen), CWEventMask, &twa);
     else
 	c->title = (Window)NULL;
 
@@ -1327,7 +1334,7 @@ manage(Window w, XWindowAttributes *wa) {
 	configure(c); /* propagates border_width, if size doesn't change */
     }
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
-	ewmh_process_state_atom(c, atom[WindowStateFs], 1);
+	ewmh_process_state_atom(c, atom[WindowStateFs], 1L);
 
     if(c->isbastard)
 	XSelectInput(dpy, w, PropertyChangeMask);
@@ -1402,7 +1409,7 @@ ifloating(Monitor *m){
 		    }
 		    for(y = m->way; y+c->h <= m->way + m->wah && !c->isplaced ; y+=c->h/4) {
 			for(x = m->wax; x+c->w <= m->wax + m->waw && !c->isplaced; x+=c->w/8) {
-			    if(smartcheckarea(m, x, y, 0.8*c->w, 0.8*c->h)<=f){
+			    if(smartcheckarea(m, x, y, (int) 0.8*c->w, (int) 0.8*c->h)<=f){
 				resize(c, m, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, True);
 				c->isplaced = True;
 			    }
@@ -1433,9 +1440,10 @@ monocle(Monitor *m) {
 	    else
 		continue;
 	    if(bpos[curmontag] != StrutsOn)
-		resize(c, m, m->sx - c->border, m->sy - c->border, m->sw, m->sh, False);
+		resize(c, m, m->sx - (int) c->border, m->sy - (int) c->border, m->sw, m->sh, False);
 	    else {
-		resize(c, m, m->wax, m->way, m->waw - 2*c->border, m->wah - 2*c->border, False);
+		resize(c, m, m->wax, m->way, m->waw - 2 * (int) c->border,
+		    m->wah - 2 * (int) c->border, False);
 	    }
 	}
     }
@@ -1500,7 +1508,7 @@ movemouse(Client *c) {
 
     ocx = nx = c->x;
     ocy = ny = c->y;
-    if(XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
+    if(XGrabPointer(dpy, root, False, (unsigned int) MOUSEMASK, GrabModeAsync, GrabModeAsync,
 		    None, cursor[CurMove], CurrentTime) != GrabSuccess)
 	    return;
     c->ismax = False;
@@ -1524,11 +1532,11 @@ movemouse(Client *c) {
 		    ny = ocy + (ev.xmotion.y - y1);
 		    if(abs(curwax + nx) < SNAP)
 			    nx = curwax;
-		    else if(abs((curwax + curwaw) - (nx + c->w + 2 * c->border)) < SNAP)
+		    else if(abs((curwax + curwaw) - (nx + c->w + 2 * (int) c->border)) < SNAP)
 			    nx = curwax + curwaw - c->w - 2 * c->border;
 		    if(abs(curway - ny) < SNAP)
 			    ny = curway;
-		    else if(abs((curway + curwah) - (ny + c->h + 2 * c->border)) < SNAP)
+		    else if(abs((curway + curwah) - (ny + c->h + 2 * (int) c->border)) < SNAP)
 			    ny = curway + curwah - c->h - 2 * c->border;
 		    resize(c, curmonitor(), nx, ny, c->w, c->h, False);
 		    /* we are probably moving to a different monitor */
@@ -1670,7 +1678,8 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    c->y = y;
 	    c->w = w;
 	    c->h = h;
-	    XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
+	    XMoveResizeWindow(dpy, c->frame, c->x, c->y, (unsigned int) c->w,
+		(unsigned int) c->h);
 	    wc.x = 0;
 	    wc.y = c->th;
 	    wc.width = w;
@@ -1679,7 +1688,8 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
 
 	    if(c->title)
-		XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
+		XMoveResizeWindow(dpy, c->title, 0, 0, (unsigned int) c->w,
+		    c->hastitle ? (unsigned int) c->th: 1);
 	    configure(c);
 	    XSync(dpy, False);
     }
@@ -1692,17 +1702,18 @@ resizemouse(Client *c) {
 
     ocx = c->x;
     ocy = c->y;
-    if(XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
+    if(XGrabPointer(dpy, root, False, (unsigned int) MOUSEMASK, GrabModeAsync, GrabModeAsync,
 		    None, cursor[CurResize], CurrentTime) != GrabSuccess)
 	    return;
     c->ismax = False;
-    XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->border - 1, c->h + c->border - 1);
+    XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + (int) c->border - 1,
+	c->h + (int) c->border - 1);
     for(;;) {
 	    XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask , &ev);
 	    switch(ev.type) {
 	    case ButtonRelease:
 		    XWarpPointer(dpy, None, c->win, 0, 0, 0, 0,
-				    c->w + c->border - 1, c->h + c->border - 1);
+				    c->w + (int) c->border - 1, c->h + (int) c->border - 1);
 		    XUngrabPointer(dpy, CurrentTime);
 		    while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 		    return;
@@ -1891,21 +1902,21 @@ initlayouts(){
 	int nmaster;
 
 	/* init layouts */
-	bzero(buf, 5);
+	bzero(buf, 5L);
 	nmasters = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
 	ltidxs = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
 	mwfacts = (double*)emallocz(sizeof(double) * ntags);
 	bpos = (unsigned int*)emallocz(sizeof(unsigned int) * ntags);
 
-	snprintf(buf, 5, "%.2f", MWFACT);
+	snprintf(buf, 5L, "%.2f", MWFACT);
 	mwfact = atof(getresource("mwfact", buf));
-	bzero(buf, 5);
-	snprintf(buf, 5, "%d", NMASTER);
+	bzero(buf, 5L);
+	snprintf(buf, 5L, "%d", NMASTER);
 	nmaster = atoi(getresource("nmaster", buf));
 	    for(i = 0; i < ntags; i++) {
 		ltidxs[i] = 0;
-		snprintf(conf, 31, "tags.layout%d", i);
-		strncpy(xres, getresource(conf, getresource("deflayout", "i")), 255);
+		snprintf(conf, 31L, "tags.layout%d", i);
+		strncpy(xres, getresource(conf, getresource("deflayout", "i")), 255L);
 		for (j = 0; j < LENGTH(layouts); j++) {
 		    if (!strcmp(layouts[j].symbol, xres)) {
 			ltidxs[i] = j;
@@ -1928,8 +1939,8 @@ inittags(){
     tags = emallocz(ntags*sizeof(char*));
     for(i = 0; i < ntags; i++){
 	tags[i] = emallocz(25*sizeof(char));
-	snprintf(tmp, 24, "tags.name%d", i);
-	snprintf(tags[i], 24, "%s", getresource(tmp, "null"));
+	snprintf(tmp, 24L, "tags.name%d", i);
+	snprintf(tags[i], 24L, "%s", getresource(tmp, "null"));
     }
 }
 
@@ -1983,7 +1994,7 @@ setup(void) {
 	/* init resource database */
 	XrmInitialize();
 	char conf[256];
-	snprintf(conf, 255, "%s/%s", getenv("HOME"), "/.echinus");
+	snprintf(conf, 255L, "%s/%s", getenv("HOME"), "/.echinus");
 	chdir(conf);
 	xrdb = XrmGetFileDatabase("echinusrc");
 	if(!xrdb) {
@@ -2036,7 +2047,7 @@ setup(void) {
 	look.tbpos = atoi(getresource("tagbar", TAGBAR));
 	look.drawoutline = atoi(getresource("outline", "0"));
 
-	strncpy(terminal, getresource("terminal", TERMINAL), 255);
+	strncpy(terminal, getresource("terminal", TERMINAL), 255L);
 
 	dc.h = atoi(getresource("title", TITLEHEIGHT));
 	if(!dc.h)
@@ -2050,8 +2061,9 @@ setup(void) {
 	    updategeom(m);
 	}
 
-	dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
-	dc.gc = XCreateGC(dpy, root, 0, 0);
+	dc.drawable = XCreatePixmap(dpy, root, (unsigned int) cursw,
+	    (unsigned int) dc.h, (unsigned int) DefaultDepth(dpy, screen));
+	dc.gc = XCreateGC(dpy, root, 0L, 0);
 
 	/* buttons */
 	initbuttons();
@@ -2242,7 +2254,9 @@ togglemax(const char *arg) {
 	    sel->ry = sel->y;
 	    sel->rw = sel->w;
 	    sel->rh = sel->h;
-	    resize(sel, curmonitor(), cursx - sel->border, cursy - sel->border, cursw + 2*sel->border, cursh + 2*sel->border + sel->th, False);
+	    resize(sel, curmonitor(), cursx - (int) sel->border,
+		cursy - (int) sel->border, cursw + 2 * (int) sel->border,
+		cursh + 2 * (int) sel->border + sel->th, False);
     }
     else {
 	resize(sel, curmonitor(), sel->rx, sel->ry, sel->rw, sel->rh, True);
@@ -2323,7 +2337,7 @@ unban(Client *c) {
     //XMapWindow(dpy, c->win);
     XSelectInput(dpy, c->win, CLIENTMASK);
     XSelectInput(dpy, c->frame, FRAMEMASK);
-    setclientstate(c, NormalState);
+    setclientstate(c, (long) NormalState);
     if(c->isfloating)
 	drawclient(c);
     c->isbanned = False;
@@ -2351,8 +2365,8 @@ unmanage(Client *c) {
     detachstack(c);
     if(sel == c)
 	focus(NULL);
-    XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
-    setclientstate(c, WithdrawnState);
+    XUngrabButton(dpy, (unsigned int) AnyButton, AnyModifier, c->win);
+    setclientstate(c, (long) WithdrawnState);
     /* c->tags points to monitor */
     if(!c->isbastard)
 	free(c->tags);
