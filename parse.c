@@ -169,10 +169,10 @@ initkeys(){
 void 
 parserule(char *s, Rule *r){
     char *prop = emallocz(sizeof(char)*128);
-    char *tags = emallocz(sizeof(char)*64);
-    sscanf(s, "%s %s %d %d", prop, tags, &r->isfloating, &r->hastitle);
+    char *_tags = emallocz(sizeof(char)*64);
+    sscanf(s, "%s %s %d %d", prop, _tags, &r->isfloating, &r->hastitle);
     r->prop = prop;
-    r->tags = tags;
+    r->tags = _tags;
 }
 
 void

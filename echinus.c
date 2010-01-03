@@ -202,12 +202,12 @@ Client *getclient(Window w, Client *list, Bool title);
 unsigned long getcolor(const char *colstr);
 char *getresource(const char *resource, char *defval);
 long getstate(Window w);
-Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
+Bool gettextprop(Window w, Atom a, char *text, unsigned int size);
 void grabbuttons(Client *c, Bool focused);
 void getpointer(int *x, int *y);
 Monitor* curmonitor();
 Monitor* clientmonitor(Client *c);
-unsigned int idxoftag(const char *tag);
+unsigned int idxoftag(const char *t);
 Bool isoccupied(unsigned int t);
 Bool isprotodel(Client *c);
 Bool isvisible(Client *c, Monitor *m);
@@ -1046,7 +1046,7 @@ getresource(const char *resource, char *defval) {
 }
 
 Bool
-gettextprop(Window w, Atom atom, char *text, unsigned int size) {
+gettextprop(Window w, Atom a, char *text, unsigned int size) {
     char **list = NULL;
     int n;
     XTextProperty name;
@@ -1054,7 +1054,7 @@ gettextprop(Window w, Atom atom, char *text, unsigned int size) {
     if(!text || size == 0)
 	    return False;
     text[0] = '\0';
-    XGetTextProperty(dpy, w, &name, atom);
+    XGetTextProperty(dpy, w, &name, a);
     if(!name.nitems)
 	    return False;
     if(name.encoding == XA_STRING)
@@ -1091,10 +1091,10 @@ grabbuttons(Client *c, Bool focused) {
 }
 
 unsigned int
-idxoftag(const char *tag) {
+idxoftag(const char *t) {
     int i;
 
-    for(i = 0; (i < ntags) && strcmp(tag, tags[i]); i++);
+    for(i = 0; (i < ntags) && strcmp(t, tags[i]); i++);
     return (i < ntags) ? i : 0;
 }
 
@@ -2470,7 +2470,7 @@ updatetitle(Client *c) {
  * ignored (ebastardly on UnmapNotify's).  Other types of errors call Xlibs
  * default error handler, which may call exit.	*/
 int
-xerror(Display *dpy, XErrorEvent *ee) {
+xerror(Display *d, XErrorEvent *ee) {
     if(ee->error_code == BadWindow
     || (ee->request_code == X_SetInputFocus && ee->error_code == BadMatch)
     || (ee->request_code == X_PolyText8 && ee->error_code == BadDrawable)
@@ -2482,7 +2482,7 @@ xerror(Display *dpy, XErrorEvent *ee) {
 	    return 0;
     fprintf(stderr, "echinus: fatal error: request code=%d, error code=%d\n",
 	    ee->request_code, ee->error_code);
-    return xerrorxlib(dpy, ee); /* may call exit */
+    return xerrorxlib(d, ee); /* may call exit */
 }
 
 int

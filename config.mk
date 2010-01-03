@@ -18,8 +18,11 @@ LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 `pkg-config --libs xft`
 # flags
 CFLAGS = -Os ${INCS} -DVERSION=\"${VERSION}\" -DSYSCONFPATH=\"${PREFIX}/${CONF}\"
 LDFLAGS = -s ${LIBS}
-CFLAGS = -g3 -ggdb3 -std=c99 -pedantic -W -Wall -Wcast-qual -O0 ${INCS} -DVERSION=\"${VERSION}\" -DSYSCONFPATH=\"${PREFIX}/${CONF}\"
+CFLAGS = -g3 -ggdb3 -std=c99 -pedantic -W -Wall -Wcast-qual -Wshadow -O0 ${INCS} -DVERSION=\"${VERSION}\" -DSYSCONFPATH=\"${PREFIX}/${CONF}\"
 LDFLAGS = -g3 -ggdb3 ${LIBS}
+
+# stop on all warnings
+# CFLAGS += -Werror
 
 # XRandr (multihead support). Comment out to disable.
 CFLAGS += -DXRANDR=1
