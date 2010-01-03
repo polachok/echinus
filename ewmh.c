@@ -61,7 +61,7 @@ update_echinus_layout_name(Client *c) {
 	UNUSED(c);
 	XChangeProperty(dpy, root, atom[ELayout], 
 		XA_STRING, 8, PropModeReplace, 
-		(unsigned char *) layouts[ltidxs[curmontag]].symbol, 1L);
+		(const unsigned char *) layouts[ltidxs[curmontag]].symbol, 1L);
 }
 
 void
