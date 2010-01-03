@@ -20,7 +20,7 @@ Atom atom[NATOMS];
 
 #define LASTAtom ClientListStacking
 
-char* atomnames[NATOMS][1] = {
+const char * atomnames[NATOMS][1] = {
     { "_NET_CLIENT_LIST" },
     { "_NET_ACTIVE_WINDOW" },
     { "_NET_WM_DESKTOP" },
@@ -57,7 +57,8 @@ initatom(void) {
 }
 
 void 
-update_echinus_layout_name(Client *c){
+update_echinus_layout_name(Client *c) {
+	UNUSED(c);
 	XChangeProperty(dpy, root, atom[ELayout], 
 		XA_STRING, 8, PropModeReplace, 
 		(unsigned char *) layouts[ltidxs[curmontag]].symbol, 1L);

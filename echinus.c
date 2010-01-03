@@ -56,12 +56,13 @@
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
 #define CLIENTMASK	        (PropertyChangeMask | EnterWindowMask)
 #define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask)
-#define LENGTH(x)		(sizeof x / sizeof x[0])
+#define LENGTH(x)		(int) (sizeof x / sizeof x[0])
 #define RESNAME			       "echinus"
 #define RESCLASS	       "Echinus"
 #define OPAQUE	0xffffffff
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 #define ISLTFLOATING ((layouts[ltidxs[curmontag]].arrange == floating) || (layouts[ltidxs[curmontag]].arrange == ifloating))
+#define UNUSED(x)		(void) x
 
 /* enums */
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };
@@ -210,6 +211,7 @@ unsigned int idxoftag(const char *tag);
 Bool isoccupied(unsigned int t);
 Bool isprotodel(Client *c);
 Bool isvisible(Client *c, Monitor *m);
+void init(void);
 void initmonitors(XEvent *e);
 void keypress(XEvent *e);
 void killclient(const char *arg);
@@ -299,8 +301,8 @@ unsigned int *ltidxs;
 double *mwfacts;
 Cursor cursor[CurLast];
 Display *dpy;
-DC dc = {0};
-Look look = {0};
+DC dc;
+Look look;
 Window root;
 Regs *regs = NULL;
 XrmDatabase xrdb = NULL;
@@ -345,10 +347,12 @@ void (*handler[LASTEvent]) (XEvent *) = {
 void
 applyrules(Client *c) {
     static char buf[512];
-    unsigned int i, j;
+    int i, j;
     regmatch_t tmp;
     Bool matched = False;
-    XClassHint ch = { 0 };
+    XClassHint ch;
+
+    memset(&ch, 0, sizeof(XClassHint));
 
     /* rule matching */
     XGetClassHint(dpy, c->win, &ch);
@@ -445,6 +449,7 @@ ban(Client *c) {
 
 void
 iconifyit(const char *arg) {
+    UNUSED(arg);
     Client *c;
     if(!sel)
 	return;
@@ -572,7 +577,7 @@ cleanup(void) {
 
 void
 compileregs(void) {
-    unsigned int i;
+    int i;
     regex_t *reg;
 
     if(regs)
@@ -615,7 +620,14 @@ configure(Client *c) {
 }
 
 void
+init(void) {
+    memset(&dc,   0, sizeof(DC));
+    memset(&look, 0, sizeof(struct Look));
+}
+
+void
 initmonitors(XEvent *e) {
+	UNUSED(e);
 	Monitor *m;
 #ifdef XRANDR
 	Monitor *t;
@@ -936,6 +948,7 @@ focus(Client *c) {
 
 void
 focusnext(const char *arg) {
+    UNUSED(arg);
     Client *c;
 
     if(!sel)
@@ -951,6 +964,7 @@ focusnext(const char *arg) {
 
 void
 focusprev(const char *arg) {
+    UNUSED(arg);
     Client *c;
 
     if(!sel)
@@ -975,7 +989,7 @@ incnmaster(const char *arg) {
 	    nmasters[curmontag] = NMASTER;
     else {
 	    i = atoi(arg);
-	    if((nmasters[curmontag] + i) < 1 || curwah / (nmasters[curmontag] + i) <= 2 * look.borderpx)
+	    if((nmasters[curmontag] + i) < 1 || curwah / (nmasters[curmontag] + i) <= 2 * (unsigned int) abs(look.borderpx))
 		    return;
 	    nmasters[curmontag] += i;
     }
@@ -1078,7 +1092,7 @@ grabbuttons(Client *c, Bool focused) {
 
 unsigned int
 idxoftag(const char *tag) {
-    unsigned int i;
+    int i;
 
     for(i = 0; (i < ntags) && strcmp(tag, tags[i]); i++);
     return (i < ntags) ? i : 0;
@@ -1101,7 +1115,7 @@ isprotodel(Client *c) {
 
 Bool
 isvisible(Client *c, Monitor *m) {
-    unsigned int i;
+    int i;
     if(!c)
 	return False;
     if(!m) {
@@ -1121,7 +1135,7 @@ isvisible(Client *c, Monitor *m) {
 
 void
 keypress(XEvent *e) {
-    unsigned int i;
+    int i;
     KeyCode code;
     KeySym keysym;
     XKeyEvent *ev;
@@ -1154,6 +1168,7 @@ keypress(XEvent *e) {
 
 void
 killclient(const char *arg) {
+    UNUSED(arg);
     XEvent ev;
     if(!sel)
 	    return;
@@ -1639,9 +1654,9 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    x = m->sw - w - 2 * c->border;
     if(y > m->way + m->sh)
 	    y = m->sh - h - 2 * c->border;
-    if(x + w + 2 * c->border < m->sx)
+    if(x + w + 2 * (int) c->border < m->sx)
 	    x = m->sx;
-    if(y + h + 2 * c->border < m->sy)
+    if(y + h + 2 * (int) c->border < m->sy)
 	    y = m->sy;
     if(c->x != x || c->y != y || c->w != w || c->h != h) {
 	    if(c->isfloating || ISLTFLOATING) {
@@ -1920,16 +1935,15 @@ inittags(){
 
 void 
 sighandler(int signum) {
-    if(signum == SIGHUP)
-	quit((char*)signum);
-    else
-	quit(0);
+    quit(SIGHUP == signum ? (char *) 1 : 0);
 }
 
 void
 setup(void) {
 	int d;
-	unsigned int i, j, mask;
+	int i, j;
+	unsigned int mask;
+
 	Window w;
 	Monitor *m;
 	XModifierKeymap *modmap;
@@ -2076,7 +2090,7 @@ spawn(const char *arg) {
 
 void
 tag(const char *arg) {
-	unsigned int i;
+	int i;
 
 	if(!sel)
 		return;
@@ -2089,7 +2103,7 @@ tag(const char *arg) {
 
 void
 bstack(Monitor *m) {
-    unsigned int i, n, nx, ny, nw, nh, mh, tw;
+    int i, n, nx, ny, nw, nh, mh, tw;
     Client *c, *mc;
 
     domwfact = dozoom = True;
@@ -2130,7 +2144,8 @@ bstack(Monitor *m) {
 
 void
 tile(Monitor *m) {
-	unsigned int i, n, nx, ny, nw, nh, mw, mh, th;
+	unsigned int i, n;
+	int nx, ny, nw, nh, mw, mh, th;
 	Client *c, *mc;
 	wasfloating = False;
 
@@ -2147,7 +2162,7 @@ tile(Monitor *m) {
 
 	nx = m->wax;
 	ny = m->way;
-	nw = 0; /* gcc stupidity requires this */
+	nw = 0;
 	for(i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
 		c->hastitle = (dectiled ? (c->title ? True : False) : False);
 		c->ismax = False;
@@ -2186,6 +2201,7 @@ tile(Monitor *m) {
 
 void
 togglestruts(const char *arg) {
+    UNUSED(arg);
     bpos[curmontag] = (bpos[curmontag] == StrutsOn) ? (hidebastards ? StrutsHide : StrutsOff) : StrutsOn;
     updategeom(curmonitor());
     arrange(curmonitor());
@@ -2193,6 +2209,7 @@ togglestruts(const char *arg) {
 
 void
 togglefloating(const char *arg) {
+    UNUSED(arg);
     if(!sel)
 	    return;
     if(sel->title)
@@ -2215,6 +2232,7 @@ togglefloating(const char *arg) {
 
 void
 togglemax(const char *arg) {
+    UNUSED(arg);
     XEvent ev;
 
     if(!sel || sel->isfixed)
@@ -2234,7 +2252,7 @@ togglemax(const char *arg) {
 
 void
 toggletag(const char *arg) {
-    unsigned int i, j;
+    int i, j;
 
     if(!sel)
 	    return;
@@ -2249,6 +2267,7 @@ toggletag(const char *arg) {
 
 void
 togglemonitor(const char *arg) {
+    UNUSED(arg);
     Monitor *m, *cm;
     int x, y;
     getpointer(&x, &y);
@@ -2259,7 +2278,8 @@ togglemonitor(const char *arg) {
 
 void
 toggleview(const char *arg) {
-    unsigned int i, j;
+    unsigned int i;
+    int j;
 
     memcpy(curprevtags, curseltags, ntags*(sizeof curseltags));
     i = idxoftag(arg);
@@ -2467,6 +2487,8 @@ xerror(Display *dpy, XErrorEvent *ee) {
 
 int
 xerrordummy(Display *dsply, XErrorEvent *ee) {
+    UNUSED(dsply);
+    UNUSED(ee);
     return 0;
 }
 
@@ -2474,13 +2496,15 @@ xerrordummy(Display *dsply, XErrorEvent *ee) {
  * is already running. */
 int
 xerrorstart(Display *dsply, XErrorEvent *ee) {
+    UNUSED(dsply);
+    UNUSED(ee);
     otherwm = True;
     return -1;
 }
 
 void
 view(const char *arg) {
-    unsigned int i, prevcurtag;
+    int i, prevcurtag;
     Monitor *m;
     int swapping = 0;
     for(m = monitors; m ; m = m->next) {
@@ -2508,8 +2532,9 @@ view(const char *arg) {
 
 void
 viewprevtag(const char *arg) {
+    UNUSED(arg);
     Bool tmptags[ntags];
-    unsigned int i, prevcurtag;
+    int i, prevcurtag;
  
     i = 0;
     while(i < ntags-1 && !curprevtags[i]) i++;
@@ -2527,6 +2552,7 @@ viewprevtag(const char *arg) {
 
 void
 viewlefttag(const char *arg) {
+    UNUSED(arg);
     int i;
     for(i = 0; i < ntags; i++) {
 	if(i && curseltags[i]) {
@@ -2538,6 +2564,7 @@ viewlefttag(const char *arg) {
 
 void
 viewrighttag(const char *arg) {
+    UNUSED(arg);
     int i;
     for(i = 0; i < ntags-1; i++) {
 	if(curseltags[i]) {
@@ -2549,6 +2576,7 @@ viewrighttag(const char *arg) {
 
 void
 zoom(const char *arg) {
+    UNUSED(arg);
     Client *c;
 
     if(!sel || !dozoom || sel->isfloating)
@@ -2570,7 +2598,9 @@ main(int argc, char *argv[]) {
     else if(argc != 1)
 	    eprint("usage: echinus [-v]\n");
 
+    init();
     setlocale(LC_CTYPE, "");
+
     if(!(dpy = XOpenDisplay(0)))
 	    eprint("echinus: cannot open display\n");
     signal(SIGHUP, sighandler);

@@ -90,14 +90,15 @@ drawbuttons(Client *c) {
 
 void
 drawclient(Client *c) {
-    unsigned int i;
+    int i;
     unsigned int opacity;
     if(!isvisible(c, curmonitor()))
 	return;
-    /* WTF?
+#if 0
+    // WTF?
     if(c->isfloating && !c->isbastard)
 	resize(c, curmonitor(), c->x, c->y, c->w, c->h, True);
-	*/
+#endif
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
     XFillRectangle(dpy, dc.drawable, dc.gc, 0, 0, c->w, c->th);
@@ -147,6 +148,7 @@ initfont(const char *fontstr) {
 
 unsigned int
 textnw(const char *text, unsigned int len) {
+    UNUSED(len);
     XftTextExtentsUtf8(dpy, dc.font.xftfont, (unsigned char*)text, strlen(text), dc.font.extents);
 
     if(dc.font.extents->height > dc.font.height)
