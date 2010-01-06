@@ -93,6 +93,7 @@ struct Client {
 	int minax, maxax, minay, maxay;
 	long flags;
 	int border, oldborder;
+	Monitor *m;
 	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon, hastitle;
 	Bool isplaced, isbastard, isfocusable;
 	Bool *tags;
@@ -378,14 +379,26 @@ arrange(Monitor *m) {
     Client *c;
     Monitor *i;
 
-    for(c = stack; c; c = c->snext){
+    if(m) {
+	layouts[ltidxs[m->curtag]].arrange(m);
+	restack(m);
+    } else {
+	focus(NULL);
+	for(i = monitors; i; i = i->next) {
+	    layouts[ltidxs[i->curtag]].arrange(i);
+	    restack(i);
+	}
+    }
+
+    for(c = stack; c; c = c->snext) {
 	    if((!c->isbastard && isvisible(c, NULL) && !c->isicon) || (c->isbastard && bpos[curmontag] == StrutsOn)) {
 		    unban(c);
 		    if(c->isbastard)
 			c->isicon = False;
-	    }
+	    } 
     }
-    for(c = stack; c; c = c->snext){
+ 
+    for(c = stack; c; c = c->snext) {
 	    if((!c->isbastard && (!isvisible(c, NULL) || c->isicon)) ||
 		    (c->isbastard && bpos[curmontag] == StrutsHide && clientmonitor(c) == curmonitor())) {
 		    ban(c);
@@ -393,16 +406,6 @@ arrange(Monitor *m) {
 			c->isicon = True;
 	    }
     }
-    if(m) { 
-	layouts[ltidxs[m->curtag]].arrange(m);
-	restack(m);
-	return;
-    }
-    for(i = monitors; i; i = i->next)
-	layouts[ltidxs[i->curtag]].arrange(i);
-    focus(NULL);
-    for(i = monitors; i; i = i->next)
-	restack(i);
 }
 
 void
@@ -739,8 +742,7 @@ configurerequest(XEvent *e) {
 		    && !(ev->value_mask & (CWWidth | CWHeight)))
 			    configure(c);
 		    if(isvisible(c, NULL) && !c->isbastard) {
-			    /* why not resize() ? */
-			    XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
+			    XMoveResizeWindow(dpy, c->frame, c->m->sx + c->x, c->m->sy + c->y, c->w, c->h);
 			    XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th : 1);
 			    XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
 			    drawclient(c);
@@ -888,10 +890,10 @@ floating(Monitor *m) { /* default floating layout */
 		c->hastitle = c->title ? True : False;
 		drawclient(c);
 		if(!c->isfloating)
-			/*restore last known float dimensions*/
-			resize(c, m, c->sfx, c->sfy, c->sfw, c->sfh, True);
-		    else
-			resize(c, m, c->x, c->y, c->w, c->h, True);
+		    /* restore last known float dimensions */
+		    resize(c, m, c->sfx, c->sfy, c->sfw, c->sfh, True);
+		else
+		    resize(c, m, c->x, c->y, c->w, c->h, True);
 	}
     }
     wasfloating = True;
@@ -1107,9 +1109,8 @@ isvisible(Client *c, Monitor *m) {
 	    for(i = 0; i < ntags; i++)
 		if(c->tags[i] && m->seltags[i])
 			return True;
-	    }
 	}
-    else {
+    } else {
 	for(i = 0; i < ntags; i++)
 	    if(c->tags[i] && m->seltags[i])
 		    return True;
@@ -1184,14 +1185,17 @@ leavenotify(XEvent *e) {
 void
 manage(Window w, XWindowAttributes *wa) {
     Client *c, *t = NULL;
+    Monitor *cm;
     Window trans;
     Status rettrans;
     XWindowChanges wc;
     XSetWindowAttributes twa;
     XWMHints *wmh;
 
+    cm = curmonitor();
     c = emallocz(sizeof(Client));
     c->win = w;
+    c->m = NULL;
     if(checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]) ||
 	    checkatom(c->win, atom[WindowType], atom[WindowTypeDock])){
 	c->isbastard = True;
@@ -1227,12 +1231,12 @@ manage(Window w, XWindowAttributes *wa) {
 	    c->isfloating = (rettrans == Success) || c->isfixed;
 
     if((wmh = XGetWMHints(dpy, c->win))) {
-     c->isfocusable = !(wmh->flags & InputHint) || wmh->input;
-     XFree(wmh);
+	c->isfocusable = !(wmh->flags & InputHint) || wmh->input;
+	XFree(wmh);
     } 
 
-    c->x = c->sfx = wa->x;
-    c->y = c->sfy = wa->y;
+    c->x = c->sfx = wa->x%cm->sw;
+    c->y = c->sfy = wa->y%cm->sh;
     c->w = c->sfw = wa->width;
     c->h = c->sfh = wa->height + c->th;
 
@@ -1241,18 +1245,19 @@ manage(Window w, XWindowAttributes *wa) {
     else {
 	if(!c->isbastard && c->isfloating) {
 	    getpointer(&c->x, &c->y);
+	    c->x -= cm->sx;
+	    c->y -= cm->sy;
 	}
     }
     if(c->isbastard) {
-	c->x = wa->x + curmonitor()->wax;
-	c->y = wa->y + curmonitor()->way;
+	c->x = wa->x + cm->wax;
+	c->y = wa->y + cm->way;
     }
     c->oldborder = c->isbastard ? 0 : wa->border_width;
     if(c->w == cursw && c->h == cursh) {
 	    c->x = cursx;
 	    c->y = cursy;
-    }
-    else {
+    } else {
 	    if(c->x + c->w > curwax + curwaw)
 		    c->x = curwax + curwaw - c->w;
 	    if(c->y + c->h > curway + curwah)
@@ -1292,14 +1297,15 @@ manage(Window w, XWindowAttributes *wa) {
     if(c->isbastard)
 	c->tags = curmonitor()->seltags;
     attach(c);
-    attachstack(c);/*
+    attachstack(c);
+#if 0
     twa.event_mask = EnterWindowMask |
 			PropertyChangeMask | FocusChangeMask;
     twa.win_gravity = StaticGravity;
     twa.do_not_propagate_mask = MOUSEMASK;
     XChangeWindowAttributes(dpy, c->win,
 			CWEventMask | CWWinGravity | CWDontPropagate, &twa);
-*/
+#endif
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XAddToSaveSet(dpy, c->win);
     XMapWindow(dpy, c->win);
@@ -1311,17 +1317,16 @@ manage(Window w, XWindowAttributes *wa) {
     }
     if(checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
 	ewmh_process_state_atom(c, atom[WindowStateFs], 1);
-
     if(c->isbastard)
 	XSelectInput(dpy, w, PropertyChangeMask);
     else
 	XSelectInput(dpy, w, CLIENTMASK);
+    resize(c, cm, c->x, c->y, c->w, c->h, True);
     ban(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
-    arrange(clientmonitor(c));
     updatestruts(c->win);
-    
+    arrange(clientmonitor(c));
     focus(NULL);
 }
 
@@ -1412,14 +1417,14 @@ monocle(Monitor *m) {
 		c->sfh = c->h;
 		c->hastitle = False;
 		unban(c);
-	    }
-	    else
+	    } else {
+		resize(c, m, c->x, c->y, c->w, c->h, False);
 		continue;
-	    if(bpos[curmontag] != StrutsOn)
-		resize(c, m, m->sx - c->border, m->sy - c->border, m->sw, m->sh, False);
-	    else {
-		resize(c, m, m->wax, m->way, m->waw - 2*c->border, m->wah - 2*c->border, False);
 	    }
+	    if(bpos[curmontag] != StrutsOn)
+		resize(c, m, m->wax-c->border, m->way-c->border, m->waw, m->wah, False);
+	    else
+		resize(c, m, m->wax, m->way, m->waw - 2*c->border, m->wah - 2*c->border, False);
 	}
     }
 }
@@ -1637,11 +1642,13 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    x = m->sw - w - 2 * c->border;
     if(y > m->way + m->sh)
 	    y = m->sh - h - 2 * c->border;
+#if 0
     if(x + w + 2 * c->border < m->sx)
-	    x = m->sx;
+	    x = m->wax;
     if(y + h + 2 * c->border < m->sy)
-	    y = m->sy;
-    if(c->x != x || c->y != y || c->w != w || c->h != h) {
+	    y = m->way;
+#endif
+    if(c->m != m || c->x != x || c->y != y || c->w != w || c->h != h) {
 	    if(c->isfloating || ISLTFLOATING) {
 		    c->sfx = x;
 		    c->sfy = y;
@@ -1653,13 +1660,14 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    c->y = y;
 	    c->w = w;
 	    c->h = h;
-	    XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
+	    c->m = m;
+	    XMoveResizeWindow(dpy, c->frame, m->sx + c->x, m->sy + c->y, c->w, c->h);
 	    wc.x = 0;
 	    wc.y = c->th;
 	    wc.width = w;
 	    wc.height = h - c->th;
 	    wc.border_width = 0;
-	    XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
+	    XConfigureWindow(dpy, c->win, CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
 
 	    if(c->title)
 		XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
@@ -1717,6 +1725,7 @@ restack(Monitor *m) {
 
     if(!sel)
 	    return;
+
     if(ISLTFLOATING) {
 	XRaiseWindow(dpy, sel->frame);
 	goto end;
@@ -2218,8 +2227,7 @@ togglemax(const char *arg) {
 	    sel->rw = sel->w;
 	    sel->rh = sel->h;
 	    resize(sel, curmonitor(), cursx - sel->border, cursy - sel->border, cursw + 2*sel->border, cursh + 2*sel->border + sel->th, False);
-    }
-    else {
+    } else {
 	resize(sel, curmonitor(), sel->rx, sel->ry, sel->rw, sel->rh, True);
     }
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
@@ -2287,6 +2295,7 @@ focusview(const char *arg) {
     }
     restack(curmonitor());
 }
+
 void
 unban(Client *c) {
     if(!c->isbanned)
@@ -2342,26 +2351,21 @@ unmanage(Client *c) {
 
 void
 updategeom(Monitor *m) {
-    XEvent ev;
-
-    m->wax = m->sx;
-    m->way = m->sy;
+    m->wax = 0;
+    m->way = 0;
     m->wah = m->sh;
     m->waw = m->sw;
     switch(bpos[curmontag]){
     default:
 	m->wax += m->struts[LeftStrut];
-	/* XXX wax??? */
-	m->waw = m->sw - m->struts[RightStrut] - m->struts[LeftStrut];
+	m->waw -= (m->wax + m->struts[RightStrut]);
 	m->way += m->struts[TopStrut];
-	m->wah = m->sh - m->way - m->struts[BotStrut];
+	m->wah -= (m->way + m->struts[BotStrut]);
 	break;
     case StrutsHide:
     case StrutsOff:
 	break;
     }
-    XSync(dpy, False);
-    while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
 
 void
