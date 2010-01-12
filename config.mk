@@ -23,6 +23,8 @@ LDFLAGS = -g3 -ggdb3 ${LIBS}
 
 # DEBUG: Show warnings (if any). Comment out to disable.
 CFLAGS += -Wall -W -Wcast-qual -Wshadow -Wwrite-strings
+# mostly useless warnings
+#CFLAGS += -Wall -W -Wcast-qual -Wshadow -Wwrite-strings
 #CFLAGS += -Werror        # Treat warnings as errors.
 #CFLAGS += -save-temps    # Keep precompiler output (great for debugging).
 

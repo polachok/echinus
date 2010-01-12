@@ -1,4 +1,3 @@
-
 void
 drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
     int x, y, w, h;
@@ -90,14 +89,11 @@ drawbuttons(Client *c) {
 
 void
 drawclient(Client *c) {
-    unsigned int i;
+    int i;
     unsigned int opacity;
+
     if(!isvisible(c, curmonitor()))
 	return;
-    /* WTF?
-    if(c->isfloating && !c->isbastard)
-	resize(c, curmonitor(), c->x, c->y, c->w, c->h, True);
-	*/
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
     XFillRectangle(dpy, dc.drawable, dc.gc, 0, 0, c->w, c->th);
@@ -139,7 +135,8 @@ initfont(const char *fontstr) {
     if(!dc.font.xftfont)
 	 eprint("error, cannot load font: '%s'\n", fontstr);
     dc.font.extents = emallocz(sizeof(XGlyphInfo));
-    XftTextExtentsUtf8(dpy, dc.font.xftfont, (unsigned char*)fontstr, strlen(fontstr), dc.font.extents);
+    XftTextExtentsUtf8(dpy, dc.font.xftfont,
+	(const unsigned char*)fontstr, strlen(fontstr), dc.font.extents);
     dc.font.height = dc.font.xftfont->ascent + dc.font.xftfont->descent;
     dc.font.ascent = dc.font.xftfont->ascent;
     dc.font.descent = dc.font.xftfont->descent;
@@ -147,7 +144,8 @@ initfont(const char *fontstr) {
 
 unsigned int
 textnw(const char *text, unsigned int len) {
-    XftTextExtentsUtf8(dpy, dc.font.xftfont, (unsigned char*)text, strlen(text), dc.font.extents);
+    XftTextExtentsUtf8(dpy, dc.font.xftfont,
+	(const unsigned char*)text, strlen(text), dc.font.extents);
 
     if(dc.font.extents->height > dc.font.height)
 	   dc.font.height = dc.font.extents->height;

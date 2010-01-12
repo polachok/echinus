@@ -14,13 +14,13 @@ enum { ClientList, ActiveWindow, WindowDesk,
       ClientListStacking, WindowOpacity, WindowType,
       WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial, ESelTags,
       WindowName, WindowState, WindowStateFs, WindowStateModal, WindowStateHidden,
-      Utf8String, Supported, NATOMS };
+      Utf8String, Supported, WMProto, WMDelete, WMName, WMState, NATOMS };
 
 Atom atom[NATOMS];
 
 #define LASTAtom ClientListStacking
 
-char* atomnames[NATOMS][1] = {
+const char * atomnames[NATOMS][1] = {
     { "_NET_CLIENT_LIST" },
     { "_NET_ACTIVE_WINDOW" },
     { "_NET_WM_DESKTOP" },
@@ -43,47 +43,45 @@ char* atomnames[NATOMS][1] = {
     { "_NET_WM_STATE_HIDDEN" },
     { "UTF8_STRING" }, 
     { "_NET_SUPPORTED" },
+    { "WM_PROTOCOLS" },
+    { "WM_DELETE_WINDOW" },
+    { "WM_NAME" },
+    { "WM_STATE" },
 };
 
 void
 initatom(void) {
     int i;
-    for(i = 0; i < NATOMS; i++){
+
+    for(i = 0; i < NATOMS; i++)
 	atom[i] = XInternAtom(dpy, atomnames[i][0], False);
-    }
     XChangeProperty(dpy, root,
 		    atom[Supported], XA_ATOM, 32,
 		    PropModeReplace, (unsigned char *) atom, NATOMS);
 }
 
 void 
-update_echinus_layout_name(Client *c){
+update_echinus_layout_name(Client *c) {
 	XChangeProperty(dpy, root, atom[ELayout], 
 		XA_STRING, 8, PropModeReplace, 
-		(unsigned char *) layouts[ltidxs[curmontag]].symbol, 1L);
+		(const unsigned char *) layouts[ltidxs[curmontag]].symbol, 1L);
 }
 
 void
 ewmh_update_net_client_list() {
     Window *wins;
     Client *c;
-    int n = 0;
-    int i;
+    int i, n = 0;
 
     for(c = stack; c; c = c->snext)
 	    n++;
-
     wins = malloc(sizeof(Window*)*n);
-
     for(i = 0, c = stack; c; c = c->snext)
 	    wins[i++] = c->win;
-
     XChangeProperty(dpy, root,
 		    atom[ClientListStacking], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
-    
     for(i = 0, c = clients; c; c = c->next)
 	    wins[i++] = c->win;
-
     XChangeProperty(dpy, root,
 		    atom[ClientList], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
     free(wins);
@@ -101,15 +99,14 @@ ewmh_update_net_current_desktop() {
     Monitor *m;
     static Bool *seltags = NULL;
     int i;
+
     if(!seltags)
 	seltags = emallocz(ntags*sizeof(Bool));
     bzero(seltags, ntags*sizeof(Bool));
-
     for(m = monitors; m != NULL; m = m->next) {
 	for(i = 0; i < ntags; i++)
 	    seltags[i] |= m->seltags[i];
     }
-
     XChangeProperty(dpy, root,
 		    atom[ESelTags], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) seltags, ntags);
     XChangeProperty(dpy, root,
@@ -122,7 +119,6 @@ ewmh_update_net_window_desktop(Client *c) {
     int i;
 
     for(i = 0; i < ntags && !c->tags[i]; i++);
-
     XChangeProperty(dpy, c->win,
 		    atom[WindowDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &i, 1);
 }
@@ -149,7 +145,6 @@ ewmh_update_net_active_window() {
     Window win;
 
     win = sel ? sel->win : None;
-
     XChangeProperty(dpy, root,
 		    atom[ActiveWindow], XA_WINDOW, 32,	PropModeReplace, (unsigned char *) &win, 1);
 }
@@ -201,8 +196,7 @@ setopacity(Client *c, unsigned int opacity) {
     if (opacity == OPAQUE) {
 	XDeleteProperty (dpy, c->win, atom[WindowOpacity]);
 	XDeleteProperty (dpy, c->frame, atom[WindowOpacity]);
-    }
-    else {
+    } else {
 	XChangeProperty(dpy, c->win, atom[WindowOpacity], 
 		XA_CARDINAL, 32, PropModeReplace, 
 		(unsigned char *) &opacity, 1L);
@@ -213,14 +207,14 @@ setopacity(Client *c, unsigned int opacity) {
     }
 }
 
-
 static int
-checkatom(Window win, Atom bigatom, Atom smallatom){
+checkatom(Window win, Atom bigatom, Atom smallatom) {
     Atom real, *state;
     int format;
     int result = 0;
     unsigned char *data = NULL;
     unsigned long i, n, extra;
+
     if(XGetWindowProperty(dpy, win, bigatom, 0L, LONG_MAX, False,
 			  XA_ATOM, &real, &format, &n, &extra,
 			  (unsigned char **) &data) == Success && data){
@@ -235,7 +229,7 @@ checkatom(Window win, Atom bigatom, Atom smallatom){
 }
 
 static int
-updatestruts(Window win){
+updatestruts(Window win) {
     Atom real, *state;
     int format;
     int result = 0;
@@ -245,10 +239,7 @@ updatestruts(Window win){
     unsigned long i, n, extra;
 
     c = getclient(win, clients, False);
-    for(i = 0, m = monitors; m; m = m->next, i++) {
-	if((c->x >= m->sx && c->x < m->sx + m->sw))
-	    break;
-    }
+    m = clientmonitor(c);
     if(XGetWindowProperty(dpy, win, atom[StrutPartial], 0L, LONG_MAX, False,
 			  XA_CARDINAL, &real, &format, &n, &extra,
 			  (unsigned char **) &data) == Success && data){

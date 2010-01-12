@@ -47,31 +47,36 @@ static KeyItem KeyItemsByTag[] =
 };
 
 void
-parsekey(char *s, Key *k) {
+parsekey(const char *s, Key *k) {
     int l = strlen(s);
     unsigned long modmask = 0;
     char *pos, *opos;
+    const char *stmp;
     char *tmp;
     int i;
+
     pos = strchr(s, '+');
-    if(!s || !(pos-s) || !pos)
+    if(!s)
 	return;
+    if((pos-s) && pos) {
+	for(i = 0, stmp = s; stmp < pos; i++, stmp++) {
+	    if(*stmp=='A')
+		modmask = modmask | Mod1Mask;
+	    if(*stmp=='S')
+		modmask = modmask | ShiftMask;
+	    if(*stmp=='C')
+		modmask = modmask | ControlMask;
+	    if(*stmp=='W') 
+		modmask = modmask | Mod4Mask; 
+	}
+    } else
+	pos = (char*)s;
     opos = pos;
-    for(i = 0, tmp = s; tmp < pos; i++, tmp++){
-	if(*tmp=='A')
-	    modmask = modmask | Mod1Mask;
-	if(*tmp=='S')
-	    modmask = modmask | ShiftMask;
-	if(*tmp=='C')
-	    modmask = modmask | ControlMask;
-	if(*tmp=='W') 
-	    modmask = modmask | Mod4Mask; 
-    }
     k->mod = modmask;
     pos = strchr(s, '=');
-    if(pos){
+    if(pos) {
 	tmp = emallocz((pos-opos)*sizeof(char));
-	for(opos++;!isalnum(opos[0]);opos++);
+	for(;!isalnum(opos[0]);opos++);
 	strncpy(tmp, opos, pos-opos-1);
 	k->keysym = XStringToKeysym(tmp);
 	free(tmp);
@@ -79,8 +84,7 @@ parsekey(char *s, Key *k) {
 	for(pos++;!isgraph(pos[0]);pos++);
 	strncpy(tmp, pos, s+l-pos);
 	k->arg = tmp;
-    }
-    else {
+    } else {
 	tmp = emallocz((s+l-opos)*sizeof(char));
 	for(opos++;!isalnum(opos[0]);opos++);
 	strncpy(tmp, opos, s+l-opos);
@@ -92,6 +96,7 @@ parsekey(char *s, Key *k) {
 void
 initmodkey(){
     char tmp;
+
     strncpy(&tmp, getresource("modkey", "A"), 1);
     if(tmp=='S')
 	modkey = ShiftMask;
@@ -105,8 +110,8 @@ initmodkey(){
 
 int
 initkeys(){
-    int i,j;
-    char *tmp;
+    int i, j;
+    const char *tmp;
     char t[64];
 
     initmodkey();
@@ -167,7 +172,7 @@ initkeys(){
 }
 
 void 
-parserule(char *s, Rule *r){
+parserule(const char *s, Rule *r){
     char *prop = emallocz(sizeof(char)*128);
     char *tags = emallocz(sizeof(char)*64);
     sscanf(s, "%s %s %d %d", prop, tags, &r->isfloating, &r->hastitle);
@@ -179,7 +184,7 @@ void
 initrules(){
     int i;
     char t[64];
-    char *tmp;
+    const char *tmp;
     rules = emallocz(64*sizeof(Rule*));
     for(i = 0; i < 64; i++){
 	    snprintf(t, 63, "rule%d", i);
