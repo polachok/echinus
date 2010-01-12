@@ -2262,19 +2262,23 @@ togglemonitor(const char *arg) {
 void
 toggleview(const char *arg) {
     int i, j;
-
-    memcpy(curprevtags, curseltags, ntags*(sizeof curseltags));
+    Monitor *m;
+DPRINT;
     i = idxoftag(arg);
-    curseltags[i] = !curseltags[i];
-    for(j = 0; j < ntags && !curseltags[j]; j++);
-    if(j == ntags) {
-	curseltags[i] = True; /* at least one tag must be viewed */
-	j = i;
+    for(m = monitors; m; m = m->next) {
+	memcpy(m->prevtags, m->seltags, ntags*(sizeof m->seltags));
+	m->seltags[i] = ((m == curmonitor()) ? !m->seltags[i] : False);
+	for(j = 0; j < ntags && !m->seltags[j]; j++);
+	if(j == ntags) {
+	    m->seltags[i] = True; /* at least one tag must be viewed */
+	    j = i;
+	}
+	if(m->curtag == i)
+	    m->curtag = j;
+	arrange(m);
     }
-    if(curmontag == i)
-	curmontag = j;
-    arrange(curmonitor());
     focus(NULL);
+DPRINT;
     updateatom[CurDesk](NULL);
 }
 
@@ -2484,6 +2488,7 @@ view(const char *arg) {
     int i, prevcurtag;
     Monitor *m;
     int swapping = 0;
+DPRINT;
 
     for(m = monitors; m ; m = m->next) {
 	    if(m->seltags[idxoftag(arg)] && m != curmonitor()) {
@@ -2492,6 +2497,7 @@ view(const char *arg) {
 		m->seltags[curmontag] = True;
 	    }
     }
+DPRINT;
     memcpy(curprevtags, curseltags, ntags*(sizeof curseltags));
     for(i = 0; i < ntags; i++)
 	    curseltags[i] = (NULL == arg);
@@ -2506,6 +2512,7 @@ view(const char *arg) {
 	arrange(curmonitor());
     focus(NULL);
     updateatom[CurDesk](NULL);
+DPRINT;
 }
 
 void
