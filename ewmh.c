@@ -239,10 +239,7 @@ updatestruts(Window win) {
     unsigned long i, n, extra;
 
     c = getclient(win, clients, False);
-    for(i = 0, m = monitors; m; m = m->next, i++) {
-	if((c->x >= m->sx && c->x < m->sx + m->sw))
-	    break;
-    }
+    m = clientmonitor(c);
     if(XGetWindowProperty(dpy, win, atom[StrutPartial], 0L, LONG_MAX, False,
 			  XA_CARDINAL, &real, &format, &n, &extra,
 			  (unsigned char **) &data) == Success && data){
