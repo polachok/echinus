@@ -22,7 +22,7 @@ CFLAGS = -g3 -ggdb3 -std=c99 -pedantic -O0 ${INCS} -DVERSION=\"${VERSION}\" -DSY
 LDFLAGS = -g3 -ggdb3 ${LIBS}
 
 # DEBUG: Show warnings (if any). Comment out to disable.
-CFLAGS += -Wall -W -Wcast-qual -Wshadow -Wwrite-strings
+CFLAGS += -Wall
 # mostly useless warnings
 #CFLAGS += -Wall -W -Wcast-qual -Wshadow -Wwrite-strings
 #CFLAGS += -Werror        # Treat warnings as errors.
