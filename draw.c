@@ -94,6 +94,8 @@ drawclient(Client *c) {
 
     if(!isvisible(c, curmonitor()))
 	return;
+    if(!c->isfloating && !ISLTFLOATING && !dectiled)
+	return;
     if(look.uf_opacity) {
 	if (c==sel)
 	    opacity = OPAQUE;
@@ -105,6 +107,8 @@ drawclient(Client *c) {
 	fprintf(stderr, "NO TITLE FOR WINDOW WTF!\n");
 	return;
     }
+    DPRINT;
+    fprintf(stderr, "REDRAWING %s\n", c->name);
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);

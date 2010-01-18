@@ -738,6 +738,7 @@ configurerequest(XEvent *e) {
 			    XMoveResizeWindow(dpy, c->frame, c->m->sx + c->x, c->m->sy + c->y, c->w, c->h);
 			    XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th : 1);
 			    XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
+			    DPRINT;
 			    drawclient(c);
 		    }
 	    }
@@ -868,8 +869,10 @@ expose(XEvent *e) {
     while(XCheckWindowEvent(dpy, ev->window, ExposureMask, &tmp));
 
     if((c = getclient(ev->window, clients, True))
-    || (c = getclient(ev->window, clients, False)))
+    || (c = getclient(ev->window, clients, False))) {
+	DPRINT;
 	drawclient(c);
+    }
 }
 
 void
@@ -886,7 +889,6 @@ floating(Monitor *m) { /* default floating layout */
 		    resize(c, m, c->sfx, c->sfy, c->sfw, c->sfh, True);
 		else
 		    resize(c, m, c->x, c->y, c->w, c->h, True);
-		drawclient(c);
 	}
     }
     wasfloating = True;
@@ -917,12 +919,14 @@ focus(Client *c) {
 	    if(c->isfocusable)
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 	    XSetWindowBorder(dpy, sel->frame, dc.sel[ColBorder]);
+	    DPRINT;
 	    drawclient(c);
     }
     else
 	    XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
     if(o)
 	drawclient(o);
+    DPRINT;
     updateatom[ActiveWindow](sel);
     updateatom[ClientList](NULL);
 }
@@ -1394,7 +1398,6 @@ ifloating(Monitor *m){
 		    }
 		}
 	    c->hastitle = c->title ? True : False;
-	    drawclient(c);
 	}
     }
 }
@@ -1437,7 +1440,6 @@ moveresizekb(const char *arg) {
     if(dw && (dw < sel->incw)) dw = (dw/abs(dw))*sel->incw;
     if(dh && (dh < sel->inch)) dh = (dh/abs(dh))*sel->inch;
     resize(sel, curmonitor(), sel->x+dx, sel->y+dy, sel->w+dw, sel->h+dh, True);
-    drawclient(sel);
 }
 
 void
@@ -1480,16 +1482,16 @@ void
 movemouse(Client *c) {
     int x1, y1, ocx, ocy, nx, ny, i;
     XEvent ev;
-    Monitor *m;
+    Monitor *m, *nm;
 
-    ocx = nx = c->x;
-    ocy = ny = c->y;
+    m = curmonitor();
+    ocx = nx = c->x + m->sx;
+    ocy = ny = c->y + m->sy;
     if(XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
 		    None, cursor[CurMove], CurrentTime) != GrabSuccess)
 	    return;
     c->ismax = False;
     XRaiseWindow(dpy, c->frame);
-    m = curmonitor();
     getpointer(&x1, &y1);
     for(;;) {
 	    XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
@@ -1504,22 +1506,27 @@ movemouse(Client *c) {
 		    break;
 	    case MotionNotify:
 		    XSync(dpy, False);
+		    /* we are probably moving to a different monitor */
+		    nm = curmonitor();
+		    fprintf(stderr, "ocx %d ocy %d nx %d ny %d\n", ocx, ocy, nx, ny);
 		    nx = ocx + (ev.xmotion.x - x1);
 		    ny = ocy + (ev.xmotion.y - y1);
-		    if(abs(curwax + nx) < SNAP)
-			    nx = curwax;
-		    else if(abs((curwax + curwaw) - (nx + c->w + 2 * c->border)) < SNAP)
-			    nx = curwax + curwaw - c->w - 2 * c->border;
-		    if(abs(curway - ny) < SNAP)
-			    ny = curway;
-		    else if(abs((curway + curwah) - (ny + c->h + 2 * c->border)) < SNAP)
-			    ny = curway + curwah - c->h - 2 * c->border;
-		    resize(c, curmonitor(), nx, ny, c->w, c->h, False);
-		    /* we are probably moving to a different monitor */
-		    if(m != curmonitor()) {
+		    if(abs(m->wax + nx) < SNAP)
+			    nx = m->wax;
+		    else if(abs((m->wax + m->waw) - (nx + c->w + 2 * c->border)) < SNAP)
+			    nx = m->wax + m->waw - c->w - 2 * c->border;
+		    fprintf(stderr, "ocx %d ocy %d nx %d ny %d\n", ocx, ocy, nx, ny);
+		    if(abs(m->way - ny) < SNAP)
+			    ny = m->way;
+		    else if(abs((m->way + m->wah) - (ny + c->h + 2 * c->border)) < SNAP)
+			    ny = m->way + m->wah - c->h - 2 * c->border;
+		    fprintf(stderr, "ocx %d ocy %d nx %d ny %d\n", ocx, ocy, nx, ny);
+		    resize(c, nm, nx-nm->sx, ny-nm->sy, c->w, c->h, False);
+		    if(m != nm) {
 			for(i = 0; i < ntags; i++)
-			    c->tags[i] = curmonitor()->seltags[i];
+			    c->tags[i] = nm->seltags[i];
 			updateatom[WindowDesk](c);
+			DPRINT;
 			drawclient(c);
 		    }
 		    break;
@@ -1644,6 +1651,11 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
     if(y + h + 2 * c->border < m->sy)
 	    y = m->way;
 #endif
+    if((c->w != w || c->m != m) && c->title) {
+	    XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
+	    DPRINT;
+	    drawclient(c);
+    }
     if(c->m != m || c->x != x || c->y != y || c->w != w || c->h != h) {
 	    if(c->isfloating || ISLTFLOATING) {
 		    c->sfx = x;
@@ -1664,9 +1676,6 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    wc.height = h - c->th;
 	    wc.border_width = 0;
 	    XConfigureWindow(dpy, c->win, CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
-
-	    if(c->title)
-		XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
 	    configure(c);
 	    XSync(dpy, False);
     }
@@ -2117,7 +2126,6 @@ bstack(Monitor *m) {
 		nw = tw - c->border;
 	}
 	resize(c, m, nx, ny, nw, nh, False);
-	drawclient(c);
 	if(n > 1 && tw != curwaw)
 	    nx = c->x + c->w + c->border;
     }
@@ -2172,7 +2180,6 @@ tile(Monitor *m) {
 				nh = th - 2 * c->border;
 		}
 		resize(c, m, nx, ny, nw, nh, False);
-		drawclient(c);
 		if(n > nmasters[m->curtag] && th != m->wah){
 			ny = c->y + c->h + 2 * c->border;
 		}
@@ -2196,7 +2203,6 @@ togglefloating(const char *arg) {
     if(sel->isfloating) {
 	    /*restore last known float dimensions*/
 	    resize(sel, curmonitor(), sel->sfx, sel->sfy, sel->sfw, sel->sfh, False);
-	    drawclient(sel);
     }
     else {
 	    /*save last known float dimensions*/
@@ -2237,6 +2243,7 @@ toggletag(const char *arg) {
     for(j = 0; j < ntags && !sel->tags[j]; j++);
     if(j == ntags)
 	    sel->tags[i] = True; /* at least one tag must be enabled */
+    DPRINT;
     drawclient(sel);
     arrange(NULL);
 }
@@ -2315,8 +2322,9 @@ unmanage(Client *c) {
 
     m = clientmonitor(c);
     if(c->title) {
-	XDestroyWindow(dpy, c->title);
 	XftDrawDestroy(c->xftdraw);
+	XDestroyWindow(dpy, c->title);
+	c->title = (Window)NULL;
     }
     XSelectInput(dpy, c->win,
 		     CLIENTMASK&~(StructureNotifyMask|EnterWindowMask));
