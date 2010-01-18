@@ -185,7 +185,7 @@ void destroynotify(XEvent *e);
 void detach(Client *c);
 void detachstack(Client *c);
 void drawclient(Client *c);
-void drawtext(const char *text, unsigned long col[ColLast], unsigned int position);
+void drawtext(const char *text, Drawable drawable, unsigned long col[ColLast], unsigned int position);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);

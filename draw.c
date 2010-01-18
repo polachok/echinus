@@ -1,5 +1,5 @@
 void
-drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
+drawtext(const char *text, Drawable drawable, unsigned long col[ColLast], unsigned int position) {
     int x, y, w, h;
     char buf[256];
     unsigned int len, olen;
@@ -45,7 +45,7 @@ drawtext(const char *text, unsigned long col[ColLast], unsigned int position) {
 	    dc.font.xftfont, x, look.drawoutline ? y : y+1, (unsigned char*)buf, len);
     if(look.drawoutline){
 		XSetForeground(dpy, dc.gc, col[ColBorder]);
-		XDrawLine(dpy, dc.drawable, dc.gc, 0, dc.h-1, dc.w, dc.h-1);
+		XDrawLine(dpy, drawable, dc.gc, 0, dc.h-1, dc.w, dc.h-1);
     }
     dc.x = x + w;
 }
@@ -80,11 +80,11 @@ drawbuttons(Client *c) {
     XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
 
-    XCopyPlane(dpy, look.bleft.pm, dc.drawable, dc.gc, 0, 0, look.bleft.pw, look.bleft.ph, x, y+look.bleft.py, 1);
+    XCopyPlane(dpy, look.bleft.pm, c->title, dc.gc, 0, 0, look.bleft.pw, look.bleft.ph, x, y+look.bleft.py, 1);
     x+=dc.h;
-    XCopyPlane(dpy, look.bcenter.pm, dc.drawable, dc.gc, 0, 0, look.bcenter.pw, look.bcenter.ph, x, y+look.bcenter.py, 1);
+    XCopyPlane(dpy, look.bcenter.pm, c->title, dc.gc, 0, 0, look.bcenter.pw, look.bcenter.ph, x, y+look.bcenter.py, 1);
     x+=dc.h;
-    XCopyPlane(dpy, look.bright.pm, dc.drawable, dc.gc, 0, 0, look.bright.pw, look.bright.ph, x, y+look.bright.py, 1);
+    XCopyPlane(dpy, look.bright.pm, c->title, dc.gc, 0, 0, look.bright.pw, look.bright.ph, x, y+look.bright.py, 1);
 }
 
 void
@@ -94,35 +94,37 @@ drawclient(Client *c) {
 
     if(!isvisible(c, curmonitor()))
 	return;
+    if(look.uf_opacity) {
+	if (c==sel)
+	    opacity = OPAQUE;
+	else
+	    opacity = look.uf_opacity * OPAQUE;
+	setopacity(c, opacity);
+    }
+    if(!c->title) {
+	fprintf(stderr, "NO TITLE FOR WINDOW WTF!\n");
+	return;
+    }
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
-    XFillRectangle(dpy, dc.drawable, dc.gc, 0, 0, c->w, c->th);
+    XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);
     dc.x = dc.y = 0;
     dc.w = c->w;
-    drawtext(NULL, c == sel ? dc.sel : dc.norm, look.tpos);
+    drawtext(NULL, c->title, c == sel ? dc.sel : dc.norm, look.tpos);
     if(look.tbpos){
 	for(i = 0; i < ntags; i++) {
 	    if(c->tags[i]){
-		drawtext(tags[i], c == sel ? dc.sel : dc.norm, TitleLeft);
+		drawtext(tags[i], c->title, c == sel ? dc.sel : dc.norm, TitleLeft);
 		XSetForeground(dpy, dc.gc, c== sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
 		if(c->border)
-		    XDrawLine(dpy, dc.drawable, dc.gc, dc.x+dc.h/2, 0, dc.x+dc.h/2, dc.h);
+		    XDrawLine(dpy, c->title, dc.gc, dc.x+dc.h/2, 0, dc.x+dc.h/2, dc.h);
 		dc.x+=dc.h/2+1;
 	    }
 	}
     }
-    drawtext(c->name, c == sel ? dc.sel : dc.norm, look.tpos);
+    drawtext(c->name, c->title, c == sel ? dc.sel : dc.norm, look.tpos);
     if(c->w>=6*dc.h && dc.x <= c->w-6*dc.h && look.tpos != TitleRight)
 	drawbuttons(c);
-    XCopyArea(dpy, dc.drawable, c->title, dc.gc,
-			0, 0, c->w, c->th, 0, 0);
-    if(look.uf_opacity) {
-		  if (c==sel)
-			  opacity = OPAQUE;
-		  else
-			  opacity = look.uf_opacity * OPAQUE;
-	      setopacity(c, opacity);
-    }
 }
 
 static void
