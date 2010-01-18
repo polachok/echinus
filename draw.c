@@ -123,8 +123,6 @@ drawclient(Client *c) {
 			  opacity = look.uf_opacity * OPAQUE;
 	      setopacity(c, opacity);
     }
-    if(c->title)
-	XMapWindow(dpy, c->title);
 }
 
 static void
