@@ -1680,10 +1680,13 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 void
 resizemouse(Client *c) {
     int ocx, ocy, nw, nh;
+    Monitor *cm;
     XEvent ev;
 
-    ocx = c->x;
-    ocy = c->y;
+    cm = curmonitor();
+
+    ocx = c->x + cm->sx;
+    ocy = c->y + cm->sy;
     if(XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync, GrabModeAsync,
 		    None, cursor[CurResize], CurrentTime) != GrabSuccess)
 	    return;
@@ -1709,9 +1712,9 @@ resizemouse(Client *c) {
 			    nw = MINWIDTH;
 		    if((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
 			    nh = MINHEIGHT;
-		    nw = nw > cursw ? cursw : nw;
-		    nh = nh > cursh ? cursh : nh;
-		    resize(c, curmonitor(), c->x, c->y, nw, nh, True);
+		    nw = nw > cm->sw ? cm->sw : nw;
+		    nh = nh > cm->sh ? cm->sh : nh;
+		    resize(c, cm, c->x, c->y, nw, nh, True);
 		    break;
 	    }
     }
@@ -2264,7 +2267,6 @@ void
 toggleview(const char *arg) {
     int i, j;
     Monitor *m;
-DPRINT;
     i = idxoftag(arg);
     for(m = monitors; m; m = m->next) {
 	memcpy(m->prevtags, m->seltags, ntags*(sizeof m->seltags));
@@ -2279,7 +2281,6 @@ DPRINT;
 	arrange(m);
     }
     focus(NULL);
-DPRINT;
     updateatom[CurDesk](NULL);
 }
 
@@ -2489,7 +2490,6 @@ view(const char *arg) {
     int i, prevcurtag;
     Monitor *m;
     int swapping = 0;
-DPRINT;
 
     for(m = monitors; m ; m = m->next) {
 	    if(m->seltags[idxoftag(arg)] && m != curmonitor()) {
@@ -2498,7 +2498,6 @@ DPRINT;
 		m->seltags[curmontag] = True;
 	    }
     }
-DPRINT;
     memcpy(curprevtags, curseltags, ntags*(sizeof curseltags));
     for(i = 0; i < ntags; i++)
 	    curseltags[i] = (NULL == arg);
@@ -2513,7 +2512,6 @@ DPRINT;
 	arrange(curmonitor());
     focus(NULL);
     updateatom[CurDesk](NULL);
-DPRINT;
 }
 
 void
