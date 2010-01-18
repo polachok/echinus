@@ -1,5 +1,5 @@
 void
-drawtext(const char *text, Drawable drawable, unsigned long col[ColLast], unsigned int position) {
+drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned long col[ColLast], unsigned int position) {
     int x, y, w, h;
     char buf[256];
     unsigned int len, olen;
@@ -41,7 +41,7 @@ drawtext(const char *text, Drawable drawable, unsigned long col[ColLast], unsign
     }
     while(x <= 0)
 	    x = dc.x++;
-    XftDrawStringUtf8(dc.xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel,
+    XftDrawStringUtf8(xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel,
 	    dc.font.xftfont, x, look.drawoutline ? y : y+1, (unsigned char*)buf, len);
     if(look.drawoutline){
 		XSetForeground(dpy, dc.gc, col[ColBorder]);
@@ -110,11 +110,11 @@ drawclient(Client *c) {
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);
     dc.x = dc.y = 0;
     dc.w = c->w;
-    drawtext(NULL, c->title, c == sel ? dc.sel : dc.norm, look.tpos);
+    drawtext(NULL, c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, look.tpos);
     if(look.tbpos){
 	for(i = 0; i < ntags; i++) {
 	    if(c->tags[i]){
-		drawtext(tags[i], c->title, c == sel ? dc.sel : dc.norm, TitleLeft);
+		drawtext(tags[i], c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, TitleLeft);
 		XSetForeground(dpy, dc.gc, c== sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
 		if(c->border)
 		    XDrawLine(dpy, c->title, dc.gc, dc.x+dc.h/2, 0, dc.x+dc.h/2, dc.h);
@@ -122,7 +122,7 @@ drawclient(Client *c) {
 	    }
 	}
     }
-    drawtext(c->name, c->title, c == sel ? dc.sel : dc.norm, look.tpos);
+    drawtext(c->name, c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, look.tpos);
     if(c->w>=6*dc.h && dc.x <= c->w-6*dc.h && look.tpos != TitleRight)
 	drawbuttons(c);
 }

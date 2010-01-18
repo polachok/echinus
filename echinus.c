@@ -103,6 +103,7 @@ struct Client {
 	Window win;
 	Window title;
 	Window frame;
+	XftDraw *xftdraw;
 };
 
 typedef struct {
@@ -130,8 +131,6 @@ typedef struct {
 	unsigned long sel[ColLast];
 	XftColor *xftnorm;
 	XftColor *xftsel;
-	Drawable drawable;
-	XftDraw *xftdrawable;
 	GC gc;
 	struct {
 	   XftFont *xftfont;
@@ -185,7 +184,7 @@ void destroynotify(XEvent *e);
 void detach(Client *c);
 void detachstack(Client *c);
 void drawclient(Client *c);
-void drawtext(const char *text, Drawable drawable, unsigned long col[ColLast], unsigned int position);
+void drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned long col[ColLast], unsigned int position);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
@@ -562,7 +561,6 @@ cleanup(void) {
     XftColorFree(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen), dc.xftnorm);
     XftColorFree(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen), dc.xftsel);
     XUngrabKey(dpy, AnyKey, AnyModifier, root);
-    XFreePixmap(dpy, dc.drawable);
     XFreeGC(dpy, dc.gc);
     XFreeCursor(dpy, cursor[CurNormal]);
     XFreeCursor(dpy, cursor[CurResize]);
@@ -703,11 +701,6 @@ configurenotify(XEvent *e) {
 		initmonitors(e);
 		for(m = monitors; m; m = m->next)
 		    updategeom(m);
-		XFreePixmap(dpy, dc.drawable);
-		XftDrawDestroy(dc.xftdrawable);
-		/* XXX */
-		dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
-		dc.xftdrawable = XftDrawCreate(dpy, dc.drawable, DefaultVisual(dpy,screen),DefaultColormap(dpy,screen));
 		arrange(NULL);
 #ifdef XRANDR
 	    }
@@ -888,12 +881,12 @@ floating(Monitor *m) { /* default floating layout */
     for(c = clients; c; c = c->next){
 	if(isvisible(c, m) && !c->isicon) {
 		c->hastitle = c->title ? True : False;
-		drawclient(c);
 		if(!c->isfloating)
 		    /* restore last known float dimensions */
 		    resize(c, m, c->sfx, c->sfy, c->sfw, c->sfh, True);
 		else
 		    resize(c, m, c->x, c->y, c->w, c->h, True);
+		drawclient(c);
 	}
     }
     wasfloating = True;
@@ -1286,11 +1279,13 @@ manage(Window w, XWindowAttributes *wa) {
     XSetWindowBorder(dpy, c->frame, dc.norm[ColBorder]);
 
     twa.event_mask = ExposureMask | MOUSEMASK;
-    if(c->hastitle)
+    if(c->hastitle) {
        c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
 			0, DefaultDepth(dpy, screen), CopyFromParent,
 			DefaultVisual(dpy, screen),
 			CWEventMask, &twa);
+       c->xftdraw = XftDrawCreate(dpy, c->title, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
+    }
     else
 	c->title = (Window)NULL;
 
@@ -2042,17 +2037,11 @@ setup(void) {
 	    updategeom(m);
 	}
 
-	dc.drawable = XCreatePixmap(dpy, root, cursw, dc.h, DefaultDepth(dpy, screen));
 	dc.gc = XCreateGC(dpy, root, 0, 0);
 
 	/* buttons */
 	initbuttons();
 	chdir(getenv("HOME"));
-
-	/* free resource database */
-	dc.xftdrawable = XftDrawCreate(dpy, dc.drawable, DefaultVisual(dpy,screen),DefaultColormap(dpy,screen));
-	if(!dc.xftdrawable)
-	     eprint("error, cannot create drawable\n");
 
 	/* multihead support */
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
@@ -2325,8 +2314,10 @@ unmanage(Client *c) {
     XWindowChanges wc;
 
     m = clientmonitor(c);
-    if(c->title)
+    if(c->title) {
 	XDestroyWindow(dpy, c->title);
+	XftDrawDestroy(c->xftdraw);
+    }
     XSelectInput(dpy, c->win,
 		     CLIENTMASK&~(StructureNotifyMask|EnterWindowMask));
     XSelectInput(dpy, c->frame, NoEventMask);
