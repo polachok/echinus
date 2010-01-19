@@ -738,7 +738,6 @@ configurerequest(XEvent *e) {
 			    XMoveResizeWindow(dpy, c->frame, c->m->sx + c->x, c->m->sy + c->y, c->w, c->h);
 			    XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th : 1);
 			    XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
-			    DPRINT;
 			    drawclient(c);
 		    }
 	    }
@@ -870,7 +869,6 @@ expose(XEvent *e) {
 
     if((c = getclient(ev->window, clients, True))
     || (c = getclient(ev->window, clients, False))) {
-	DPRINT;
 	drawclient(c);
     }
 }
@@ -924,9 +922,10 @@ focus(Client *c) {
     }
     else
 	    XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
-    if(o)
+    if(o) {
 	drawclient(o);
-    DPRINT;
+	DPRINT;
+    }
     updateatom[ActiveWindow](sel);
     updateatom[ClientList](NULL);
 }
@@ -1526,7 +1525,6 @@ movemouse(Client *c) {
 			for(i = 0; i < ntags; i++)
 			    c->tags[i] = nm->seltags[i];
 			updateatom[WindowDesk](c);
-			DPRINT;
 			drawclient(c);
 		    }
 		    break;
@@ -1653,7 +1651,6 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 #endif
     if((c->w != w || c->m != m) && c->title) {
 	    XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
-	    DPRINT;
 	    drawclient(c);
     }
     if(c->m != m || c->x != x || c->y != y || c->w != w || c->h != h) {
@@ -2243,7 +2240,6 @@ toggletag(const char *arg) {
     for(j = 0; j < ntags && !sel->tags[j]; j++);
     if(j == ntags)
 	    sel->tags[i] = True; /* at least one tag must be enabled */
-    DPRINT;
     drawclient(sel);
     arrange(NULL);
 }
