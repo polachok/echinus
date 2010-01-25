@@ -1419,7 +1419,7 @@ monocle(Monitor *m) {
 		resize(c, m, c->x, c->y, c->w, c->h, False);
 		continue;
 	    }
-	    if(bpos[curmontag] != StrutsOn)
+	    if(bpos[m->curtag] != StrutsOn)
 		resize(c, m, m->wax-c->border, m->way-c->border, m->waw, m->wah, False);
 	    else
 		resize(c, m, m->wax, m->way, m->waw - 2*c->border, m->wah - 2*c->border, False);
@@ -1654,6 +1654,7 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    drawclient(c);
     }
     if(c->m != m || c->x != x || c->y != y || c->w != w || c->h != h) {
+	    /* XXX: ISLTFLOATING is for curmonitor() */
 	    if(c->isfloating || ISLTFLOATING) {
 		    c->sfx = x;
 		    c->sfy = y;
@@ -1731,6 +1732,7 @@ restack(Monitor *m) {
     if(!sel)
 	    return;
 
+    /* XXX: ISLTFLOATING is for curmonitor() */
     if(ISLTFLOATING) {
 	XRaiseWindow(dpy, sel->frame);
 	goto end;
@@ -2097,7 +2099,7 @@ bstack(Monitor *m) {
     for(n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
 	n++;
 
-    mh = (n == 1) ? m->wah : mwfacts[curmontag] * m->wah;
+    mh = (n == 1) ? m->wah : mwfacts[m->curtag] * m->wah;
     tw = (n > 1) ? m->waw / (n - 1) : 0;
 
     nx = m->wax;
@@ -2356,7 +2358,7 @@ updategeom(Monitor *m) {
     m->way = 0;
     m->wah = m->sh;
     m->waw = m->sw;
-    switch(bpos[curmontag]){
+    switch(bpos[m->curtag]){
     default:
 	m->wax += m->struts[LeftStrut];
 	m->waw -= (m->wax + m->struts[RightStrut]);
