@@ -1650,7 +1650,7 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    y = m->way;
 #endif
     if((c->w != w || c->m != m) && c->title) {
-	    XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th: 1);
+	    XMoveResizeWindow(dpy, c->title, 0, 0, w, c->hastitle ? c->th: 1);
 	    drawclient(c);
     }
     if(c->m != m || c->x != x || c->y != y || c->w != w || c->h != h) {
