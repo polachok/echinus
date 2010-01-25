@@ -2488,6 +2488,9 @@ view(const char *arg) {
     Monitor *m;
     int swapping = 0;
 
+    if(curseltags[idxoftag(arg)])
+	return;
+
     for(m = monitors; m ; m = m->next) {
 	    if(m->seltags[idxoftag(arg)] && m != curmonitor()) {
 		swapping = 1;
