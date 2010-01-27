@@ -61,7 +61,7 @@
 #define RESCLASS	       "Echinus"
 #define OPAQUE	0xffffffff
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
-#define ISLTFLOATING(m) ((layouts[ltidxs[m->curtag]].arrange == floating) || (layouts[ltidxs[m->curtag]].arrange == ifloating))
+#define ISLTFLOATING(m) (m && ((layouts[ltidxs[m->curtag]].arrange == floating) || (layouts[ltidxs[m->curtag]].arrange == ifloating)))
 
 /* enums */
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };
@@ -374,23 +374,15 @@ applyrules(Client *c) {
 }
 
 void
-arrange(Monitor *m) {
+arrangemon(Monitor *m) {
     Client *c;
-    Monitor *i;
 
-    if(m) {
-	layouts[ltidxs[m->curtag]].arrange(m);
-	restack(m);
-    } else {
-	focus(NULL);
-	for(i = monitors; i; i = i->next) {
-	    layouts[ltidxs[i->curtag]].arrange(i);
-	    restack(i);
-	}
-    }
-
+    layouts[ltidxs[m->curtag]].arrange(m);
+    restack(m);
     for(c = stack; c; c = c->snext) {
-	    if((!c->isbastard && isvisible(c, NULL) && !c->isicon) || (c->isbastard && bpos[curmontag] == StrutsOn)) {
+	    if ((c->m == m) &&
+		((!c->isbastard && isvisible(c, m) && !c->isicon) ||
+		(c->isbastard && bpos[m->curtag] == StrutsOn))) {
 		    unban(c);
 		    if(c->isbastard)
 			c->isicon = False;
@@ -398,13 +390,25 @@ arrange(Monitor *m) {
     }
  
     for(c = stack; c; c = c->snext) {
-	    if((!c->isbastard && (!isvisible(c, NULL) || c->isicon)) ||
-		    (c->isbastard && bpos[curmontag] == StrutsHide && clientmonitor(c) == curmonitor())) {
+	    if((c->m == m) &&
+	       ((!c->isbastard && (!isvisible(c, m) || c->isicon)) ||
+	       (c->isbastard && bpos[m->curtag] == StrutsHide))) {
 		    ban(c);
 		    if(c->isbastard) 
 			c->isicon = True;
 	    }
     }
+}
+
+void
+arrange(Monitor *m) {
+    Monitor *i;
+
+    if(!m) {
+	for(i = monitors; i; i = i->next)
+	    arrangemon(i);
+    } else
+	arrangemon(m);
 }
 
 void
