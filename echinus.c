@@ -722,7 +722,7 @@ configurerequest(XEvent *e) {
 	    c->ismax = False;
 	    if(ev->value_mask & CWBorderWidth)
 		    c->border = ev->border_width;
-	    if(c->isfixed || c->isfloating || (floating == layouts[ltidxs[curmontag]].arrange)) {
+	    if(c->isfixed || c->isfloating || ISLTFLOATING(c->m)) {
 		    if(ev->value_mask & CWX)
 			    c->x = ev->x;
 		    if(ev->value_mask & CWY)
@@ -969,6 +969,7 @@ focusprev(const char *arg) {
 void
 incnmaster(const char *arg) {
     int i;
+
     if(layouts[ltidxs[curmontag]].arrange != tile)
 	    return;
     if(!arg)
