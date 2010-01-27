@@ -94,7 +94,7 @@ drawclient(Client *c) {
 
     if(!isvisible(c, NULL))
 	return;
-    if(!c->isfloating && !ISLTFLOATING && !dectiled)
+    if(!c->isfloating && !ISLTFLOATING(c->m) && !dectiled)
 	return;
     if(look.uf_opacity) {
 	if (c==sel)

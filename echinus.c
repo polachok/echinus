@@ -61,7 +61,7 @@
 #define RESCLASS	       "Echinus"
 #define OPAQUE	0xffffffff
 #define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
-#define ISLTFLOATING ((layouts[ltidxs[curmontag]].arrange == floating) || (layouts[ltidxs[curmontag]].arrange == ifloating))
+#define ISLTFLOATING(m) ((layouts[ltidxs[m->curtag]].arrange == floating) || (layouts[ltidxs[m->curtag]].arrange == ifloating))
 
 /* enums */
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };
@@ -483,19 +483,19 @@ buttonpress(XEvent *e) {
 	if(CLEANMASK(ev->state) != modkey)
 	   return;
 	if(ev->button == Button1) {
-		if(!ISLTFLOATING && !c->isfloating)
+		if(!ISLTFLOATING(curmonitor()) && !c->isfloating)
 		    togglefloating(NULL);
 		movemouse(c);
 		arrange(NULL);
 	}
 	else if(ev->button == Button2) {
-		if(!ISLTFLOATING && c->isfloating)
+		if(!ISLTFLOATING(curmonitor()) && c->isfloating)
 			togglefloating(NULL);
 		else
 			zoom(NULL);
 	}
 	else if(ev->button == Button3 && !c->isfixed) {
-		if(!ISLTFLOATING && !c->isfloating)
+		if(!ISLTFLOATING(curmonitor()) && !c->isfloating)
 			togglefloating(NULL);
 		resizemouse(c);
 	}
@@ -520,7 +520,7 @@ buttonpress(XEvent *e) {
 	    }
 	}
 	if(ev->button == Button1) {
-	    if(ISLTFLOATING || c->isfloating)
+	    if(ISLTFLOATING(curmonitor()) || c->isfloating)
 		restack(curmonitor());
 	    movemouse(c);
 	    arrange(NULL);
@@ -829,7 +829,7 @@ enternotify(XEvent *e) {
 		    BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
 	    break;
 	case SloppyFloat:
-	    if(ISLTFLOATING || c->isfloating)
+	    if(ISLTFLOATING(curmonitor()) || c->isfloating)
 		focus(c);
 	    else
 		XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
@@ -1654,8 +1654,7 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    drawclient(c);
     }
     if(c->m != m || c->x != x || c->y != y || c->w != w || c->h != h) {
-	    /* XXX: ISLTFLOATING is for curmonitor() */
-	    if(c->isfloating || ISLTFLOATING) {
+	    if(c->isfloating || ISLTFLOATING(m)) {
 		    c->sfx = x;
 		    c->sfy = y;
 		    c->sfw = w;
@@ -1732,8 +1731,7 @@ restack(Monitor *m) {
     if(!sel)
 	    return;
 
-    /* XXX: ISLTFLOATING is for curmonitor() */
-    if(ISLTFLOATING) {
+    if(ISLTFLOATING(m)) {
 	XRaiseWindow(dpy, sel->frame);
 	goto end;
     }
