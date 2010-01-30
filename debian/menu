@@ -1,0 +1,2 @@
+?package(echinus):needs="wm" section="Window Managers"\
+  title="echinus" command="/usr/bin/echinus"

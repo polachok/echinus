@@ -1,0 +1,5 @@
+echinus (0.4.1-git01302010) unstable; urgency=low
+
+  * Initial release (Closes: #551123)
+
+ -- Alexander Polakov <polachok@gmail.com>  Thu, 15 Oct 2009 23:07:32 +0400
