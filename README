@@ -107,7 +107,7 @@ Opacity
 
     Echinus*opacity
 
-        Opacity value for inactive windows, you need xcompmgr runned to
+        Opacity value for inactive windows, you need xcompmgr running to
         see the result.
 
 Terminal app
