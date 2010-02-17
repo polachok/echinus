@@ -23,7 +23,7 @@ options:
 
 ${OBJ}: config.mk
 
-echinus: ${OBJ}
+echinus: ${OBJ} ${FILES}
 	@echo CC -o $@
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 
