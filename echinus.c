@@ -1217,12 +1217,10 @@ manage(Window w, XWindowAttributes *wa) {
 
     if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
 	    for(t = clients; t && t->win != trans; t = t->next);
-
-    updatetitle(c);
-
     if(t)
 	    memcpy(c->tags, t->tags, ntags*(sizeof curseltags));
 
+    updatetitle(c);
     applyrules(c);
 
     c->th = c->hastitle ? dc.h : 0;
@@ -2320,8 +2318,11 @@ void
 unmanage(Client *c) {
     Monitor *m;
     XWindowChanges wc;
+    Bool isfloating;
+    Window trans;
 
     m = clientmonitor(c);
+    isfloating = c->isfloating || c->isfixed || XGetTransientForHint(dpy, c->win, &trans);
     if(c->title) {
 	XftDrawDestroy(c->xftdraw);
 	XDestroyWindow(dpy, c->title);
@@ -2351,7 +2352,8 @@ unmanage(Client *c) {
     XSync(dpy, False);
     XSetErrorHandler(xerror);
     XUngrabServer(dpy);
-    arrange(m);
+    if(!isfloating)
+	arrange(m);
     updateatom[ClientList](NULL);
 }
 
