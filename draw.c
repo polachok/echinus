@@ -105,7 +105,6 @@ drawclient(Client *c) {
     }
     if(!c->title)
 	return;
-    fprintf(stderr, "REDRAWING %s\n", c->name);
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);
