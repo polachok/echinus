@@ -70,6 +70,7 @@ enum { TitleLeft, TitleCenter, TitleRight };			/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColButton, ColLast };		/* color */
 enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise }; /* focus model */
+enum { ClientWindow, ClientTitle, ClientFrame }; /* client parts */
 
 /* typedefs */
 typedef struct Monitor Monitor;
@@ -196,7 +197,7 @@ void incnmaster(const char *arg);
 void focus(Client *c);
 void focusnext(const char *arg);
 void focusprev(const char *arg);
-Client *getclient(Window w, Client *list, Bool title);
+Client *getclient(Window w, Client *list, int part);
 unsigned long getcolor(const char *colstr);
 const char *getresource(const char *resource, const char *defval);
 long getstate(Window w);
@@ -479,7 +480,8 @@ buttonpress(XEvent *e) {
 	    }
 	    return;
     }
-    if((c = getclient(ev->window, clients, False))) {
+    if((c = getclient(ev->window, clients, ClientFrame))) {
+	fprintf(stderr, "FRAME %s: 0x%x\n", c->name, ev->window);
 	focus(c);
 	restack(curmonitor());
 	if(!sloppy || ((sloppy == SloppyFloat) && !c->isfloating))
@@ -503,8 +505,8 @@ buttonpress(XEvent *e) {
 			togglefloating(NULL);
 		resizemouse(c);
 	}
-    }
-    else if((c = getclient(ev->window, clients, True))) {
+    } else if((c = getclient(ev->window, clients, ClientTitle))) {
+	fprintf(stderr, "TITLE %s: 0x%x\n", c->name, ev->window);
 	focus(c);
 	if(look.tpos != TitleRight){
 	    if((ev->x > c->w-3*c->th) && (ev->x < c->w-2*c->th)){
@@ -718,7 +720,7 @@ configurerequest(XEvent *e) {
     XConfigureRequestEvent *ev = &e->xconfigurerequest;
     XWindowChanges wc;
 
-    if((c = getclient(ev->window, clients, False))) {
+    if((c = getclient(ev->window, clients, ClientWindow))) {
 	    c->ismax = False;
 	    if(ev->value_mask & CWBorderWidth)
 		    c->border = ev->border_width;
@@ -767,7 +769,7 @@ destroynotify(XEvent *e) {
     Monitor *m = NULL;
     XDestroyWindowEvent *ev = &e->xdestroywindow;
 
-    if((c = getclient(ev->window, clients, False)))
+    if((c = getclient(ev->window, clients, ClientWindow)))
 	m = clientmonitor(c);
     else
 	goto end;
@@ -822,21 +824,21 @@ enternotify(XEvent *e) {
 
     if(ev->mode != NotifyNormal || ev->detail == NotifyInferior)
 	return;
-    if((c = getclient(ev->window, clients, False))){
+    if((c = getclient(ev->window, clients, ClientFrame))){
 	if(!isvisible(sel, curmonitor()))
 	    focus(c);
 	if(c->isbastard)
 	    grabbuttons(c, True);
 	switch(sloppy) {
 	case Clk2Focus:
-	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
+	    XGrabButton(dpy, AnyButton, AnyModifier, c->frame, False,
 		    BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
 	    break;
 	case SloppyFloat:
 	    if(ISLTFLOATING(curmonitor()) || c->isfloating)
 		focus(c);
 	    else
-		XGrabButton(dpy, AnyButton, AnyModifier, c->win, False,
+		XGrabButton(dpy, AnyButton, AnyModifier, c->frame, False,
 		    BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
 	    break;
 	case AllSloppy:
@@ -871,8 +873,8 @@ expose(XEvent *e) {
     Client *c;
     while(XCheckWindowEvent(dpy, ev->window, ExposureMask, &tmp));
 
-    if((c = getclient(ev->window, clients, True))
-    || (c = getclient(ev->window, clients, False))) {
+    if((c = getclient(ev->window, clients, ClientWindow))
+    || (c = getclient(ev->window, clients, ClientTitle))) {
 	drawclient(c);
     }
 }
@@ -985,10 +987,13 @@ incnmaster(const char *arg) {
 }
 
 Client *
-getclient(Window w, Client *list, Bool title) {
+getclient(Window w, Client *list, int part) {
     Client *c;
 
-    for(c = list; c && (title ? c->title : c->win) != w; c = c->next);
+#define ClientPart(_c, _part) ((_part == ClientWindow) ? _c->win : ((_part == ClientTitle) ? _c->title : _c->frame))
+
+    for(c = list; c && (ClientPart(c, part)) != w; c = c->next);
+
     return c;
 }
 
@@ -1064,16 +1069,16 @@ grabbuttons(Client *c, Bool focused) {
     unsigned int Modifiers[] = {modkey, modkey|LockMask,
 	       modkey|numlockmask, modkey|numlockmask|LockMask};											      
     int i, j;	
-    XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
+    XUngrabButton(dpy, AnyButton, AnyModifier, c->frame);
 
     if(focused) {
 	   for (i = 0; i < LENGTH(Buttons); i++)													  
 		   for (j = 0; j < LENGTH(Modifiers); j++)												  
-			   XGrabButton(dpy, Buttons[i], Modifiers[j], c->win, False,									  
+			   XGrabButton(dpy, Buttons[i], Modifiers[j], c->frame, False,
 				   BUTTONMASK, GrabModeAsync, GrabModeSync, None, None);    
     }
     else
-	    XGrabButton(dpy, AnyButton, AnyModifier, c->win, False, BUTTONMASK,
+	    XGrabButton(dpy, AnyButton, AnyModifier, c->frame, False, BUTTONMASK,
 			    GrabModeAsync, GrabModeSync, None, None);
 }
 
@@ -1179,7 +1184,7 @@ leavenotify(XEvent *e) {
 	    selscreen = False;
 	    focus(NULL);
     }
-    if((c = getclient(ev->window, clients, False)))
+    if((c = getclient(ev->window, clients, ClientFrame)))
 	XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 }
 
@@ -1351,7 +1356,7 @@ maprequest(XEvent *e) {
 	    return;
     if(wa.override_redirect)
 	    return;
-    if((c = getclient(ev->window, clients, False)))
+    if((c = getclient(ev->window, clients, ClientWindow)))
 	    unban(c);
     else
 	    manage(ev->window, &wa);
@@ -1552,7 +1557,7 @@ reparentnotify(XEvent *e) {
     Client *c;
     XReparentEvent *ev = &e->xreparent;
 
-    if((c = getclient(ev->window, clients, False))) 
+    if((c = getclient(ev->window, clients, ClientWindow)))
 	if(ev->parent != c->frame)
 	    unmanage(c);
 }
@@ -1565,11 +1570,11 @@ propertynotify(XEvent *e) {
 
     if(ev->state == PropertyDelete)
 	    return; /* ignore */
-    if((c = getclient(ev->window, clients, False))) {
+    if((c = getclient(ev->window, clients, ClientWindow))) {
 	    switch (ev->atom) {
 		    case XA_WM_TRANSIENT_FOR:
 			    XGetTransientForHint(dpy, c->win, &trans);
-			    if(!c->isfloating && (c->isfloating = (getclient(trans, clients, False) != NULL)))
+			    if(!c->isfloating && (c->isfloating = (getclient(trans, clients, ClientWindow) != NULL)))
 				    arrange(clientmonitor(c));
 			    break;
 		    case XA_WM_NORMAL_HINTS:
@@ -2382,7 +2387,7 @@ unmapnotify(XEvent *e) {
     XUnmapEvent *ev = &e->xunmap;
     XWindowAttributes wa;
 
-    if((c = getclient(ev->window, clients, False))) {
+    if((c = getclient(ev->window, clients, ClientWindow))) {
 	if(c->isicon)
 	    return;
 	XGetWindowAttributes(dpy, ev->window, &wa);
