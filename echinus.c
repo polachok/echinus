@@ -480,32 +480,7 @@ buttonpress(XEvent *e) {
 	    }
 	    return;
     }
-    if((c = getclient(ev->window, clients, ClientFrame))) {
-	fprintf(stderr, "FRAME %s: 0x%x\n", c->name, ev->window);
-	//if(!sloppy || ((sloppy == SloppyFloat) && !c->isfloating))
-	    XAllowEvents(dpy, ReplayPointer, CurrentTime);
-	focus(c);
-	restack(curmonitor());
-	if(CLEANMASK(ev->state) != modkey)
-	   return;
-	if(ev->button == Button1) {
-		if(!ISLTFLOATING(curmonitor()) && !c->isfloating)
-		    togglefloating(NULL);
-		movemouse(c);
-		arrange(NULL);
-	}
-	else if(ev->button == Button2) {
-		if(!ISLTFLOATING(curmonitor()) && c->isfloating)
-			togglefloating(NULL);
-		else
-			zoom(NULL);
-	}
-	else if(ev->button == Button3 && !c->isfixed) {
-		if(!ISLTFLOATING(curmonitor()) && !c->isfloating)
-			togglefloating(NULL);
-		resizemouse(c);
-	}
-    } else if((c = getclient(ev->window, clients, ClientTitle))) {
+    if((c = getclient(ev->window, clients, ClientTitle))) {
 	fprintf(stderr, "TITLE %s: 0x%x\n", c->name, ev->window);
 	focus(c);
 	if(look.tpos != TitleRight){
@@ -533,6 +508,32 @@ buttonpress(XEvent *e) {
 	}
 	else if(ev->button == Button3 && !c->isfixed) {
 	    resizemouse(c);
+	}
+    } else if((c = getclient(ev->window, clients, ClientFrame))) {
+	fprintf(stderr, "FRAME %s: 0x%x\n", c->name, ev->window);
+	focus(c);
+	//if(!sloppy || ((sloppy == SloppyFloat) && !c->isfloating))
+	restack(curmonitor());
+	if(CLEANMASK(ev->state) != modkey) {
+	   XAllowEvents(dpy, ReplayPointer, CurrentTime);
+	   return;
+	}
+	if(ev->button == Button1) {
+		if(!ISLTFLOATING(curmonitor()) && !c->isfloating)
+		    togglefloating(NULL);
+		movemouse(c);
+		arrange(NULL);
+	}
+	else if(ev->button == Button2) {
+		if(!ISLTFLOATING(curmonitor()) && c->isfloating)
+			togglefloating(NULL);
+		else
+			zoom(NULL);
+	}
+	else if(ev->button == Button3 && !c->isfixed) {
+		if(!ISLTFLOATING(curmonitor()) && !c->isfloating)
+			togglefloating(NULL);
+		resizemouse(c);
 	}
     }
 }
@@ -900,6 +901,7 @@ floating(Monitor *m) { /* default floating layout */
 void
 focus(Client *c) {
     Client *o;
+
     o = sel;
     if((!c && selscreen) || (c && (c->isbastard || !isvisible(c, curmonitor()))))
 	    for(c = stack; c && (c->isbastard || !isvisible(c, curmonitor())); c = c->snext);
