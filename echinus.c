@@ -58,9 +58,15 @@
 #define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask)
 #define LENGTH(x)		(sizeof x / sizeof x[0])
 #define RESNAME			       "echinus"
-#define RESCLASS	       "Echinus"
-#define OPAQUE	0xffffffff
-#define DPRINT fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
+#define RESCLASS	        "Echinus"
+#define OPAQUE			0xffffffff
+#ifdef DEBUG
+#define DPRINT			fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
+#define DPRINTF(format, ...)	fprintf(stderr, "%s %s():%d " format, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#else
+#define DPRINT			;
+#define DPRINTF(format, ...)
+#endif
 #define ISLTFLOATING(m) (m && ((layouts[ltidxs[m->curtag]].arrange == floating) || (layouts[ltidxs[m->curtag]].arrange == ifloating)))
 
 /* enums */
