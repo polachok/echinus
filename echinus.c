@@ -1319,7 +1319,7 @@ manage(Window w, XWindowAttributes *wa) {
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XAddToSaveSet(dpy, c->win);
     XMapWindow(dpy, c->win);
-    XMapWindow(dpy, c->title);
+    XMapRaised(dpy, c->title);
     if(!c->isbastard){
 	wc.border_width = 0;
 	XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
