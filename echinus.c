@@ -1833,9 +1833,6 @@ setclientstate(Client *c, long state) {
 
     XChangeProperty(dpy, c->win, atom[WMState], atom[WMState], 32,
 		    PropModeReplace, (unsigned char *)data, 2);
-    if(c->title)
-	XChangeProperty(dpy, c->title, atom[WMState], atom[WMState], 32,
-			PropModeReplace, (unsigned char *)data, 2);
     if(state == NormalState) {
 	c->isicon = False;
 	XDeleteProperty(dpy, c->win, atom[WindowState]);
