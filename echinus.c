@@ -448,7 +448,6 @@ ban(Client *c) {
 		     CLIENTMASK&~(StructureNotifyMask|EnterWindowMask));
     XSelectInput(dpy, c->frame, NoEventMask);
     XUnmapWindow(dpy, c->frame);
-    //XUnmapWindow(dpy, c->win);
     XSelectInput(dpy, c->win, CLIENTMASK);
     XSelectInput(dpy, c->frame, FRAMEMASK);
     c->isbanned = True;
@@ -487,7 +486,7 @@ buttonpress(XEvent *e) {
 	    return;
     }
     if((c = getclient(ev->window, clients, ClientTitle))) {
-	fprintf(stderr, "TITLE %s: 0x%x\n", c->name, ev->window);
+	DPRINTF("TITLE %s: 0x%x\n", c->name, ev->window);
 	focus(c);
 	if(look.tpos != TitleRight){
 	    if((ev->x > c->w-3*c->th) && (ev->x < c->w-2*c->th)){
@@ -516,9 +515,8 @@ buttonpress(XEvent *e) {
 	    resizemouse(c);
 	}
     } else if((c = getclient(ev->window, clients, ClientFrame))) {
-	fprintf(stderr, "FRAME %s: 0x%x\n", c->name, ev->window);
+	DPRINTF("FRAME %s: 0x%x\n", c->name, ev->window);
 	focus(c);
-	//if(!sloppy || ((sloppy == SloppyFloat) && !c->isfloating))
 	restack(curmonitor());
 	if(CLEANMASK(ev->state) != modkey) {
 	   XAllowEvents(dpy, ReplayPointer, CurrentTime);
@@ -2308,7 +2306,6 @@ unban(Client *c) {
 		     CLIENTMASK&~(StructureNotifyMask|EnterWindowMask));
     XSelectInput(dpy, c->frame, NoEventMask);
     XMapWindow(dpy, c->frame);
-    //XMapWindow(dpy, c->win);
     XSelectInput(dpy, c->win, CLIENTMASK);
     XSelectInput(dpy, c->frame, FRAMEMASK);
     setclientstate(c, NormalState);
