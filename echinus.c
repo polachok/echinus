@@ -1590,7 +1590,7 @@ quit(const char *arg) {
 void
 resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
     XWindowChanges wc;
-    c->th = c->title ? dc.h : 0;
+    c->th = c->title&&(c->isfloating||dectiled||ISLTFLOATING(m)) ? dc.h : 0;
     if(sizehints) {
 	/* set minimum possible */
 	if (w < 1)
@@ -1643,7 +1643,8 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    y = m->way;
 #endif
     if((c->w != w || c->m != m) && c->title) {
-	XMoveResizeWindow(dpy, c->title, 0, 0, w, c->th);
+	if(c->th)
+	    XMoveResizeWindow(dpy, c->title, 0, 0, w, c->th);
 	drawclient(c);
     }
     if(c->m != m || c->x != x || c->y != y || c->w != w || c->h != h) {
