@@ -751,11 +751,10 @@ configurerequest(XEvent *e) {
 			    XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
 			    drawclient(c);
 		    }
-	    }
-	    else 
+	    } else {
 		    configure(c);
-    }
-    else {
+	    }
+    } else {
 	    wc.x = ev->x;
 	    wc.y = ev->y;
 	    wc.width = ev->width;
@@ -853,8 +852,7 @@ enternotify(XEvent *e) {
 	    restack(curmonitor());
 	    break;
 	}
-    }
-    else if(ev->window == root) {
+    } else if(ev->window == root) {
 	selscreen = True;
 	focus(NULL);
     }
@@ -929,9 +927,9 @@ focus(Client *c) {
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 	    XSetWindowBorder(dpy, sel->frame, dc.sel[ColBorder]);
 	    drawclient(c);
-    }
-    else
+    } else {
 	    XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
+    }
     if(o) 
 	drawclient(o);
     updateatom[ActiveWindow](sel);
@@ -976,9 +974,9 @@ incnmaster(const char *arg) {
 
     if(layouts[ltidxs[curmontag]].arrange != tile)
 	    return;
-    if(!arg)
+    if(!arg) {
 	    nmasters[curmontag] = NMASTER;
-    else {
+    } else {
 	    i = atoi(arg);
 	    if((nmasters[curmontag] + i) < 1 || curwah / (nmasters[curmontag] + i) <= 2 * look.borderpx)
 		    return;
@@ -1051,9 +1049,9 @@ gettextprop(Window w, Atom atom, char *text, unsigned int size) {
     XGetTextProperty(dpy, w, &name, atom);
     if(!name.nitems)
 	    return False;
-    if(name.encoding == XA_STRING)
+    if(name.encoding == XA_STRING) {
 	    strncpy(text, (char *)name.value, size - 1);
-    else {
+    } else {
 	    if(XmbTextPropertyToTextList(dpy, &name, &list, &n) >= Success
 	    && n > 0 && *list) {
 		    strncpy(text, *list, size - 1);
@@ -1078,10 +1076,10 @@ grabbuttons(Client *c, Bool focused) {
 		   for (j = 0; j < LENGTH(Modifiers); j++)												  
 			   XGrabButton(dpy, Buttons[i], Modifiers[j], c->frame, False,
 				   BUTTONMASK, GrabModeAsync, GrabModeSync, None, None);    
-    }
-    else
+    } else {
 	    XGrabButton(dpy, AnyButton, AnyModifier, c->frame, False, BUTTONMASK,
 			    GrabModeAsync, GrabModeSync, None, None);
+    }
 }
 
 int
@@ -1172,9 +1170,9 @@ killclient(const char *arg) {
 	    ev.xclient.data.l[0] = atom[WMDelete];
 	    ev.xclient.data.l[1] = CurrentTime;
 	    XSendEvent(dpy, sel->win, False, NoEventMask, &ev);
-    }
-    else
+    } else {
 	    XKillClient(dpy, sel->win);
+    }
 }
 
 void
@@ -1246,9 +1244,9 @@ manage(Window w, XWindowAttributes *wa) {
     c->w = c->sfw = wa->width;
     c->h = c->sfh = wa->height + c->th;
 
-    if(wa->x && wa->y)
+    if(wa->x && wa->y) {
 	c->isplaced = True;
-    else {
+    } else {
 	if(!c->isbastard && c->isfloating) {
 	    getpointer(&c->x, &c->y);
 	    c->x -= cm->sx;
@@ -1298,9 +1296,9 @@ manage(Window w, XWindowAttributes *wa) {
 			DefaultVisual(dpy, screen),
 			CWEventMask, &twa);
        c->xftdraw = XftDrawCreate(dpy, c->title, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
-    }
-    else
+    } else {
 	c->title = (Window)NULL;
+    }
 
     if(c->isbastard)
 	c->tags = curmonitor()->seltags;
@@ -1848,8 +1846,7 @@ setlayout(const char *arg) {
     if(!arg) {
 	    if(&layouts[++ltidxs[curmontag]] == &layouts[LENGTH(layouts)])
 		    ltidxs[curmontag] = 0;
-    }
-    else {
+    } else {
 	    for(i = 0; i < LENGTH(layouts); i++)
 		    if(!strcmp(arg, layouts[i].symbol))
 			    break;
@@ -2114,8 +2111,7 @@ bstack(Monitor *m) {
 	    nh = mh - 2 * c->border;
 	    nw = m->waw - 2 * c->border;
 	    nx = m->wax;
-	}
-	else {
+	} else {
 	    if(i == 1) {
 		nx = m->wax;
 		ny += mc->h+c->border;
@@ -2166,8 +2162,7 @@ tile(Monitor *m) {
 			if(i + 1 == (n < nmasters[m->curtag] ? n : nmasters[m->curtag])) /* remainder */
 				nh = m->way + m->wah - ny;
 			nh -= 2 * c->border;
-		}
-		else {	/* tile window */
+		} else {	/* tile window */
 			if(i == nmasters[m->curtag]) {
 				ny = m->way;
 				nx += mc->w + mc->border;
@@ -2204,8 +2199,7 @@ togglefloating(const char *arg) {
     if(sel->isfloating) {
 	    /*restore last known float dimensions*/
 	    resize(sel, curmonitor(), sel->sfx, sel->sfy, sel->sfw, sel->sfh, False);
-    }
-    else {
+    } else {
 	    /*save last known float dimensions*/
 	    sel->sfx = sel->x;
 	    sel->sfy = sel->y;
@@ -2407,8 +2401,7 @@ updatesizehints(Client *c) {
 	if(c->flags & PBaseSize) {
 		c->basew = size.base_width;
 		c->baseh = size.base_height;
-	}
-	else if(c->flags & PMinSize) {
+	} else if(c->flags & PMinSize) {
 		c->basew = size.min_width;
 		c->baseh = size.min_height;
 	}
@@ -2429,8 +2422,7 @@ updatesizehints(Client *c) {
 	if(c->flags & PMinSize) {
 		c->minw = size.min_width;
 		c->minh = size.min_height;
-	}
-	else if(c->flags & PBaseSize) {
+	} else if(c->flags & PBaseSize) {
 		c->minw = size.base_width;
 		c->minh = size.base_height;
 	}
