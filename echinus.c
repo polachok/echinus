@@ -1273,10 +1273,6 @@ manage(Window w, XWindowAttributes *wa) {
     }
 
     wc.border_width = c->border;
-    c->sfx = c->x;
-    c->sfy = c->y;
-    c->sfw = c->w;
-    c->sfh = c->h;
     grabbuttons(c, False);
     twa.override_redirect = True;
     twa.background_pixel = dc.norm[ColBG];
@@ -1414,10 +1410,6 @@ monocle(Monitor *m) {
 	if(isvisible(c, m) && !c->isicon && !c->isbastard) {
 	    c->isplaced = False;
 	    if(!c->isfloating) {
-		c->sfx = c->x;
-		c->sfy = c->y;
-		c->sfw = c->w;
-		c->sfh = c->h;
 		unban(c);
 	    } else {
 		resize(c, m, c->x, c->y, c->w, c->h, False);
@@ -2145,10 +2137,6 @@ tile(Monitor *m) {
 	nw = 0;
 	for(i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
 		c->ismax = False;
-		c->sfx = c->x;
-		c->sfy = c->y;
-		c->sfw = c->w;
-		c->sfh = c->h;
 		if(i < nmasters[m->curtag]) { /* master */
 			ny = m->way + i * (mh - c->border);
 			nw = mw - 2 * c->border;
