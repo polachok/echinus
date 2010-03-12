@@ -482,10 +482,10 @@ buttonpress(XEvent *e) {
     }
     if((c = getclient(ev->window, clients, ClientFrame))) {
 	fprintf(stderr, "FRAME %s: 0x%x\n", c->name, ev->window);
+	//if(!sloppy || ((sloppy == SloppyFloat) && !c->isfloating))
+	    XAllowEvents(dpy, ReplayPointer, CurrentTime);
 	focus(c);
 	restack(curmonitor());
-	if(!sloppy || ((sloppy == SloppyFloat) && !c->isfloating))
-	    XAllowEvents(dpy, ReplayPointer, CurrentTime);
 	if(CLEANMASK(ev->state) != modkey)
 	   return;
 	if(ev->button == Button1) {
@@ -837,7 +837,6 @@ enternotify(XEvent *e) {
 	case SloppyFloat:
 	    if(ISLTFLOATING(curmonitor()) || c->isfloating)
 		focus(c);
-	    else
 		XGrabButton(dpy, AnyButton, AnyModifier, c->frame, False,
 		    BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
 	    break;
@@ -923,15 +922,12 @@ focus(Client *c) {
 	    if(c->isfocusable)
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 	    XSetWindowBorder(dpy, sel->frame, dc.sel[ColBorder]);
-	    DPRINT;
 	    drawclient(c);
     }
     else
 	    XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
-    if(o) {
+    if(o) 
 	drawclient(o);
-	DPRINT;
-    }
     updateatom[ActiveWindow](sel);
     updateatom[ClientList](NULL);
 }
@@ -1734,9 +1730,9 @@ restack(Monitor *m) {
     int i,n;
 
     if(!sel)
-	    return;
+	return;
 
-    if(ISLTFLOATING(m)) {
+    if(ISLTFLOATING(m) || sel->isfloating) {
 	XRaiseWindow(dpy, sel->frame);
 	goto end;
     }
