@@ -94,8 +94,15 @@ drawclient(Client *c) {
 
     if(!isvisible(c, NULL))
 	return;
-    if(!c->isfloating && !ISLTFLOATING(c->m) && !dectiled)
+    if(!c->title)
 	return;
+    if((!c->isfloating && !ISLTFLOATING(c->m) && !dectiled) != c->hastitle)
+	DPRINTF("WARNING. %d should be %d\n", !c->isfloating && !ISLTFLOATING(c->m) && !dectiled, c->hastitle);
+    if(!c->isfloating && !ISLTFLOATING(c->m) && !dectiled) {
+	XUnmapWindow(dpy, c->title);
+	return;
+    }
+    XMapRaised(dpy, c->title);
     if(look.uf_opacity) {
 	if (c==sel)
 	    opacity = OPAQUE;
@@ -103,8 +110,6 @@ drawclient(Client *c) {
 	    opacity = look.uf_opacity * OPAQUE;
 	setopacity(c, opacity);
     }
-    if(!c->title)
-	return;
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);

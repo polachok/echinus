@@ -747,7 +747,8 @@ configurerequest(XEvent *e) {
 			    configure(c);
 		    if(isvisible(c, NULL) && !c->isbastard) {
 			    XMoveResizeWindow(dpy, c->frame, c->m->sx + c->x, c->m->sy + c->y, c->w, c->h);
-			    XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->hastitle ? c->th : 1);
+			    if(c->hastitle)
+				XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
 			    XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
 			    drawclient(c);
 		    }
@@ -1655,8 +1656,9 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    y = m->way;
 #endif
     if((c->w != w || c->m != m) && c->title) {
-	    XMoveResizeWindow(dpy, c->title, 0, 0, w, c->hastitle ? c->th: 1);
-	    drawclient(c);
+	if(c->hastitle) 
+	    XMoveResizeWindow(dpy, c->title, 0, 0, w, c->th);
+	drawclient(c);
     }
     if(c->m != m || c->x != x || c->y != y || c->w != w || c->h != h) {
 	    if(c->isfloating || ISLTFLOATING(m)) {
