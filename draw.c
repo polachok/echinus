@@ -96,18 +96,13 @@ drawclient(Client *c) {
 	return;
     if(!c->title)
 	return;
-    if((!c->isfloating && !ISLTFLOATING(c->m) && !dectiled) != c->hastitle)
-	DPRINTF("WARNING. %d should be %d\n", !c->isfloating && !ISLTFLOATING(c->m) && !dectiled, c->hastitle);
     if(!c->isfloating && !ISLTFLOATING(c->m) && !dectiled) {
 	XUnmapWindow(dpy, c->title);
 	return;
     }
     XMapRaised(dpy, c->title);
     if(look.uf_opacity) {
-	if (c==sel)
-	    opacity = OPAQUE;
-	else
-	    opacity = look.uf_opacity * OPAQUE;
+	opacity = (c == sel) ? OPAQUE : look.uf_opacity * OPAQUE;
 	setopacity(c, opacity);
     }
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
@@ -116,7 +111,7 @@ drawclient(Client *c) {
     dc.x = dc.y = 0;
     dc.w = c->w;
     drawtext(NULL, c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, look.tpos);
-    if(look.tbpos){
+    if(look.tbpos) {
 	for(i = 0; i < ntags; i++) {
 	    if(c->tags[i]){
 		drawtext(tags[i], c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, TitleLeft);

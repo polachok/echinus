@@ -101,7 +101,7 @@ struct Client {
 	long flags;
 	int border, oldborder;
 	Monitor *m;
-	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon, hastitle;
+	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon;
 	Bool isplaced, isbastard, isfocusable;
 	Bool *tags;
 	Client *next;
@@ -363,7 +363,7 @@ applyrules(Client *c) {
     for(i = 0; i < nrules; i++)
 	    if(regs[i].propregex && !regexec(regs[i].propregex, buf, 1, &tmp, 0)) {
 		    c->isfloating = rules[i]->isfloating;
-		    c->hastitle = rules[i]->hastitle;
+		    c->title = rules[i]->hastitle;
 		    for(j = 0; regs[i].tagregex && j < ntags; j++) {
 			    if(!regexec(regs[i].tagregex, tags[j], 1, &tmp, 0)) {
 				    matched = True;
@@ -747,7 +747,7 @@ configurerequest(XEvent *e) {
 			    configure(c);
 		    if(isvisible(c, NULL) && !c->isbastard) {
 			    XMoveResizeWindow(dpy, c->frame, c->m->sx + c->x, c->m->sy + c->y, c->w, c->h);
-			    if(c->hastitle)
+			    if(c->title)
 				XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
 			    XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
 			    drawclient(c);
@@ -890,7 +890,6 @@ floating(Monitor *m) { /* default floating layout */
     domwfact = dozoom = False;
     for(c = clients; c; c = c->next){
 	if(isvisible(c, m) && !c->isicon) {
-		c->hastitle = c->title ? True : False;
 		if(!c->isfloating)
 		    /* restore last known float dimensions */
 		    resize(c, m, c->sfx, c->sfy, c->sfw, c->sfh, True);
@@ -1215,7 +1214,7 @@ manage(Window w, XWindowAttributes *wa) {
     }
 
     c->isicon = False;
-    c->hastitle = c->isbastard ? False : True;
+    c->title = c->isbastard ? (Window)NULL : 1;
     c->tags = emallocz(ntags*(sizeof curseltags));
     c->isfocusable = c->isbastard ? False : True;
 
@@ -1229,7 +1228,7 @@ manage(Window w, XWindowAttributes *wa) {
     updatetitle(c);
     applyrules(c);
 
-    c->th = c->hastitle ? dc.h : 0;
+    c->th = c->title ? dc.h : 0;
     c->border = c->isbastard ? 0 : look.borderpx;
 
     if(!c->isfloating)
@@ -1291,14 +1290,12 @@ manage(Window w, XWindowAttributes *wa) {
     XSetWindowBorder(dpy, c->frame, dc.norm[ColBorder]);
 
     twa.event_mask = ExposureMask | MOUSEMASK;
-    if(c->hastitle) {
+    if(c->title) {
        c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
 			0, DefaultDepth(dpy, screen), CopyFromParent,
 			DefaultVisual(dpy, screen),
 			CWEventMask, &twa);
        c->xftdraw = XftDrawCreate(dpy, c->title, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
-    } else {
-	c->title = (Window)NULL;
     }
 
     if(c->isbastard)
@@ -1405,7 +1402,6 @@ ifloating(Monitor *m){
 			}
 		    }
 		}
-	    c->hastitle = c->title ? True : False;
 	}
     }
 }
@@ -1422,7 +1418,6 @@ monocle(Monitor *m) {
 		c->sfy = c->y;
 		c->sfw = c->w;
 		c->sfh = c->h;
-		c->hastitle = False;
 		unban(c);
 	    } else {
 		resize(c, m, c->x, c->y, c->w, c->h, False);
@@ -1603,7 +1598,7 @@ quit(const char *arg) {
 void
 resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
     XWindowChanges wc;
-    c->th = c->hastitle ? dc.h : 0;
+    c->th = c->title ? dc.h : 0;
     if(sizehints) {
 	/* set minimum possible */
 	if (w < 1)
@@ -1656,8 +1651,7 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    y = m->way;
 #endif
     if((c->w != w || c->m != m) && c->title) {
-	if(c->hastitle) 
-	    XMoveResizeWindow(dpy, c->title, 0, 0, w, c->th);
+	XMoveResizeWindow(dpy, c->title, 0, 0, w, c->th);
 	drawclient(c);
     }
     if(c->m != m || c->x != x || c->y != y || c->w != w || c->h != h) {
@@ -2107,7 +2101,6 @@ bstack(Monitor *m) {
     ny = m->way;
     nh = 0;
     for(i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
-	c->hastitle = (dectiled ? (c->title ? True : False) : False);
 	c->ismax = False;
 	if(i == 0) {
 	    nh = mh - 2 * c->border;
@@ -2151,7 +2144,6 @@ tile(Monitor *m) {
 	ny = m->way;
 	nw = 0;
 	for(i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
-		c->hastitle = (dectiled ? (c->title ? True : False) : False);
 		c->ismax = False;
 		c->sfx = c->x;
 		c->sfy = c->y;
@@ -2195,8 +2187,6 @@ void
 togglefloating(const char *arg) {
     if(!sel)
 	    return;
-    if(sel->title)
-	sel->hastitle = True;
     sel->isfloating = !sel->isfloating;
     if(sel->isfloating) {
 	    /*restore last known float dimensions*/
