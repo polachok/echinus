@@ -1305,9 +1305,9 @@ manage(Window w, XWindowAttributes *wa) {
 	c->title = (Window) NULL;
     }
 
-    c->m = c->isbastard ? getmonitor(c->x, c->y) : cm;
+    cm = c->isbastard ? getmonitor(c->x, c->y) : clientmonitor(c);
     if(c->isbastard)
-	c->tags = c->m->seltags;
+	c->tags = cm->seltags;
     attach(c);
     attachstack(c);
 #if 0
@@ -1335,7 +1335,7 @@ manage(Window w, XWindowAttributes *wa) {
 	XSelectInput(dpy, w, PropertyChangeMask);
     else
 	XSelectInput(dpy, w, CLIENTMASK);
-    resize(c, c->m, c->x, c->y, c->w, c->h, True);
+    resize(c, cm, c->x, c->y, c->w, c->h, True);
     ban(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
@@ -1481,7 +1481,7 @@ clientmonitor(Client *c) {
 		    return m;
 	}
     }
-    return NULL;
+    return curmonitor();
 }
 
 Monitor*
