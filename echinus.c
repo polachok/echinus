@@ -210,6 +210,7 @@ long getstate(Window w);
 Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
 void grabbuttons(Client *c, Bool focused);
 void getpointer(int *x, int *y);
+Monitor* getmonitor(int x, int y);
 Monitor* curmonitor();
 Monitor* clientmonitor(Client *c);
 int idxoftag(const char *tag);
@@ -1232,7 +1233,7 @@ manage(Window w, XWindowAttributes *wa) {
     c->border = c->isbastard ? 0 : look.borderpx;
 
     if(!c->isfloating)
-	    c->isfloating = (rettrans == Success) || c->isfixed;
+	c->isfloating = (rettrans == Success) || c->isfixed;
 
     if((wmh = XGetWMHints(dpy, c->win))) {
 	c->isfocusable = !(wmh->flags & InputHint) || wmh->input;
@@ -1246,30 +1247,28 @@ manage(Window w, XWindowAttributes *wa) {
 
     if(wa->x && wa->y) {
 	c->isplaced = True;
-    } else {
-	if(!c->isbastard && c->isfloating) {
+    } else if(!c->isbastard && c->isfloating) {
 	    getpointer(&c->x, &c->y);
 	    c->x -= cm->sx;
 	    c->y -= cm->sy;
-	}
     }
     if(c->isbastard) {
-	c->x = wa->x + cm->wax;
-	c->y = wa->y + cm->way;
+	c->x = wa->x;
+	c->y = wa->y;
     }
     c->oldborder = c->isbastard ? 0 : wa->border_width;
     if(c->w == cursw && c->h == cursh) {
-	    c->x = cursx;
-	    c->y = cursy;
+	c->x = cursx;
+	c->y = cursy;
     } else {
-	    if(c->x + c->w > curwax + curwaw)
-		    c->x = curwax + curwaw - c->w;
-	    if(c->y + c->h > curway + curwah)
-		    c->y = curway + curwah - c->h;
-	    if(c->x < curwax)
-		    c->x = curwax;
-	    if(c->y < curway)
-		    c->y = curway;
+	if(c->x + c->w > curwax + curwaw)
+		c->x = curwax + curwaw - c->w;
+	if(c->y + c->h > curway + curwah)
+		c->y = curway + curwah - c->h;
+	if(c->x < curwax)
+		c->x = curwax;
+	if(c->y < curway)
+		c->y = curway;
     }
 
     wc.border_width = c->border;
@@ -1292,10 +1291,13 @@ manage(Window w, XWindowAttributes *wa) {
 			DefaultVisual(dpy, screen),
 			CWEventMask, &twa);
        c->xftdraw = XftDrawCreate(dpy, c->title, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
+    } else {
+	c->title = (Window) NULL;
     }
 
+    c->m = c->isbastard ? getmonitor(c->x, c->y) : cm;
     if(c->isbastard)
-	c->tags = curmonitor()->seltags;
+	c->tags = c->m->seltags;
     attach(c);
     attachstack(c);
 #if 0
@@ -1322,7 +1324,7 @@ manage(Window w, XWindowAttributes *wa) {
 	XSelectInput(dpy, w, PropertyChangeMask);
     else
 	XSelectInput(dpy, w, CLIENTMASK);
-    resize(c, cm, c->x, c->y, c->w, c->h, True);
+    resize(c, c->m, c->x, c->y, c->w, c->h, True);
     ban(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
@@ -1447,6 +1449,17 @@ getpointer(int *x, int *y) {
 }
 
 Monitor*
+getmonitor(int x, int y) {
+    Monitor *m;
+    for(m = monitors; m; m = m->next) {
+	if((x >= m->sx && x <= m->sx + m->sw)) {
+	    break;
+	}
+    }
+    return m;
+}
+
+Monitor*
 clientmonitor(Client *c) {
     Monitor *m;
     int i;
@@ -1462,15 +1475,9 @@ clientmonitor(Client *c) {
 
 Monitor*
 curmonitor() {
-    int x, y, i;
-    Monitor *m;
+    int x, y;
     getpointer(&x, &y);
-    for(i = 0, m = monitors; m; m = m->next, i++) {
-	if((x >= m->sx && x <= m->sx + m->sw)) {
-	    break;
-	}
-    }
-    return m;
+    return getmonitor(x, y);
 }
 
 void
