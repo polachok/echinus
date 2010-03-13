@@ -17,7 +17,7 @@
 #define MINWIDTH 12
 #define MINHEIGHT 12
 #define BARHEIGHT "12"
-#define TITLEHEIGHT "12"
+#define TITLEHEIGHT "0"
 #define TERMINAL "xterm"
 #define MWFACT			0.6	/* master width factor [0.1 .. 0.9] */
 #define SNAP			5	/* snap pixel */

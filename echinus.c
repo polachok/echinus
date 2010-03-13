@@ -2041,7 +2041,7 @@ setup(void) {
 
 	dc.h = atoi(getresource("title", TITLEHEIGHT));
 	if(!dc.h)
-	    dc.h = 1;
+	    dc.h = dc.font.height + 2;
 	dectiled = atoi(getresource("decoratetiled", DECORATETILED));
 	hidebastards = atoi(getresource("hidebastards", "0"));
 	sloppy = atoi(getresource("sloppy", "0"));

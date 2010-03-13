@@ -12,7 +12,7 @@ drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned lon
     memcpy(buf, text, len);
     buf[len] = 0;
     h = dc.h;
-    y = (dc.h / 2) - (h / 2) + dc.font.ascent;
+    y = dc.font.ascent + 1;
     x = dc.x + dc.font.height/2;
     /* shorten text if necessary */
     while(len && (w = textnw(buf, len)) > dc.w){
@@ -42,10 +42,10 @@ drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned lon
     while(x <= 0)
 	    x = dc.x++;
     XftDrawStringUtf8(xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel,
-	    dc.font.xftfont, x, look.drawoutline ? y : y+1, (unsigned char*)buf, len);
-    if(look.drawoutline){
-		XSetForeground(dpy, dc.gc, col[ColBorder]);
-		XDrawLine(dpy, drawable, dc.gc, 0, dc.h-1, dc.w, dc.h-1);
+	    dc.font.xftfont, x, y, (unsigned char*)buf, len);
+    if(look.drawoutline) {
+	    XSetForeground(dpy, dc.gc, col[ColBorder]);
+	    XDrawLine(dpy, drawable, dc.gc, 0, dc.h-1, dc.w, dc.h-1);
     }
     dc.x = x + w;
 }
@@ -138,7 +138,7 @@ initfont(const char *fontstr) {
     dc.font.extents = emallocz(sizeof(XGlyphInfo));
     XftTextExtentsUtf8(dpy, dc.font.xftfont,
 	(const unsigned char*)fontstr, strlen(fontstr), dc.font.extents);
-    dc.font.height = dc.font.xftfont->ascent + dc.font.xftfont->descent;
+    dc.font.height = dc.font.xftfont->ascent + dc.font.xftfont->descent + 1;
     dc.font.ascent = dc.font.xftfont->ascent;
     dc.font.descent = dc.font.xftfont->descent;
 }
@@ -147,9 +147,6 @@ unsigned int
 textnw(const char *text, unsigned int len) {
     XftTextExtentsUtf8(dpy, dc.font.xftfont,
 	(const unsigned char*)text, strlen(text), dc.font.extents);
-
-    if(dc.font.extents->height > dc.font.height)
-	   dc.font.height = dc.font.extents->height;
     return dc.font.extents->xOff;
 }
 
