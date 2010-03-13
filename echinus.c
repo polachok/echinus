@@ -745,7 +745,7 @@ configurerequest(XEvent *e) {
 		    if((ev->value_mask & (CWX | CWY))
 		    && !(ev->value_mask & (CWWidth | CWHeight)))
 			    configure(c);
-		    if(isvisible(c, NULL) && !c->isbastard) {
+		    if(isvisible(c, NULL)) {
 			    XMoveResizeWindow(dpy, c->frame, c->m->sx + c->x, c->m->sy + c->y, c->w, c->h);
 			    if(c->title)
 				XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
@@ -2343,7 +2343,9 @@ updategeom(Monitor *m) {
 	m->wax += m->struts[LeftStrut];
 	m->waw -= (m->wax + m->struts[RightStrut]);
 	m->way += m->struts[TopStrut];
-	m->wah -= (m->way + m->struts[BotStrut]);
+	DPRINTF("DH %d strut %d\n", DisplayHeight(dpy, screen), m->struts[BotStrut]);
+	m->wah = m->struts[BotStrut] ? DisplayHeight(dpy, screen) - m->struts[BotStrut] - m->way : m->sh - m->way;
+	DPRINTF("WAH %d\n", m->wah);
 	break;
     case StrutsHide:
     case StrutsOff:
