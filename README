@@ -265,3 +265,9 @@ Known to work:
 
 Known to NOT work:
     pypanel
+
+4.About URxvt transparency
+--------------------------
+
+You can use transparent urxvt with echinus, but with no title and weird
+border color.

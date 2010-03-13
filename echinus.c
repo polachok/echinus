@@ -570,8 +570,8 @@ cleanup(void) {
     /* free resource database */
     XrmDestroyDatabase(xrdb);
     /* free colors */
-    XftColorFree(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen), dc.xftnorm);
-    XftColorFree(dpy,DefaultVisual(dpy,screen),DefaultColormap(dpy,screen), dc.xftsel);
+    XftColorFree(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen), dc.xftnorm);
+    XftColorFree(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen), dc.xftsel);
     XUngrabKey(dpy, AnyKey, AnyModifier, root);
     XFreeGC(dpy, dc.gc);
     XFreeCursor(dpy, cursor[CurNormal]);
@@ -1198,6 +1198,7 @@ manage(Window w, XWindowAttributes *wa) {
     XWindowChanges wc;
     XSetWindowAttributes twa;
     XWMHints *wmh;
+    unsigned long mask = 0;
 
     cm = curmonitor();
     c = emallocz(sizeof(Client));
@@ -1274,19 +1275,28 @@ manage(Window w, XWindowAttributes *wa) {
     wc.border_width = c->border;
     grabbuttons(c, False);
     twa.override_redirect = True;
-    twa.background_pixel = dc.norm[ColBG];
     twa.event_mask = FRAMEMASK;
+    mask = CWOverrideRedirect | CWEventMask | CWBackPixel;
+    if(wa->depth == 32) {
+	mask |= CWColormap | CWBorderPixel;
+	twa.colormap = XCreateColormap(dpy, root, wa->visual, AllocNone);
+	twa.background_pixel = BlackPixel(dpy, screen);
+	twa.border_pixel = BlackPixel(dpy, screen);
+    } else {
+	twa.background_pixel = dc.norm[ColBG];
+    }
     c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
-		    c->border, DefaultDepth(dpy, screen), InputOutput,
-		    DefaultVisual(dpy, screen),
-		    CWOverrideRedirect | CWEventMask | CWBackPixel, &twa);
+		    c->border, wa->depth == 32 ? 32 : DefaultDepth(dpy, screen), InputOutput,
+		    wa->depth == 32 ? wa->visual : DefaultVisual(dpy, screen),
+		    mask, &twa);
  
     XConfigureWindow(dpy, c->frame, CWBorderWidth, &wc);
     XSetWindowBorder(dpy, c->frame, dc.norm[ColBorder]);
 
     twa.event_mask = ExposureMask | MOUSEMASK;
+    /* we create title as root's child as a workaround for 32bit visuals */
     if(c->title) {
-       c->title = XCreateWindow(dpy, c->frame, 0, 0, c->w, c->th,
+       c->title = XCreateWindow(dpy, root, 0, 0, c->w, c->th,
 			0, DefaultDepth(dpy, screen), CopyFromParent,
 			DefaultVisual(dpy, screen),
 			CWEventMask, &twa);
@@ -1309,6 +1319,7 @@ manage(Window w, XWindowAttributes *wa) {
 			CWEventMask | CWWinGravity | CWDontPropagate, &twa);
 #endif
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
+    XReparentWindow(dpy, c->title, c->frame, 0, 0);
     XAddToSaveSet(dpy, c->win);
     XMapWindow(dpy, c->win);
     XMapRaised(dpy, c->title);
