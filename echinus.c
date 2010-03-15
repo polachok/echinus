@@ -1497,6 +1497,8 @@ movemouse(Client *c) {
     XEvent ev;
     Monitor *m, *nm;
 
+    if(c->isbastard)
+	return;
     m = curmonitor();
     ocx = nx = c->x + m->sx;
     ocy = ny = c->y + m->sy;
@@ -1696,6 +1698,8 @@ resizemouse(Client *c) {
     Monitor *cm;
     XEvent ev;
 
+    if(c->isbastard)
+	return;
     cm = curmonitor();
 
     ocx = c->x + cm->sx;
@@ -1725,8 +1729,6 @@ resizemouse(Client *c) {
 			    nw = MINWIDTH;
 		    if((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
 			    nh = MINHEIGHT;
-		    nw = nw > cm->sw ? cm->sw : nw;
-		    nh = nh > cm->sh ? cm->sh : nh;
 		    resize(c, cm, c->x, c->y, nw, nh, True);
 		    break;
 	    }
