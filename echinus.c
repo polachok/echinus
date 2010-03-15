@@ -2205,6 +2205,7 @@ togglefloating(const char *arg) {
 	    sel->sfw = sel->w;
 	    sel->sfh = sel->h;
     }
+    drawclient(sel);
     arrange(curmonitor());
 }
 
