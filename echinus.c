@@ -833,8 +833,10 @@ enternotify(XEvent *e) {
     if((c = getclient(ev->window, clients, ClientFrame))){
 	if(!isvisible(sel, curmonitor()))
 	    focus(c);
-	if(c->isbastard)
+	if(c->isbastard) {
 	    grabbuttons(c, True);
+	    return;
+	}
 	switch(sloppy) {
 	case Clk2Focus:
 	    XGrabButton(dpy, AnyButton, AnyModifier, c->frame, False,
