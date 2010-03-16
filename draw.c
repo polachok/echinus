@@ -87,10 +87,20 @@ drawbuttons(Client *c) {
     XCopyPlane(dpy, look.bright.pm, c->title, dc.gc, 0, 0, look.bright.pw, look.bright.ph, x, y+look.bright.py, 1);
 }
 
+int
+drawbutton(Drawable d, Drawable btn, unsigned long col[ColLast], int x, int y) {
+    XSetForeground(dpy, dc.gc, col[ColButton]);
+    XSetBackground(dpy, dc.gc, col[ColBG]);
+    XCopyPlane(dpy, btn, d, dc.gc, 0, 0, look.bleft.pw, look.bleft.ph, x, y+look.bleft.py, 1);
+    return dc.h;
+}
+
 void
 drawclient(Client *c) {
-    int i;
+    int i,j;
     unsigned int opacity;
+    int center = 0;
+    char title[] = "T|NIMC";
 
     if(look.uf_opacity) {
 	opacity = (c == sel) ? OPAQUE : look.uf_opacity * OPAQUE;
@@ -111,6 +121,32 @@ drawclient(Client *c) {
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);
     dc.x = dc.y = 0;
     dc.w = c->w;
+    for(i = 0; i < strlen(title); i++) {
+	switch(title[i]) {
+	    case 'T':
+	    case 't':
+		for(j = 0; j < ntags; j++) {
+		    if(c->tags[j]){
+			drawtext(tags[j], c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, TitleLeft);
+			XSetForeground(dpy, dc.gc, c== sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
+		    }
+		}
+		break;
+	    case '|':
+		dc.x += dc.h/4;
+		XDrawLine(dpy, c->title, dc.gc, dc.x, 0, dc.x, dc.h);
+		dc.x += dc.h/4;
+		break;
+	    case 'N':
+	    case 'n':
+		drawtext(c->name, c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, look.tpos);
+		break;
+	    case 'I':
+	    case 'i':
+		dc.x += drawbutton(c->title, look.bleft.pm, c == sel ? dc.sel : dc.norm, dc.x, dc.h/2 - look.bleft.ph/2);
+	}
+    }
+#if 0
     drawtext(NULL, c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, look.tpos);
     if(look.tbpos) {
 	for(i = 0; i < ntags; i++) {
@@ -126,6 +162,7 @@ drawclient(Client *c) {
     drawtext(c->name, c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, look.tpos);
     if(c->w>=6*dc.h && dc.x <= c->w-6*dc.h && look.tpos != TitleRight)
 	drawbuttons(c);
+#endif
 }
 
 static void
