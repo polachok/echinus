@@ -60,13 +60,29 @@ Title settings
 
         Draw titles in tiled mode
 
-    Echinus*titleposition - 0 (left), 1 (center), 2 (right)
+    Echinus*titleposition
+    Echinus*tagbar
+    Echinus*tbpos
 
-        Window name position. When on right buttons are disabled.
+	Were removed for more general interface, see below
 
-    Echinus*tagbar - boolean (1 or 0)
+    Echinus*titlelayout - string
 
-        Show tagbar
+	Titlebar consists of 3 parts separated with dashes or
+	spaces. Left is aligned to left, center to center and
+	right to right (obviously).
+
+	Default value is "T N IMC" meaning tagbar on left,
+	name centered, iconify, maximize and close buttons
+	on right.
+
+	- or ' ' (space) - skip space
+	N - window name
+	I - iconify
+	M - maximize
+	C - close
+	T - tagbar
+
 
 Color settings
 

@@ -72,7 +72,7 @@
 /* enums */
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };
 enum { StrutsOn, StrutsOff, StrutsHide };			/* struts position */
-enum { TitleLeft, TitleCenter, TitleRight };			/* title position */
+enum { AlignLeft, AlignCenter, AlignRight };			/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColButton, ColLast };		/* color */
 enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise }; /* focus model */
@@ -117,20 +117,19 @@ typedef struct {
 	Pixmap pm;
 	int px, py;
 	unsigned int pw, ph;
-	int visible;
+	int x;
 	void (*action)(const char *arg);
 } Button;
 
-typedef struct Look Look;
-struct Look { 
-	int tpos, tbpos, bpos;
+typedef struct { 
 	int borderpx;
 	float uf_opacity;
 	int drawoutline;
+	char *titlelayout;
 	Button bleft;
 	Button bcenter;
 	Button bright;
-};
+} Look;
 
 typedef struct {
 	int x, y, w, h;
@@ -191,7 +190,6 @@ void destroynotify(XEvent *e);
 void detach(Client *c);
 void detachstack(Client *c);
 void drawclient(Client *c);
-void drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned long col[ColLast], unsigned int position);
 void *emallocz(unsigned int size);
 void enternotify(XEvent *e);
 void eprint(const char *errstr, ...);
@@ -488,30 +486,22 @@ buttonpress(XEvent *e) {
     if((c = getclient(ev->window, clients, ClientTitle))) {
 	DPRINTF("TITLE %s: 0x%x\n", c->name, ev->window);
 	focus(c);
-	if(look.tpos != TitleRight){
-	    if((ev->x > c->w-3*c->th) && (ev->x < c->w-2*c->th)){
-		/* min */
+	if((ev->x > look.bleft.x) && (ev->x < look.bleft.x + dc.h) && look.bleft.x != -1) {
 		look.bleft.action(NULL);
 		return;
-	    }
-	    if((ev->x > c->w-2*c->th) && (ev->x < c->w-c->th)){
-		/* max */
+	} else if((ev->x > look.bcenter.x) && (ev->x < look.bcenter.x + dc.h) && look.bcenter.x != -1) {
 		look.bcenter.action(NULL);
 		return;
-	    }
-	    if((ev->x > c->w-c->th) && (ev->x < c->w)){
-		/* close */
+	} else if((ev->x > look.bright.x) && (ev->x < look.bright.x + dc.h) && look.bright.x != -1) {
 		look.bright.action(NULL);
 		return;
-	    }
 	}
 	if(ev->button == Button1) {
 	    if(ISLTFLOATING(curmonitor()) || c->isfloating)
 		restack(curmonitor());
 	    movemouse(c);
 	    arrange(NULL);
-	}
-	else if(ev->button == Button3 && !c->isfixed) {
+	} else if(ev->button == Button3 && !c->isfixed) {
 	    resizemouse(c);
 	}
     } else if((c = getclient(ev->window, clients, ClientFrame))) {
@@ -2036,9 +2026,8 @@ setup(void) {
 	initfont(getresource("font", FONT));
 	look.borderpx = atoi(getresource("border", BORDERPX));
 	look.uf_opacity = atof(getresource("opacity", NF_OPACITY));
-	look.tpos = atoi(getresource("titleposition", TITLEPOSITION));
-	look.tbpos = atoi(getresource("tagbar", TAGBAR));
 	look.drawoutline = atoi(getresource("outline", "0"));
+	look.titlelayout = getresource("titlelayout", "T N IMC");
 
 	strncpy(terminal, getresource("terminal", TERMINAL), 255);
 
