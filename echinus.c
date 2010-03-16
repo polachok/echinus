@@ -936,6 +936,7 @@ focus(Client *c) {
 	drawclient(o);
     updateatom[ActiveWindow](sel);
     updateatom[ClientList](NULL);
+    updateatom[CurDesk](NULL);
 }
 
 void
