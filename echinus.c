@@ -1424,16 +1424,14 @@ monocle(Monitor *m) {
     for(c = clients; c; c = c->next){
 	if(isvisible(c, m) && !c->isicon && !c->isbastard) {
 	    c->isplaced = False;
-	    if(!c->isfloating) {
-		unban(c);
-	    } else {
+	    if(c->isfloating) {
 		resize(c, m, c->x, c->y, c->w, c->h, False);
-		continue;
+	    } else {
+		if(bpos[m->curtag] != StrutsOn)
+		    resize(c, m, m->wax-c->border, m->way-c->border, m->waw, m->wah, False);
+		else
+		    resize(c, m, m->wax, m->way, m->waw - 2*c->border, m->wah - 2*c->border, False);
 	    }
-	    if(bpos[m->curtag] != StrutsOn)
-		resize(c, m, m->wax-c->border, m->way-c->border, m->waw, m->wah, False);
-	    else
-		resize(c, m, m->wax, m->way, m->waw - 2*c->border, m->wah - 2*c->border, False);
 	}
     }
 }
