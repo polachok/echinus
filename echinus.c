@@ -474,7 +474,6 @@ buttonpress(XEvent *e) {
     if(ev->window == root) {
 	    switch(ev->button) {
 		case Button3:
-		    XSetForeground(dpy, dc.gc, dc.sel[ColBorder]);
 		    spawn(terminal);
 		    break;
 		case Button4:
