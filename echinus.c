@@ -2196,6 +2196,10 @@ void
 togglefloating(const char *arg) {
     if(!sel)
 	    return;
+
+    if(ISLTFLOATING(curmonitor()))
+	    return;
+
     sel->isfloating = !sel->isfloating;
     if(sel->isfloating) {
 	    /*restore last known float dimensions*/
