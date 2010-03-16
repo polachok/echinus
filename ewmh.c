@@ -14,7 +14,7 @@ enum { ClientList, ActiveWindow, WindowDesk,
       ClientListStacking, WindowOpacity, WindowType,
       WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial, ESelTags,
       WindowName, WindowState, WindowStateFs, WindowStateModal, WindowStateHidden,
-      Utf8String, Supported, WMProto, WMDelete, WMName, WMState, NATOMS };
+      Utf8String, Supported, WMProto, WMDelete, WMName, WMState, MWMHints, NATOMS };
 
 Atom atom[NATOMS];
 
@@ -47,6 +47,7 @@ const char * atomnames[NATOMS][1] = {
     { "WM_DELETE_WINDOW" },
     { "WM_NAME" },
     { "WM_STATE" },
+    { "_MOTIF_WM_HINTS" },
 };
 
 void
@@ -149,6 +150,26 @@ ewmh_update_net_active_window() {
 		    atom[ActiveWindow], XA_WINDOW, 32,	PropModeReplace, (unsigned char *) &win, 1);
 }
 
+void
+mwm_process_atom(Client *c) {
+    Atom real;
+    int format;
+    unsigned char *data = NULL;
+    unsigned long n, extra;
+#define MWM_HINTS_ELEMENTS 5
+#define MWM_DECOR_ALL(x) ((x) & (1L << 0))
+#define MWM_DECOR_TITLE(x) ((x) & (1L << 3))
+#define MWM_DECOR_BORDER(x) ((x) & (1L << 1))
+#define MWM_HINTS_DECOR(x) ((x) & (1L << 1))
+    if(XGetWindowProperty(dpy, c->win, atom[MWMHints], 0L, 20L, False, atom[MWMHints],
+	    &real, &format, &n, &extra, (unsigned char **)&data) == Success && n >= MWM_HINTS_ELEMENTS) {
+	if(MWM_HINTS_DECOR(data[0]) && !(MWM_DECOR_ALL(data[3]))) {
+	    c->title = MWM_DECOR_TITLE(data[3]) ? root : (Window)NULL;
+	    c->border = MWM_DECOR_BORDER(data[3]) ? look.borderpx : 0;
+	}
+    } 
+    XFree(data);
+}
 void
 ewmh_process_state_atom(Client *c, Atom state, int set) {
     if((state == atom[WindowStateFs]) && (set != c->ismax)) {

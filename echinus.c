@@ -1221,7 +1221,8 @@ manage(Window w, XWindowAttributes *wa) {
     c->title = c->isbastard ? (Window)NULL : 1;
     c->tags = emallocz(ntags*(sizeof curseltags));
     c->isfocusable = c->isbastard ? False : True;
-
+    c->border = c->isbastard ? 0 : look.borderpx;
+    mwm_process_atom(c);
     updatesizehints(c);
 
     if((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
@@ -1233,7 +1234,6 @@ manage(Window w, XWindowAttributes *wa) {
     applyrules(c);
 
     c->th = c->title ? dc.h : 0;
-    c->border = c->isbastard ? 0 : look.borderpx;
 
     if(!c->isfloating)
 	c->isfloating = (rettrans == Success) || c->isfixed;
