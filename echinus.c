@@ -1137,7 +1137,7 @@ keypress(XEvent *e) {
     if(!e) { /* grabkeys */
 	    XUngrabKey(dpy, AnyKey, AnyModifier, root);
 	    for(i = 0; i < nkeys; i++) {
-		    code = XKeysymToKeycode(dpy, keys[i]->keysym);
+		if(code = XKeysymToKeycode(dpy, keys[i]->keysym)) {
 		    XGrabKey(dpy, code, keys[i]->mod, root, True,
 				    GrabModeAsync, GrabModeAsync);
 		    XGrabKey(dpy, code, keys[i]->mod | LockMask, root, True,
@@ -1146,6 +1146,7 @@ keypress(XEvent *e) {
 				    GrabModeAsync, GrabModeAsync);
 		    XGrabKey(dpy, code, keys[i]->mod | numlockmask | LockMask, root, True,
 				    GrabModeAsync, GrabModeAsync);
+		}
 	    }
 	    return;
     }
