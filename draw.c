@@ -1,10 +1,10 @@
-void
-drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned long col[ColLast], unsigned int position) {
-    int x, y, w, h;
+int
+drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned long col[ColLast], unsigned int position, int x, int y, int mw) {
+    int w, h;
     char buf[256];
     unsigned int len, olen;
     if(!text)
-	    return;
+	    return 0;
     olen = len = strlen(text);
     w = 0;
     if(len >= sizeof buf)
@@ -13,9 +13,9 @@ drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned lon
     buf[len] = 0;
     h = dc.h;
     y = dc.font.ascent + 1;
-    x = dc.x + dc.font.height/2;
+    x += dc.font.height/2;
     /* shorten text if necessary */
-    while(len && (w = textnw(buf, len)) > dc.w){
+    while(len && (w = textnw(buf, len)) > mw){
 	    buf[--len] = 0;
     }
     if(len < olen) {
@@ -26,17 +26,17 @@ drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned lon
 	    if(len > 3)
 		    buf[len - 3] = '.';
     }
-    if(w > dc.w)
-	    return; /* too long */
+    if(w > mw)
+	    return 0; /* too long */
     switch(position) {
 	case TitleCenter:
-		x = dc.x + dc.w/2 - w/2;
+		x += mw/2 - w/2;
 		break;
 	case TitleLeft:
-		x = dc.x + h/2;
+		x += h/2;
 		break;
 	case TitleRight:
-		x = dc.w - w - h;
+		x = mw - w - h;
 		break;
     }
     while(x <= 0)
@@ -45,9 +45,9 @@ drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned lon
 	    dc.font.xftfont, x, y, (unsigned char*)buf, len);
     if(look.drawoutline) {
 	    XSetForeground(dpy, dc.gc, col[ColBorder]);
-	    XDrawLine(dpy, drawable, dc.gc, 0, dc.h-1, dc.w, dc.h-1);
+	    XDrawLine(dpy, drawable, dc.gc, 0, dc.h-1, mw, dc.h-1);
     }
-    dc.x = x + w;
+    return x + w;
 }
 
 Pixmap
@@ -99,8 +99,9 @@ void
 drawclient(Client *c) {
     int i,j;
     unsigned int opacity;
+    unsigned long *color;
     int center = 0;
-    char title[] = "T|NIMC";
+    char title[] = "T| N IMC";
 
     if(look.uf_opacity) {
 	opacity = (c == sel) ? OPAQUE : look.uf_opacity * OPAQUE;
@@ -121,13 +122,17 @@ drawclient(Client *c) {
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);
     dc.x = dc.y = 0;
     dc.w = c->w;
+    color = c == sel ? dc.sel : dc.norm;
     for(i = 0; i < strlen(title); i++) {
 	switch(title[i]) {
+	    case ' ':
+		center++;
+		break;
 	    case 'T':
 	    case 't':
 		for(j = 0; j < ntags; j++) {
 		    if(c->tags[j]){
-			drawtext(tags[j], c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, TitleLeft);
+			dc.x += drawtext(tags[j], c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, TitleLeft, dc.x, dc.y, dc.w);
 			XSetForeground(dpy, dc.gc, c== sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
 		    }
 		}
@@ -139,11 +144,21 @@ drawclient(Client *c) {
 		break;
 	    case 'N':
 	    case 'n':
-		drawtext(c->name, c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, look.tpos);
+		dc.x += drawtext(c->name, c->title, c->xftdraw, color, center, dc.x, dc.y, dc.w);
 		break;
 	    case 'I':
 	    case 'i':
-		dc.x += drawbutton(c->title, look.bleft.pm, c == sel ? dc.sel : dc.norm, dc.x, dc.h/2 - look.bleft.ph/2);
+		dc.x += drawbutton(c->title, look.bleft.pm, color, dc.x, dc.h/2 - look.bleft.ph/2);
+		break;
+	    case 'M':
+	    case 'm':
+		dc.x += drawbutton(c->title, look.bcenter.pm, color, dc.x, dc.h/2 - look.bcenter.ph/2);
+		break;
+	    case 'C':
+	    case 'c':
+		dc.x += drawbutton(c->title, look.bright.pm, color, dc.x, dc.h/2 - look.bcenter.ph/2);
+		break;
+
 	}
     }
 #if 0
