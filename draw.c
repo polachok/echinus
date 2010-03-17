@@ -84,6 +84,69 @@ drawbutton(Drawable d, Drawable btn, unsigned long col[ColLast], int x, int y) {
     return dc.h;
 }
 
+
+int 
+drawelement(char which, int x, int position, Client *c) {
+    int w, j;
+    unsigned long *color = c == sel ? dc.sel : dc.norm;
+
+    DPRINTF("ELEMENT %c x = %d position = %d\n", which, x, position);
+    switch(which) {
+	case 'T':
+	    w = 0;
+	    for(j = 0; j < ntags; j++) {
+		if(c->tags[j])
+		    w += drawtext(tags[j], c->title, c->xftdraw, color, dc.x, dc.y, dc.w);
+	    }
+	    break;
+	case '|':
+	    XSetForeground(dpy, dc.gc, color[ColBorder]);
+	    XDrawLine(dpy, c->title, dc.gc, dc.x + dc.h/4, 0, dc.x + dc.h/4, dc.h);
+	    w = dc.h/2;
+	    break;
+	case 'N':
+	    w = drawtext(c->name, c->title, c->xftdraw, color, dc.x, dc.y, dc.w);
+	    break;
+	case 'I':
+	    w = drawbutton(c->title, look.bleft.pm, color, dc.x, dc.h/2 - look.bleft.ph/2);
+	    break;
+	case 'M':
+	    w = drawbutton(c->title, look.bcenter.pm, color, dc.x, dc.h/2 - look.bcenter.ph/2);
+	    break;
+	case 'C':
+	    w = drawbutton(c->title, look.bright.pm, color, dc.x, dc.h/2 - look.bcenter.ph/2);
+	    break;
+	default:
+	    w = 0;
+	    break;
+    }
+    return w;
+}
+
+int
+elementw(char which, Client *c) {
+    int w, j;
+    switch(which) {
+	case 'I':
+	case 'M':
+	case 'C':
+	    return dc.h;
+	case 'N':
+	    return textw(c->name);
+	case 'T':
+	    w = 0;
+	    for(j = 0; j < ntags; j++) {
+		if(c->tags[j])
+		    w += textw(tags[j]);
+	    }
+	    return w;
+	case '|':
+	    return dc.h/2;
+    }
+    DPRINTF("NOT REACHED\n", "");
+    return 0;
+}
+
 void
 drawclient(Client *c) {
     int i, j, w, ep, sp;
@@ -109,89 +172,35 @@ drawclient(Client *c) {
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);
-    sp = dc.y = w = 0;
-    ep = dc.x = dc.w = c->w;
-    color = c == sel ? dc.sel : dc.norm;
-    center = TitleRight;
-    for(i = strlen(title); i >= 0; i--) {
-	switch(title[i]) {
-	    case ' ':
-		center--;
-		w = 0;
+    sp = dc.x = dc.y = w = 0;
+    ep = dc.w = c->w;
+    center = 0;
+    /* Left */
+    for(i = 0; i < strlen(title); i++) {
+	if(isspace(title[i]))
 		break;
-	    case 'T':
-	    case 't':
-		w = 0;
-		for(j = 0; j < ntags; j++) {
-		    if(c->tags[j])
-			w += drawtext(tags[j], c->title, c->xftdraw, color, dc.x, dc.y, dc.w);
-		}
-		break;
-	    case '|':
-		XSetForeground(dpy, dc.gc, color[ColBorder]);
-		XDrawLine(dpy, c->title, dc.gc, dc.x + dc.h/4, 0, dc.x + dc.h/4, dc.h);
-		w = dc.h/2;
-		break;
-	    case 'N':
-	    case 'n':
-		if(center == TitleRight)
-		    ep = dc.x = ep - textw(c->name);
-		else if(center == TitleCenter)
-		    dc.x -= textw(c->name)/2;
-		w = drawtext(c->name, c->title, c->xftdraw, color, dc.x, dc.y, dc.w);
-		break;
-	    case 'I':
-	    case 'i':
-		if(center == TitleRight)
-		    ep = dc.x = ep - dc.h;
-		w = drawbutton(c->title, look.bleft.pm, color, dc.x, dc.h/2 - look.bleft.ph/2);
-		break;
-	    case 'M':
-	    case 'm':
-		if(center == TitleRight)
-		    ep = dc.x = ep - dc.h;
-		w = drawbutton(c->title, look.bcenter.pm, color, dc.x, dc.h/2 - look.bcenter.ph/2);
-		break;
-	    case 'C':
-	    case 'c':
-		if(center == TitleRight)
-		    ep = dc.x = ep - dc.h;
-		w = drawbutton(c->title, look.bright.pm, color, dc.x, dc.h/2 - look.bcenter.ph/2);
-		break;
-	    default:
-		w = 0;
-		break;
-	}
-	switch(center) {
-	    case TitleLeft:
-		sp += w;
-		dc.x = sp;
-		break;
-	    case TitleRight:
-		dc.x = ep;
-		break;
-	    case TitleCenter:
-		dc.x = dc.w/2;
-		break;
-	}
+	dc.x += drawelement(title[i], dc.x, TitleLeft, c);
     }
-#if 0
-    drawtext(NULL, c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, look.tpos);
-    if(look.tbpos) {
-	for(i = 0; i < ntags; i++) {
-	    if(c->tags[i]){
-		drawtext(tags[i], c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, TitleLeft);
-		XSetForeground(dpy, dc.gc, c== sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
-		if(c->border)
-		    XDrawLine(dpy, c->title, dc.gc, dc.x+dc.h/2, 0, dc.x+dc.h/2, dc.h);
-		dc.x+=dc.h/2+1;
-	    }
-	}
+    if(i == strlen(title))
+	return;
+    /* Center */
+    dc.x = dc.w/2;
+    for(i++; i < strlen(title); i++) {
+	if(isspace(title[i]))
+	    break;
+	dc.x -= elementw(title[i], c)/2;
+	dc.x += drawelement(title[i], 0, TitleCenter, c);
     }
-    drawtext(c->name, c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, look.tpos);
-    if(c->w>=6*dc.h && dc.x <= c->w-6*dc.h && look.tpos != TitleRight)
-	drawbuttons(c);
-#endif
+    if(i == strlen(title))
+	return;
+    /* Right */
+    dc.x = dc.w;
+    for(i = strlen(title)-1; i >= 0; i--) {
+	if(isspace(title[i]))
+	    break;
+	dc.x -= elementw(title[i], c);
+	drawelement(title[i], 0, TitleRight, c);
+    }
 }
 
 static void
