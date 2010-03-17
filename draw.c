@@ -13,7 +13,7 @@ drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned lon
     memcpy(buf, text, len);
     buf[len] = 0;
     h = dc.h;
-    y = dc.font.ascent + 1;
+    y = dc.font.ascent;
     x += dc.font.height/2;
     /* shorten text if necessary */
     while(len && (w = textnw(buf, len)) > mw){
@@ -39,8 +39,11 @@ drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned lon
 Pixmap
 initpixmap(const char *file, Button *b) {
     b->pm = XCreatePixmap(dpy, root, dc.h, dc.h, 1);
-    if(BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph, &b->pm, &b->px, &b->py))
+    if(BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph, &b->pm, &b->px, &b->py)) {
+	if (b->px == -1 || b->py == -1)
+	    b->px = b->py = 0;
 	return 0;
+    }
     else
 	eprint("echinus: cannot load Button pixmaps, check your ~/.echinusrc\n");
     return 0;
@@ -63,6 +66,7 @@ int
 drawbutton(Drawable d, Drawable btn, unsigned long col[ColLast], int x, int y) {
     XSetForeground(dpy, dc.gc, col[ColButton]);
     XSetBackground(dpy, dc.gc, col[ColBG]);
+    DPRINTF("BTN Y %d %d\n", y+look.bleft.py, y);
     XCopyPlane(dpy, btn, d, dc.gc, 0, 0, look.bleft.pw, look.bleft.ph, x, y+look.bleft.py, 1);
     return dc.h;
 }
@@ -136,7 +140,7 @@ void
 drawclient(Client *c) {
     int i, w, ep, sp;
     unsigned int opacity;
-    char title[] = "TNIMC";
+    char title[] = "T N IMC";
 
     if(look.uf_opacity) {
 	opacity = (c == sel) ? OPAQUE : look.uf_opacity * OPAQUE;
