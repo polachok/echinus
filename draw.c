@@ -61,21 +61,6 @@ initbuttons() {
     look.bcenter.action = togglemax;
 }
 
-void
-drawbuttons(Client *c) {
-    int x, y;
-    y = dc.h/2 - look.bleft.ph/2;
-    x = c->w - 3*dc.h;
-    XSetForeground(dpy, dc.gc, (c == sel) ? dc.sel[ColButton] : dc.norm[ColButton]);
-    XSetBackground(dpy, dc.gc, (c == sel) ? dc.sel[ColBG] : dc.norm[ColBG]);
-
-    XCopyPlane(dpy, look.bleft.pm, c->title, dc.gc, 0, 0, look.bleft.pw, look.bleft.ph, x, y+look.bleft.py, 1);
-    x+=dc.h;
-    XCopyPlane(dpy, look.bcenter.pm, c->title, dc.gc, 0, 0, look.bcenter.pw, look.bcenter.ph, x, y+look.bcenter.py, 1);
-    x+=dc.h;
-    XCopyPlane(dpy, look.bright.pm, c->title, dc.gc, 0, 0, look.bright.pw, look.bright.ph, x, y+look.bright.py, 1);
-}
-
 int
 drawbutton(Drawable d, Drawable btn, unsigned long col[ColLast], int x, int y) {
     XSetForeground(dpy, dc.gc, col[ColButton]);
@@ -83,7 +68,6 @@ drawbutton(Drawable d, Drawable btn, unsigned long col[ColLast], int x, int y) {
     XCopyPlane(dpy, btn, d, dc.gc, 0, 0, look.bleft.pw, look.bleft.ph, x, y+look.bleft.py, 1);
     return dc.h;
 }
-
 
 int 
 drawelement(char which, int x, int position, Client *c) {
@@ -149,10 +133,8 @@ elementw(char which, Client *c) {
 
 void
 drawclient(Client *c) {
-    int i, j, w, ep, sp;
+    int i, w, ep, sp;
     unsigned int opacity;
-    unsigned long *color;
-    int center = 0;
     char title[] = "T| N IMC";
 
     if(look.uf_opacity) {
@@ -174,7 +156,6 @@ drawclient(Client *c) {
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);
     sp = dc.x = dc.y = w = 0;
     ep = dc.w = c->w;
-    center = 0;
     /* Left */
     for(i = 0; i < strlen(title); i++) {
 	if(isspace(title[i]))
