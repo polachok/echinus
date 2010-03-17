@@ -137,7 +137,7 @@ elementw(char which, Client *c) {
 
 void
 drawclient(Client *c) {
-    int i, w, ep, sp;
+    int i;
     unsigned int opacity;
 
     if(look.uf_opacity) {
@@ -157,8 +157,8 @@ drawclient(Client *c) {
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);
-    sp = dc.x = dc.y = w = 0;
-    ep = dc.w = c->w;
+    dc.x = dc.y = 0;
+    dc.w = c->w;
     /* Left */
     for(i = 0; i < strlen(look.titlelayout); i++) {
 	if(look.titlelayout[i] == ' ' || look.titlelayout[i] == '-')
