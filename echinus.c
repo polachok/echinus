@@ -507,7 +507,6 @@ buttonpress(XEvent *e) {
     } else if((c = getclient(ev->window, clients, ClientFrame))) {
 	DPRINTF("FRAME %s: 0x%x\n", c->name, ev->window);
 	focus(c);
-	restack(curmonitor());
 	if(CLEANMASK(ev->state) != modkey) {
 	   XAllowEvents(dpy, ReplayPointer, CurrentTime);
 	   return;
