@@ -31,9 +31,11 @@ drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned lon
 	    return 0; /* too long */
     while(x <= 0)
 	    x = dc.x++;
+    XSetForeground(dpy, dc.gc, col[ColBG]);
+    XFillRectangle(dpy, drawable, dc.gc, x - dc.font.height/2, 0, w + dc.font.height, h);
     XftDrawStringUtf8(xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel,
 	    dc.font.xftfont, x, y, (unsigned char*)buf, len);
-    return w + h/2;
+    return w + dc.font.height;
 }
 
 Pixmap
@@ -64,9 +66,10 @@ initbuttons() {
 
 int
 drawbutton(Drawable d, Drawable btn, unsigned long col[ColLast], int x, int y) {
+    XSetForeground(dpy, dc.gc, col[ColBG]);
+    XFillRectangle(dpy, d, dc.gc, x, 0, dc.h, dc.h);
     XSetForeground(dpy, dc.gc, col[ColButton]);
     XSetBackground(dpy, dc.gc, col[ColBG]);
-    DPRINTF("BTN Y %d %d\n", y+look.bleft.py, y);
     XCopyPlane(dpy, btn, d, dc.gc, 0, 0, look.bleft.pw, look.bleft.ph, x, y+look.bleft.py, 1);
     return dc.h;
 }
@@ -76,7 +79,6 @@ drawelement(char which, int x, int position, Client *c) {
     int w, j;
     unsigned long *color = c == sel ? dc.sel : dc.norm;
 
-    DPRINTF("ELEMENT %c x = %d position = %d\n", which, x, position);
     switch(which) {
 	case 'T':
 	    w = 0;
@@ -159,13 +161,20 @@ drawclient(Client *c) {
     XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);
     dc.x = dc.y = 0;
     dc.w = c->w;
+    if(dc.w < textw(c->name)) {
+	dc.w -= dc.h;
+	look.bright.x = dc.w;
+	drawtext(c->name, c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, dc.x, dc.y, dc.w);
+	drawbutton(c->title, look.bright.pm, c == sel ? dc.sel : dc.norm, dc.w, dc.h/2 - look.bcenter.ph/2);
+	goto end;
+    }
     /* Left */
     for(i = 0; i < strlen(look.titlelayout); i++) {
 	if(look.titlelayout[i] == ' ' || look.titlelayout[i] == '-')
 		break;
 	dc.x += drawelement(look.titlelayout[i], dc.x, AlignLeft, c);
     }
-    if(i == strlen(look.titlelayout))
+    if(i == strlen(look.titlelayout) || dc.x >= dc.w)
 	goto end;
     /* Center */
     dc.x = dc.w/2;
@@ -175,7 +184,7 @@ drawclient(Client *c) {
 	dc.x -= elementw(look.titlelayout[i], c)/2;
 	dc.x += drawelement(look.titlelayout[i], 0, AlignCenter, c);
     }
-    if(i == strlen(look.titlelayout))
+    if(i == strlen(look.titlelayout) || dc.x >= dc.w)
 	goto end;
     /* Right */
     dc.x = dc.w;
