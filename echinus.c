@@ -992,10 +992,9 @@ getclient(Window w, Client *list, int part) {
 
 unsigned long
 getcolor(const char *colstr) {
-    Colormap cmap = DefaultColormap(dpy, screen);
     XColor color;
 
-    if(!XAllocNamedColor(dpy, cmap, colstr, &color, &color))
+    if(!XAllocNamedColor(dpy, DefaultColormap(dpy, screen), colstr, &color, &color))
 	    eprint("error, cannot allocate color '%s'\n", colstr);
     return color.pixel;
 }
@@ -1303,14 +1302,6 @@ manage(Window w, XWindowAttributes *wa) {
 	c->tags = cm->seltags;
     attach(c);
     attachstack(c);
-#if 0
-    twa.event_mask = EnterWindowMask |
-			PropertyChangeMask | FocusChangeMask;
-    twa.win_gravity = StaticGravity;
-    twa.do_not_propagate_mask = MOUSEMASK;
-    XChangeWindowAttributes(dpy, c->win,
-			CWEventMask | CWWinGravity | CWDontPropagate, &twa);
-#endif
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
     XReparentWindow(dpy, c->title, c->frame, 0, 0);
     XAddToSaveSet(dpy, c->win);
