@@ -125,7 +125,7 @@ typedef struct {
 	int borderpx;
 	float uf_opacity;
 	int drawoutline;
-	char *titlelayout;
+	const char *titlelayout;
 	Button bleft;
 	Button bcenter;
 	Button bright;
@@ -1126,7 +1126,7 @@ keypress(XEvent *e) {
     if(!e) { /* grabkeys */
 	    XUngrabKey(dpy, AnyKey, AnyModifier, root);
 	    for(i = 0; i < nkeys; i++) {
-		if(code = XKeysymToKeycode(dpy, keys[i]->keysym)) {
+		if((code = XKeysymToKeycode(dpy, keys[i]->keysym))) {
 		    XGrabKey(dpy, code, keys[i]->mod, root, True,
 				    GrabModeAsync, GrabModeAsync);
 		    XGrabKey(dpy, code, keys[i]->mod | LockMask, root, True,
