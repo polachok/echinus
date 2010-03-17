@@ -1725,7 +1725,7 @@ restack(Monitor *m) {
     if(!sel)
 	return;
 
-    if(ISLTFLOATING(m) || sel->isfloating) {
+    if(ISLTFLOATING(m)) {
 	XRaiseWindow(dpy, sel->frame);
 	goto end;
     }
