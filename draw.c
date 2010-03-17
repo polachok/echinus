@@ -161,7 +161,7 @@ drawclient(Client *c) {
     ep = dc.w = c->w;
     /* Left */
     for(i = 0; i < strlen(look.titlelayout); i++) {
-	if(isspace(look.titlelayout[i]))
+	if(look.titlelayout[i] == ' ' || look.titlelayout[i] == '-')
 		break;
 	dc.x += drawelement(look.titlelayout[i], dc.x, AlignLeft, c);
     }
@@ -170,7 +170,7 @@ drawclient(Client *c) {
     /* Center */
     dc.x = dc.w/2;
     for(i++; i < strlen(look.titlelayout); i++) {
-	if(isspace(look.titlelayout[i]))
+	if(look.titlelayout[i] == ' ' || look.titlelayout[i] == '-')
 	    break;
 	dc.x -= elementw(look.titlelayout[i], c)/2;
 	dc.x += drawelement(look.titlelayout[i], 0, AlignCenter, c);
@@ -180,7 +180,7 @@ drawclient(Client *c) {
     /* Right */
     dc.x = dc.w;
     for(i = strlen(look.titlelayout)-1; i >= 0; i--) {
-	if(isspace(look.titlelayout[i]))
+	if(look.titlelayout[i] == ' ' || look.titlelayout[i] == '-')
 	    break;
 	dc.x -= elementw(look.titlelayout[i], c);
 	drawelement(look.titlelayout[i], 0, AlignRight, c);
