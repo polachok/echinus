@@ -59,6 +59,7 @@ initbuttons() {
     look.bleft.action = iconifyit;
     look.bright.action = killclient;
     look.bcenter.action = togglemax;
+    look.bleft.x = look.bright.x = look.bcenter.x = -1;
 }
 
 int
@@ -92,12 +93,15 @@ drawelement(char which, int x, int position, Client *c) {
 	    w = drawtext(c->name, c->title, c->xftdraw, color, dc.x, dc.y, dc.w);
 	    break;
 	case 'I':
+	    look.bleft.x = dc.x;
 	    w = drawbutton(c->title, look.bleft.pm, color, dc.x, dc.h/2 - look.bleft.ph/2);
 	    break;
 	case 'M':
+	    look.bcenter.x = dc.x;
 	    w = drawbutton(c->title, look.bcenter.pm, color, dc.x, dc.h/2 - look.bcenter.ph/2);
 	    break;
 	case 'C':
+	    look.bright.x = dc.x;
 	    w = drawbutton(c->title, look.bright.pm, color, dc.x, dc.h/2 - look.bcenter.ph/2);
 	    break;
 	default:

@@ -117,7 +117,7 @@ typedef struct {
 	Pixmap pm;
 	int px, py;
 	unsigned int pw, ph;
-	int visible;
+	int x;
 	void (*action)(const char *arg);
 } Button;
 
@@ -487,30 +487,22 @@ buttonpress(XEvent *e) {
     if((c = getclient(ev->window, clients, ClientTitle))) {
 	DPRINTF("TITLE %s: 0x%x\n", c->name, ev->window);
 	focus(c);
-	if(look.tpos != TitleRight){
-	    if((ev->x > c->w-3*c->th) && (ev->x < c->w-2*c->th)){
-		/* min */
+	if((ev->x > look.bleft.x) && (ev->x < look.bleft.x + dc.h) && look.bleft.x != -1) {
 		look.bleft.action(NULL);
 		return;
-	    }
-	    if((ev->x > c->w-2*c->th) && (ev->x < c->w-c->th)){
-		/* max */
+	} else if((ev->x > look.bcenter.x) && (ev->x < look.bcenter.x + dc.h) && look.bcenter.x != -1) {
 		look.bcenter.action(NULL);
 		return;
-	    }
-	    if((ev->x > c->w-c->th) && (ev->x < c->w)){
-		/* close */
+	} else if((ev->x > look.bright.x) && (ev->x < look.bright.x + dc.h) && look.bright.x != -1) {
 		look.bright.action(NULL);
 		return;
-	    }
 	}
 	if(ev->button == Button1) {
 	    if(ISLTFLOATING(curmonitor()) || c->isfloating)
 		restack(curmonitor());
 	    movemouse(c);
 	    arrange(NULL);
-	}
-	else if(ev->button == Button3 && !c->isfixed) {
+	} else if(ev->button == Button3 && !c->isfixed) {
 	    resizemouse(c);
 	}
     } else if((c = getclient(ev->window, clients, ClientFrame))) {
