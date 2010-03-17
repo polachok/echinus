@@ -3,6 +3,7 @@ drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned lon
     int w, h;
     char buf[256];
     unsigned int len, olen;
+
     if(!text)
 	    return 0;
     olen = len = strlen(text);
@@ -32,11 +33,7 @@ drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable, unsigned lon
 	    x = dc.x++;
     XftDrawStringUtf8(xftdrawable, (col==dc.norm) ? dc.xftnorm : dc.xftsel,
 	    dc.font.xftfont, x, y, (unsigned char*)buf, len);
-    if(look.drawoutline) {
-	    XSetForeground(dpy, dc.gc, col[ColBorder]);
-	    XDrawLine(dpy, drawable, dc.gc, 0, dc.h-1, mw, dc.h-1);
-    }
-    return x + w;
+    return w + h/2;
 }
 
 Pixmap
@@ -139,7 +136,7 @@ void
 drawclient(Client *c) {
     int i, w, ep, sp;
     unsigned int opacity;
-    char title[] = "T| N IMC";
+    char title[] = "TNIMC";
 
     if(look.uf_opacity) {
 	opacity = (c == sel) ? OPAQUE : look.uf_opacity * OPAQUE;
@@ -167,7 +164,7 @@ drawclient(Client *c) {
 	dc.x += drawelement(title[i], dc.x, TitleLeft, c);
     }
     if(i == strlen(title))
-	return;
+	goto end;
     /* Center */
     dc.x = dc.w/2;
     for(i++; i < strlen(title); i++) {
@@ -177,7 +174,7 @@ drawclient(Client *c) {
 	dc.x += drawelement(title[i], 0, TitleCenter, c);
     }
     if(i == strlen(title))
-	return;
+	goto end;
     /* Right */
     dc.x = dc.w;
     for(i = strlen(title)-1; i >= 0; i--) {
@@ -185,6 +182,11 @@ drawclient(Client *c) {
 	    break;
 	dc.x -= elementw(title[i], c);
 	drawelement(title[i], 0, TitleRight, c);
+    }
+end:
+    if(look.drawoutline) {
+	XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
+	XDrawLine(dpy, c->title, dc.gc, 0, dc.h-1, dc.w, dc.h-1);
     }
 }
 
