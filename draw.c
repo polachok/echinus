@@ -140,7 +140,6 @@ void
 drawclient(Client *c) {
     int i, w, ep, sp;
     unsigned int opacity;
-    char title[] = "T N IMC";
 
     if(look.uf_opacity) {
 	opacity = (c == sel) ? OPAQUE : look.uf_opacity * OPAQUE;
@@ -162,30 +161,30 @@ drawclient(Client *c) {
     sp = dc.x = dc.y = w = 0;
     ep = dc.w = c->w;
     /* Left */
-    for(i = 0; i < strlen(title); i++) {
-	if(isspace(title[i]))
+    for(i = 0; i < strlen(look.titlelayout); i++) {
+	if(isspace(look.titlelayout[i]))
 		break;
-	dc.x += drawelement(title[i], dc.x, TitleLeft, c);
+	dc.x += drawelement(look.titlelayout[i], dc.x, TitleLeft, c);
     }
-    if(i == strlen(title))
+    if(i == strlen(look.titlelayout))
 	goto end;
     /* Center */
     dc.x = dc.w/2;
-    for(i++; i < strlen(title); i++) {
-	if(isspace(title[i]))
+    for(i++; i < strlen(look.titlelayout); i++) {
+	if(isspace(look.titlelayout[i]))
 	    break;
-	dc.x -= elementw(title[i], c)/2;
-	dc.x += drawelement(title[i], 0, TitleCenter, c);
+	dc.x -= elementw(look.titlelayout[i], c)/2;
+	dc.x += drawelement(look.titlelayout[i], 0, TitleCenter, c);
     }
-    if(i == strlen(title))
+    if(i == strlen(look.titlelayout))
 	goto end;
     /* Right */
     dc.x = dc.w;
-    for(i = strlen(title)-1; i >= 0; i--) {
-	if(isspace(title[i]))
+    for(i = strlen(look.titlelayout)-1; i >= 0; i--) {
+	if(isspace(look.titlelayout[i]))
 	    break;
-	dc.x -= elementw(title[i], c);
-	drawelement(title[i], 0, TitleRight, c);
+	dc.x -= elementw(look.titlelayout[i], c);
+	drawelement(look.titlelayout[i], 0, TitleRight, c);
     }
 end:
     if(look.drawoutline) {

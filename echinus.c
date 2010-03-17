@@ -121,16 +121,15 @@ typedef struct {
 	void (*action)(const char *arg);
 } Button;
 
-typedef struct Look Look;
-struct Look { 
-	int tpos, tbpos, bpos;
+typedef struct { 
 	int borderpx;
 	float uf_opacity;
 	int drawoutline;
+	char *titlelayout;
 	Button bleft;
 	Button bcenter;
 	Button bright;
-};
+} Look;
 
 typedef struct {
 	int x, y, w, h;
@@ -2027,9 +2026,8 @@ setup(void) {
 	initfont(getresource("font", FONT));
 	look.borderpx = atoi(getresource("border", BORDERPX));
 	look.uf_opacity = atof(getresource("opacity", NF_OPACITY));
-	look.tpos = atoi(getresource("titleposition", TITLEPOSITION));
-	look.tbpos = atoi(getresource("tagbar", TAGBAR));
 	look.drawoutline = atoi(getresource("outline", "0"));
+	look.titlelayout = getresource("titlelayout", "T N IMC");
 
 	strncpy(terminal, getresource("terminal", TERMINAL), 255);
 
