@@ -517,18 +517,17 @@ buttonpress(XEvent *e) {
 		    togglefloating(NULL);
 		movemouse(c);
 		arrange(NULL);
-	}
-	else if(ev->button == Button2) {
+	} else if(ev->button == Button2) {
 		if(!ISLTFLOATING(curmonitor()) && c->isfloating)
 			togglefloating(NULL);
 		else
 			zoom(NULL);
-	}
-	else if(ev->button == Button3 && !c->isfixed) {
+	} else if(ev->button == Button3 && !c->isfixed) {
 		if(!ISLTFLOATING(curmonitor()) && !c->isfloating)
 			togglefloating(NULL);
 		resizemouse(c);
-	}
+	} else /* don't know what to do? pass it on */
+	   XAllowEvents(dpy, ReplayPointer, CurrentTime);
     }
 }
 
