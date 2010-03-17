@@ -72,7 +72,7 @@
 /* enums */
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };
 enum { StrutsOn, StrutsOff, StrutsHide };			/* struts position */
-enum { TitleLeft, TitleCenter, TitleRight };			/* title position */
+enum { AlignLeft, AlignCenter, AlignRight };			/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColButton, ColLast };		/* color */
 enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise }; /* focus model */

@@ -132,7 +132,6 @@ elementw(char which, Client *c) {
 	case '|':
 	    return dc.h/2;
     }
-    DPRINTF("NOT REACHED\n", "");
     return 0;
 }
 
@@ -164,7 +163,7 @@ drawclient(Client *c) {
     for(i = 0; i < strlen(look.titlelayout); i++) {
 	if(isspace(look.titlelayout[i]))
 		break;
-	dc.x += drawelement(look.titlelayout[i], dc.x, TitleLeft, c);
+	dc.x += drawelement(look.titlelayout[i], dc.x, AlignLeft, c);
     }
     if(i == strlen(look.titlelayout))
 	goto end;
@@ -174,7 +173,7 @@ drawclient(Client *c) {
 	if(isspace(look.titlelayout[i]))
 	    break;
 	dc.x -= elementw(look.titlelayout[i], c)/2;
-	dc.x += drawelement(look.titlelayout[i], 0, TitleCenter, c);
+	dc.x += drawelement(look.titlelayout[i], 0, AlignCenter, c);
     }
     if(i == strlen(look.titlelayout))
 	goto end;
@@ -184,7 +183,7 @@ drawclient(Client *c) {
 	if(isspace(look.titlelayout[i]))
 	    break;
 	dc.x -= elementw(look.titlelayout[i], c);
-	drawelement(look.titlelayout[i], 0, TitleRight, c);
+	drawelement(look.titlelayout[i], 0, AlignRight, c);
     }
 end:
     if(look.drawoutline) {
