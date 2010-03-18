@@ -498,7 +498,7 @@ buttonpress(XEvent *e) {
 	}
 	if(ev->button == Button1) {
 	    if(ISLTFLOATING(curmonitor()) || c->isfloating)
-		restack(curmonitor());
+		XRaiseWindow(dpy, c->frame);
 	    movemouse(c);
 	    arrange(NULL);
 	} else if(ev->button == Button3 && !c->isfixed) {
@@ -507,6 +507,8 @@ buttonpress(XEvent *e) {
     } else if((c = getclient(ev->window, clients, ClientFrame))) {
 	DPRINTF("FRAME %s: 0x%x\n", c->name, ev->window);
 	focus(c);
+	if(ISLTFLOATING(curmonitor()) || c->isfloating)
+	    XRaiseWindow(dpy, c->frame);
 	if(CLEANMASK(ev->state) != modkey) {
 	   XAllowEvents(dpy, ReplayPointer, CurrentTime);
 	   return;
