@@ -561,6 +561,8 @@ cleanup(void) {
     /* free colors */
     XftColorFree(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen), dc.xftnorm);
     XftColorFree(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen), dc.xftsel);
+    XftFontClose(dpy, dc.font.xftfont);
+    free(dc.font.extents);
     XUngrabKey(dpy, AnyKey, AnyModifier, root);
     XFreeGC(dpy, dc.gc);
     XFreeCursor(dpy, cursor[CurNormal]);
@@ -671,9 +673,8 @@ initmonitors(XEvent *e) {
 		    monitors = m;
 		    n++;
 		}
-	}
-	if (ci)
 		XRRFreeCrtcInfo(ci);
+	}
 	XRRFreeScreenResources(sr);
 	return;
 no_xrandr:
@@ -1298,8 +1299,10 @@ manage(Window w, XWindowAttributes *wa) {
     }
 
     cm = c->isbastard ? getmonitor(c->x, c->y) : clientmonitor(c);
-    if(c->isbastard)
+    if(c->isbastard) {
+	free(c->tags);
 	c->tags = cm->seltags;
+    }
     attach(c);
     attachstack(c);
     XReparentWindow(dpy, c->win, c->frame, 0, c->th);
@@ -2368,9 +2371,12 @@ unmapnotify(XEvent *e) {
     if((c = getclient(ev->window, clients, ClientWindow))) {
 	if(c->isicon)
 	    return;
-	XGetWindowAttributes(dpy, ev->window, &wa);
+
+	if(!XGetWindowAttributes(dpy, ev->window, &wa))
+	    return;
 	if(wa.map_state == IsUnmapped && c->title){
-		XGetWindowAttributes(dpy, c->title, &wa);
+		if(!XGetWindowAttributes(dpy, c->title, &wa))
+		    return;
 		if(wa.map_state == IsViewable) {
 			ban(c);
 			unmanage(c);

@@ -203,9 +203,10 @@ end:
 
 static void
 initfont(const char *fontstr) {
-    dc.font.xftfont = XftFontOpenXlfd(dpy,screen,fontstr);
+    dc.font.xftfont = NULL;
+    dc.font.xftfont = XftFontOpenXlfd(dpy, screen, fontstr);
     if(!dc.font.xftfont)
-	 dc.font.xftfont = XftFontOpenName(dpy,screen,fontstr);
+	 dc.font.xftfont = XftFontOpenName(dpy, screen, fontstr);
     if(!dc.font.xftfont)
 	 eprint("error, cannot load font: '%s'\n", fontstr);
     dc.font.extents = emallocz(sizeof(XGlyphInfo));
