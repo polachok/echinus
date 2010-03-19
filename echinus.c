@@ -485,7 +485,7 @@ buttonpress(XEvent *e) {
 	    return;
     }
     if((c = getclient(ev->window, clients, ClientTitle))) {
-	DPRINTF("TITLE %s: 0x%x\n", c->name, ev->window);
+	DPRINTF("TITLE %s: 0x%x\n", c->name, (int)ev->window);
 	focus(c);
 	if((ev->x > look.bleft.x) && (ev->x < look.bleft.x + dc.h) && look.bleft.x != -1) {
 		look.bleft.action(NULL);
@@ -506,7 +506,7 @@ buttonpress(XEvent *e) {
 	    resizemouse(c);
 	}
     } else if((c = getclient(ev->window, clients, ClientFrame))) {
-	DPRINTF("FRAME %s: 0x%x\n", c->name, ev->window);
+	DPRINTF("FRAME %s: 0x%x\n", c->name, (int)ev->window);
 	focus(c);
 	if(ISLTFLOATING(curmonitor()) || c->isfloating)
 	    XRaiseWindow(dpy, c->frame);
@@ -2366,9 +2366,7 @@ updategeom(Monitor *m) {
 	m->wax += m->struts[LeftStrut];
 	m->waw -= (m->wax + m->struts[RightStrut]);
 	m->way += m->struts[TopStrut];
-	DPRINTF("DH %d strut %d\n", DisplayHeight(dpy, screen), m->struts[BotStrut]);
 	m->wah = m->struts[BotStrut] ? DisplayHeight(dpy, screen) - m->struts[BotStrut] - m->way : m->sh - m->way;
-	DPRINTF("WAH %d\n", m->wah);
 	break;
     case StrutsHide:
     case StrutsOff:
