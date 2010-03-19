@@ -54,8 +54,8 @@
 #define BUTTONMASK		(ButtonPressMask | ButtonReleaseMask)
 #define CLEANMASK(mask)		(mask & ~(numlockmask | LockMask))
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
-#define CLIENTMASK	        (PropertyChangeMask | EnterWindowMask)
-#define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | PointerMotionMask | EnterWindowMask | LeaveWindowMask)
+#define CLIENTMASK	        (PropertyChangeMask | EnterWindowMask | FocusChangeMask)
+#define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | EnterWindowMask | LeaveWindowMask)
 #define LENGTH(x)		(sizeof x / sizeof x[0])
 #define RESNAME			       "echinus"
 #define RESCLASS	        "Echinus"
@@ -213,12 +213,12 @@ Monitor* curmonitor();
 Monitor* clientmonitor(Client *c);
 int idxoftag(const char *tag);
 Bool isoccupied(unsigned int t);
-Bool isprotodel(Client *c);
 Bool isvisible(Client *c, Monitor *m);
 void initmonitors(XEvent *e);
 void keypress(XEvent *e);
 void killclient(const char *arg);
 void leavenotify(XEvent *e);
+void focusin(XEvent *e);
 void manage(Window w, XWindowAttributes *wa);
 void mappingnotify(XEvent *e);
 void monocle(Monitor *m);
@@ -332,6 +332,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[DestroyNotify] = destroynotify,
 	[EnterNotify] = enternotify,
 	[LeaveNotify] = leavenotify,
+	[FocusIn] = focusin,
 	[Expose] = expose,
 	[KeyPress] = keypress,
 	[MappingNotify] = mappingnotify,
@@ -863,6 +864,14 @@ eprint(const char *errstr, ...) {
 }
 
 void
+focusin(XEvent *e) {
+    XFocusChangeEvent *ev = &e->xfocus;
+
+    if(sel && (ev->window != sel->win))
+	XSetInputFocus(dpy, sel->win, RevertToPointerRoot, CurrentTime);
+}
+
+void
 expose(XEvent *e) {
     XExposeEvent *ev = &e->xexpose;
     XEvent tmp;
@@ -894,6 +903,24 @@ floating(Monitor *m) { /* default floating layout */
 }
 
 void
+wmtakefocus(Client *c) {
+    XEvent ce;
+    if(checkatom(c->win, atom[WMProto], atom[WMTakeFocus])) {
+        ce.xclient.type = ClientMessage;
+        ce.xclient.message_type = atom[WMProto];
+        ce.xclient.display = dpy;
+        ce.xclient.window = c->win;
+        ce.xclient.format = 32;
+        ce.xclient.data.l[0] = atom[WMTakeFocus];
+        ce.xclient.data.l[1] = CurrentTime; /* incorrect */
+        ce.xclient.data.l[2] = 0l;
+        ce.xclient.data.l[3] = 0l;
+        ce.xclient.data.l[4] = 0l;
+        XSendEvent(dpy, c->win, False, NoEventMask, &ce);
+    }
+}
+
+void
 focus(Client *c) {
     Client *o;
 
@@ -916,8 +943,10 @@ focus(Client *c) {
 	    return;
     if(c) {
 	    setclientstate(c, NormalState);
-	    if(c->isfocusable)
+	    if(c->isfocusable) {
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
+		wmtakefocus(c);
+	    }
 	    XSetWindowBorder(dpy, sel->frame, dc.sel[ColBorder]);
 	    drawclient(c);
     } else {
@@ -1084,21 +1113,6 @@ idxoftag(const char *tag) {
 }
 
 Bool
-isprotodel(Client *c) {
-    int i, n;
-    Atom *protocols;
-    Bool ret = False;
-
-    if(XGetWMProtocols(dpy, c->win, &protocols, &n)) {
-	    for(i = 0; !ret && i < n; i++)
-		    if(protocols[i] == atom[WMDelete])
-			    ret = True;
-	    XFree(protocols);
-    }
-    return ret;
-}
-
-Bool
 isvisible(Client *c, Monitor *m) {
     int i;
     if(!c)
@@ -1156,7 +1170,7 @@ killclient(const char *arg) {
     XEvent ev;
     if(!sel)
 	    return;
-    if(isprotodel(sel)) {
+    if(checkatom(sel->win, atom[WMProto], atom[WMDelete])) {
 	    ev.type = ClientMessage;
 	    ev.xclient.window = sel->win;
 	    ev.xclient.message_type = atom[WMProto];

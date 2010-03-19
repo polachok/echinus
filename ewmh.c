@@ -14,7 +14,8 @@ enum { ClientList, ActiveWindow, WindowDesk,
       ClientListStacking, WindowOpacity, WindowType,
       WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial, ESelTags,
       WindowName, WindowState, WindowStateFs, WindowStateModal, WindowStateHidden,
-      Utf8String, Supported, WMProto, WMDelete, WMName, WMState, MWMHints, NATOMS };
+      Utf8String, Supported, WMProto, WMDelete, WMName, WMState, WMTakeFocus,
+      MWMHints, NATOMS };
 
 Atom atom[NATOMS];
 
@@ -47,6 +48,7 @@ const char * atomnames[NATOMS][1] = {
     { "WM_DELETE_WINDOW" },
     { "WM_NAME" },
     { "WM_STATE" },
+    { "WM_TAKE_FOCUS" },
     { "_MOTIF_WM_HINTS" },
 };
 
@@ -228,11 +230,11 @@ setopacity(Client *c, unsigned int opacity) {
     }
 }
 
-static int
+Bool
 checkatom(Window win, Atom bigatom, Atom smallatom) {
     Atom real, *state;
     int format;
-    int result = 0;
+    Bool ret = False;
     unsigned char *data = NULL;
     unsigned long i, n, extra;
 
@@ -242,11 +244,11 @@ checkatom(Window win, Atom bigatom, Atom smallatom) {
 	state = (Atom *) data;
 	for(i = 0; i < n; i++){
 	    if(state[i] == smallatom)
-			result = 1;
+			ret = True;
 	}
     }
     XFree(data);
-    return result;
+    return ret;
 }
 
 static int
