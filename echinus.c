@@ -125,7 +125,7 @@ typedef struct {
 	int borderpx;
 	float uf_opacity;
 	int drawoutline;
-	const char *titlelayout;
+	char titlelayout[32];
 	Button bleft;
 	Button bcenter;
 	Button bright;
@@ -1956,6 +1956,7 @@ setup(void) {
 	Monitor *m;
 	XModifierKeymap *modmap;
 	XSetWindowAttributes wa;
+	char conf[256];
 
 	/* init EWMH atom */
 	initatom();
@@ -1984,7 +1985,6 @@ setup(void) {
 
 	/* init resource database */
 	XrmInitialize();
-	char conf[256];
 	snprintf(conf, 255, "%s/%s", getenv("HOME"), "/.echinus");
 	chdir(conf);
 	xrdb = XrmGetFileDatabase("echinusrc");
@@ -2035,9 +2035,10 @@ setup(void) {
 	look.borderpx = atoi(getresource("border", BORDERPX));
 	look.uf_opacity = atof(getresource("opacity", NF_OPACITY));
 	look.drawoutline = atoi(getresource("outline", "0"));
-	look.titlelayout = getresource("titlelayout", "N  IMC");
-
-	strncpy(terminal, getresource("terminal", TERMINAL), 255);
+	strncpy(look.titlelayout, getresource("titlelayout", "N  IMC"), LENGTH(look.titlelayout));
+	look.titlelayout[LENGTH(look.titlelayout)-1] = '\0';
+	strncpy(terminal, getresource("terminal", TERMINAL), LENGTH(terminal));
+	terminal[LENGTH(terminal)-1] = '\0';
 
 	dc.h = atoi(getresource("title", TITLEHEIGHT));
 	if(!dc.h)
