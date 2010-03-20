@@ -1,4 +1,3 @@
-
 Echinus*selected.border: #262626
 Echinus*selected.button: #d3d7cf
 Echinus*selected.bg: #262626
@@ -11,9 +10,9 @@ Echinus*normal.fg: #b0b4ac
 
 Echinus*border: 1
 
-Echinus*button.left.pixmap: iconify.xbm
-Echinus*button.center.pixmap: max.xbm
-Echinus*button.right.pixmap: close.xbm
+Echinus*button.iconify.pixmap: iconify.xbm
+Echinus*button.maximize.pixmap: max.xbm
+Echinus*button.close.pixmap: close.xbm
 
 Echinus*sloppy: 0
 Echinus*opacity: 0.8
@@ -23,7 +22,6 @@ Echinus*mwfact: 0.6
 Echinus*nmaster: 1
 
 Echinus*font: fixed-9
-Echinus*title: 12
 Echinus*modkey: A
 
 Echinus*deflayout: i
@@ -47,7 +45,7 @@ Echinus*focusprev: A + k
 Echinus*viewprevtag: A + Tab
 Echinus*viewlefttag: AS + Left
 Echinus*viewrighttag: AS + Right
-Echinus*quit: A + q
+Echinus*quit: CA + q
 Echinus*restart: AS + q = echinus
 Echinus*killclient: AS + c
 Echinus*togglefloating: A + space
@@ -92,7 +90,7 @@ Echinus*incmwfact: A + l = +0.05
 Echinus*decnmaster: AS + j = -1
 Echinus*incnmaster: AS + k = +1
 
-Echinus*terminal: xterm
+Echinus*command: xterm
 
 Echinus*rule0: Firefox.* web 0 1
 Echinus*rule4: Mplayer.* NULL 1 1
