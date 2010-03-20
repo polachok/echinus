@@ -72,16 +72,21 @@ Title settings
 	spaces. Left is aligned to left, center to center and
 	right to right (obviously).
 
-	Default value is "T N IMC" meaning tagbar on left,
-	name centered, iconify, maximize and close buttons
-	on right.
+	Default value is "N  IMC" meaning name on the left
+	iconify, maximize and close buttons on right (note
+	2 spaces).
 
-	- or ' ' (space) - skip space
+	- or ' ' (space) - skip space (space can't be
+	    used as first character)
 	N - window name
 	I - iconify
 	M - maximize
 	C - close
 	T - tagbar
+
+	Examples:
+
+	    -T-C - title centered, close button on right
 
 
 Color settings

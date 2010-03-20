@@ -2035,7 +2035,7 @@ setup(void) {
 	look.borderpx = atoi(getresource("border", BORDERPX));
 	look.uf_opacity = atof(getresource("opacity", NF_OPACITY));
 	look.drawoutline = atoi(getresource("outline", "0"));
-	look.titlelayout = getresource("titlelayout", "T N IMC");
+	look.titlelayout = getresource("titlelayout", "N  IMC");
 
 	strncpy(terminal, getresource("terminal", TERMINAL), 255);
 
