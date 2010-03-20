@@ -309,7 +309,7 @@ Window root;
 Regs *regs = NULL;
 XrmDatabase xrdb = NULL;
 
-char terminal[255];
+char command[255];
 char **tags;
 Key **keys;
 Rule **rules;
@@ -473,7 +473,7 @@ buttonpress(XEvent *e) {
     if(ev->window == root) {
 	    switch(ev->button) {
 		case Button3:
-		    spawn(terminal);
+		    spawn(command);
 		    break;
 		case Button4:
 		    viewlefttag(NULL);
@@ -2037,8 +2037,8 @@ setup(void) {
 	look.drawoutline = atoi(getresource("outline", "0"));
 	strncpy(look.titlelayout, getresource("titlelayout", "N  IMC"), LENGTH(look.titlelayout));
 	look.titlelayout[LENGTH(look.titlelayout)-1] = '\0';
-	strncpy(terminal, getresource("terminal", TERMINAL), LENGTH(terminal));
-	terminal[LENGTH(terminal)-1] = '\0';
+	strncpy(command, getresource("command", COMMAND), LENGTH(command));
+	command[LENGTH(command)-1] = '\0';
 
 	dc.h = atoi(getresource("title", TITLEHEIGHT));
 	if(!dc.h)

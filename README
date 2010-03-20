@@ -133,9 +133,9 @@ Opacity
 
 Terminal app
     
-    Echinus*terminal
+    Echinus*command
 
-        Preferred terminal to run with drawing rectangles on root window
+        Application to run on right window click on root window.
 
 Title
 
