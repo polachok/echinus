@@ -77,6 +77,7 @@ enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColBorder, ColFG, ColBG, ColButton, ColLast };		/* color */
 enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise }; /* focus model */
 enum { ClientWindow, ClientTitle, ClientFrame }; /* client parts */
+enum { Iconify, Maximize, Close, LastBtn };
 
 /* typedefs */
 typedef struct Monitor Monitor;
@@ -123,12 +124,10 @@ typedef struct {
 
 typedef struct { 
 	int borderpx;
-	float uf_opacity;
 	int drawoutline;
+	float uf_opacity;
 	char titlelayout[32];
-	Button bleft;
-	Button bcenter;
-	Button bright;
+	Button button[LastBtn];
 } Look;
 
 typedef struct {
@@ -468,6 +467,7 @@ iconifyit(const char *arg) {
 void
 buttonpress(XEvent *e) {
     Client *c;
+    int i;
     XButtonPressedEvent *ev = &e->xbutton;
 
     if(ev->window == root) {
@@ -487,15 +487,11 @@ buttonpress(XEvent *e) {
     if((c = getclient(ev->window, clients, ClientTitle))) {
 	DPRINTF("TITLE %s: 0x%x\n", c->name, (int)ev->window);
 	focus(c);
-	if((ev->x > look.bleft.x) && (ev->x < look.bleft.x + dc.h) && look.bleft.x != -1) {
-		look.bleft.action(NULL);
-		return;
-	} else if((ev->x > look.bcenter.x) && (ev->x < look.bcenter.x + dc.h) && look.bcenter.x != -1) {
-		look.bcenter.action(NULL);
-		return;
-	} else if((ev->x > look.bright.x) && (ev->x < look.bright.x + dc.h) && look.bright.x != -1) {
-		look.bright.action(NULL);
-		return;
+	for(i = 0; i < LastBtn; i++) {
+	    if((ev->x > look.button[i].x) && (ev->x < look.button[i].x + dc.h) && look.button[i].x != -1) {
+		    look.button[i].action(NULL);
+		    return;
+	    }
 	}
 	if(ev->button == Button1) {
 	    if(ISLTFLOATING(curmonitor()) || c->isfloating)

@@ -11,9 +11,9 @@
 #define SELBUTTONCOLOR		"#0066ff"
 #define SELBGCOLOR		"#0066ff"
 #define SELFGCOLOR		"#ffffff"
-#define BLEFTPIXMAP "min.xbm"
-#define BRIGHTPIXMAP "min.xbm"
-#define BCENTERPIXMAP "min.xbm"
+#define ICONPIXMAP "iconify.xbm"
+#define MAXPIXMAP "max.xbm"
+#define CLOSEPIXMAP "close.xbm"
 #define MINWIDTH 12
 #define MINHEIGHT 12
 #define TITLEHEIGHT "0"

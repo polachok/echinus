@@ -116,9 +116,9 @@ Border settings
 
 Button settings
 
-    Echinus*button.left.pixmap
-    Echinus*button.center.pixmap
-    Echinus*button.right.pixmap
+    Echinus*button.iconify.pixmap
+    Echinus*button.maximize.pixmap
+    Echinus*button.close.pixmap
 
     buttons in the titlebar, left iconifies window, center switch
     to monocle (fullscreen) mode, right - close.

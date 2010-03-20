@@ -55,13 +55,13 @@ void
 initbuttons() {
     XSetForeground(dpy, dc.gc, dc.norm[ColButton]);
     XSetBackground(dpy, dc.gc, dc.norm[ColBG]);
-    initpixmap(getresource("button.left.pixmap", BLEFTPIXMAP), &look.bleft);
-    initpixmap(getresource("button.right.pixmap", BRIGHTPIXMAP), &look.bright);
-    initpixmap(getresource("button.center.pixmap", BCENTERPIXMAP), &look.bcenter);
-    look.bleft.action = iconifyit;
-    look.bright.action = killclient;
-    look.bcenter.action = togglemax;
-    look.bleft.x = look.bright.x = look.bcenter.x = -1;
+    initpixmap(getresource("button.iconify.pixmap", ICONPIXMAP), &look.button[Iconify]);
+    initpixmap(getresource("button.maximize.pixmap", MAXPIXMAP), &look.button[Maximize]);
+    initpixmap(getresource("button.close.pixmap", CLOSEPIXMAP), &look.button[Close]);
+    look.button[Iconify].action = iconifyit;
+    look.button[Maximize].action = togglemax;
+    look.button[Close].action = killclient;
+    look.button[Iconify].x = look.button[Close].x = look.button[Maximize].x = -1;
 }
 
 int
@@ -70,7 +70,7 @@ drawbutton(Drawable d, Drawable btn, unsigned long col[ColLast], int x, int y) {
     XFillRectangle(dpy, d, dc.gc, x, 0, dc.h, dc.h);
     XSetForeground(dpy, dc.gc, col[ColButton]);
     XSetBackground(dpy, dc.gc, col[ColBG]);
-    XCopyPlane(dpy, btn, d, dc.gc, 0, 0, look.bleft.pw, look.bleft.ph, x, y+look.bleft.py, 1);
+    XCopyPlane(dpy, btn, d, dc.gc, 0, 0, look.button[Iconify].pw, look.button[Iconify].ph, x, y+look.button[Iconify].py, 1);
     return dc.h;
 }
 
@@ -96,16 +96,16 @@ drawelement(char which, int x, int position, Client *c) {
 	    w = drawtext(c->name, c->title, c->xftdraw, color, dc.x, dc.y, dc.w);
 	    break;
 	case 'I':
-	    look.bleft.x = dc.x;
-	    w = drawbutton(c->title, look.bleft.pm, color, dc.x, dc.h/2 - look.bleft.ph/2);
+	    look.button[Iconify].x = dc.x;
+	    w = drawbutton(c->title, look.button[Iconify].pm, color, dc.x, dc.h/2 - look.button[Iconify].ph/2);
 	    break;
 	case 'M':
-	    look.bcenter.x = dc.x;
-	    w = drawbutton(c->title, look.bcenter.pm, color, dc.x, dc.h/2 - look.bcenter.ph/2);
+	    look.button[Maximize].x = dc.x;
+	    w = drawbutton(c->title, look.button[Maximize].pm, color, dc.x, dc.h/2 - look.button[Maximize].ph/2);
 	    break;
 	case 'C':
-	    look.bright.x = dc.x;
-	    w = drawbutton(c->title, look.bright.pm, color, dc.x, dc.h/2 - look.bcenter.ph/2);
+	    look.button[Close].x = dc.x;
+	    w = drawbutton(c->title, look.button[Close].pm, color, dc.x, dc.h/2 - look.button[Maximize].ph/2);
 	    break;
 	default:
 	    w = 0;
@@ -163,9 +163,9 @@ drawclient(Client *c) {
     dc.w = c->w;
     if(dc.w < textw(c->name)) {
 	dc.w -= dc.h;
-	look.bright.x = dc.w;
+	look.button[Close].x = dc.w;
 	drawtext(c->name, c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, dc.x, dc.y, dc.w);
-	drawbutton(c->title, look.bright.pm, c == sel ? dc.sel : dc.norm, dc.w, dc.h/2 - look.bcenter.ph/2);
+	drawbutton(c->title, look.button[Close].pm, c == sel ? dc.sel : dc.norm, dc.w, dc.h/2 - look.button[Close].ph/2);
 	goto end;
     }
     /* Left */
