@@ -903,7 +903,7 @@ floating(Monitor *m) { /* default floating layout */
 }
 
 void
-wmtakefocus(Client *c) {
+givefocus(Client *c) {
     XEvent ce;
     if(checkatom(c->win, atom[WMProto], atom[WMTakeFocus])) {
         ce.xclient.type = ClientMessage;
@@ -945,7 +945,7 @@ focus(Client *c) {
 	    setclientstate(c, NormalState);
 	    if(c->isfocusable) {
 		XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
-		wmtakefocus(c);
+		givefocus(c);
 	    }
 	    XSetWindowBorder(dpy, sel->frame, dc.sel[ColBorder]);
 	    drawclient(c);
