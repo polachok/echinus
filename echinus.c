@@ -2576,8 +2576,7 @@ zoom(const char *arg) {
 int
 main(int argc, char *argv[]) {
     if(argc == 2 && !strcmp("-v", argv[1]))
-	    eprint("echinus-"VERSION", © 2006-2008 Anselm R. Garbe, Sander van Dijk, "
-		   "Jukka Salmi, Premysl Hruby, Szabolcs Nagy, Alexander Polakov\n");
+	    eprint("echinus-"VERSION", (c) 2010 Alexander Polakov\n");
     else if(argc != 1)
 	    eprint("usage: echinus [-v]\n");
 
