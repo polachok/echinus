@@ -116,9 +116,9 @@ Border settings
 
 Button settings
 
-    Echinus*button.iconify.pixmap
-    Echinus*button.maximize.pixmap
-    Echinus*button.close.pixmap
+    Echinus*button.iconify.pixmap (was: Echinus*button.left.pixmap)
+    Echinus*button.maximize.pixmap (was: Echinus*button.center.pixmap)
+    Echinus*button.close.pixmap (was: Echinus*button.right.pixmap)
 
     buttons in the titlebar, left iconifies window, center switch
     to monocle (fullscreen) mode, right - close.
@@ -133,7 +133,7 @@ Opacity
 
 Terminal app
     
-    Echinus*command
+    Echinus*command (was: Echinus*terminal)
 
         Application to run on right window click on root window.
 
