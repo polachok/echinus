@@ -2218,6 +2218,7 @@ togglefloating(const char *arg) {
 void
 togglemax(const char *arg) {
     XEvent ev;
+    Monitor *m = curmonitor();
 
     if(!sel || sel->isfixed)
 	    return;
@@ -2226,9 +2227,10 @@ togglemax(const char *arg) {
 	    sel->ry = sel->y;
 	    sel->rw = sel->w;
 	    sel->rh = sel->h;
-	    resize(sel, curmonitor(), cursx - sel->border, cursy - sel->border, cursw + 2*sel->border, cursh + 2*sel->border + sel->th, False);
+	    resize(sel, m, m->wax - sel->border, m->way - sel->border - sel->th, m->waw, m->wah + sel->th, False);
+	    XRaiseWindow(dpy, sel->frame);
     } else {
-	resize(sel, curmonitor(), sel->rx, sel->ry, sel->rw, sel->rh, True);
+	resize(sel, m, sel->rx, sel->ry, sel->rw, sel->rh, True);
     }
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
