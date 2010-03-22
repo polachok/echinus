@@ -1393,16 +1393,20 @@ void
 ifloating(Monitor *m){
     Client *c;
     int x, y, f;
+    
     for(c = clients; c; c = c->next){ 
 	if(isvisible(c, m) && !c->isicon && !c->isbastard) {
+		if(c->isplaced)
+		    resize(c, m, c->x, c->y, c->w, c->h, True);
 		for(f = 0; !c->isplaced; f++){ 
-		    if((c->w > m->sw/2 && c->h > m->sw/2) || c->h < 4){
+		    if((c->w > m->sw/2 && c->h > m->sw/2) || c->h < 4) {
 			/* too big to deal with */
 			c->isplaced = True; 
+			resize(c, m, c->x, c->y, c->w, c->h, True);
 		    }
 		    for(y = m->way; y+c->h <= m->way + m->wah && !c->isplaced ; y+=c->h/4) {
 			for(x = m->wax; x+c->w <= m->wax + m->waw && !c->isplaced; x+=c->w/8) {
-			    if(smartcheckarea(m, x, y, 0.8*c->w, 0.8*c->h)<=f){
+			    if(smartcheckarea(m, x, y, 0.8*c->w, 0.8*c->h)<=f) {
 				resize(c, m, x+c->th*(rand()%3), y+c->th+c->th*(rand()%3), c->w, c->h, True);
 				c->isplaced = True;
 			    }
