@@ -1263,17 +1263,17 @@ manage(Window w, XWindowAttributes *wa) {
     }
     c->oldborder = c->isbastard ? 0 : wa->border_width;
     if(c->w == cursw && c->h == cursh) {
-	c->x = cursx;
-	c->y = cursy;
+	c->x = 0;
+	c->y = 0;
     } else {
 	if(c->x + c->w > curwax + curwaw)
-		c->x = curwax + curwaw - c->w;
+		c->x = curwaw - c->w;
 	if(c->y + c->h > curway + curwah)
-		c->y = curway + curwah - c->h;
+		c->y = curwah - c->h;
 	if(c->x < curwax)
-		c->x = curwax;
+		c->x = 0;
 	if(c->y < curway)
-		c->y = curway;
+		c->y = 0;
     }
 
     wc.border_width = c->border;
