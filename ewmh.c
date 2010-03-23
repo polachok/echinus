@@ -185,8 +185,10 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 	    c->isfloating = c->wasfloating;
 	    c->wasfloating = True;
 	}
+	DPRINT;
 	togglemax(NULL);
 	arrange(curmonitor());
+	DPRINTF("%s: x%d y%d w%d h%d\n", c->name, c->x, c->y, c->w, c->h);
     }
     if(state == atom[WindowStateModal]) {
 	focus(c);
@@ -264,15 +266,16 @@ updatestruts(Window win) {
     unsigned long i, n, extra;
 
     c = getclient(win, clients, False);
-    m = clientmonitor(c);
+    m = getmonitor(c->x, c->y);
     if(XGetWindowProperty(dpy, win, atom[StrutPartial], 0L, LONG_MAX, False,
 			  XA_CARDINAL, &real, &format, &n, &extra,
 			  (unsigned char **) &data) == Success && data){
 	state = (Atom *) data;
-	if(n){
+	if(n) {
 	    for(i = LeftStrut; i < LastStrut; i++)
 		m->struts[i] = (state[i] > m->struts[i]) ? state[i] : m->struts[i];
-	    updategeom(m);
+	    for(m = monitors; m; m = m->next)
+		updategeom(m);
 	    result = 1;
 	}
     }
