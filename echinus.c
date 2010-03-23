@@ -765,10 +765,11 @@ destroynotify(XEvent *e) {
     Monitor *m = NULL;
     XDestroyWindowEvent *ev = &e->xdestroywindow;
 
-    if((c = getclient(ev->window, clients, ClientWindow)))
+    if((c = getclient(ev->window, clients, ClientWindow))) {
+	ban(c);
 	m = clientmonitor(c);
-    else
-	goto end;
+    } else
+	return;
     if(!c->isbastard) {
 	unmanage(c);
 	goto end;
@@ -1278,6 +1279,8 @@ manage(Window w, XWindowAttributes *wa) {
 		c->y = 0;
     }
 
+    c->m = c->isbastard ? getmonitor(c->x, c->y) : clientmonitor(c);
+
     wc.border_width = c->border;
     grabbuttons(c, False);
     twa.override_redirect = True;
@@ -1291,7 +1294,7 @@ manage(Window w, XWindowAttributes *wa) {
     } else {
 	twa.background_pixel = dc.norm[ColBG];
     }
-    c->frame = XCreateWindow(dpy, root, c->x, c->y, c->w, c->h,
+    c->frame = XCreateWindow(dpy, root, c->m->sx + c->x, c->m->sy + c->y, c->w, c->h,
 		    c->border, wa->depth == 32 ? 32 : DefaultDepth(dpy, screen), InputOutput,
 		    wa->depth == 32 ? wa->visual : DefaultVisual(dpy, screen),
 		    mask, &twa);
@@ -1311,7 +1314,6 @@ manage(Window w, XWindowAttributes *wa) {
 	c->title = (Window) NULL;
     }
 
-    cm = c->isbastard ? getmonitor(c->x, c->y) : clientmonitor(c);
     if(c->isbastard) {
 	free(c->tags);
 	c->tags = cm->seltags;
@@ -1335,7 +1337,6 @@ manage(Window w, XWindowAttributes *wa) {
 	XSelectInput(dpy, w, PropertyChangeMask);
     else
 	XSelectInput(dpy, w, CLIENTMASK);
-    resize(c, cm, c->x, c->y, c->w, c->h, True);
     ban(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
