@@ -385,15 +385,12 @@ void
 arrangemon(Monitor *m) {
     Client *c;
 
-    DPRINT;
-    DPRINTF("M: x:%d y:%d w: %d h: %d\n", m->sx, m->sy, m->sw, m->sh);
     m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] = m->struts[BotStrut] = 0;
     for(c = clients; c; c = c->next) {
 	if(c->isbastard)
 	    updatestruts(c->win);
     }
     updategeom(m);
-    DPRINT;
     layouts[ltidxs[m->curtag]].arrange(m);
     restack(m);
     for(c = stack; c; c = c->snext) {
@@ -438,13 +435,6 @@ attach(Client *c) {
 
 void
 attachstack(Client *c) {
-    Client *t;
-    if(stack && checkatom(c->win, atom[WindowType], atom[WindowTypeDesk])){
-	for(t = stack; t->snext; t = t->snext);
-	t->snext = c;
-	c->snext = NULL;
-	return;
-    }
     c->snext = stack;
     stack = c;
 }
@@ -1342,8 +1332,9 @@ manage(Window w, XWindowAttributes *wa) {
     ban(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
+    if(!checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
+	focus(NULL);
     arrange(clientmonitor(c));
-    focus(NULL);
 }
 
 void
@@ -1758,25 +1749,27 @@ restack(Monitor *m) {
 		n++;
 	}
     }
-    if(n==1)
-	return;
     wl = malloc(sizeof(Window)*n);
-    for(i = 0, c = stack; c && i<n; c = c->snext)
-	if(isvisible(c, m) && !c->isicon && c->isbastard){
+    for(i = 0, c = stack; c && i<n; c = c->snext) {
+	if(isvisible(c, m) && !c->isicon && c->isbastard && 
+		!checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
 		    wl[i++] = c->frame;
-	}
+    }
     for(c = stack; c && i<n; c = c->snext)
-	if(isvisible(c, m) && !c->isicon){
+	if(isvisible(c, m) && !c->isicon) {
 	    if(!c->isbastard && c->isfloating)
 		    wl[i++] = c->frame;
-	}
-    for(c = stack; c && i<n; c = c->snext)
-	if(isvisible(c, m) && !c->isicon){
+    }
+    for(c = stack; c && i<n; c = c->snext) {
+	if(isvisible(c, m) && !c->isicon)
 	    if(!c->isfloating && !c->isbastard)
 		    wl[i++] = c->frame;
-	}
+    }
     XRestackWindows(dpy, wl, n);
     free(wl);
+    for(c = stack; c; c = c->snext)
+	if(checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
+	    XLowerWindow(dpy, c->frame);
 end:
     XSync(dpy, False);
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
