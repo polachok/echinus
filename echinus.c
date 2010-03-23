@@ -738,20 +738,16 @@ configurerequest(XEvent *e) {
 			    c->w = ev->width;
 		    if(ev->value_mask & CWHeight)
 			    c->h = ev->height + c->th;
-			DPRINTF("%s %d %d => %d %d\n", c->name, c->x, c->y, ev->x, ev->y);
 #if 0
 		    if((c->x + c->w) > (curwax + cursw) && c->isfloating)
 			    c->x = cursw / 2 - c->w / 2; /* center in x direction */
 		    if((c->y + c->h) > (curway + cursh) && c->isfloating)
 			    c->y = cursh / 2 - c->h / 2; /* center in y direction */
 #endif
-			DPRINTF("%s %d %d => %d %d\n", c->name, c->x, c->y, ev->x, ev->y);
 		    if((ev->value_mask & (CWX | CWY)) && !(ev->value_mask & (CWWidth | CWHeight)))
 			    configure(c);
-			DPRINTF("%s %d %d => %d %d\n", c->name, c->x, c->y, ev->x, ev->y);
 		    if(isvisible(c, NULL)) {
-			DPRINTF("%s %d %d => %d %d\n", c->name, c->x, c->y, ev->x, ev->y);
-			    c->m->struts[RightStrut] = c->m->struts[LeftStrut] = c->m->struts[TopStrut] = c->m->struts[BotStrut] = 0;
+			    DPRINTF("%s %d %d => %d %d\n", c->name, c->x, c->y, ev->x, ev->y);
 			    c->m = getmonitor(c->x, c->y);
 			    XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
 			    if(c->title)
@@ -1269,16 +1265,13 @@ manage(Window w, XWindowAttributes *wa) {
     if(c->isbastard) {
 	c->x = wa->x;
 	c->y = wa->y;
-	DPRINTF("X: %d Y: %d\n", c->x, c->y);
     }
     cm = c->isbastard ? getmonitor(c->x, c->y) : clientmonitor(c);
     c->oldborder = c->isbastard ? 0 : wa->border_width;
     if(c->w == cursw && c->h == cursh) {
 	c->x = 0;
 	c->y = 0;
-	DPRINTF("X: %d Y: %d\n", c->x, c->y);
     } else if(!c->isbastard) {
-	DPRINTF("X: %d Y: %d\n", c->x, c->y);
 	if(c->x + c->w > curwax + curwaw)
 		c->x = curwaw - c->w;
 	if(c->y + c->h > curway + curwah)
@@ -1287,11 +1280,9 @@ manage(Window w, XWindowAttributes *wa) {
 		c->x = 0;
 	if(c->y < curway)
 		c->y = 0;
-	DPRINTF("X: %d Y: %d\n", c->x, c->y);
     }
 
     c->m = c->isbastard ? getmonitor(c->x, c->y) : clientmonitor(c);
-	DPRINTF("X: %d Y: %d\n", c->x, c->y);
     wc.border_width = c->border;
     grabbuttons(c, False);
     twa.override_redirect = True;
@@ -1348,7 +1339,6 @@ manage(Window w, XWindowAttributes *wa) {
 	XSelectInput(dpy, w, PropertyChangeMask);
     else
 	XSelectInput(dpy, w, CLIENTMASK);
-    DPRINTF("X: %d Y: %d\n", c->x, c->y);
     ban(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
