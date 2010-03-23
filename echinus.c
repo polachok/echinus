@@ -385,6 +385,15 @@ void
 arrangemon(Monitor *m) {
     Client *c;
 
+    DPRINT;
+    DPRINTF("M: x:%d y:%d w: %d h: %d\n", m->sx, m->sy, m->sw, m->sh);
+    m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] = m->struts[BotStrut] = 0;
+    for(c = clients; c; c = c->next) {
+	if(c->isbastard)
+	    updatestruts(c->win);
+    }
+    updategeom(m);
+    DPRINT;
     layouts[ltidxs[m->curtag]].arrange(m);
     restack(m);
     for(c = stack; c; c = c->snext) {
@@ -749,10 +758,6 @@ configurerequest(XEvent *e) {
 				XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
 			    XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
 			    drawclient(c);
-			    for(c = clients; c ; c = c->next){
-				if(c->isbastard)
-					updatestruts(c->win);
-			    }
 			    arrange(NULL);
 		    }
 	    } else {
@@ -777,23 +782,12 @@ destroynotify(XEvent *e) {
     Monitor *m = NULL;
     XDestroyWindowEvent *ev = &e->xdestroywindow;
 
-    if((c = getclient(ev->window, clients, ClientWindow))) {
-	ban(c);
-	m = clientmonitor(c);
-    } else
+    if(!(c = getclient(ev->window, clients, ClientWindow)))
 	return;
-    if(!c->isbastard) {
-	unmanage(c);
-	goto end;
-    }
+    ban(c);
+    m = c->m;
     unmanage(c);
-    m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] = m->struts[BotStrut] = 0;
-    for(c = clients; c ; c = c->next){
-	if(c->isbastard)
-		updatestruts(c->win);
-    }
-    updategeom(m);
-end:
+    DPRINTF("M: x:%d y:%d w: %d h: %d\n", m->sx, m->sy, m->sw, m->sh);
     arrange(m);
     updateatom[ClientList](NULL);
 }
@@ -1333,7 +1327,7 @@ manage(Window w, XWindowAttributes *wa) {
 
     if(c->isbastard) {
 	free(c->tags);
-	c->tags = cm->seltags;
+	c->tags = c->m->seltags;
     }
     attach(c);
     attachstack(c);
@@ -1358,7 +1352,6 @@ manage(Window w, XWindowAttributes *wa) {
     ban(c);
     updateatom[ClientList](NULL);
     updateatom[WindowDesk](c);
-    updatestruts(c->win);
     arrange(clientmonitor(c));
     focus(NULL);
 }
@@ -1611,7 +1604,6 @@ propertynotify(XEvent *e) {
 			    break;
 	    }
 	    if(ev->atom == atom[StrutPartial]) {
-		    updatestruts(ev->window);
 		    arrange(clientmonitor(c));
 	    } else if(ev->atom == atom[WindowName]) 
 		    updatetitle(c);
@@ -2250,10 +2242,8 @@ togglemax(const char *arg) {
 	    sel->rh = sel->h;
 	    resize(sel, m, m->wax - sel->border, m->way - sel->border - dc.h, m->waw, m->wah + dc.h, False);
     } else {
-	    DPRINT;
 	resize(sel, m, sel->rx, sel->ry, sel->rw, sel->rh, True);
     }
-	    DPRINT;
     while(XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
 

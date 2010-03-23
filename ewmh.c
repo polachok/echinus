@@ -274,8 +274,6 @@ updatestruts(Window win) {
 	if(n) {
 	    for(i = LeftStrut; i < LastStrut; i++)
 		m->struts[i] = (state[i] > m->struts[i]) ? state[i] : m->struts[i];
-	    for(m = monitors; m; m = m->next)
-		updategeom(m);
 	    result = 1;
 	}
     }
