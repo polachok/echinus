@@ -67,6 +67,8 @@
 #define DPRINT			;
 #define DPRINTF(format, ...)
 #endif
+#define DPRINTCLIENT(c) DPRINTF("%s: x: %d y: %d w: %d h: %d th: %d f: %d b: %d m: %d\n", \
+				    c->name, c->x, c->y, c->w, c->h, c->th, c->isfloating, c->isbastard, c->ismax)
 #define ISLTFLOATING(m) (m && ((layouts[ltidxs[m->curtag]].arrange == floating) || (layouts[ltidxs[m->curtag]].arrange == ifloating)))
 
 /* enums */
@@ -2227,7 +2229,7 @@ togglemax(const char *arg) {
 	    sel->ry = sel->y;
 	    sel->rw = sel->w;
 	    sel->rh = sel->h;
-	    resize(sel, m, m->wax - sel->border, m->way - sel->border - sel->th, m->waw, m->wah + sel->th, False);
+	    resize(sel, m, m->wax - sel->border, m->way - sel->border - dc.h, m->waw, m->wah + dc.h, False);
 	    XRaiseWindow(dpy, sel->frame);
     } else {
 	resize(sel, m, sel->rx, sel->ry, sel->rw, sel->rh, True);
