@@ -728,6 +728,8 @@ configurerequest(XEvent *e) {
 			    c->w = ev->width;
 		    if(ev->value_mask & CWHeight)
 			    c->h = ev->height + c->th;
+		    if(!(ev->value_mask & (CWX | CWY | CWWidth | CWHeight)))
+			    return;
 #if 0
 		    if((c->x + c->w) > (curwax + cursw) && c->isfloating)
 			    c->x = cursw / 2 - c->w / 2; /* center in x direction */
