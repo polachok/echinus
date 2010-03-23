@@ -737,8 +737,7 @@ configurerequest(XEvent *e) {
 			    c->y = cursh / 2 - c->h / 2; /* center in y direction */
 #endif
 			DPRINTF("%s %d %d => %d %d\n", c->name, c->x, c->y, ev->x, ev->y);
-		    if((ev->value_mask & (CWX | CWY))
-		    && !(ev->value_mask & (CWWidth | CWHeight)))
+		    if((ev->value_mask & (CWX | CWY)) && !(ev->value_mask & (CWWidth | CWHeight)))
 			    configure(c);
 			DPRINTF("%s %d %d => %d %d\n", c->name, c->x, c->y, ev->x, ev->y);
 		    if(isvisible(c, NULL)) {
