@@ -113,6 +113,7 @@ struct Client {
 	Window win;
 	Window title;
 	Window frame;
+	Pixmap drawable;
 	XftDraw *xftdraw;
 };
 
@@ -742,8 +743,11 @@ configurerequest(XEvent *e) {
 			    DPRINTF("%s %d %d => %d %d\n", c->name, c->x, c->y, ev->x, ev->y);
 			    c->m = getmonitor(c->x, c->y);
 			    XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
-			    if(c->title)
+			    if(c->title) {
 				XMoveResizeWindow(dpy, c->title, 0, 0, c->w, c->th);
+				XFreePixmap(dpy, c->drawable);
+				c->drawable = XCreatePixmap(dpy, root, c->w, c->th, DefaultDepth(dpy, screen));
+			    }
 			    XMoveResizeWindow(dpy, c->win, 0, c->th, ev->width, ev->height);
 			    drawclient(c);
 			    arrange(NULL);
@@ -1303,7 +1307,8 @@ manage(Window w, XWindowAttributes *wa) {
 			0, DefaultDepth(dpy, screen), CopyFromParent,
 			DefaultVisual(dpy, screen),
 			CWEventMask, &twa);
-       c->xftdraw = XftDrawCreate(dpy, c->title, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
+       c->drawable = XCreatePixmap(dpy, root, c->w, c->th, DefaultDepth(dpy, screen));
+       c->xftdraw = XftDrawCreate(dpy, c->drawable, DefaultVisual(dpy, screen), DefaultColormap(dpy, screen));
     } else {
 	c->title = (Window) NULL;
     }
@@ -1659,8 +1664,11 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	    y = m->way;
 #endif
     if(c->title) {
-	if(c->th)
+	if(c->th) {
 	    XMoveResizeWindow(dpy, c->title, 0, 0, w, c->th);
+	    XFreePixmap(dpy, c->drawable);
+	    c->drawable = XCreatePixmap(dpy, root, w, c->th, DefaultDepth(dpy, screen));
+	}
 	drawclient(c);
     }
     if(c->m != m || c->x != x || c->y != y || c->w != w || c->h != h) {
@@ -2324,6 +2332,7 @@ unmanage(Client *c) {
     isfloating = c->isfloating || c->isfixed || XGetTransientForHint(dpy, c->win, &trans);
     if(c->title) {
 	XftDrawDestroy(c->xftdraw);
+	XFreePixmap(dpy, c->drawable);
 	XDestroyWindow(dpy, c->title);
 	c->title = (Window)NULL;
     }

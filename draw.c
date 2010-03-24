@@ -84,28 +84,28 @@ drawelement(char which, int x, int position, Client *c) {
 	    w = 0;
 	    for(j = 0; j < ntags; j++) {
 		if(c->tags[j])
-		    w += drawtext(tags[j], c->title, c->xftdraw, color, dc.x, dc.y, dc.w);
+		    w += drawtext(tags[j], c->drawable, c->xftdraw, color, dc.x, dc.y, dc.w);
 	    }
 	    break;
 	case '|':
 	    XSetForeground(dpy, dc.gc, color[ColBorder]);
-	    XDrawLine(dpy, c->title, dc.gc, dc.x + dc.h/4, 0, dc.x + dc.h/4, dc.h);
+	    XDrawLine(dpy, c->drawable, dc.gc, dc.x + dc.h/4, 0, dc.x + dc.h/4, dc.h);
 	    w = dc.h/2;
 	    break;
 	case 'N':
-	    w = drawtext(c->name, c->title, c->xftdraw, color, dc.x, dc.y, dc.w);
+	    w = drawtext(c->name, c->drawable, c->xftdraw, color, dc.x, dc.y, dc.w);
 	    break;
 	case 'I':
 	    look.button[Iconify].x = dc.x;
-	    w = drawbutton(c->title, look.button[Iconify].pm, color, dc.x, dc.h/2 - look.button[Iconify].ph/2);
+	    w = drawbutton(c->drawable, look.button[Iconify].pm, color, dc.x, dc.h/2 - look.button[Iconify].ph/2);
 	    break;
 	case 'M':
 	    look.button[Maximize].x = dc.x;
-	    w = drawbutton(c->title, look.button[Maximize].pm, color, dc.x, dc.h/2 - look.button[Maximize].ph/2);
+	    w = drawbutton(c->drawable, look.button[Maximize].pm, color, dc.x, dc.h/2 - look.button[Maximize].ph/2);
 	    break;
 	case 'C':
 	    look.button[Close].x = dc.x;
-	    w = drawbutton(c->title, look.button[Close].pm, color, dc.x, dc.h/2 - look.button[Maximize].ph/2);
+	    w = drawbutton(c->drawable, look.button[Close].pm, color, dc.x, dc.h/2 - look.button[Maximize].ph/2);
 	    break;
 	default:
 	    w = 0;
@@ -156,16 +156,17 @@ drawclient(Client *c) {
 	return;
     }
     XMapRaised(dpy, c->title);
+    XftDrawChange(c->xftdraw, c->drawable);
     XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
     XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
-    XFillRectangle(dpy, c->title, dc.gc, 0, 0, c->w, c->th);
+    XFillRectangle(dpy, c->drawable, dc.gc, 0, 0, c->w, c->th);
     dc.x = dc.y = 0;
     dc.w = c->w;
     if(dc.w < textw(c->name)) {
 	dc.w -= dc.h;
 	look.button[Close].x = dc.w;
-	drawtext(c->name, c->title, c->xftdraw, c == sel ? dc.sel : dc.norm, dc.x, dc.y, dc.w);
-	drawbutton(c->title, look.button[Close].pm, c == sel ? dc.sel : dc.norm, dc.w, dc.h/2 - look.button[Close].ph/2);
+	drawtext(c->name, c->drawable, c->xftdraw, c == sel ? dc.sel : dc.norm, dc.x, dc.y, dc.w);
+	drawbutton(c->drawable, look.button[Close].pm, c == sel ? dc.sel : dc.norm, dc.w, dc.h/2 - look.button[Close].ph/2);
 	goto end;
     }
     /* Left */
@@ -197,8 +198,9 @@ drawclient(Client *c) {
 end:
     if(look.drawoutline) {
 	XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
-	XDrawLine(dpy, c->title, dc.gc, 0, dc.h-1, dc.w, dc.h-1);
+	XDrawLine(dpy, c->drawable, dc.gc, 0, dc.h-1, dc.w, dc.h-1);
     }
+    XCopyArea(dpy, c->drawable, c->title, dc.gc, 0, 0, c->w, c->th, 0, 0);
 }
 
 static void
