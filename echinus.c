@@ -1611,8 +1611,10 @@ quit(const char *arg) {
 void
 resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
     XWindowChanges wc;
+
     c->th = c->title&&(c->isfloating||dectiled||ISLTFLOATING(m)) ? dc.h : 0;
     if(sizehints) {
+	h -= c->th;
 	/* set minimum possible */
 	if (w < 1)
 		w = 1;
@@ -1649,6 +1651,7 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 		w = c->maxw;
 	if(c->maxh > 0 && h - c->th > c->maxh)
 		h = c->maxh + c->th;
+	h+= c->th;
     }
     if(w <= 0 || h <= 0)
 	    return;
