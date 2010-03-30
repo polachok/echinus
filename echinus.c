@@ -606,8 +606,8 @@ configure(Client *c) {
     ce.display = dpy;
     ce.event = c->win;
     ce.window = c->win;
-    ce.x = c->x;
-    ce.y = c->y;
+    ce.x = c->x + c->m->sx;
+    ce.y = c->y + c->m->sy;
     ce.width = c->w;
     ce.height = c->h - c->th;
     ce.border_width = 0;
