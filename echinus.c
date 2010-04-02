@@ -1160,6 +1160,7 @@ keypress(XEvent *e) {
 	    {
 		    if(keys[i]->func)
 			    keys[i]->func(keys[i]->arg);
+		    XUngrabKeyboard(dpy, CurrentTime);
 	    }
 }
 
