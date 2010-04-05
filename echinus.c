@@ -721,10 +721,12 @@ configurerequest(XEvent *e) {
 	    if(ev->value_mask & CWBorderWidth)
 		    c->border = ev->border_width;
 	    if(c->isfixed || c->isfloating || ISLTFLOATING(c->m)) {
-		    if(ev->value_mask & CWX)
-			    c->x = ev->x;
-		    if(ev->value_mask & CWY)
-			    c->y = ev->y;
+		    if(c->isbastard) {
+			if(ev->value_mask & CWX)
+				c->x = ev->x;
+			if(ev->value_mask & CWY)
+				c->y = ev->y;
+		    }
 		    if(ev->value_mask & CWWidth)
 			    c->w = ev->width;
 		    if(ev->value_mask & CWHeight)
@@ -737,8 +739,10 @@ configurerequest(XEvent *e) {
 		    if((c->y + c->h) > (curway + cursh) && c->isfloating)
 			    c->y = cursh / 2 - c->h / 2; /* center in y direction */
 #endif
-		    if((ev->value_mask & (CWX | CWY)) && !(ev->value_mask & (CWWidth | CWHeight)))
-			    configure(c);
+		    if(!(ev->value_mask & (CWX | CWY)) && (ev->value_mask & (CWWidth | CWHeight))) {
+			    resize(c, c->m, c->x, c->y, c->w, c->h, True);
+			    return;
+		    }
 		    if(isvisible(c, NULL)) {
 			    DPRINTF("%s %d %d => %d %d\n", c->name, c->x, c->y, ev->x, ev->y);
 			    c->m = getmonitor(c->x, c->y);
@@ -1675,7 +1679,7 @@ resize(Client *c, Monitor *m, int x, int y, int w, int h, Bool sizehints) {
 	}
 	drawclient(c);
     }
-    if(c->m != m || c->x != x || c->y != y || c->w != w || c->h != h) {
+    if(c->m != m || c->x != x || c->y != y || c->w != w || c->h != h || sizehints) {
 	    if(c->isfloating || ISLTFLOATING(m)) {
 		    c->sfx = x;
 		    c->sfy = y;
