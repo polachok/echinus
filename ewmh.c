@@ -190,11 +190,8 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 	arrange(curmonitor());
 	DPRINTF("%s: x%d y%d w%d h%d\n", c->name, c->x, c->y, c->w, c->h);
     }
-    if(state == atom[WindowStateModal]) {
+    if(state == atom[WindowStateModal])
 	focus(c);
-	togglefloating(NULL);
-	arrange(curmonitor());
-    }
 }
 
 void
