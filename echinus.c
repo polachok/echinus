@@ -775,16 +775,11 @@ configurerequest(XEvent *e) {
 void
 destroynotify(XEvent *e) {
     Client *c;
-    Monitor *m = NULL;
     XDestroyWindowEvent *ev = &e->xdestroywindow;
 
     if(!(c = getclient(ev->window, clients, ClientWindow)))
 	return;
-    ban(c);
-    m = c->m;
     unmanage(c);
-    DPRINTF("M: x:%d y:%d w: %d h: %d\n", m->sx, m->sy, m->sw, m->sh);
-    arrange(m);
     updateatom[ClientList](NULL);
 }
 
@@ -1482,6 +1477,8 @@ clientmonitor(Client *c) {
     Monitor *m;
     int i;
     if(c) {
+	if(c->isbastard)
+	    return getmonitor(c->x, c->y);
 	for(m = monitors; m; m = m->next) {
 	    for(i = 0; i < ntags; i++)
 		if(c->tags[i] & m->seltags[i])
@@ -2333,11 +2330,16 @@ void
 unmanage(Client *c) {
     Monitor *m;
     XWindowChanges wc;
-    Bool isfloating;
+    Bool doarrange;
     Window trans;
 
     m = clientmonitor(c);
-    isfloating = c->isfloating || c->isfixed || XGetTransientForHint(dpy, c->win, &trans);
+    doarrange = !(c->isfloating || c->isfixed || XGetTransientForHint(dpy, c->win, &trans)) || c->isbastard;
+    /* The server grab construct avoids race conditions. */
+    XGrabServer(dpy);
+    XSelectInput(dpy, c->frame, NoEventMask);
+    XUnmapWindow(dpy, c->frame);
+    XSetErrorHandler(xerrordummy);
     if(c->title) {
 	XftDrawDestroy(c->xftdraw);
 	XFreePixmap(dpy, c->drawable);
@@ -2346,14 +2348,9 @@ unmanage(Client *c) {
     }
     XSelectInput(dpy, c->win,
 		     CLIENTMASK&~(StructureNotifyMask|EnterWindowMask));
-    XSelectInput(dpy, c->frame, NoEventMask);
-    XReparentWindow(dpy, c->win, RootWindow(dpy, screen), c->x, c->y);
+    XReparentWindow(dpy, c->win, root, c->x, c->y);
     XMoveWindow(dpy, c->win, c->x, c->y);
-    XDestroyWindow(dpy, c->frame);
     wc.border_width = c->oldborder;
-    /* The server grab construct avoids race conditions. */
-    XGrabServer(dpy);
-    XSetErrorHandler(xerrordummy);
     XConfigureWindow(dpy, c->win, CWBorderWidth, &wc); /* restore border */
     detach(c);
     detachstack(c);
@@ -2361,6 +2358,7 @@ unmanage(Client *c) {
 	focus(NULL);
     XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
     setclientstate(c, WithdrawnState);
+    XDestroyWindow(dpy, c->frame);
     /* c->tags points to monitor */
     if(!c->isbastard)
 	free(c->tags);
@@ -2368,7 +2366,7 @@ unmanage(Client *c) {
     XSync(dpy, False);
     XSetErrorHandler(xerror);
     XUngrabServer(dpy);
-    if(!isfloating)
+    if(doarrange)
 	arrange(m);
     updateatom[ClientList](NULL);
 }
@@ -2407,10 +2405,8 @@ unmapnotify(XEvent *e) {
 	if(wa.map_state == IsUnmapped && c->title){
 		if(!XGetWindowAttributes(dpy, c->title, &wa))
 		    return;
-		if(wa.map_state == IsViewable) {
-			ban(c);
+		if(wa.map_state == IsViewable)
 			unmanage(c);
-		}
 	}
     }
 }
