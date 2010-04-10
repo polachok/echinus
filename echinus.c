@@ -163,8 +163,8 @@ typedef struct {
 } Layout;
 
 typedef struct {
-	const char *prop;
-	const char *tags;
+	char *prop;
+	char *tags;
 	Bool isfloating;
 	Bool hastitle;
 } Rule;
@@ -316,9 +316,9 @@ char command[255];
 char **tags;
 Key **keys;
 Rule **rules;
-int ntags = 0;
-int nkeys = 0;
-int nrules = 0;
+unsigned int ntags = 0;
+unsigned int nkeys = 0;
+unsigned int nrules = 0;
 Bool hidebastards = 0;
 Bool dectiled = 0;
 unsigned int modkey = 0;

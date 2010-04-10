@@ -110,7 +110,7 @@ initmodkey()
 int
 initkeys()
 {
-	int i, j;
+	unsigned int i, j;
 	const char *tmp;
 	char t[64];
 
@@ -174,11 +174,9 @@ initkeys()
 void
 parserule(const char *s, Rule * r)
 {
-	char *prop = emallocz(sizeof(char) * 128);
-	char *tags = emallocz(sizeof(char) * 64);
-	sscanf(s, "%s %s %d %d", prop, tags, &r->isfloating, &r->hastitle);
-	r->prop = prop;
-	r->tags = tags;
+	r->prop = emallocz(sizeof(char) * 128);
+	r->tags = emallocz(sizeof(char) * 64);
+	sscanf(s, "%s %s %d %d", r->prop, r->tags, &r->isfloating, &r->hastitle);
 }
 
 void
