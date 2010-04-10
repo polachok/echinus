@@ -15,7 +15,7 @@ drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
 	memcpy(buf, text, len);
 	buf[len] = 0;
 	h = dc.h;
-	y = dc.font.ascent;
+	y = dc.h / 2 + dc.font.ascent / 2 - 1 - look.drawoutline;
 	x += dc.font.height / 2;
 	/* shorten text if necessary */
 	while (len && (w = textnw(buf, len)) > mw) {
