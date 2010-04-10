@@ -696,11 +696,14 @@ void
 configurenotify(XEvent *e) {
     XConfigureEvent *ev = &e->xconfigure;
     Monitor *m;
+    Client *c;
     if(ev->window == root) {
 #ifdef XRANDR
 	    if(XRRUpdateConfiguration((XEvent*)ev)) {
 #endif
 		initmonitors(e);
+		for(c = clients; c; c = c->next)
+		    c->m = clientmonitor(c);
 		for(m = monitors; m; m = m->next)
 		    updategeom(m);
 		arrange(NULL);
@@ -1469,7 +1472,7 @@ getmonitor(int x, int y) {
 	    break;
 	}
     }
-    return m;
+    return m ? m : monitors;
 }
 
 Monitor*
