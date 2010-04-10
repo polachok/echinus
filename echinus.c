@@ -1189,30 +1189,28 @@ isvisible(Client * c, Monitor * m)
 }
 
 void
+grabkeys(void)
+{
+	unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
+	int i, j;
+	KeyCode code;
+	XUngrabKey(dpy, AnyKey, AnyModifier, root);
+	for (i = 0; i < nkeys; i++) {
+		if ((code = XKeysymToKeycode(dpy, keys[i]->keysym))) {
+			for (j = 0; j < LENGTH(modifiers); j++)
+				XGrabKey(dpy, code, keys[i]->mod | modifiers[j], root,
+					 True, GrabModeAsync, GrabModeAsync);
+		}
+    }
+}
+
+void
 keypress(XEvent * e)
 {
 	int i;
-	KeyCode code;
 	KeySym keysym;
 	XKeyEvent *ev;
 
-	if (!e) {		/* grabkeys */
-		XUngrabKey(dpy, AnyKey, AnyModifier, root);
-		for (i = 0; i < nkeys; i++) {
-			if ((code = XKeysymToKeycode(dpy, keys[i]->keysym))) {
-				XGrabKey(dpy, code, keys[i]->mod, root, True,
-				    GrabModeAsync, GrabModeAsync);
-				XGrabKey(dpy, code, keys[i]->mod | LockMask,
-				    root, True, GrabModeAsync, GrabModeAsync);
-				XGrabKey(dpy, code, keys[i]->mod | numlockmask,
-				    root, True, GrabModeAsync, GrabModeAsync);
-				XGrabKey(dpy, code,
-				    keys[i]->mod | numlockmask | LockMask,
-				    root, True, GrabModeAsync, GrabModeAsync);
-			}
-		}
-		return;
-	}
 	ev = &e->xkey;
 	keysym = XKeycodeToKeysym(dpy, (KeyCode) ev->keycode, 0);
 	for (i = 0; i < nkeys; i++)
@@ -1418,7 +1416,7 @@ mappingnotify(XEvent * e)
 
 	XRefreshKeyboardMapping(ev);
 	if (ev->request == MappingKeyboard)
-		keypress(NULL);
+		grabkeys();
 }
 
 void
@@ -2151,9 +2149,7 @@ setup(void)
 	updateatom[CurDesk] (NULL);
 
 	compileregs();
-
-	/* grab keys */
-	keypress(NULL);
+	grabkeys();
 
 	/* init appearance */
 	dc.norm[ColBorder] = getcolor(getresource("normal.border", NORMBORDERCOLOR));
