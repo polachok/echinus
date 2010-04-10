@@ -174,17 +174,24 @@ mwm_process_atom(Client *c) {
     } 
     XFree(data);
 }
+
 void
 ewmh_process_state_atom(Client *c, Atom state, int set) {
-    if((state == atom[WindowStateFs]) && (set != c->ismax)) {
+    CARD32 data[2];
+    data[1] = None;
+    if((state == atom[WindowStateFs])) {
 	focus(c);
-	if(set) {
+	if(set && !c->ismax) {
 	    c->wasfloating = c->isfloating;
 	    c->isfloating = True;
+	    data[0] = state;
 	} else {
 	    c->isfloating = c->wasfloating;
 	    c->wasfloating = True;
+	    data[0] = None;
 	}
+	XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
+                            PropModeReplace, (unsigned char*)data, 2);
 	DPRINT;
 	togglemax(NULL);
 	arrange(curmonitor());
