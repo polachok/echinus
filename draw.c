@@ -87,7 +87,8 @@ drawbutton(Drawable d, Drawable btn, unsigned long col[ColLast], int x, int y)
 int
 drawelement(char which, int x, int position, Client * c)
 {
-	int w, j;
+	int w;
+	unsigned int j;
 	unsigned long *color = c == sel ? dc.sel : dc.norm;
 
 	switch (which) {
@@ -133,7 +134,8 @@ drawelement(char which, int x, int position, Client * c)
 int
 elementw(char which, Client * c)
 {
-	int w, j;
+	int w;
+	unsigned int j;
 	switch (which) {
 	case 'I':
 	case 'M':
@@ -246,7 +248,7 @@ unsigned int
 textnw(const char *text, unsigned int len)
 {
 	XftTextExtentsUtf8(dpy, dc.font.xftfont,
-	    (const unsigned char *) text, strlen(text), dc.font.extents);
+	    (const unsigned char *) text, len, dc.font.extents);
 	return dc.font.extents->xOff;
 }
 

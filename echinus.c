@@ -85,7 +85,7 @@ enum { Iconify, Maximize, Close, LastBtn };
 typedef struct Monitor Monitor;
 struct Monitor {
 	int sx, sy, sw, sh, wax, way, waw, wah;
-	int curtag;
+	unsigned int curtag;
 	unsigned long struts[LastStrut];
 	Bool *seltags;
 	Bool *prevtags;
@@ -134,7 +134,7 @@ typedef struct {
 } Look;
 
 typedef struct {
-	int x, y, w, h;
+	unsigned int x, y, w, h;
 	unsigned long norm[ColLast];
 	unsigned long sel[ColLast];
 	XftColor *xftnorm;
@@ -299,9 +299,9 @@ Client *stack = NULL;
 #define curwah curmonitor()->wah
 #define curmontag curmonitor()->curtag
 #define curstruts curmonitor()->struts
-int *nmasters;
-int *bpos;
-int *ltidxs;
+unsigned int *nmasters;
+unsigned int *bpos;
+unsigned int *ltidxs;
 double *mwfacts;
 Cursor cursor[CurLast];
 Display *dpy;
@@ -353,7 +353,7 @@ void
 applyrules(Client * c)
 {
 	static char buf[512];
-	int i, j;
+	unsigned int i, j;
 	regmatch_t tmp;
 	Bool matched = False;
 	XClassHint ch = { 0 };
@@ -588,7 +588,7 @@ cleanup(void)
 void
 compileregs(void)
 {
-	int i;
+	unsigned int i;
 	regex_t *reg;
 
 	if (regs)
@@ -1038,7 +1038,7 @@ focusprev(const char *arg)
 void
 incnmaster(const char *arg)
 {
-	int i;
+	unsigned int i;
 
 	if (layouts[ltidxs[curmontag]].arrange != tile)
 		return;
@@ -1144,7 +1144,7 @@ grabbuttons(Client * c, Bool focused)
 	unsigned int Modifiers[] = { modkey, modkey | LockMask,
 		modkey | numlockmask, modkey | numlockmask | LockMask
 	};
-	int i, j;
+	unsigned int i, j;
 	XUngrabButton(dpy, AnyButton, AnyModifier, c->frame);
 
 	if (focused) {
@@ -1162,7 +1162,7 @@ grabbuttons(Client * c, Bool focused)
 int
 idxoftag(const char *tag)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; (i < ntags) && strcmp(tag, tags[i]); i++);
 	return (i < ntags) ? i : 0;
@@ -1171,7 +1171,7 @@ idxoftag(const char *tag)
 Bool
 isvisible(Client * c, Monitor * m)
 {
-	int i;
+	unsigned int i;
 	if (!c)
 		return False;
 	if (!m) {
@@ -1192,7 +1192,7 @@ void
 grabkeys(void)
 {
 	unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
-	int i, j;
+	unsigned int i, j;
 	KeyCode code;
 	XUngrabKey(dpy, AnyKey, AnyModifier, root);
 	for (i = 0; i < nkeys; i++) {
@@ -1207,7 +1207,7 @@ grabkeys(void)
 void
 keypress(XEvent * e)
 {
-	int i;
+	unsigned int i;
 	KeySym keysym;
 	XKeyEvent *ev;
 
@@ -1566,7 +1566,7 @@ Monitor *
 clientmonitor(Client * c)
 {
 	Monitor *m;
-	int i;
+	unsigned int i;
 	if (c) {
 		if (c->isbastard)
 			return getmonitor(c->x, c->y);
@@ -1590,7 +1590,8 @@ curmonitor()
 void
 movemouse(Client * c)
 {
-	int x1, y1, ocx, ocy, nx, ny, i;
+	int x1, y1, ocx, ocy, nx, ny;
+	unsigned int i;
 	XEvent ev;
 	Monitor *m, *nm;
 
@@ -2026,17 +2027,17 @@ setmwfact(const char *arg)
 void
 initlayouts()
 {
-	int i, j;
+	unsigned int i, j;
 	char conf[32], xres[256], buf[5];
 	float mwfact;
 	int nmaster;
 
 	/* init layouts */
 	bzero(buf, 5);
-	nmasters = (int *) emallocz(sizeof(unsigned int) * ntags);
-	ltidxs = (int *) emallocz(sizeof(unsigned int) * ntags);
+	nmasters = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
+	ltidxs = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 	mwfacts = (double *) emallocz(sizeof(double) * ntags);
-	bpos = (int *) emallocz(sizeof(unsigned int) * ntags);
+	bpos = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 
 	snprintf(buf, 5, "%.2f", MWFACT);
 	mwfact = atof(getresource("mwfact", buf));
@@ -2064,7 +2065,7 @@ initlayouts()
 void
 inittags()
 {
-	int i;
+	unsigned int i;
 	char tmp[25] = "\0";
 	ntags = atoi(getresource("tags.number", "5"));
 	tags = emallocz(ntags * sizeof(char *));
@@ -2229,7 +2230,7 @@ spawn(const char *arg)
 void
 tag(const char *arg)
 {
-	int i;
+	unsigned int i;
 
 	if (!sel)
 		return;
@@ -2282,7 +2283,8 @@ bstack(Monitor * m)
 void
 tile(Monitor * m)
 {
-	int i, n, nx, ny, nw, nh, mw, mh, th;
+	int nx, ny, nw, nh, mw, mh, th;
+	unsigned int i, n;
 	Client *c, *mc;
 	wasfloating = False;
 
@@ -2387,7 +2389,7 @@ togglemax(const char *arg)
 void
 toggletag(const char *arg)
 {
-	int i, j;
+	unsigned int i, j;
 
 	if (!sel)
 		return;
@@ -2415,7 +2417,7 @@ togglemonitor(const char *arg)
 void
 toggleview(const char *arg)
 {
-	int i, j;
+	unsigned int i, j;
 	Monitor *m;
 	i = idxoftag(arg);
 	for (m = monitors; m; m = m->next) {
@@ -2617,7 +2619,7 @@ updatetitle(Client * c)
  * ignored (ebastardly on UnmapNotify's).  Other types of errors call Xlibs
  * default error handler, which may call exit.	*/
 int
-xerror(Display * dpy, XErrorEvent * ee)
+xerror(Display * dsply, XErrorEvent * ee)
 {
 	if (ee->error_code == BadWindow
 	    || (ee->request_code == X_SetInputFocus && ee->error_code == BadMatch)
@@ -2631,7 +2633,7 @@ xerror(Display * dpy, XErrorEvent * ee)
 	fprintf(stderr,
 	    "echinus: fatal error: request code=%d, error code=%d\n",
 	    ee->request_code, ee->error_code);
-	return xerrorxlib(dpy, ee);	/* may call exit */
+	return xerrorxlib(dsply, ee);	/* may call exit */
 }
 
 int
@@ -2652,7 +2654,8 @@ xerrorstart(Display * dsply, XErrorEvent * ee)
 void
 view(const char *arg)
 {
-	int i, prevcurtag;
+	int prevcurtag;
+	unsigned int i;
 	Monitor *m;
 	int swapping = 0;
 
@@ -2686,9 +2689,9 @@ void
 viewprevtag(const char *arg)
 {
 	Bool tmptags[ntags];
-	int i, prevcurtag;
+	unsigned int i = 0;
+	int prevcurtag;
 
-	i = 0;
 	while (i < ntags - 1 && !curprevtags[i])
 		i++;
 	prevcurtag = curmontag;
@@ -2706,7 +2709,7 @@ viewprevtag(const char *arg)
 void
 viewlefttag(const char *arg)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ntags; i++) {
 		if (i && curseltags[i]) {
@@ -2719,7 +2722,7 @@ viewlefttag(const char *arg)
 void
 viewrighttag(const char *arg)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ntags - 1; i++) {
 		if (curseltags[i]) {
