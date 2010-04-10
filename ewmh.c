@@ -111,7 +111,7 @@ ewmh_update_net_current_desktop()
 {
 	Monitor *m;
 	static Bool *seltags = NULL;
-	int i;
+	unsigned int i;
 
 	if (!seltags)
 		seltags = emallocz(ntags * sizeof(Bool));
@@ -131,7 +131,7 @@ ewmh_update_net_current_desktop()
 void
 ewmh_update_net_window_desktop(Client * c)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < ntags && !c->tags[i]; i++);
 	XChangeProperty(dpy, c->win,
@@ -142,7 +142,7 @@ void
 ewmh_update_net_desktop_names()
 {
 	char buf[1024], *pos;
-	int i;
+	unsigned int i;
 	int len = 0;
 
 	pos = buf;
