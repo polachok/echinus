@@ -159,7 +159,7 @@ elementw(char which, Client * c)
 void
 drawclient(Client * c)
 {
-	int i;
+	size_t i;
 	unsigned int opacity;
 
 	if (look.uf_opacity) {
@@ -212,7 +212,7 @@ drawclient(Client * c)
 		goto end;
 	/* Right */
 	dc.x = dc.w;
-	for (i = strlen(look.titlelayout) - 1; i >= 0; i--) {
+	for (i = strlen(look.titlelayout); i-- ; ) {
 		if (look.titlelayout[i] == ' ' || look.titlelayout[i] == '-')
 			break;
 		dc.x -= elementw(look.titlelayout[i], c);

@@ -126,8 +126,8 @@ typedef struct {
 } Button;
 
 typedef struct {
-	int borderpx;
-	int drawoutline;
+	unsigned int borderpx;
+	unsigned int drawoutline;
 	float uf_opacity;
 	char titlelayout[32];
 	Button button[LastBtn];
@@ -498,7 +498,7 @@ buttonpress(XEvent * e)
 		focus(c);
 		for (i = 0; i < LastBtn; i++) {
 			if ((ev->x > look.button[i].x)
-			    && (ev->x < look.button[i].x + dc.h)
+			    && ((int)ev->x < (int)(look.button[i].x + dc.h))
 			    && (look.button[i].x != -1)) {
 				DPRINTF("BUTTON %d PRESSED\n", i);
 				look.button[i].action(NULL);
@@ -2283,8 +2283,8 @@ bstack(Monitor * m)
 void
 tile(Monitor * m)
 {
-	int nx, ny, nw, nh, mw, mh, th;
-	unsigned int i, n;
+	int nx, ny, nw, nh, mw, mh;
+	unsigned int i, n, th;
 	Client *c, *mc;
 	wasfloating = False;
 
@@ -2325,7 +2325,7 @@ tile(Monitor * m)
 				nh = th - 2 * c->border;
 		}
 		resize(c, m, nx, ny, nw, nh, False);
-		if (n > nmasters[m->curtag] && th != m->wah) {
+		if (n > nmasters[m->curtag] && th != (unsigned int)m->wah) {
 			ny = c->y + c->h + 2 * c->border;
 		}
 	}
@@ -2530,8 +2530,8 @@ updategeom(Monitor * m)
 		m->waw -= (m->wax + m->struts[RightStrut]);
 		m->way += m->struts[TopStrut];
 		m->wah =
-		    m->struts[BotStrut] ? DisplayHeight(dpy,
-		    screen) - m->struts[BotStrut] - m->way : m->sh - m->way;
+		    (int)(m->struts[BotStrut]) ? DisplayHeight(dpy, screen)
+		    - m->struts[BotStrut] - m->way : m->sh - m->way;
 		break;
 	case StrutsHide:
 	case StrutsOff:
