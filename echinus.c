@@ -567,6 +567,7 @@ cleanup(void)
 	}
 	free(tags);
 	free(keys);
+	initmonitors(NULL);
 	/* free resource database */
 	XrmDestroyDatabase(xrdb);
 	/* free colors */
@@ -653,6 +654,8 @@ initmonitors(XEvent * e)
 		} while (m);
 		monitors = NULL;
 	}
+	if(!running)
+	    return;
 	/* initial Xrandr setup */
 	if (XRRQueryExtension(dpy, &dummy1, &dummy2))
 		if (XRRQueryVersion(dpy, &major, &minor) && major < 1)
