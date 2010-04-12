@@ -2450,7 +2450,7 @@ focusview(const char *arg)
 	for (c = clients; c; c = c->next) {
 		if (c->tags[i] && !c->isbastard) {
 			focus(c);
-			c->isplaced = True;
+			break;
 		}
 	}
 	restack(curmonitor());
