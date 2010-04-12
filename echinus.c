@@ -913,10 +913,8 @@ expose(XEvent * e)
 	Client *c;
 	while (XCheckWindowEvent(dpy, ev->window, ExposureMask, &tmp));
 
-	if ((c = getclient(ev->window, clients, ClientWindow))
-	    || (c = getclient(ev->window, clients, ClientTitle))) {
+	if((c = getclient(ev->window, clients, ClientTitle)))
 		drawclient(c);
-	}
 }
 
 void
