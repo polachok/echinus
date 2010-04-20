@@ -103,7 +103,6 @@ struct Client {
 	int minax, maxax, minay, maxay;
 	long flags;
 	int border, oldborder;
-	Monitor *m;
 	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon;
 	Bool isplaced, isbastard, isfocusable;
 	Bool *tags;
@@ -383,6 +382,16 @@ applyrules(Client * c)
 }
 
 void
+arrangefloats(Monitor * m)
+{
+	Client *c;
+	for(c = stack; c; c = c->snext) {
+	    if(clientmonitor(c) == m && !c->isicon && !c->isbastard && c->isfloating)
+		resize(c, m, c->x, c->y, c->w, c->h, True);
+	}
+}
+
+void
 arrangemon(Monitor * m)
 {
 	Client *c;
@@ -395,9 +404,10 @@ arrangemon(Monitor * m)
 	}
 	updategeom(m);
 	layouts[ltidxs[m->curtag]].arrange(m);
+	arrangefloats(m);
 	restack(m);
 	for (c = stack; c; c = c->snext) {
-		if ((c->m == m) &&
+		if ((clientmonitor(c) == m) &&
 		    ((!c->isbastard && isvisible(c, m) && !c->isicon) ||
 			(c->isbastard && bpos[m->curtag] == StrutsOn))) {
 			unban(c);
@@ -407,7 +417,7 @@ arrangemon(Monitor * m)
 	}
 
 	for (c = stack; c; c = c->snext) {
-		if ((c->m == m) &&
+		if ((clientmonitor(c) == m) &&
 		    ((!c->isbastard && (!isvisible(c, m) || c->isicon)) ||
 			(c->isbastard && bpos[m->curtag] == StrutsHide))) {
 			ban(c);
@@ -617,13 +627,14 @@ void
 configure(Client * c)
 {
 	XConfigureEvent ce;
+	Monitor *m = clientmonitor(c);
 
 	ce.type = ConfigureNotify;
 	ce.display = dpy;
 	ce.event = c->win;
 	ce.window = c->win;
-	ce.x = c->x + c->m->sx;
-	ce.y = c->y + c->m->sy;
+	ce.x = c->x + m->sx;
+	ce.y = c->y + m->sy;
 	ce.width = c->w;
 	ce.height = c->h - c->th;
 	ce.border_width = 0;
@@ -716,14 +727,11 @@ configurenotify(XEvent * e)
 {
 	XConfigureEvent *ev = &e->xconfigure;
 	Monitor *m;
-	Client *c;
 	if (ev->window == root) {
 #ifdef XRANDR
 		if (XRRUpdateConfiguration((XEvent *) ev)) {
 #endif
 			initmonitors(e);
-			for (c = clients; c; c = c->next)
-				c->m = clientmonitor(c);
 			for (m = monitors; m; m = m->next)
 				updategeom(m);
 			arrange(NULL);
@@ -744,7 +752,7 @@ configurerequest(XEvent * e)
 		c->ismax = False;
 		if (ev->value_mask & CWBorderWidth)
 			c->border = ev->border_width;
-		if (c->isfixed || c->isfloating || ISLTFLOATING(c->m)) {
+		if (c->isfixed || c->isfloating || ISLTFLOATING(clientmonitor(c))) {
 			if (c->isbastard) {
 				if (ev->value_mask & CWX)
 					c->x = ev->x;
@@ -765,13 +773,12 @@ configurerequest(XEvent * e)
 #endif
 			if (!(ev->value_mask & (CWX | CWY))
 			    && (ev->value_mask & (CWWidth | CWHeight))) {
-				resize(c, c->m, c->x, c->y, c->w, c->h, True);
+				resize(c, clientmonitor(c), c->x, c->y, c->w, c->h, True);
 				return;
 			}
 			if (isvisible(c, NULL)) {
 				DPRINTF("%s %d %d => %d %d\n", c->name, c->x,
 				    c->y, ev->x, ev->y);
-				c->m = getmonitor(c->x, c->y);
 				XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
 				if (c->title) {
 					XMoveResizeWindow(dpy, c->title, 0, 0,
@@ -1271,7 +1278,6 @@ manage(Window w, XWindowAttributes * wa)
 	cm = curmonitor();
 	c = emallocz(sizeof(Client));
 	c->win = w;
-	c->m = NULL;
 	if (checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]) ||
 	    checkatom(c->win, atom[WindowType], atom[WindowTypeDock])) {
 		c->isbastard = True;
@@ -1341,7 +1347,6 @@ manage(Window w, XWindowAttributes * wa)
 			c->y = 0;
 	}
 
-	c->m = c->isbastard ? getmonitor(c->x, c->y) : clientmonitor(c);
 	wc.border_width = c->border;
 	grabbuttons(c, False);
 	twa.override_redirect = True;
@@ -1356,7 +1361,7 @@ manage(Window w, XWindowAttributes * wa)
 		twa.background_pixel = dc.norm[ColBG];
 	}
 	c->frame =
-	    XCreateWindow(dpy, root, c->m->sx + c->x, c->m->sy + c->y, c->w,
+	    XCreateWindow(dpy, root, cm->sx + c->x, cm->sy + c->y, c->w,
 	    c->h, c->border, wa->depth == 32 ? 32 : DefaultDepth(dpy, screen),
 	    InputOutput, wa->depth == 32 ? wa->visual : DefaultVisual(dpy,
 		screen), mask, &twa);
@@ -1381,7 +1386,7 @@ manage(Window w, XWindowAttributes * wa)
 
 	if (c->isbastard) {
 		free(c->tags);
-		c->tags = c->m->seltags;
+		c->tags = cm->seltags;
 	}
 	attach(c);
 	attachstack(c);
@@ -1786,7 +1791,7 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 		}
 		drawclient(c);
 	}
-	if (c->m != m || c->x != x || c->y != y || c->w != w || c->h != h || sizehints) {
+	if (c->x != x || c->y != y || c->w != w || c->h != h || sizehints) {
 		if (c->isfloating || ISLTFLOATING(m)) {
 			c->sfx = x;
 			c->sfy = y;
@@ -1798,7 +1803,6 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 		c->y = y;
 		c->w = w;
 		c->h = h;
-		c->m = m;
 		XMoveResizeWindow(dpy, c->frame, m->sx + c->x, m->sy + c->y, c->w, c->h);
 		wc.x = 0;
 		wc.y = c->th;
@@ -2431,8 +2435,9 @@ toggleview(const char *arg)
 		}
 		if (m->curtag == i)
 			m->curtag = j;
-		arrange(m);
 	}
+	for (m = monitors; m; m = m->next)
+		arrange(m);
 	focus(NULL);
 	updateatom[CurDesk] (NULL);
 }
