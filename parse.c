@@ -54,8 +54,6 @@ parsekey(const char *s, Key * k)
 	int i;
 
 	pos = strchr(s, '+');
-	if (!s)
-		return;
 	if ((pos - s) && pos) {
 		for (i = 0, stmp = s; stmp < pos; i++, stmp++) {
 			if (*stmp == 'A')

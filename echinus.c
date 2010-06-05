@@ -361,6 +361,7 @@ applyrules(Client * c)
 	XGetClassHint(dpy, c->win, &ch);
 	snprintf(buf, sizeof buf, "%s:%s:%s",
 	    ch.res_class ? ch.res_class : "", ch.res_name ? ch.res_name : "", c->name);
+	buf[LENGTH(buf)-1] = 0;
 	for (i = 0; i < nrules; i++)
 		if (regs[i].propregex && !regexec(regs[i].propregex, buf, 1, &tmp, 0)) {
 			c->isfloating = rules[i]->isfloating;
