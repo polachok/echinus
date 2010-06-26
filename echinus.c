@@ -2245,6 +2245,7 @@ tag(const char *arg)
 	sel->tags[idxoftag(arg)] = True;
 	updateatom[WindowDesk] (sel);
 	arrange(NULL);
+	focus(NULL);
 }
 
 void
