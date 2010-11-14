@@ -65,16 +65,19 @@ Enable maximized (monocle) mode.
 .B Mod1\-r
 Enable tiled mode.
 .TP
+.B Mod1\-w
+Enable bottom-tiled mode.
+.TP
 .B Mod1\-f
 Enable floating mode.
+.TP
+.B Mod1\-i
+Enable ifloating mode.
 .TP
 .B Mod1\-Shift\-[1..n]
 Apply
 .RB nth
 tag to current window.
-.TP
-.B Mod1\-Shift\-0
-Apply all tags to current window.
 .TP
 .B Mod1\-Control\-Shift\-[1..n]
 Add/remove
@@ -87,10 +90,7 @@ Close focused window.
 .B Mod1\-space
 Toggle between tiled and floating layout (affects all windows).
 .TP
-.B Mod1\-Shift\-space
-Toggle focused window between tiled and floating state.
-.TP
-.B Mod1\-[1..n]
+.B Mod1\-[F1..Fn]
 View all windows with
 .BR nth
 tag.
@@ -100,7 +100,7 @@ Add/remove all windows with
 .BR nth
 tag to/from the view.
 .TP
-.B Mod1\-Shift\-q
+.B Mod1\-Control\-q
 Quit echinus.
 .SS Mouse commands
 .TP

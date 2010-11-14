@@ -65,7 +65,20 @@ Echinus*tag3: AS + 4
 Echinus*tag4: AS + 5
 Echinus*tag5: AS + 6
 
-Echinus*toggleview4: W + F4
+Echinus*toggletag0: CAS + 1
+Echinus*toggletag1: CAS + 2
+Echinus*toggletag2: CAS + 3
+Echinus*toggletag3: CAS + 4
+Echinus*toggletag4: CAS + 5
+Echinus*toggletag5: CAS + 6
+
+Echinus*toggleview0: CA + 1
+Echinus*toggleview1: CA + 1
+Echinus*toggleview2: CA + 1
+Echinus*toggleview3: CA + 1
+Echinus*toggleview4: CA + 1
+Echinus*toggleview5: CA + 1
+
 Echinus*focusview6: A + s
 
 Echinus*setlayoutm: A + m
