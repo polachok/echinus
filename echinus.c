@@ -1111,8 +1111,8 @@ getresource(const char *resource, const char *defval)
 {
 	static char name[256], class[256], *type;
 	XrmValue value;
-	snprintf(name, sizeof(name), "%s.%s", RESNAME, resource);
-	snprintf(class, sizeof(class), "%s.%s", RESCLASS, resource);
+	snprintf(name, sizeof name, "%s.%s", RESNAME, resource);
+	snprintf(class, sizeof class, "%s.%s", RESCLASS, resource);
 	XrmGetResource(xrdb, name, class, &type, &value);
 	if (value.addr)
 		return value.addr;
@@ -2039,20 +2039,20 @@ initlayouts()
 	int nmaster;
 
 	/* init layouts */
-	bzero(buf, 5);
+	bzero(buf, sizeof buf);
 	nmasters = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 	ltidxs = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 	mwfacts = (double *) emallocz(sizeof(double) * ntags);
 	bpos = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 
-	snprintf(buf, 5, "%.2f", MWFACT);
+	snprintf(buf, sizeof buf, "%.2f", MWFACT);
 	mwfact = atof(getresource("mwfact", buf));
-	bzero(buf, 5);
-	snprintf(buf, 5, "%d", NMASTER);
+	bzero(buf, sizeof buf);
+	snprintf(buf, sizeof buf, "%d", NMASTER);
 	nmaster = atoi(getresource("nmaster", buf));
 	for (i = 0; i < ntags; i++) {
 		ltidxs[i] = 0;
-		snprintf(conf, 31, "tags.layout%d", i);
+		snprintf(conf, sizeof conf, "tags.layout%d", i);
 		strncpy(xres, getresource(conf, getresource("deflayout", "i")), 255);
 		for (j = 0; j < LENGTH(layouts); j++) {
 			if (!strcmp(layouts[j].symbol, xres)) {
@@ -2077,8 +2077,9 @@ inittags()
 	tags = emallocz(ntags * sizeof(char *));
 	for (i = 0; i < ntags; i++) {
 		tags[i] = emallocz(25 * sizeof(char));
-		snprintf(tmp, 24, "tags.name%d", i);
-		snprintf(tags[i], 24, "%s", getresource(tmp, "null"));
+		snprintf(tmp, sizeof tmp, "tags.name%d", i);
+		snprintf(tags[i], sizeof tags[i], "%s", getresource(tmp,
+		    "null"));
 	}
 }
 
@@ -2131,7 +2132,7 @@ setup(void)
 
 	/* init resource database */
 	XrmInitialize();
-	snprintf(conf, 255, "%s/%s", getenv("HOME"), "/.echinus");
+	snprintf(conf, sizeof conf, "%s/%s", getenv("HOME"), "/.echinus");
 	chdir(conf);
 	xrdb = XrmGetFileDatabase("echinusrc");
 	if (!xrdb) {
