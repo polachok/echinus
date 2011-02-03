@@ -136,6 +136,7 @@ elementw(char which, Client * c)
 {
 	int w;
 	unsigned int j;
+
 	switch (which) {
 	case 'I':
 	case 'M':

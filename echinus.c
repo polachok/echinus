@@ -386,6 +386,7 @@ void
 arrangefloats(Monitor * m)
 {
 	Client *c;
+
 	for(c = stack; c; c = c->snext) {
 	    if(clientmonitor(c) == m && !c->isicon && !c->isbastard && c->isfloating)
 		resize(c, m, c->x, c->y, c->w, c->h, True);
@@ -728,6 +729,7 @@ configurenotify(XEvent * e)
 {
 	XConfigureEvent *ev = &e->xconfigure;
 	Monitor *m;
+
 	if (ev->window == root) {
 #ifdef XRANDR
 		if (XRRUpdateConfiguration((XEvent *) ev)) {
@@ -919,8 +921,8 @@ expose(XEvent * e)
 	XExposeEvent *ev = &e->xexpose;
 	XEvent tmp;
 	Client *c;
-	while (XCheckWindowEvent(dpy, ev->window, ExposureMask, &tmp));
 
+	while (XCheckWindowEvent(dpy, ev->window, ExposureMask, &tmp));
 	if((c = getclient(ev->window, clients, ClientTitle)))
 		drawclient(c);
 }
@@ -1111,6 +1113,7 @@ getresource(const char *resource, const char *defval)
 {
 	static char name[256], class[256], *type;
 	XrmValue value;
+
 	snprintf(name, sizeof(name), "%s.%s", RESNAME, resource);
 	snprintf(class, sizeof(class), "%s.%s", RESCLASS, resource);
 	XrmGetResource(xrdb, name, class, &type, &value);
@@ -1181,6 +1184,7 @@ Bool
 isvisible(Client * c, Monitor * m)
 {
 	unsigned int i;
+
 	if (!c)
 		return False;
 	if (!m) {
@@ -1235,6 +1239,7 @@ void
 killclient(const char *arg)
 {
 	XEvent ev;
+
 	if (!sel)
 		return;
 	if (checkatom(sel->win, atom[WMProto], atom[WMDelete])) {
@@ -1510,6 +1515,7 @@ void
 monocle(Monitor * m)
 {
 	Client *c;
+
 	wasfloating = False;
 	for (c = clients; c; c = c->next) {
 		if (isvisible(c, m) && !c->isicon && !c->isbastard) {
@@ -1533,6 +1539,7 @@ void
 moveresizekb(const char *arg)
 {
 	int dw, dh, dx, dy;
+
 	dw = dh = dx = dy = 0;
 	if (!sel)
 		return;
@@ -2073,10 +2080,11 @@ inittags()
 {
 	unsigned int i;
 	char tmp[25] = "\0";
+
 	ntags = atoi(getresource("tags.number", "5"));
 	tags = emallocz(ntags * sizeof(char *));
 	for (i = 0; i < ntags; i++) {
-		tags[i] = emallocz(25 * sizeof(char));
+		tags[i] = emallocz(25);
 		snprintf(tmp, sizeof(tmp), "tags.name%d", i);
 		snprintf(tags[i], sizeof(tags[i]), "%s", getresource(tmp,
 		    "null"));
@@ -2427,6 +2435,7 @@ toggleview(const char *arg)
 {
 	unsigned int i, j;
 	Monitor *m;
+
 	i = idxoftag(arg);
 	for (m = monitors; m; m = m->next) {
 		memcpy(m->prevtags, m->seltags, ntags * sizeof(m->seltags));

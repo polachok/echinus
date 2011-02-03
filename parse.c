@@ -71,17 +71,17 @@ parsekey(const char *s, Key * k)
 	k->mod = modmask;
 	pos = strchr(s, '=');
 	if (pos) {
-		tmp = emallocz((pos - opos) * sizeof(char));
+		tmp = emallocz((pos - opos));
 		for (; !isalnum(opos[0]); opos++);
 		strncpy(tmp, opos, pos - opos - 1);
 		k->keysym = XStringToKeysym(tmp);
 		free(tmp);
-		tmp = emallocz((s + l - pos + 1) * sizeof(char));
+		tmp = emallocz((s + l - pos + 1));
 		for (pos++; !isgraph(pos[0]); pos++);
 		strncpy(tmp, pos, s + l - pos);
 		k->arg = tmp;
 	} else {
-		tmp = emallocz((s + l - opos) * sizeof(char));
+		tmp = emallocz((s + l - opos));
 		for (opos++; !isalnum(opos[0]); opos++);
 		strncpy(tmp, opos, s + l - opos);
 		k->keysym = XStringToKeysym(tmp);
@@ -172,8 +172,8 @@ initkeys()
 void
 parserule(const char *s, Rule * r)
 {
-	r->prop = emallocz(sizeof(char) * 128);
-	r->tags = emallocz(sizeof(char) * 64);
+	r->prop = emallocz(128);
+	r->tags = emallocz(64);
 	sscanf(s, "%s %s %d %d", r->prop, r->tags, &r->isfloating, &r->hastitle);
 }
 
