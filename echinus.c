@@ -56,7 +56,7 @@
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
 #define CLIENTMASK	        (PropertyChangeMask | EnterWindowMask | FocusChangeMask)
 #define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | EnterWindowMask | LeaveWindowMask)
-#define LENGTH(x)		(sizeof x / sizeof x[0])
+#define LENGTH(x)		(sizeof(x) / sizeof x[0])
 #define RESNAME			       "echinus"
 #define RESCLASS	        "Echinus"
 #define OPAQUE			0xffffffff
@@ -359,7 +359,7 @@ applyrules(Client * c)
 
 	/* rule matching */
 	XGetClassHint(dpy, c->win, &ch);
-	snprintf(buf, sizeof buf, "%s:%s:%s",
+	snprintf(buf, sizeof(buf), "%s:%s:%s",
 	    ch.res_class ? ch.res_class : "", ch.res_name ? ch.res_name : "", c->name);
 	buf[LENGTH(buf)-1] = 0;
 	for (i = 0; i < nrules; i++)
@@ -378,7 +378,7 @@ applyrules(Client * c)
 	if (ch.res_name)
 		XFree(ch.res_name);
 	if (!matched) {
-		memcpy(c->tags, curseltags, ntags * (sizeof curseltags));
+		memcpy(c->tags, curseltags, ntags * sizeof(curseltags));
 	}
 }
 
@@ -1111,8 +1111,8 @@ getresource(const char *resource, const char *defval)
 {
 	static char name[256], class[256], *type;
 	XrmValue value;
-	snprintf(name, sizeof name, "%s.%s", RESNAME, resource);
-	snprintf(class, sizeof class, "%s.%s", RESCLASS, resource);
+	snprintf(name, sizeof(name), "%s.%s", RESNAME, resource);
+	snprintf(class, sizeof(class), "%s.%s", RESCLASS, resource);
 	XrmGetResource(xrdb, name, class, &type, &value);
 	if (value.addr)
 		return value.addr;
@@ -1292,7 +1292,7 @@ manage(Window w, XWindowAttributes * wa)
 
 	c->isicon = False;
 	c->title = c->isbastard ? (Window) NULL : 1;
-	c->tags = emallocz(ntags * (sizeof curseltags));
+	c->tags = emallocz(ntags * sizeof(curseltags));
 	c->isfocusable = c->isbastard ? False : True;
 	c->border = c->isbastard ? 0 : look.borderpx;
 	mwm_process_atom(c);
@@ -1301,7 +1301,7 @@ manage(Window w, XWindowAttributes * wa)
 	if ((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
 		for (t = clients; t && t->win != trans; t = t->next);
 	if (t)
-		memcpy(c->tags, t->tags, ntags * (sizeof curseltags));
+		memcpy(c->tags, t->tags, ntags * sizeof(curseltags));
 
 	updatetitle(c);
 	applyrules(c);
@@ -2039,20 +2039,20 @@ initlayouts()
 	int nmaster;
 
 	/* init layouts */
-	bzero(buf, sizeof buf);
+	bzero(buf, sizeof(buf));
 	nmasters = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 	ltidxs = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 	mwfacts = (double *) emallocz(sizeof(double) * ntags);
 	bpos = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 
-	snprintf(buf, sizeof buf, "%.2f", MWFACT);
+	snprintf(buf, sizeof(buf), "%.2f", MWFACT);
 	mwfact = atof(getresource("mwfact", buf));
-	bzero(buf, sizeof buf);
-	snprintf(buf, sizeof buf, "%d", NMASTER);
+	bzero(buf, sizeof(buf));
+	snprintf(buf, sizeof(buf), "%d", NMASTER);
 	nmaster = atoi(getresource("nmaster", buf));
 	for (i = 0; i < ntags; i++) {
 		ltidxs[i] = 0;
-		snprintf(conf, sizeof conf, "tags.layout%d", i);
+		snprintf(conf, sizeof(conf), "tags.layout%d", i);
 		strncpy(xres, getresource(conf, getresource("deflayout", "i")), 255);
 		for (j = 0; j < LENGTH(layouts); j++) {
 			if (!strcmp(layouts[j].symbol, xres)) {
@@ -2077,8 +2077,8 @@ inittags()
 	tags = emallocz(ntags * sizeof(char *));
 	for (i = 0; i < ntags; i++) {
 		tags[i] = emallocz(25 * sizeof(char));
-		snprintf(tmp, sizeof tmp, "tags.name%d", i);
-		snprintf(tags[i], sizeof tags[i], "%s", getresource(tmp,
+		snprintf(tmp, sizeof(tmp), "tags.name%d", i);
+		snprintf(tags[i], sizeof(tags[i]), "%s", getresource(tmp,
 		    "null"));
 	}
 }
@@ -2132,7 +2132,7 @@ setup(void)
 
 	/* init resource database */
 	XrmInitialize();
-	snprintf(conf, sizeof conf, "%s/%s", getenv("HOME"), "/.echinus");
+	snprintf(conf, sizeof(conf), "%s/%s", getenv("HOME"), "/.echinus");
 	chdir(conf);
 	xrdb = XrmGetFileDatabase("echinusrc");
 	if (!xrdb) {
@@ -2429,7 +2429,7 @@ toggleview(const char *arg)
 	Monitor *m;
 	i = idxoftag(arg);
 	for (m = monitors; m; m = m->next) {
-		memcpy(m->prevtags, m->seltags, ntags * (sizeof m->seltags));
+		memcpy(m->prevtags, m->seltags, ntags * sizeof(m->seltags));
 		m->seltags[i] = ((m == curmonitor())? !m->seltags[i] : False);
 		for (j = 0; j < ntags && !m->seltags[j]; j++);
 		if (j == ntags) {
@@ -2619,8 +2619,8 @@ updatesizehints(Client * c)
 void
 updatetitle(Client * c)
 {
-	if (!gettextprop(c->win, atom[WindowName], c->name, sizeof c->name))
-		gettextprop(c->win, atom[WMName], c->name, sizeof c->name);
+	if (!gettextprop(c->win, atom[WindowName], c->name, sizeof(c->name)))
+		gettextprop(c->win, atom[WMName], c->name, sizeof(c->name));
 	drawclient(c);
 }
 
@@ -2678,7 +2678,7 @@ view(const char *arg)
 			m->seltags[curmontag] = True;
 		}
 	}
-	memcpy(curprevtags, curseltags, ntags * (sizeof curseltags));
+	memcpy(curprevtags, curseltags, ntags * sizeof(curseltags));
 	for (i = 0; i < ntags; i++)
 		curseltags[i] = (NULL == arg);
 	curseltags[idxoftag(arg)] = True;
@@ -2706,9 +2706,9 @@ viewprevtag(const char *arg)
 	prevcurtag = curmontag;
 	curmontag = i;
 
-	memcpy(tmptags, curseltags, ntags * (sizeof curseltags));
-	memcpy(curseltags, curprevtags, ntags * (sizeof curseltags));
-	memcpy(curprevtags, tmptags, ntags * (sizeof curseltags));
+	memcpy(tmptags, curseltags, ntags * sizeof(curseltags));
+	memcpy(curseltags, curprevtags, ntags * sizeof(curseltags));
+	memcpy(curprevtags, tmptags, ntags * sizeof(curseltags));
 	if (bpos[prevcurtag] != bpos[curmontag])
 		updategeom(curmonitor());
 	arrange(NULL);
