@@ -1401,12 +1401,10 @@ manage(Window w, XWindowAttributes * wa)
 	XAddToSaveSet(dpy, c->win);
 	XMapWindow(dpy, c->win);
 	XMapRaised(dpy, c->title);
-	if (!c->isbastard) {
-		wc.border_width = 0;
-		XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
-		XSetWindowBorder(dpy, c->win, dc.norm[ColBorder]);
-		configure(c);	/* propagates border_width, if size doesn't change */
-	}
+	wc.border_width = 0;
+	XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
+	XSetWindowBorder(dpy, c->win, dc.norm[ColBorder]);
+	configure(c);	/* propagates border_width, if size doesn't change */
 	if (checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
 		ewmh_process_state_atom(c, atom[WindowStateFs], 1);
 	if (c->isbastard)
