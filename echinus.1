@@ -1,9 +1,12 @@
-.TH Echinus 1 echinus\-VERSION
+.TH ECHINUS 1 echinus\-VERSION
 .SH NAME
-echinus \- a window manager 
+echinus \- a window manager
 .SH SYNOPSIS
 .B echinus
 .RB [ \-v ]
+.RB [ \-f
+.RI conf
+.RB ]
 .SH DESCRIPTION
 echinus is a lightweight window manager for X based on dwm's source code.
 It manages windows in maximized, floating and tiled layouts. Either layout
@@ -19,19 +22,25 @@ Windows are grouped by tags. Each window can be tagged with one or multiple
 tags. Selecting certain tags displays all windows with these tags.
 .P
 echinus draws a small border around windows to indicate the focus state and
-an optional titlebar
+an optional titlebar.
 .SH OPTIONS
-.TP
-.B \-v
+.IP -v
 prints version information to standard output, then exits.
+.IP "-f conf"
+specifies an alternative configuration file.
+By default, echinus loads the configuration file from
+.IR ~/.echinus/.echinusrc ,
+if present, then looks for the system-wide configuration file
+.IR CONFDIR/echinusrc .
+The configuration file is a set of X resources (with a class of Echinus).
 .SH USAGE
 .SS Title bar
 .TP
 .B Button1
-focuses window and raises it on top of the stack
+focuses window and raises it on top of the stack.
 .TP
 .B Button2
-resizes window
+resizes window.
 .SS Keyboard commands
 .TP
 .B Mod1\-t
@@ -45,7 +54,7 @@ Zooms/cycles current window to/from master area (tiled layout only).
 Toggles to the previously selected tags.
 .TP
 .B Mod1\-b
-Toggles on/off statusbar space
+Toggles on/off statusbar space.
 .TP
 .B Mod1\-h
 Decreases the master area width about 5% (tiled layout only).
@@ -116,7 +125,7 @@ Resize current window while dragging. Tiled windows will be toggled to the float
 .B Button3 on root window
 draws a rectangle to start a TERMINAL in it.
 .SH CONFORMING TO
-echinus is partially EWMH (NetWM) compliant, so you can use your favourite panel 
+echinus is partially EWMH (NetWM) compliant, so you can use your favourite panel
 or pager. Don't forget that pypanel (2.4) doesn't follows EWMH for its WM interaction.
 .SH CUSTOMIZATION
 Edit ~/.echinus/echinusrc

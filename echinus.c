@@ -321,6 +321,7 @@ unsigned int nrules = 0;
 Bool hidebastards = 0;
 Bool dectiled = 0;
 unsigned int modkey = 0;
+char conf[256] = "\0";
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 #include "ewmh.c"
@@ -2108,7 +2109,15 @@ setup(void)
 	Monitor *m;
 	XModifierKeymap *modmap;
 	XSetWindowAttributes wa;
-	char conf[256];
+	char oldcwd[256], path[256] = "/";
+	char *home, *slash;
+	/* configuration files to open (%s gets converted to $HOME) */
+	const char *confs[] = {
+		conf,
+		"%s/.echinus/echinusrc",
+		SYSCONFPATH "/echinusrc",
+		NULL
+	};
 
 	/* init EWMH atom */
 	initatom();
@@ -2138,16 +2147,30 @@ setup(void)
 
 	/* init resource database */
 	XrmInitialize();
-	snprintf(conf, sizeof(conf), "%s/%s", getenv("HOME"), "/.echinus");
-	chdir(conf);
-	xrdb = XrmGetFileDatabase("echinusrc");
-	if (!xrdb) {
-		fprintf(stderr, "echinus: cannot open configuration file in %s\n", conf);
-		chdir(SYSCONFPATH);
-		xrdb = XrmGetFileDatabase("echinusrc");
-		if (!xrdb)
-			eprint("echinus: cannot open configuration file\n");
+
+	home = getenv("HOME");
+	if (!home)
+		*home = '/';
+	if (!getcwd(oldcwd, sizeof(oldcwd)))
+		eprint("echinus: getcwd error: %s\n", strerror(errno));
+
+	for (i = 0; confs[i] != NULL; i++) {
+		if (*confs[i] == '\0')
+			continue;
+		snprintf(conf, sizeof(conf), confs[i], home);
+		/* retrieve path to chdir(2) to it */
+		slash = strrchr(conf, '/');
+		if (slash)
+			snprintf(path, slash - conf + 1, "%s", conf);
+		chdir(path);
+		xrdb = XrmGetFileDatabase(conf);
+		/* configuration file loaded successfully; break out */
+		if (xrdb)
+			break;
+		fprintf(stderr, "echinus: cannot open configuration file %s\n", conf);
 	}
+	if (confs[i] == NULL)
+		eprint("echinus: couldn't open a configuration file\n");
 
 	/* init tags */
 	inittags();
@@ -2211,7 +2234,7 @@ setup(void)
 
 	/* buttons */
 	initbuttons();
-	chdir(getenv("HOME"));
+	chdir(oldcwd);
 
 	/* multihead support */
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
@@ -2767,10 +2790,12 @@ zoom(const char *arg)
 int
 main(int argc, char *argv[])
 {
-	if (argc == 2 && !strcmp("-v", argv[1]))
+	if (argc == 3 && !strcmp("-f", argv[1]))
+		snprintf(conf, sizeof(conf), "%s", argv[2]);
+	else if (argc == 2 && !strcmp("-v", argv[1]))
 		eprint("echinus-" VERSION ", (c) 2010 Alexander Polakov\n");
 	else if (argc != 1)
-		eprint("usage: echinus [-v]\n");
+		eprint("usage: echinus [-v] [-f conf]\n");
 
 	setlocale(LC_CTYPE, "");
 	if (!(dpy = XOpenDisplay(0)))
