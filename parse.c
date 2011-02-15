@@ -56,14 +56,19 @@ parsekey(const char *s, Key * k)
 	pos = strchr(s, '+');
 	if ((pos - s) && pos) {
 		for (i = 0, stmp = s; stmp < pos; i++, stmp++) {
-			if (*stmp == 'A')
+			switch(*stmp) {
+			case 'A':
 				modmask = modmask | Mod1Mask;
-			if (*stmp == 'S')
+				break;
+			case 'S':
 				modmask = modmask | ShiftMask;
-			if (*stmp == 'C')
+				break;
+			case 'C':
 				modmask = modmask | ControlMask;
-			if (*stmp == 'W')
+				break;
+			case 'W':
 				modmask = modmask | Mod4Mask;
+				break;
 		}
 	} else
 		pos = (char *) s;
@@ -95,14 +100,19 @@ initmodkey()
 	char tmp;
 
 	strncpy(&tmp, getresource("modkey", "A"), 1);
-	if (tmp == 'S')
+	switch (tmp) {
+	case 'S':
 		modkey = ShiftMask;
-	if (tmp == 'C')
+		break;
+	case 'C':
 		modkey = ControlMask;
-	if (tmp == 'W')
+		break;
+	case 'W':
 		modkey = Mod4Mask;
-	else
+		break;
+	default:
 		modkey = Mod1Mask;
+	}
 }
 
 int
