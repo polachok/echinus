@@ -69,6 +69,7 @@ parsekey(const char *s, Key * k)
 			case 'W':
 				modmask = modmask | Mod4Mask;
 				break;
+			}
 		}
 	} else
 		pos = (char *) s;
@@ -129,6 +130,7 @@ initkeys()
 		tmp = getresource(KeyItems[i].name, NULL);
 		if (!tmp)
 			continue;
+		fprintf(stderr, "%s\n", tmp);
 		keys[nkeys] = malloc(sizeof(Key));
 		keys[nkeys]->func = KeyItems[i].action;
 		keys[nkeys]->arg = NULL;
