@@ -1611,8 +1611,8 @@ movemouse(Client * c)
 	if (c->isbastard)
 		return;
 	m = curmonitor();
-	ocx = nx = c->x + m->sx;
-	ocy = ny = c->y + m->sy;
+	ocx = c->x + m->sx;
+	ocy = c->y + m->sy;
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 		GrabModeAsync, None, cursor[CurMove], CurrentTime) != GrabSuccess)
 		return;
@@ -2056,6 +2056,8 @@ initlayouts()
 	bzero(buf, sizeof(buf));
 	snprintf(buf, sizeof(buf), "%d", NMASTER);
 	nmaster = atoi(getresource("nmaster", buf));
+	if (!nmaster)
+		nmaster = 1;
 	for (i = 0; i < ntags; i++) {
 		ltidxs[i] = 0;
 		snprintf(conf, sizeof(conf), "tags.layout%d", i);
@@ -2094,9 +2096,9 @@ void
 sighandler(int signum)
 {
 	if (signum == SIGHUP)
-		quit((char *) signum);
+		quit("HUP!");
 	else
-		quit(0);
+		quit(NULL);
 }
 
 void
