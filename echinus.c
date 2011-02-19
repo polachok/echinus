@@ -379,7 +379,7 @@ applyrules(Client * c)
 	if (ch.res_name)
 		XFree(ch.res_name);
 	if (!matched) {
-		memcpy(c->tags, curseltags, ntags * sizeof(curseltags));
+		memcpy(c->tags, curseltags, ntags * sizeof(curseltags[0]));
 	}
 }
 
@@ -1298,7 +1298,7 @@ manage(Window w, XWindowAttributes * wa)
 
 	c->isicon = False;
 	c->title = c->isbastard ? (Window) NULL : 1;
-	c->tags = emallocz(ntags * sizeof(curseltags));
+	c->tags = emallocz(ntags * sizeof(curseltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
 	c->border = c->isbastard ? 0 : look.borderpx;
 	mwm_process_atom(c);
@@ -1307,7 +1307,7 @@ manage(Window w, XWindowAttributes * wa)
 	if ((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
 		for (t = clients; t && t->win != trans; t = t->next);
 	if (t)
-		memcpy(c->tags, t->tags, ntags * sizeof(curseltags));
+		memcpy(c->tags, t->tags, ntags * sizeof(curseltags[0]));
 
 	updatetitle(c);
 	applyrules(c);
@@ -2461,7 +2461,7 @@ toggleview(const char *arg)
 
 	i = idxoftag(arg);
 	for (m = monitors; m; m = m->next) {
-		memcpy(m->prevtags, m->seltags, ntags * sizeof(m->seltags));
+		memcpy(m->prevtags, m->seltags, ntags * sizeof(m->seltags[0]));
 		m->seltags[i] = ((m == curmonitor())? !m->seltags[i] : False);
 		for (j = 0; j < ntags && !m->seltags[j]; j++);
 		if (j == ntags) {
@@ -2710,7 +2710,7 @@ view(const char *arg)
 			m->seltags[curmontag] = True;
 		}
 	}
-	memcpy(curprevtags, curseltags, ntags * sizeof(curseltags));
+	memcpy(curprevtags, curseltags, ntags * sizeof(curseltags[0]));
 	for (i = 0; i < ntags; i++)
 		curseltags[i] = (NULL == arg);
 	curseltags[idxoftag(arg)] = True;
@@ -2738,9 +2738,9 @@ viewprevtag(const char *arg)
 	prevcurtag = curmontag;
 	curmontag = i;
 
-	memcpy(tmptags, curseltags, ntags * sizeof(curseltags));
-	memcpy(curseltags, curprevtags, ntags * sizeof(curseltags));
-	memcpy(curprevtags, tmptags, ntags * sizeof(curseltags));
+	memcpy(tmptags, curseltags, ntags * sizeof(curseltags[0]));
+	memcpy(curseltags, curprevtags, ntags * sizeof(curseltags[0]));
+	memcpy(curprevtags, tmptags, ntags * sizeof(curseltags[0]));
 	if (bpos[prevcurtag] != bpos[curmontag])
 		updategeom(curmonitor());
 	arrange(NULL);
