@@ -2695,33 +2695,31 @@ xerrorstart(Display * dsply, XErrorEvent * ee)
 void
 view(const char *arg)
 {
-	int prevcurtag;
-	unsigned int i;
-	Monitor *m;
-	int swapping = 0;
+	int i, j;
+	Monitor *m, *cm;
 
-	if (curseltags[idxoftag(arg)])
+	i = idxoftag(arg);
+	cm = curmonitor();
+
+	if (cm->seltags[i])
 		return;
 
+	memcpy(cm->prevtags, cm->seltags, ntags * sizeof(cm->seltags[0]));
+
+	for (j = 0; j < ntags; j++)
+		cm->seltags[j] = (arg == NULL);
+	cm->seltags[i] = True;
+	cm->curtag = i;
 	for (m = monitors; m; m = m->next) {
-		if (m->seltags[idxoftag(arg)] && m != curmonitor()) {
-			swapping = 1;
-			m->seltags[idxoftag(arg)] = False;
-			m->seltags[curmontag] = True;
+		if (m->seltags[i] && m != cm) {
+			memcpy(m->prevtags, m->seltags, ntags * sizeof(m->seltags[0]));
+			memcpy(m->seltags, cm->prevtags, ntags * sizeof(cm->seltags[0]));
+			updategeom(m);
+			arrange(m);
 		}
 	}
-	memcpy(curprevtags, curseltags, ntags * sizeof(curseltags[0]));
-	for (i = 0; i < ntags; i++)
-		curseltags[i] = (NULL == arg);
-	curseltags[idxoftag(arg)] = True;
-	prevcurtag = curmontag;
-	curmontag = idxoftag(arg);
-	if (bpos[prevcurtag] != bpos[curmontag])
-		updategeom(curmonitor());
-	if (swapping)
-		arrange(NULL);
-	else
-		arrange(curmonitor());
+	updategeom(cm);
+	arrange(cm);
 	focus(NULL);
 	updateatom[CurDesk] (NULL);
 }
