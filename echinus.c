@@ -2457,22 +2457,29 @@ void
 toggleview(const char *arg)
 {
 	unsigned int i, j;
-	Monitor *m;
+	Monitor *m, *cm;
 
 	i = idxoftag(arg);
+	cm = curmonitor();
+
+	memcpy(cm->prevtags, cm->seltags, ntags * sizeof(cm->seltags[0]));
+	cm->seltags[i] = !cm->seltags[i];
 	for (m = monitors; m; m = m->next) {
-		memcpy(m->prevtags, m->seltags, ntags * sizeof(m->seltags[0]));
-		m->seltags[i] = ((m == curmonitor())? !m->seltags[i] : False);
-		for (j = 0; j < ntags && !m->seltags[j]; j++);
-		if (j == ntags) {
-			m->seltags[i] = True;	/* at least one tag must be viewed */
-			j = i;
+		if (m->seltags[i] && m != cm) {
+			memcpy(m->prevtags, m->seltags, ntags * sizeof(m->seltags[0]));
+			m->seltags[i] = False;
+			for (j = 0; j < ntags && !m->seltags[j]; j++);
+			if (j == ntags) {
+				m->seltags[i] = True;	/* at least one tag must be viewed */
+				cm->seltags[i] = False; /* can't toggle */
+				j = i;
+			}
+			if (m->curtag == i)
+				m->curtag = j;
+			arrange(m);
 		}
-		if (m->curtag == i)
-			m->curtag = j;
 	}
-	for (m = monitors; m; m = m->next)
-		arrange(m);
+	arrange(cm);
 	focus(NULL);
 	updateatom[CurDesk] (NULL);
 }
