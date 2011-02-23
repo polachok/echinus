@@ -1,139 +1,337 @@
-.TH ECHINUS 1 echinus\-VERSION
-.SH NAME
-echinus \- a window manager
-.SH SYNOPSIS
-.B echinus
-.RB [ \-v ]
-.RB [ \-f
-.RI conf
-.RB ]
-.SH DESCRIPTION
-echinus is a lightweight window manager for X based on dwm's source code.
-It manages windows in maximized, floating and tiled layouts. Either layout
-can be applied dynamically, optimizing the environment for the
+.Dd $Mdocdate$
+.Dt ECHINUS 1
+.Os
+.Sh NAME
+.Nm echinus
+.Nd a lightweight window manager for X11
+.Sh SYNOPSIS
+.Nm echinus
+.Bk -words
+.Op Fl v
+.Op Fl f Ar conf
+.Ek
+.Sh DESCRIPTION
+.Nm
+is a lightweight window manager for X based on dwm's source code.
+It manages windows in maximized, floating and tiled layouts.
+Either layout can be applied dynamically, optimizing the environment for the
 application in use and the task performed.
-.P
-In maximized layout only one window can be seen at the moment, but you can switch
-between them with hotkeys. In floating layout windows can be
-resized and moved freely. Dialog windows are always managed floating,
-regardless of the layout applied.
-.P
-Windows are grouped by tags. Each window can be tagged with one or multiple
-tags. Selecting certain tags displays all windows with these tags.
-.P
-echinus draws a small border around windows to indicate the focus state and
-an optional titlebar.
-.SH OPTIONS
-.IP -v
-prints version information to standard output, then exits.
-.IP "-f conf"
-specifies an alternative configuration file.
-By default, echinus loads the configuration file from
-.IR ~/.echinus/echinusrc ,
+.Pp
+In maximized layout only one window can be seen at the moment, but you
+can switch between them with hotkeys.
+In floating layout windows can be resized and moved freely.
+Dialog windows are always managed floating, regardless of the layout applied.
+.Pp
+Windows are grouped by tags. Each window can be tagged with one or
+multiple tags. Selecting certain tags displays all windows with these tags.
+.Pp
+.Nm
+draws a small border around windows to indicate the focus state and an
+optional titlebar.
+.Pp
+The options are as follows:
+.Bl -tag -width "XXXXXXXXXXXX"
+.It Fl v
+Prints version information to standard output, then exits.
+.It Fl f Ar conf
+Specifies an alternative configuration file.
+By default,
+.Nm
+loads the configuration file from
+.Pa ~/.echinus/echinusrc,
 if present, then looks for the system-wide configuration file
-.IR CONFDIR/echinusrc .
-The configuration file is a set of X resources (with a class of Echinus).
-.SH USAGE
-.SS Title bar
-.TP
-.B Button1
-focuses window and raises it on top of the stack.
-.TP
-.B Button2
-resizes window.
-.SS Keyboard commands
-.TP
-.B Mod1\-t
-Start
-.BR xterm.
-.TP
-.B Mod1\-Return
+.Pa CONFDIR/echinusrc .
+.El
+.Pp
+The following notation is used in this page:
+.Pp
+.Bl -tag -width Ds -offset indent -compact
+.It Ic A
+Alt.
+.It Ic C
+Control.
+.It Ic S
+Shift.
+.It Ic W
+Windows key.
+.It Ic M1
+Left mouse button.
+.It Ic M2
+Middle mouse button.
+.It Ic M3
+Right mouse button.
+.El
+.Sh KEY BINDINGS
+The default key bindings are:
+.Pp
+.Bl -tag -width "XXXXXXXXXXXX" -offset indent -compact
+.It Ic A-[F1..Fn]
+Views all windows with n-th tag.
+.It Ic A-Return
 Zooms/cycles current window to/from master area (tiled layout only).
-.TP
-.B Mod1\-Tab
+.It Ic A-Space
+Toggles between tiled and floating layout (affects all windows).
+.It Ic A-Tab
 Toggles to the previously selected tags.
-.TP
-.B Mod1\-b
+.It Ic A-b
 Toggles on/off statusbar space.
-.TP
-.B Mod1\-h
+.It Ic A-f
+Enables floating mode.
+.It Ic A-h
 Decreases the master area width about 5% (tiled layout only).
-.TP
-.B Mod1\-j
-Focus next window.
-.TP
-.B Mod1\-k
-Focus previous window.
-.TP
-.B Mod1\-l
-Increases the master area width about 5% (tiled layout only).
-.TP
-.B Mod1\-m
-Enable maximized (monocle) mode.
-.TP
-.B Mod1\-r
-Enable tiled mode.
-.TP
-.B Mod1\-w
-Enable bottom-tiled mode.
-.TP
-.B Mod1\-f
-Enable floating mode.
-.TP
-.B Mod1\-i
-Enable ifloating mode.
-.TP
-.B Mod1\-Shift\-[1..n]
-Apply
-.RB nth
-tag to current window.
-.TP
-.B Mod1\-Control\-Shift\-[1..n]
-Add/remove
-.B nth
-tag to/from current window.
-.TP
-.B Mod1\-Shift\-c
-Close focused window.
-.TP
-.B Mod1\-space
-Toggle between tiled and floating layout (affects all windows).
-.TP
-.B Mod1\-[F1..Fn]
-View all windows with
-.BR nth
-tag.
-.TP
-.B Mod1\-Control\-[1..n]
-Add/remove all windows with
-.BR nth
-tag to/from the view.
-.TP
-.B Mod1\-Control\-q
-Quit echinus.
-.SS Mouse commands
-.TP
-.B Mod1\-Button1
-Move current window while dragging. Tiled windows will be toggled to the floating state.
-.TP
-.B Mod1\-Button2
-Zooms/cycles current window to/from master area. If it is floating (but not fixed) it will be toggled to the tiled state instead.
-.TP
-.B Mod1\-Button3
-Resize current window while dragging. Tiled windows will be toggled to the floating state.
-.TP
-.B Button3 on root window
-draws a rectangle to start a TERMINAL in it.
-.SH CONFORMING TO
-echinus is partially EWMH (NetWM) compliant, so you can use your favourite panel
-or pager. Don't forget that pypanel (2.4) doesn't follows EWMH for its WM interaction.
-.SH CUSTOMIZATION
-Edit ~/.echinus/echinusrc
-.SH SEE ALSO
-.BR dmenu (1),\  dwm (1)
-.SH BUGS
-* parsekey() doesn't handle non-alphanumeric keysyms
-
-* ifloating() performs badly
-
-You should find lots of them. If you did please contact me, my mail is <polachok at gmail dot com>
+.It Ic A-i
+Enables ifloating mode.
+.It Ic A-j
+Focuses next window.
+.It Ic A-k
+Focuses previous window.
+.It Ic A-l
+Increases the master are width about 5% (tiled layout only).
+.It Ic A-m
+Enables maximized (monocle) mode.
+.It Ic A-r
+Enables tiled mode.
+.It Ic A-t
+Starts xterm.
+.It Ic A-w
+Enables bottom-tiled mode.
+.It Ic A-C-[1..n]
+Adds/removes all windows with n-th tag to/from the view.
+.It Ic A-C-q
+Quits
+.Nm .
+.It Ic A-C-S-[1..n]
+Adds/removes n-th tag to/from current window.
+.It Ic A-S-[1..n]
+Applies n-th tag to current window.
+.It Ic A-S-c
+Closes focused window.
+.El
+.Sh MOUSE BINDINGS
+The default mouse bindings are:
+.Pp
+.Bl -tag -width "XXXXXXXX" -offset indent -compact
+.It Ic M1
+When pressed on the titlebar, focuses window and raises it on top of the stack.
+.It Ic M2
+When pressed on the titlebar, resizes window.
+.It Ic M3
+When pressed on the root window, draws a rectangle to start a terminal in it.
+.It Ic A-M1
+Moves current window while dragging.
+Tiled windows will be toggled to the floating state.
+.It Ic A-M2
+Zooms/cycles current window to/from master area.
+If it is floating (but not fixed) it will be toggled to the tiled state,
+instead.
+.It Ic A-M3
+Resizes current window while dragging.
+Tiled windows will be toggled to the floating state.
+.El
+.Sh CUSTOMIZATION
+The configuration file is a set of X resources (with a class of Echinus),
+which are described in the sections below.
+.Pp
+Every relative path specified is relative to the directory in which the
+configuration file is in.
+.Sh MAIN SETTINGS
+.Bl -tag -width Ds
+.It Ic deflayout
+Layout applied to tag if not explicitly set by tags.layout later.
+.Bl -column "Character" "Meaning" -offset indent
+.It Sy "Value" Ta Sy "Meaning"
+.It Li "b" Ta "Bottom Stack"
+.It Li "f" Ta "Floating"
+.It Li "i" Ta "Ifloating"
+.It Li "m" Ta "Maximized"
+.It Li "t" Ta "Tiled"
+.El
+.It Ic modkey
+Choose modkey.
+.It Ic mwfact
+Space occupied by master window in tiled layout (fraction of 1).
+.It Ic nmaster
+Number of clients in master area in tiled layout.
+.It Ic sloppy
+Sets the type of sloppy focus to use.
+.Bl -column "Number" "Meaning" -offset indent
+.It Sy "Value" Ta Sy "Meaning"
+.It Li "0" Ta "Click to focus"
+.It Li "1" Ta "Sloppy focus for floating clients"
+.It Li "2" Ta "Sloppy focus for everything"
+.It Li "3" Ta "Sloppy focus and raise on focus"
+.El
+.El
+.Sh BORDER SETTINGS
+.Bl -tag -width Ds
+.It Ic border
+Width of the border (in pixels).
+.El
+.Sh BUTTON SETTINGS
+.Bl -tag -width Ds
+.It Ic button.close.pixmap
+.It Ic button.iconify.pixmap
+.It Ic button.maximize.pixmap
+Sets the close, iconify and maximize buttons in the titlebar.
+.El
+.Sh COLOR SETTINGS
+.Bl -tag -width Ds
+.It Ic normal.bg
+Sets the titlebar background for unfocused windows.
+.It Ic normal.border
+Sets the color of a small border around each unfocused window.
+.It Ic normal.button
+Sets the button foreground for unfocused windows.
+.It Ic normal.fg
+Sets the titlebar foreground for unfocused windows.
+.It Ic selected.bg
+.It Ic selected.border
+.It Ic selected.button
+.It Ic selected.fg
+Sets color options for focused windows.
+.El
+.Sh HACKS SETTINGS
+.Bl -tag -width Ds
+.It Ic hidebastards
+Hide panels, pagers and others with togglestruts function.
+.El
+.Sh KEYBINDINS SETTINGS
+.Bl -tag -width Ds
+.It Ic ACSW + key [ = options ]
+Binds key to the specified command (see
+.Sx COMMANDS )
+.Ns . Spaces are mandatory.
+.Pp
+Key is taken from the X11 files (usually located under an include directory)
+.Pa keysym.h
+and,
+.Pa XF86keysym.h
+and removing the XK_ prefix before use.
+.Pp
+Commands options are specified after an equal sign.
+.El
+.Sh MISC SETTINGS
+.Bl -tag -width Ds
+.It Ic command
+Application to run on right click on root window.
+.It Ic opacity
+Opacity value for inactive windows (xcompmgr needed).
+.El
+.Sh TAGS SETTINGS
+.Bl -tag -width Ds
+.It Ic tags.layout{...}
+Layout per tag on start (see
+.Ic deflayout )
+.Ns .
+.It Ic tags.name{...}
+Names of the tags.
+.It Ic tags.number
+Number of tags.
+.El
+.Sh TITLE SETTINGS
+.Bl -tag -width Ds
+.It Ic decoratetiled
+If one, draw titles in tiled mode.
+.It Ic font
+Titlebar font.
+.It Ic title
+Titlebar height.
+.It Ic titlelayout
+Titlebar consists of 3 parts separated with dashes or spaces.
+Left is aligned to left, center to center and right to right (obviously).
+Default value is "N  IMC" meaning name on the left iconify, maximize and
+close buttons on right (note 2 spaces).
+.Bl -column "Character" "Meaning" -offset indent
+.It Sy "Value" Ta Sy "Meaning"
+.It Li "dash" Ta "skip space (space can't be used as first character)"
+.It Li "space" Ta "Same as the above"
+.It Li "C" Ta "Close"
+.It Li "I" Ta "Iconify"
+.It Li "M" Ta "Maximize"
+.It Li "N" Ta "Window name"
+.It Li "T" Ta "Tagbar"
+.El
+.El
+.Sh COMMANDS
+.Bl -tag -width Ds
+.It Ic focusnext
+.It Ic focusprev
+Focuses next or previous window.
+.It Ic focusview#
+Toggles view number # and focuses the first client in it.
+.It Ic killclient
+Closes current focused window.
+.It Ic movedown
+.It Ic moveleft
+.It Ic moveright
+.It Ic moveup Ar x y w h
+Moves the window by the specified number of pixels in the specified direction.
+.It Ic restart
+Restarts
+.Nm .
+.It Ic quit
+Exits
+.Nm .
+.It Ic resizedecx
+.It Ic resizedecy
+.It Ic resizeincx
+.It Ic rezizeincy Ar x y w h
+Resizes the window by the specified number of pixels in the specified
+direction.
+.It Ic rule# Ar class.title tag isfloating hastitle
+Sets a rule for the specified window class or title.
+NULL indicates that no tag is needed.
+.It Ic spawn#
+Runs specified program (upto 64).
+.It Ic tag#
+Tags current window with tag number #.
+.It Ic togglefloating
+Toggles floating or tiled mode.
+.It Ic togglemonitor
+Switches from one monitor to another.
+.It Ic togglestruts
+.Nm
+has no bar, but this command switches the area on top or bottom which won't
+be covered by windows in tiled on monocle mode.
+.It Ic toggleview#
+Toggles view number #.
+.It Ic view#
+Views tag number #.
+.It Ic viewlefttag
+.It Ic viewrighttag
+Views tag on left or right.
+.It Ic viewprevtag
+View previous tag set.
+.El
+.Sh EXAMPLES
+To move a window five pixels to the right:
+.Pp
+.Dl Echinus*moveright: AS + l = +5 0 0 0
+.Pp
+To resize a window five pixels down:
+.Pp
+.Dl Echinus*resizedecy: AS + v = 0 0 0 -5
+.Pp
+To make mplayer float and with a title by default:
+.Dl Echinus*rule0: Mplayer.* NULL 1 1
+.Pp
+To spawn an xterm when A + T is pressed:
+.Dl Echinus*spawn0: A + t = xterm
+.Pp
+To show the title centered and the close button on the right:
+.Dl Echinus*titlelayout: -T-C
+.Sh CONFORMING TO
+.Nm
+is partially EWMH (NetWM) compliant, so you can use your favourite panel or
+pager. Don't forget that pypanel (2.4) doesn't follows EWMH for its WM
+interaction.
+.Sh SEE ALSO
+.Xr dmenu 1
+.Xr dwm 1
+.Sh BUGS
+parsekey() doesn't handle non-alphanumeric keysyms.
+.Pp
+ifloating() performs badly.
+.Pp
+You should find lots of them. If you did please contact me, my mail is
+<polachok at gmail dot com>.
