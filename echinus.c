@@ -2592,20 +2592,12 @@ unmapnotify(XEvent * e)
 {
 	Client *c;
 	XUnmapEvent *ev = &e->xunmap;
-	XWindowAttributes wa;
 
-	if ((c = getclient(ev->window, clients, ClientWindow))) {
+	if ((c = getclient(ev->window, clients, ClientWindow)) && ev->send_event) {
 		if (c->isicon)
 			return;
-
-		if (!XGetWindowAttributes(dpy, ev->window, &wa))
-			return;
-		if (wa.map_state == IsUnmapped && c->title) {
-			if (!XGetWindowAttributes(dpy, c->title, &wa))
-				return;
-			if (wa.map_state == IsViewable)
-				unmanage(c);
-		}
+		DPRINTF("killing self-unmapped window (%s)\n", c->name);
+		unmanage(c);
 	}
 }
 
