@@ -60,6 +60,8 @@
 #define RESNAME			       "echinus"
 #define RESCLASS	        "Echinus"
 #define OPAQUE			0xffffffff
+#define STR(_s)			TOSTR(_s)
+#define TOSTR(_s)		#_s
 #ifdef DEBUG
 #define DPRINT			fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 #define DPRINTF(format, ...)	fprintf(stderr, "%s %s():%d " format, __FILE__, __func__, __LINE__, __VA_ARGS__)
@@ -2213,8 +2215,8 @@ setup(void)
 	if (!dc.xftnorm || !dc.xftnorm)
 		eprint("error, cannot allocate colors\n");
 	initfont(getresource("font", FONT));
-	look.borderpx = atoi(getresource("border", BORDERPX));
-	look.uf_opacity = atof(getresource("opacity", NF_OPACITY));
+	look.borderpx = atoi(getresource("border", STR(BORDERPX)));
+	look.uf_opacity = atof(getresource("opacity", STR(NF_OPACITY)));
 	look.drawoutline = atoi(getresource("outline", "0"));
 	strncpy(look.titlelayout, getresource("titlelayout", "N  IMC"),
 	    LENGTH(look.titlelayout));
@@ -2222,15 +2224,13 @@ setup(void)
 	strncpy(command, getresource("command", COMMAND), LENGTH(command));
 	command[LENGTH(command) - 1] = '\0';
 
-	dc.h = atoi(getresource("title", TITLEHEIGHT));
+	dc.h = atoi(getresource("title", STR(TITLEHEIGHT)));
 	if (!dc.h)
 		dc.h = dc.font.height + 2;
-	dectiled = atoi(getresource("decoratetiled", DECORATETILED));
+	dectiled = atoi(getresource("decoratetiled", STR(DECORATETILED)));
 	hidebastards = atoi(getresource("hidebastards", "0"));
 	sloppy = atoi(getresource("sloppy", "0"));
-#define TOSTR(_s) #_s
-	snap = atoi(getresource("snap", TOSTR(SNAP)));
-#undef TOSTR
+	snap = atoi(getresource("snap", STR(SNAP)));
 
 	for (m = monitors; m; m = m->next) {
 		m->struts[RightStrut] = m->struts[LeftStrut] =
