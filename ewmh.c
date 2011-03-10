@@ -10,7 +10,7 @@
 #include <X11/Xatom.h>
 
 enum { ClientList, ActiveWindow, WindowDesk,
-	NumberOfDesk, DeskNames, CurDesk, ELayout,
+	NumberOfDesk, DeskNames, CurDesk, ELayout, WorkArea,
 	ClientListStacking, WindowOpacity, WindowType,
 	WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial,
 	ESelTags,
@@ -22,8 +22,6 @@ enum { ClientList, ActiveWindow, WindowDesk,
 
 Atom atom[NATOMS];
 
-#define LASTAtom ClientListStacking
-
 const char *atomnames[NATOMS][1] = {
 	{"_NET_CLIENT_LIST"},
 	{"_NET_ACTIVE_WINDOW"},
@@ -32,6 +30,7 @@ const char *atomnames[NATOMS][1] = {
 	{"_NET_DESKTOP_NAMES"},
 	{"_NET_CURRENT_DESKTOP"},
 	{"_ECHINUS_LAYOUT"},
+	{"_NET_WORKAREA"},
 	{"_NET_CLIENT_LIST_STACKING"},
 	{"_NET_WM_WINDOW_OPACITY"},
 	{"_NET_WM_WINDOW_TYPE"},
@@ -136,6 +135,24 @@ ewmh_update_net_window_desktop(Client * c)
 	for (i = 0; i < ntags && !c->tags[i]; i++);
 	XChangeProperty(dpy, c->win,
 	    atom[WindowDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &i, 1);
+}
+
+void
+ewmh_update_net_work_area(Client * c)
+{
+	unsigned long *geoms;
+	int i;
+
+	geoms = malloc(sizeof(unsigned long)*4*ntags);
+	for(i = 0; i < ntags; i++) {
+		geoms[i*4] = 0;
+		geoms[i*4+1] = 0;
+		geoms[i*4+2] = DisplayWidth(dpy, screen);
+		geoms[i*4+3] = DisplayHeight(dpy, screen);
+	}
+	XChangeProperty(dpy, root,
+	    atom[WorkArea], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) geoms, ntags*4);
+	free(geoms);
 }
 
 void
@@ -307,12 +324,13 @@ updatestruts(Window win)
 	return result;
 }
 
-void (*updateatom[LASTAtom]) (Client *) = {
+void (*updateatom[]) (Client *) = {
 	[ClientList] = ewmh_update_net_client_list,
 	[ActiveWindow] = ewmh_update_net_active_window,
 	[WindowDesk] = ewmh_update_net_window_desktop,
 	[NumberOfDesk] = ewmh_update_net_number_of_desktops,
 	[DeskNames] = ewmh_update_net_desktop_names,
 	[CurDesk] = ewmh_update_net_current_desktop,
-	[ELayout] = update_echinus_layout_name
+	[ELayout] = update_echinus_layout_name,
+	[WorkArea] = ewmh_update_net_work_area,
 };

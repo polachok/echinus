@@ -709,6 +709,7 @@ initmonitors(XEvent * e)
 		XRRFreeCrtcInfo(ci);
 	}
 	XRRFreeScreenResources(sr);
+	updateatom[WorkArea](NULL);;
 	return;
       no_xrandr:
 #endif
@@ -723,6 +724,7 @@ initmonitors(XEvent * e)
 	m->seltags[0] = True;
 	m->next = NULL;
 	monitors = m;
+	updateatom[WorkArea](NULL);;
 }
 
 void
