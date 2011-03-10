@@ -25,16 +25,11 @@
 #define TAGBAR			0
 #define MODKEY			Mod1Mask /* key to press while moving */
 
-Layout layouts[] = {
+Layout layouts[] = { 
 	/* symbol               function */
-	{"i", ifloating}
-	,			/* first entry is default */
-	{"t", tile}
-	,
-	{"m", monocle}
-	,
-	{"b", bstack}
-	,
-	{"f", floating}
-	,
-};
+	{ "i", 			ifloating },	/* first entry is default */
+	{ "t", 			tile },
+	{ "m", 			monocle },
+	{ "b", 			bstack },
+	{ "f", 			floating },
+ };
