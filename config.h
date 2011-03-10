@@ -1,6 +1,6 @@
 /* See LICENSE file for copyright and license details. */
 #define BARPOS			StrutsOn	/* BarTop, BarOff */
-#define BORDERPX		3
+#define BORDERPX		1
 #define NF_OPACITY		0.9
 #define FONT			"fixed-9"
 #define NORMBORDERCOLOR		"#cccccc"
@@ -22,7 +22,6 @@
 #define SNAP			5	/* snap pixel */
 #define NMASTER			1	/* number of windows in master area */
 #define DECORATETILED		0	/* set to 1 to draw titles in tiled layouts */
-#define TITLEPOSITION		0
 #define TAGBAR			0
 #define MODKEY			Mod1Mask /* key to press while moving */
 
