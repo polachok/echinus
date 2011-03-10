@@ -282,6 +282,7 @@ Bool running = True;
 Bool selscreen = True;
 Bool notitles = False;
 Bool sloppy = False;
+int snap;
 Client *clients = NULL;
 Monitor *monitors = NULL;
 Client *sel = NULL;
@@ -1638,15 +1639,15 @@ movemouse(Client * c)
 			nm = curmonitor();
 			nx = ocx + (ev.xmotion.x - x1);
 			ny = ocy + (ev.xmotion.y - y1);
-			if (abs(m->wax + nx) < SNAP)
+			if (abs(m->wax + nx) < snap)
 				nx = m->wax;
 			else if (abs((m->wax + m->waw) - (nx + c->w +
-				    2 * c->border)) < SNAP)
+				    2 * c->border)) < snap)
 				nx = m->wax + m->waw - c->w - 2 * c->border;
-			if (abs(m->way - ny) < SNAP)
+			if (abs(m->way - ny) < snap)
 				ny = m->way;
 			else if (abs((m->way + m->wah) - (ny + c->h +
-				    2 * c->border)) < SNAP)
+				    2 * c->border)) < snap)
 				ny = m->way + m->wah - c->h - 2 * c->border;
 			resize(c, nm, nx - nm->sx, ny - nm->sy, c->w, c->h, False);
 			if (m != nm) {
@@ -2227,6 +2228,9 @@ setup(void)
 	dectiled = atoi(getresource("decoratetiled", DECORATETILED));
 	hidebastards = atoi(getresource("hidebastards", "0"));
 	sloppy = atoi(getresource("sloppy", "0"));
+#define TOSTR(_s) #_s
+	snap = atoi(getresource("snap", TOSTR(SNAP)));
+#undef TOSTR
 
 	for (m = monitors; m; m = m->next) {
 		m->struts[RightStrut] = m->struts[LeftStrut] =
