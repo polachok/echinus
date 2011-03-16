@@ -45,16 +45,16 @@ install: all
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@cp -f echinus ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/echinus
-	@echo installing configuration file and pixmaps to ${DESTDIR}${PREFIX}${CONF}
-	@mkdir -p ${DESTDIR}${PREFIX}${CONF}
-	@cp echinusrc ${DESTDIR}${PREFIX}${CONF}
-	@cp ${PIXMAPS} ${DESTDIR}${PREFIX}${CONF}
+	@echo installing configuration file and pixmaps to ${DESTDIR}${CONF}
+	@mkdir -p ${DESTDIR}${CONF}
+	@cp echinusrc ${DESTDIR}${CONF}
+	@cp ${PIXMAPS} ${DESTDIR}${CONF}
 	@echo installing manual page to ${DESTDIR}${MANPREFIX}/man1
 	@mkdir -p ${DESTDIR}${MANPREFIX}/man1
-	@sed "s/VERSION/${VERSION}/g;s|CONFDIR|${DESTDIR}${PREFIX}${CONF}|g" < echinus.1 > ${DESTDIR}${MANPREFIX}/man1/echinus.1
+	@sed "s/VERSION/${VERSION}/g;s|CONFDIR|${DESTDIR}${CONF}|g" < echinus.1 > ${DESTDIR}${MANPREFIX}/man1/echinus.1
 	@echo installing README to ${DESTDIR}${PREFIX}/share/doc/echinus
 	@mkdir -p ${DESTDIR}${PREFIX}/share/doc/echinus
-	@sed "s|CONFDIR|${PREFIX}${CONF}|" < README > ${DESTDIR}${PREFIX}/share/doc/echinus/README
+	@sed "s|CONFDIR|${CONF}|" < README > ${DESTDIR}${PREFIX}/share/doc/echinus/README
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
