@@ -62,6 +62,8 @@
 #define OPAQUE			0xffffffff
 #define STR(_s)			TOSTR(_s)
 #define TOSTR(_s)		#_s
+#define min(_a, _b)		((_a) < (_b) ? (_a) : (_b))
+#define max(_a, _b)		((_a) > (_b) ? (_a) : (_b))
 #ifdef DEBUG
 #define DPRINT			fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
 #define DPRINTF(format, ...)	fprintf(stderr, "%s %s():%d " format, __FILE__, __func__, __LINE__, __VA_ARGS__)
@@ -251,6 +253,7 @@ void tile(Monitor * m);
 void togglestruts(const char *arg);
 void togglefloating(const char *arg);
 void togglemax(const char *arg);
+void togglefill(const char *arg);
 void toggletag(const char *arg);
 void toggleview(const char *arg);
 void togglemonitor(const char *arg);
@@ -2408,6 +2411,56 @@ togglefloating(const char *arg)
 	}
 	drawclient(sel);
 	arrange(curmonitor());
+}
+
+void
+togglefill(const char *arg)
+{
+	XEvent ev;
+	Monitor *m = curmonitor();
+	Client *c;
+	int x1, x2, y1, y2, w, h;
+
+	x1 = m->wax;
+	x2 = m->sw;
+	y1 = m->way;
+	y2 = m->sh;
+
+	if (!sel || sel->isfixed)
+		return;
+	for(c = clients; c; c = c->next) {
+		if(isvisible(c, m) && (c != sel) && !c->isbastard && (c->isfloating || ISLTFLOATING(m))) {
+			if(c->y + c->h > sel->y && c->y < sel->y + sel->h) {
+				if(c->x < sel->x)
+					x1 = max(x1, c->x + c->w + look.borderpx);
+				else
+					x2 = min(x2, c->x - look.borderpx);
+			}
+			if(c->x + c->w > sel->x && c->x < sel->x + sel->w) {
+				if(c->y < sel->y)
+					y1 = max(y1, c->y + c->h + look.borderpx);
+				else
+					y2 = max(y2, c->y - look.borderpx);
+			}
+		}
+		DPRINTF("x1 = %d x2 = %d y1 = %d y2 = %d\n", x1, x2, y1, y2);
+	}
+	w = x2 - x1;
+	h = y2 - y1;
+	DPRINTF("x1 = %d w = %d y1 = %d h = %d\n", x1, w, y1, h);
+	if((w < sel->w) || (h < sel->h))
+		return;
+
+	if ((sel->ismax = !sel->ismax)) {
+		sel->rx = sel->x;
+		sel->ry = sel->y;
+		sel->rw = sel->w;
+		sel->rh = sel->h;
+		resize(sel, m, x1, y1, w, h, True);
+	} else {
+		resize(sel, m, sel->rx, sel->ry, sel->rw, sel->rh, True);
+	}
+	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
 
 void

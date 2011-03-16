@@ -33,6 +33,7 @@ static KeyItem KeyItems[] = {
 	{"resizedecy", moveresizekb},
 	{"resizeincy", moveresizekb},
 	{"togglemonitor", togglemonitor},
+	{"togglefill", togglefill},
 };
 
 static KeyItem KeyItemsByTag[] = {
