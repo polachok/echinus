@@ -41,27 +41,27 @@ dist: clean
 	@rm -rf echinus-${VERSION}
 
 install: all
-	@echo installing executable file to ${DESTDIR}${PREFIX}/bin
-	@mkdir -p ${DESTDIR}${PREFIX}/bin
-	@cp -f echinus ${DESTDIR}${PREFIX}/bin
-	@chmod 755 ${DESTDIR}${PREFIX}/bin/echinus
-	@echo installing configuration file and pixmaps to ${DESTDIR}${CONF}
-	@mkdir -p ${DESTDIR}${CONF}
-	@cp echinusrc ${DESTDIR}${CONF}
-	@cp ${PIXMAPS} ${DESTDIR}${CONF}
+	@echo installing executable file to ${DESTDIR}${BINPREFIX}
+	@mkdir -p ${DESTDIR}${BINPREFIX}
+	@cp -f echinus ${DESTDIR}${BINPREFIX}
+	@chmod 755 ${DESTDIR}${BINPREFIX}/echinus
+	@echo installing configuration file and pixmaps to ${DESTDIR}${CONFPREFIX}/echinus
+	@mkdir -p ${DESTDIR}${CONFPREFIX}/echinus
+	@cp echinusrc ${DESTDIR}${CONFPREFIX}/echinus
+	@cp ${PIXMAPS} ${DESTDIR}${CONFPREFIX}/echinus
 	@echo installing manual page to ${DESTDIR}${MANPREFIX}/man1
 	@mkdir -p ${DESTDIR}${MANPREFIX}/man1
 	@sed "s/VERSION/${VERSION}/g;s|CONFDIR|${DESTDIR}${CONF}|g" < echinus.1 > ${DESTDIR}${MANPREFIX}/man1/echinus.1
-	@echo installing README to ${DESTDIR}${PREFIX}/share/doc/echinus
-	@mkdir -p ${DESTDIR}${PREFIX}/share/doc/echinus
-	@sed "s|CONFDIR|${CONF}|" < README > ${DESTDIR}${PREFIX}/share/doc/echinus/README
+	@echo installing README to ${DESTDIR}${DOCPREFIX}/echinus
+	@mkdir -p ${DESTDIR}${DOCPREFIX}/echinus
+	@sed "s|CONFDIR|${CONF}|" < README > ${DESTDIR}${DOCPREFIX}/echinus/README
 
 uninstall:
-	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
-	@rm -f ${DESTDIR}${PREFIX}/bin/echinus
+	@echo removing executable file from ${DESTDIR}${BINPREFIX}/bin
+	@rm -f ${DESTDIR}${BINPREFIX}/bin/echinus
 	@echo removing manual page from ${DESTDIR}${MANPREFIX}/man1
 	@rm -f ${DESTDIR}${MANPREFIX}/man1/echinus.1
-	@echo removing configuration file and pixmaps from ${DESTDIR}${PREFIX}${CONF}
-	@rm -rf ${DESTDIR}${PREFIX}${CONF}
+	@echo removing configuration file and pixmaps from ${DESTDIR}${CONFPREFIX}
+	@rm -rf ${DESTDIR}${CONFPREFIX}
 
 .PHONY: all options clean dist install uninstall

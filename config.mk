@@ -1,12 +1,15 @@
 # echinus wm version
-VERSION = 0.4.4
+VERSION = 0.4.5
 
 # Customize below to fit your system
 
 # paths
 PREFIX?= /usr/local
+BINPREFIX?= ${PREFIX}/bin
 MANPREFIX?= ${PREFIX}/share/man
-CONF?= /etc/xdg/echinus
+CONFPREFIX?= ${PREFIX}/share/examples
+DOCPREFIX?= ${PREFIX}/share/doc
+CONF?= ${CONFPREFIX}
 
 X11INC?= /usr/X11R6/include
 X11LIB?= /usr/X11R6/lib
