@@ -2800,6 +2800,7 @@ viewprevtag(const char *arg)
 	if (bpos[prevcurtag] != bpos[curmontag])
 		updategeom(curmonitor());
 	arrange(NULL);
+	focus(NULL);
 	updateatom[CurDesk] (NULL);
 }
 
