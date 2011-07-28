@@ -1962,7 +1962,7 @@ initlayouts()
 		}
 		mwfacts[i] = mwfact;
 		nmasters[i] = nmaster;
-		bpos[i] = BARPOS;
+		bpos[i] = StrutsOn;
 	}
 
 	updateatom[ELayout] (NULL);
