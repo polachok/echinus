@@ -83,7 +83,7 @@ ewmh_update_net_client_list()
 
 	for (c = stack; c; c = c->snext)
 		n++;
-	wins = malloc(sizeof(Window *) * n);
+	wins = malloc(sizeof(Window) * n);
 	for (i = 0, c = stack; c; c = c->snext)
 		wins[i++] = c->win;
 	XChangeProperty(dpy, root,
