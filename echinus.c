@@ -1932,28 +1932,26 @@ void
 initlayouts()
 {
 	unsigned int i, j;
-	char conf[32], xres[256], buf[5];
+	char conf[32], xres[256];
 	float mwfact;
 	int nmaster;
+	const char *deflayout;
 
 	/* init layouts */
-	bzero(buf, sizeof(buf));
 	nmasters = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 	ltidxs = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 	mwfacts = (double *) emallocz(sizeof(double) * ntags);
 	bpos = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 
-	snprintf(buf, sizeof(buf), "%.2f", MWFACT);
-	mwfact = atof(getresource("mwfact", buf));
-	bzero(buf, sizeof(buf));
-	snprintf(buf, sizeof(buf), "%d", NMASTER);
-	nmaster = atoi(getresource("nmaster", buf));
+	mwfact = atof(getresource("mwfact", STR(MWFACT)));
+	nmaster = atoi(getresource("nmaster", STR(NMASTER)));
+	deflayout = getresource("deflayout", "i");
 	if (!nmaster)
 		nmaster = 1;
 	for (i = 0; i < ntags; i++) {
 		ltidxs[i] = 0;
 		snprintf(conf, sizeof(conf), "tags.layout%d", i);
-		strncpy(xres, getresource(conf, getresource("deflayout", "i")), 255);
+		strncpy(xres, getresource(conf, deflayout), 255);
 		for (j = 0; j < LENGTH(layouts); j++) {
 			if (!strcmp(layouts[j].symbol, xres)) {
 				ltidxs[i] = j;

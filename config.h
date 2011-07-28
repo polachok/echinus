@@ -21,5 +21,3 @@
 #define SNAP			5	/* snap pixel */
 #define NMASTER			1	/* number of windows in master area */
 #define DECORATETILED		0	/* set to 1 to draw titles in tiled layouts */
-#define TAGBAR			0
-#define MODKEY			Mod1Mask /* key to press while moving */
