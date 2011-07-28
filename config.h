@@ -24,12 +24,3 @@
 #define DECORATETILED		0	/* set to 1 to draw titles in tiled layouts */
 #define TAGBAR			0
 #define MODKEY			Mod1Mask /* key to press while moving */
-
-Layout layouts[] = { 
-	/* symbol               function */
-	{ "i", 			ifloating },	/* first entry is default */
-	{ "t", 			tile },
-	{ "m", 			monocle },
-	{ "b", 			bstack },
-	{ "f", 			floating },
- };

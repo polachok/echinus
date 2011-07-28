@@ -6,7 +6,8 @@ include config.mk
 
 PIXMAPS = close.xbm iconify.xbm max.xbm 
 FILES = draw.c parse.c ewmh.c config.h
-SRC = echinus.c
+SRC = draw.c echinus.c ewmh.c parse.c
+HEADERS = config.h echinus.h
 OBJ = ${SRC:.c=.o}
 
 all: options echinus ${HEADERS}
@@ -21,7 +22,7 @@ options:
 	@echo CC $<
 	@${CC} -c ${CFLAGS} $<
 
-${OBJ}: config.mk
+${OBJ}: config.mk ${HEADERS}
 
 echinus: ${OBJ} ${FILES}
 	@echo CC -o $@

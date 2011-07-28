@@ -1,3 +1,13 @@
+#include <regex.h>
+#include <ctype.h>
+#include <X11/Xatom.h>
+#include <X11/Xlib.h>
+#include <X11/Xproto.h>
+#include <X11/Xutil.h>
+#include <X11/Xft/Xft.h>
+#include "echinus.h"
+#include "config.h"
+
 int
 drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
     unsigned long col[ColLast], int x, int y, int mw)
@@ -228,7 +238,7 @@ drawclient(Client * c)
 	XCopyArea(dpy, c->drawable, c->title, dc.gc, 0, 0, c->w, c->th, 0, 0);
 }
 
-static void
+void
 initfont(const char *fontstr)
 {
 	dc.font.xftfont = NULL;

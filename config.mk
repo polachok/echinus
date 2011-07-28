@@ -1,5 +1,5 @@
 # echinus wm version
-VERSION = 0.4.5
+VERSION = 0.4.6
 
 # Customize below to fit your system
 

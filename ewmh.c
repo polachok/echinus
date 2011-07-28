@@ -7,18 +7,14 @@
  *
  */
 
+#include <regex.h>
 #include <X11/Xatom.h>
-
-enum { ClientList, ActiveWindow, WindowDesk,
-	NumberOfDesk, DeskNames, CurDesk, ELayout, WorkArea,
-	ClientListStacking, WindowOpacity, WindowType,
-	WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial,
-	ESelTags,
-	WindowName, WindowState, WindowStateFs, WindowStateModal,
-	WindowStateHidden,
-	Utf8String, Supported, WMProto, WMDelete, WMName, WMState, WMTakeFocus,
-	MWMHints, NATOMS
-};
+#include <X11/Xlib.h>
+#include <X11/Xproto.h>
+#include <X11/Xutil.h>
+#include <X11/Xft/Xft.h>
+#include "echinus.h"
+#include "config.h"
 
 Atom atom[NATOMS];
 
@@ -304,7 +300,7 @@ checkatom(Window win, Atom bigatom, Atom smallatom)
 	return ret;
 }
 
-static int
+int
 updatestruts(Window win)
 {
 	Atom real, *state;

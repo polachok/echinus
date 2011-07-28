@@ -1,3 +1,14 @@
+#include <regex.h>
+#include <ctype.h>
+#include <X11/Xatom.h>
+#include <X11/Xlib.h>
+#include <X11/Xproto.h>
+#include <X11/Xutil.h>
+#include <X11/Xft/Xft.h>
+#include "echinus.h"
+#include "config.h"
+
+
 /*
  *  echinus wm written by Alexander Polakov <polachok@gmail.com>
  *  this file contains code to parse rules and keybindings
@@ -154,7 +165,7 @@ initkeys()
 		}
 	}
 	/* layout setting */
-	for (i = 0; i < LENGTH(layouts); i++) {
+	for (i = 0; layouts[i].symbol != NULL; i++) {
 		snprintf(t, sizeof(t), "setlayout%s", layouts[i].symbol);
 		tmp = getresource(t, NULL);
 		if (!tmp)

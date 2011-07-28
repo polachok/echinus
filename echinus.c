@@ -49,6 +49,7 @@
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/randr.h>
 #endif
+#include "echinus.h"
 
 /* macros */
 #define BUTTONMASK		(ButtonPressMask | ButtonReleaseMask)
@@ -56,126 +57,12 @@
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
 #define CLIENTMASK	        (PropertyChangeMask | EnterWindowMask | FocusChangeMask)
 #define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | EnterWindowMask | LeaveWindowMask)
-#define LENGTH(x)		(sizeof(x) / sizeof x[0])
-#define RESNAME			       "echinus"
-#define RESCLASS	        "Echinus"
-#define OPAQUE			0xffffffff
+#define RESNAME		       "echinus"
+#define RESCLASS	       "Echinus"
 #define STR(_s)			TOSTR(_s)
 #define TOSTR(_s)		#_s
 #define min(_a, _b)		((_a) < (_b) ? (_a) : (_b))
 #define max(_a, _b)		((_a) > (_b) ? (_a) : (_b))
-#ifdef DEBUG
-#define DPRINT			fprintf(stderr, "%s: %s() %d\n",__FILE__,__func__, __LINE__);
-#define DPRINTF(format, ...)	fprintf(stderr, "%s %s():%d " format, __FILE__, __func__, __LINE__, __VA_ARGS__)
-#else
-#define DPRINT			;
-#define DPRINTF(format, ...)
-#endif
-#define DPRINTCLIENT(c) DPRINTF("%s: x: %d y: %d w: %d h: %d th: %d f: %d b: %d m: %d\n", \
-				    c->name, c->x, c->y, c->w, c->h, c->th, c->isfloating, c->isbastard, c->ismax)
-#define ISLTFLOATING(m) (m && ((layouts[ltidxs[m->curtag]].arrange == floating) || (layouts[ltidxs[m->curtag]].arrange == ifloating)))
-
-/* enums */
-enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };
-enum { StrutsOn, StrutsOff, StrutsHide };	/* struts position */
-enum { AlignLeft, AlignCenter, AlignRight };	/* title position */
-enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
-enum { ColBorder, ColFG, ColBG, ColButton, ColLast };	/* color */
-enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise };	/* focus model */
-enum { ClientWindow, ClientTitle, ClientFrame };	/* client parts */
-enum { Iconify, Maximize, Close, LastBtn };
-
-/* typedefs */
-typedef struct Monitor Monitor;
-struct Monitor {
-	int sx, sy, sw, sh, wax, way, waw, wah;
-	unsigned int curtag;
-	unsigned long struts[LastStrut];
-	Bool *seltags;
-	Bool *prevtags;
-	Monitor *next;
-};
-
-typedef struct Client Client;
-struct Client {
-	char name[256];
-	int x, y, w, h;
-	int th;			/* title window */
-	int rx, ry, rw, rh;	/* revert geometry */
-	int sfx, sfy, sfw, sfh;	/* stored float geometry, used on mode revert */
-	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
-	int minax, maxax, minay, maxay;
-	long flags;
-	int border, oldborder;
-	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon;
-	Bool isplaced, isbastard, isfocusable;
-	Bool *tags;
-	Client *next;
-	Client *prev;
-	Client *snext;
-	Window win;
-	Window title;
-	Window frame;
-	Pixmap drawable;
-	XftDraw *xftdraw;
-};
-
-typedef struct {
-	Pixmap pm;
-	int px, py;
-	unsigned int pw, ph;
-	int x;
-	void (*action) (const char *arg);
-} Button;
-
-typedef struct {
-	unsigned int borderpx;
-	unsigned int drawoutline;
-	float uf_opacity;
-	char titlelayout[32];
-	Button button[LastBtn];
-} Look;
-
-typedef struct {
-	unsigned int x, y, w, h;
-	unsigned long norm[ColLast];
-	unsigned long sel[ColLast];
-	XftColor *xftnorm;
-	XftColor *xftsel;
-	GC gc;
-	struct {
-		XftFont *xftfont;
-		XGlyphInfo *extents;
-		int ascent;
-		int descent;
-		int height;
-		int width;
-	} font;
-} DC;				/* draw context */
-
-typedef struct {
-	unsigned long mod;
-	KeySym keysym;
-	void (*func) (const char *arg);
-	const char *arg;
-} Key;
-
-typedef struct {
-	const char *symbol;
-	void (*arrange) (Monitor * m);
-} Layout;
-
-typedef struct {
-	char *prop;
-	char *tags;
-	Bool isfloating;
-	Bool hastitle;
-} Rule;
-
-typedef struct {
-	regex_t *propregex;
-	regex_t *tagregex;
-} Regs;
 
 /* function declarations */
 void applyrules(Client * c);
@@ -292,18 +179,6 @@ Client *clients = NULL;
 Monitor *monitors = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
-#define curseltags curmonitor()->seltags
-#define curprevtags curmonitor()->prevtags
-#define cursx curmonitor()->sx
-#define cursy curmonitor()->sy
-#define cursh curmonitor()->sh
-#define cursw curmonitor()->sw
-#define curwax curmonitor()->wax
-#define curway curmonitor()->way
-#define curwaw curmonitor()->waw
-#define curwah curmonitor()->wah
-#define curmontag curmonitor()->curtag
-#define curstruts curmonitor()->struts
 unsigned int *nmasters;
 unsigned int *bpos;
 unsigned int *ltidxs;
@@ -330,9 +205,16 @@ unsigned int modkey = 0;
 char conf[256] = "\0";
 /* configuration, allows nested code to access above variables */
 #include "config.h"
-#include "ewmh.c"
-#include "parse.c"
-#include "draw.c"
+
+Layout layouts[] = { 
+	/* symbol               function */
+	{ "i", 			ifloating },	/* first entry is default */
+	{ "t", 			tile },
+	{ "m", 			monocle },
+	{ "b", 			bstack },
+	{ "f", 			floating },
+	{ NULL,			NULL },
+};
 
 void (*handler[LASTEvent]) (XEvent *) = {
 	[ButtonPress] = buttonpress,
