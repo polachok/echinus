@@ -109,12 +109,10 @@ void
 ewmh_update_net_current_desktop()
 {
 	Monitor *m;
-	static Bool *seltags = NULL;
+	unsigned long *seltags;
 	unsigned int i;
 
-	if (!seltags)
-		seltags = emallocz(ntags * sizeof(Bool));
-	bzero(seltags, ntags * sizeof(Bool));
+	seltags = emallocz(ntags * sizeof(unsigned long));
 	for (m = monitors; m != NULL; m = m->next) {
 		for (i = 0; i < ntags; i++)
 			seltags[i] |= m->seltags[i];
@@ -125,6 +123,7 @@ ewmh_update_net_current_desktop()
 	XChangeProperty(dpy, root, atom[CurDesk], XA_CARDINAL, 32,
 	    PropModeReplace, (unsigned char *) &curmontag, 1);
 	update_echinus_layout_name(NULL);
+	free(seltags);
 }
 
 void
