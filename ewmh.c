@@ -274,25 +274,34 @@ setopacity(Client * c, unsigned int opacity)
 	}
 }
 
+void *
+getatom(Window win, Atom atom, unsigned long *nitems) {
+	int format, status;
+	unsigned char *ret = NULL;
+	unsigned long extra;
+	Atom real;
+
+	status = XGetWindowProperty(dpy, win, atom, 0L, 64L, False, AnyPropertyType,
+			&real, &format, nitems, &extra, (unsigned char **)&ret);
+	if (status == BadWindow)
+		return NULL;
+
+	return ret;
+}
+
 Bool
 checkatom(Window win, Atom bigatom, Atom smallatom)
 {
-	Atom real, *state;
-	int format;
+	Atom *state;
+	unsigned long i, n;
 	Bool ret = False;
-	unsigned char *data = NULL;
-	unsigned long i, n, extra;
 
-	if (XGetWindowProperty(dpy, win, bigatom, 0L, LONG_MAX, False,
-		XA_ATOM, &real, &format, &n, &extra,
-		(unsigned char **) &data) == Success && data) {
-		state = (Atom *) data;
-		for (i = 0; i < n; i++) {
-			if (state[i] == smallatom)
-				ret = True;
-		}
+	state = (Atom*)getatom(win, bigatom, &n);
+	for (i = 0; i < n; i++) {
+		if (state[i] == smallatom)
+			ret = True;
 	}
-	XFree(data);
+	XFree(state);
 	return ret;
 }
 
