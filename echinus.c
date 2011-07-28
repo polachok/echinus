@@ -1779,6 +1779,8 @@ restack(Monitor * m)
 			n++;
 		}
 	}
+	if (!n)
+		return;
 	wl = malloc(sizeof(Window) * n);
 	for (i = 0, c = stack; c && i < n; c = c->snext) {
 		if (isvisible(c, m) && !c->isicon && c->isbastard &&
@@ -2224,7 +2226,7 @@ tile(Monitor * m)
 
 	/* window geoms */
 	mh = (n <= nmasters[m->curtag]) ? m->wah / (n >
-	    0 ? n : 1) : m->wah / nmasters[m->curtag];
+	    0 ? n : 1) : m->wah / (nmasters[m->curtag] ? nmasters[m->curtag] : 1);
 	mw = (n <= nmasters[m->curtag]) ? m->waw : mwfacts[m->curtag] * m->waw;
 	th = (n > nmasters[m->curtag]) ? m->wah / (n - nmasters[m->curtag]) : 0;
 	if (n > nmasters[m->curtag] && th < dc.h)
@@ -2390,6 +2392,8 @@ togglemonitor(const char *arg)
 
 	getpointer(&x, &y);
 	for (cm = curmonitor(), m = monitors; m == cm && m && m->next; m = m->next);
+	if (!m)
+		return;
 	XWarpPointer(dpy, None, root, 0, 0, 0, 0, m->sx + x % m->sw, m->sy + y % m->sh);
 	focus(NULL);
 }

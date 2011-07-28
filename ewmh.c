@@ -73,12 +73,19 @@ update_echinus_layout_name(Client * c)
 void
 ewmh_update_net_client_list()
 {
-	Window *wins;
+	Window *wins = NULL;
 	Client *c;
 	int i, n = 0;
 
 	for (c = stack; c; c = c->snext)
 		n++;
+	if (!n) {
+		XChangeProperty(dpy, root, atom[ClientList], XA_WINDOW, 32,
+			       	PropModeReplace, (unsigned char *) wins, n);
+		XChangeProperty(dpy, root, atom[ClientListStacking], XA_WINDOW,
+			       	32, PropModeReplace, (unsigned char *) wins, n);
+		return;
+	}
 	wins = malloc(sizeof(Window) * n);
 	for (i = 0, c = stack; c; c = c->snext)
 		wins[i++] = c->win;
