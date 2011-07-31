@@ -285,8 +285,10 @@ getatom(Window win, Atom atom, unsigned long *nitems) {
 
 	status = XGetWindowProperty(dpy, win, atom, 0L, 64L, False, AnyPropertyType,
 			&real, &format, nitems, &extra, (unsigned char **)&ret);
-	if (status == BadWindow)
+	if (status != Success) {
+		*nitems = 0;
 		return NULL;
+	}
 
 	return ret;
 }
