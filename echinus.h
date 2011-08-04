@@ -121,6 +121,7 @@ void mwm_process_atom(Client * c);
 void ewmh_process_state_atom(Client * c, Atom state, int set);
 extern void (*updateatom[]) (Client *);
 Bool checkatom(Window win, Atom bigatom, Atom smallatom);
+void *getatom(Window win, Atom atom, unsigned long *nitems);
 
 /* main */
 void eprint(const char *errstr, ...);

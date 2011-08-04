@@ -982,21 +982,15 @@ getcolor(const char *colstr)
 long
 getstate(Window w)
 {
-	int format, status;
-	long result = -1;
-	unsigned char *p = NULL;
-	unsigned long n, extra;
-	Atom real;
+	long ret = -1;
+	long *p = NULL;
+	unsigned long n;
 
-	status =
-	    XGetWindowProperty(dpy, w, atom[WMState], 0L, 2L, False,
-	    atom[WMState], &real, &format, &n, &extra, (unsigned char **) &p);
-	if (status != Success)
-		return -1;
+	p = (long*)getatom(w, atom[WMState], &n);
 	if (n != 0)
-		result = *p;
+		ret = *p;
 	XFree(p);
-	return result;
+	return ret;
 }
 
 const char *
