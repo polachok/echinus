@@ -2431,7 +2431,7 @@ focusview(const char *arg)
 	i = idxoftag(arg);
 	if (!curseltags[i])
 		return;
-	for (c = clients; c; c = c->next) {
+	for (c = stack; c; c = c->snext) {
 		if (c->tags[i] && !c->isbastard) {
 			focus(c);
 			break;
