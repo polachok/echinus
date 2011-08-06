@@ -255,6 +255,40 @@ initfont(const char *fontstr)
 	dc.font.descent = style.font->descent;
 }
 
+void
+initstyle() {
+	style.color.norm[ColBorder] = getcolor(getresource("normal.border", NORMBORDERCOLOR));
+	style.color.norm[ColBG] = getcolor(getresource("normal.bg", NORMBGCOLOR));
+	style.color.norm[ColFG] = getcolor(getresource("normal.fg", NORMFGCOLOR));
+	style.color.norm[ColButton] = getcolor(getresource("normal.button", NORMBUTTONCOLOR));
+
+	style.color.sel[ColBorder] = getcolor(getresource("selected.border", SELBORDERCOLOR));
+	style.color.sel[ColBG] = getcolor(getresource("selected.bg", SELBGCOLOR));
+	style.color.sel[ColFG] = getcolor(getresource("selected.fg", SELFGCOLOR));
+	style.color.sel[ColButton] = getcolor(getresource("selected.button", SELBUTTONCOLOR));
+
+	style.color.font[Selected] = emallocz(sizeof(XftColor));
+	style.color.font[Normal] = emallocz(sizeof(XftColor));
+	XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
+				screen), getresource("selected.fg", SELFGCOLOR), style.color.font[Selected]);
+	XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
+				screen), getresource("normal.fg", SELFGCOLOR), style.color.font[Normal]);
+	if (!style.color.font[Normal] || !style.color.font[Normal])
+		eprint("error, cannot allocate colors\n");
+	initfont(getresource("font", FONT));
+	style.borderpx = atoi(getresource("border", STR(BORDERPX)));
+	style.uf_opacity = atof(getresource("opacity", STR(NF_OPACITY)));
+	style.drawoutline = atoi(getresource("outline", "0"));
+	strncpy(style.titlelayout, getresource("titlelayout", "N  IMC"),
+	    LENGTH(style.titlelayout));
+	style.titlelayout[LENGTH(style.titlelayout) - 1] = '\0';
+	dc.h = atoi(getresource("title", STR(TITLEHEIGHT)));
+	if (!dc.h)
+		dc.h = dc.font.height + 2;
+	dc.gc = XCreateGC(dpy, root, 0, 0);
+	initbuttons();
+}
+
 unsigned int
 textnw(const char *text, unsigned int len)
 {

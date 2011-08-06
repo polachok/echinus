@@ -174,7 +174,7 @@ void initrules();
 int initkeys();
 
 /* draw.c */
-void initfont(const char *fontstr);
+void initstyle();
 void initbuttons();
 
 #define curseltags curmonitor()->seltags
@@ -204,6 +204,13 @@ void initbuttons();
 #define ISLTFLOATING(m) (m && ((layouts[ltidxs[m->curtag]].arrange == floating) || (layouts[ltidxs[m->curtag]].arrange == ifloating)))
 
 #define OPAQUE			0xffffffff
+#define RESNAME		       "echinus"
+#define RESCLASS	       "Echinus"
+#define STR(_s)			TOSTR(_s)
+#define TOSTR(_s)		#_s
+#define min(_a, _b)		((_a) < (_b) ? (_a) : (_b))
+#define max(_a, _b)		((_a) > (_b) ? (_a) : (_b))
+
 
 /* globals */
 extern Atom atom[NATOMS];
