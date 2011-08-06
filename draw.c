@@ -24,8 +24,8 @@ drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
 		len = sizeof buf - 1;
 	memcpy(buf, text, len);
 	buf[len] = 0;
-	h = dc.h;
-	y = dc.h / 2 + dc.font.ascent / 2 - 1 - style.drawoutline;
+	h = style.titleheight;
+	y = style.titleheight / 2 + dc.font.ascent / 2 - 1 - style.drawoutline;
 	x += dc.font.height / 2;
 	/* shorten text if necessary */
 	while (len && (w = textnw(buf, len)) > mw) {
@@ -55,7 +55,7 @@ drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
 Pixmap
 initpixmap(const char *file, Button * b)
 {
-	b->pm = XCreatePixmap(dpy, root, dc.h, dc.h, 1);
+	b->pm = XCreatePixmap(dpy, root, style.titleheight, style.titleheight, 1);
 	if (BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph,
 		&b->pm, &b->px, &b->py)) {
 		if (b->px == -1 || b->py == -1)
@@ -86,12 +86,12 @@ int
 drawbutton(Drawable d, Drawable btn, unsigned long col[ColLast], int x, int y)
 {
 	XSetForeground(dpy, dc.gc, col[ColBG]);
-	XFillRectangle(dpy, d, dc.gc, x, 0, dc.h, dc.h);
+	XFillRectangle(dpy, d, dc.gc, x, 0, style.titleheight, style.titleheight);
 	XSetForeground(dpy, dc.gc, col[ColButton]);
 	XSetBackground(dpy, dc.gc, col[ColBG]);
 	XCopyPlane(dpy, btn, d, dc.gc, 0, 0, button[Iconify].pw,
 	    button[Iconify].ph, x, y + button[Iconify].py, 1);
-	return dc.h;
+	return style.titleheight;
 }
 
 int
@@ -112,9 +112,9 @@ drawelement(char which, int x, int position, Client * c)
 		break;
 	case '|':
 		XSetForeground(dpy, dc.gc, color[ColBorder]);
-		XDrawLine(dpy, c->drawable, dc.gc, dc.x + dc.h / 4, 0,
-		    dc.x + dc.h / 4, dc.h);
-		w = dc.h / 2;
+		XDrawLine(dpy, c->drawable, dc.gc, dc.x + style.titleheight / 4, 0,
+		    dc.x + style.titleheight / 4, style.titleheight);
+		w = style.titleheight / 2;
 		break;
 	case 'N':
 		w = drawtext(c->name, c->drawable, c->xftdraw, color, dc.x, dc.y, dc.w);
@@ -122,17 +122,17 @@ drawelement(char which, int x, int position, Client * c)
 	case 'I':
 		button[Iconify].x = dc.x;
 		w = drawbutton(c->drawable, button[Iconify].pm, color,
-		    dc.x, dc.h / 2 - button[Iconify].ph / 2);
+		    dc.x, style.titleheight / 2 - button[Iconify].ph / 2);
 		break;
 	case 'M':
 		button[Maximize].x = dc.x;
 		w = drawbutton(c->drawable, button[Maximize].pm, color,
-		    dc.x, dc.h / 2 - button[Maximize].ph / 2);
+		    dc.x, style.titleheight / 2 - button[Maximize].ph / 2);
 		break;
 	case 'C':
 		button[Close].x = dc.x;
 		w = drawbutton(c->drawable, button[Close].pm, color, dc.x,
-		    dc.h / 2 - button[Maximize].ph / 2);
+		    style.titleheight / 2 - button[Maximize].ph / 2);
 		break;
 	default:
 		w = 0;
@@ -151,7 +151,7 @@ elementw(char which, Client * c)
 	case 'I':
 	case 'M':
 	case 'C':
-		return dc.h;
+		return style.titleheight;
 	case 'N':
 		return textw(c->name);
 	case 'T':
@@ -162,7 +162,7 @@ elementw(char which, Client * c)
 		}
 		return w;
 	case '|':
-		return dc.h / 2;
+		return style.titleheight / 2;
 	}
 	return 0;
 }
@@ -194,13 +194,13 @@ drawclient(Client * c)
 	dc.x = dc.y = 0;
 	dc.w = c->w;
 	if (dc.w < textw(c->name)) {
-		dc.w -= dc.h;
+		dc.w -= style.titleheight;
 		button[Close].x = dc.w;
 		drawtext(c->name, c->drawable, c->xftdraw,
 		    c == sel ? style.color.sel : style.color.norm, dc.x, dc.y, dc.w);
 		drawbutton(c->drawable, button[Close].pm,
 		    c == sel ? style.color.sel : style.color.norm, dc.w,
-		    dc.h / 2 - button[Close].ph / 2);
+		    style.titleheight / 2 - button[Close].ph / 2);
 		goto end;
 	}
 	/* Left */
@@ -233,7 +233,7 @@ drawclient(Client * c)
 	if (style.drawoutline) {
 		XSetForeground(dpy, dc.gc,
 		    c == sel ? style.color.sel[ColBorder] : style.color.norm[ColBorder]);
-		XDrawLine(dpy, c->drawable, dc.gc, 0, dc.h - 1, dc.w, dc.h - 1);
+		XDrawLine(dpy, c->drawable, dc.gc, 0, style.titleheight - 1, dc.w, style.titleheight - 1);
 	}
 	XCopyArea(dpy, c->drawable, c->title, dc.gc, 0, 0, c->w, c->th, 0, 0);
 }
@@ -282,9 +282,9 @@ initstyle() {
 	strncpy(style.titlelayout, getresource("titlelayout", "N  IMC"),
 	    LENGTH(style.titlelayout));
 	style.titlelayout[LENGTH(style.titlelayout) - 1] = '\0';
-	dc.h = atoi(getresource("title", STR(TITLEHEIGHT)));
-	if (!dc.h)
-		dc.h = dc.font.height + 2;
+	style.titleheight = atoi(getresource("title", STR(TITLEHEIGHT)));
+	if (!style.titleheight)
+		style.titleheight = dc.font.height + 2;
 	dc.gc = XCreateGC(dpy, root, 0, 0);
 	initbuttons();
 }

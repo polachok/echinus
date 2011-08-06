@@ -394,7 +394,7 @@ buttonpress(XEvent * e)
 		focus(c);
 		for (i = 0; i < LastBtn; i++) {
 			if ((ev->x > button[i].x)
-			    && ((int)ev->x < (int)(button[i].x + dc.h))
+			    && ((int)ev->x < (int)(button[i].x + style.titleheight))
 			    && (button[i].x != -1)) {
 				DPRINTF("BUTTON %d PRESSED\n", i);
 				button[i].action(NULL);
@@ -1191,7 +1191,7 @@ manage(Window w, XWindowAttributes * wa)
 	updatetitle(c);
 	applyrules(c);
 
-	c->th = c->title ? dc.h : 0;
+	c->th = c->title ? style.titleheight : 0;
 
 	if (!c->isfloating)
 		c->isfloating = (rettrans == Success) || c->isfixed;
@@ -1614,7 +1614,7 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 {
 	XWindowChanges wc;
 
-	c->th = c->title && (c->isfloating || dectiled || ISLTFLOATING(m)) ? dc.h : 0;
+	c->th = c->title && (c->isfloating || dectiled || ISLTFLOATING(m)) ? style.titleheight : 0;
 	if (sizehints) {
 		h -= c->th;
 		/* set minimum possible */
@@ -2184,7 +2184,7 @@ tile(Monitor * m)
 	    0 ? n : 1) : m->wah / (nmasters[m->curtag] ? nmasters[m->curtag] : 1);
 	mw = (n <= nmasters[m->curtag]) ? m->waw : mwfacts[m->curtag] * m->waw;
 	th = (n > nmasters[m->curtag]) ? m->wah / (n - nmasters[m->curtag]) : 0;
-	if (n > nmasters[m->curtag] && th < dc.h)
+	if (n > nmasters[m->curtag] && th < style.titleheight)
 		th = m->wah;
 
 	nx = m->wax;
@@ -2316,7 +2316,7 @@ togglemax(const char *arg)
 		sel->rw = sel->w;
 		sel->rh = sel->h;
 		resize(sel, m, m->wax - sel->border,
-		    m->way - sel->border - dc.h, m->waw, m->wah + dc.h, False);
+		    m->way - sel->border - style.titleheight, m->waw, m->wah + style.titleheight, False);
 	} else {
 		resize(sel, m, sel->rx, sel->ry, sel->rw, sel->rh, True);
 	}

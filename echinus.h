@@ -67,8 +67,9 @@ typedef struct {
 typedef struct {
 	unsigned int borderpx;
 	unsigned int drawoutline;
-	float uf_opacity;
+	unsigned int titleheight;
 	char titlelayout[32];
+	float uf_opacity;
 	struct {
 		unsigned long norm[ColLast];
 		unsigned long sel[ColLast];
@@ -78,7 +79,7 @@ typedef struct {
 } Style;
 
 typedef struct {
-	unsigned int x, y, w, h;
+	unsigned int x, y, w;
 	GC gc;
 	struct {
 		XGlyphInfo *extents;
