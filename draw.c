@@ -25,7 +25,7 @@ drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
 	memcpy(buf, text, len);
 	buf[len] = 0;
 	h = style.titleheight;
-	y = style.titleheight / 2 + dc.font.ascent / 2 - 1 - style.drawoutline;
+	y = style.titleheight / 2 + dc.font.ascent / 2 - 1 - style.outline;
 	x += dc.font.height / 2;
 	/* shorten text if necessary */
 	while (len && (w = textnw(buf, len)) > mw) {
@@ -171,11 +171,9 @@ void
 drawclient(Client * c)
 {
 	size_t i;
-	unsigned int opacity;
 
-	if (style.uf_opacity) {
-		opacity = (c == sel) ? OPAQUE : style.uf_opacity * OPAQUE;
-		setopacity(c, opacity);
+	if (style.opacity) {
+		setopacity(c, c == sel ? OPAQUE : style.opacity);
 	}
 	if (!isvisible(c, NULL))
 		return;
@@ -189,7 +187,7 @@ drawclient(Client * c)
 	XMapRaised(dpy, c->title);
 	XftDrawChange(c->xftdraw, c->drawable);
 	XSetForeground(dpy, dc.gc, c == sel ? style.color.sel[ColBG] : style.color.norm[ColBG]);
-	XSetLineAttributes(dpy, dc.gc, style.borderpx, LineSolid, CapNotLast, JoinMiter);
+	XSetLineAttributes(dpy, dc.gc, style.border, LineSolid, CapNotLast, JoinMiter);
 	XFillRectangle(dpy, c->drawable, dc.gc, 0, 0, c->w, c->th);
 	dc.x = dc.y = 0;
 	dc.w = c->w;
@@ -230,7 +228,7 @@ drawclient(Client * c)
 		drawelement(style.titlelayout[i], 0, AlignRight, c);
 	}
       end:
-	if (style.drawoutline) {
+	if (style.outline) {
 		XSetForeground(dpy, dc.gc,
 		    c == sel ? style.color.sel[ColBorder] : style.color.norm[ColBorder]);
 		XDrawLine(dpy, c->drawable, dc.gc, 0, style.titleheight - 1, dc.w, style.titleheight - 1);
@@ -276,9 +274,9 @@ initstyle() {
 	if (!style.color.font[Normal] || !style.color.font[Normal])
 		eprint("error, cannot allocate colors\n");
 	initfont(getresource("font", FONT));
-	style.borderpx = atoi(getresource("border", STR(BORDERPX)));
-	style.uf_opacity = atof(getresource("opacity", STR(NF_OPACITY)));
-	style.drawoutline = atoi(getresource("outline", "0"));
+	style.border = atoi(getresource("border", STR(BORDERPX)));
+	style.opacity = OPAQUE * atof(getresource("opacity", STR(NF_OPACITY)));
+	style.outline = atoi(getresource("outline", "0"));
 	strncpy(style.titlelayout, getresource("titlelayout", "N  IMC"),
 	    LENGTH(style.titlelayout));
 	style.titlelayout[LENGTH(style.titlelayout) - 1] = '\0';

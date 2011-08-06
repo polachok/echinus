@@ -65,11 +65,11 @@ typedef struct {
 } Button;
 
 typedef struct {
-	unsigned int borderpx;
-	unsigned int drawoutline;
+	unsigned int border;
+	unsigned int outline;
 	unsigned int titleheight;
+	unsigned int opacity;
 	char titlelayout[32];
-	float uf_opacity;
 	struct {
 		unsigned long norm[ColLast];
 		unsigned long sel[ColLast];

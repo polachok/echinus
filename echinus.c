@@ -944,7 +944,7 @@ incnmaster(const char *arg)
 	} else {
 		i = atoi(arg);
 		if ((nmasters[curmontag] + i) < 1
-		    || curwah / (nmasters[curmontag] + i) <= 2 * style.borderpx)
+		    || curwah / (nmasters[curmontag] + i) <= 2 * style.border)
 			return;
 		nmasters[curmontag] += i;
 	}
@@ -1179,7 +1179,7 @@ manage(Window w, XWindowAttributes * wa)
 	c->title = c->isbastard ? (Window) NULL : 1;
 	c->tags = emallocz(ntags * sizeof(curseltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
-	c->border = c->isbastard ? 0 : style.borderpx;
+	c->border = c->isbastard ? 0 : style.border;
 	mwm_process_atom(c);
 	updatesizehints(c);
 
@@ -2271,15 +2271,15 @@ togglefill(const char *arg)
 		if(isvisible(c, m) && (c != sel) && !c->isbastard && (c->isfloating || ISLTFLOATING(m))) {
 			if(c->y + c->h > sel->y && c->y < sel->y + sel->h) {
 				if(c->x < sel->x)
-					x1 = max(x1, c->x + c->w + style.borderpx);
+					x1 = max(x1, c->x + c->w + style.border);
 				else
-					x2 = min(x2, c->x - style.borderpx);
+					x2 = min(x2, c->x - style.border);
 			}
 			if(c->x + c->w > sel->x && c->x < sel->x + sel->w) {
 				if(c->y < sel->y)
-					y1 = max(y1, c->y + c->h + style.borderpx);
+					y1 = max(y1, c->y + c->h + style.border);
 				else
-					y2 = max(y2, c->y - style.borderpx);
+					y2 = max(y2, c->y - style.border);
 			}
 		}
 		DPRINTF("x1 = %d x2 = %d y1 = %d y2 = %d\n", x1, x2, y1, y2);
