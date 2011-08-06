@@ -473,10 +473,10 @@ cleanup(void)
 	XrmDestroyDatabase(xrdb);
 	/* free colors */
 	XftColorFree(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
-		screen), dc.color.font[Normal]);
+		screen), style.color.font[Normal]);
 	XftColorFree(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
-		screen), dc.color.font[Selected]);
-	XftFontClose(dpy, dc.font.xftfont);
+		screen), style.color.font[Selected]);
+	XftFontClose(dpy, style.font);
 	free(dc.font.extents);
 	XUngrabKey(dpy, AnyKey, AnyModifier, root);
 	XFreeGC(dpy, dc.gc);
@@ -867,7 +867,7 @@ focus(Client * c)
 		    c && (c->isbastard || !isvisible(c, curmonitor())); c = c->snext);
 	if (sel && sel != c) {
 		grabbuttons(sel, False);
-		XSetWindowBorder(dpy, sel->frame, dc.color.norm[ColBorder]);
+		XSetWindowBorder(dpy, sel->frame, style.color.norm[ColBorder]);
 	}
 	if (c) {
 		c->isicon = False;
@@ -885,7 +885,7 @@ focus(Client * c)
 			XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
 			givefocus(c);
 		}
-		XSetWindowBorder(dpy, sel->frame, dc.color.sel[ColBorder]);
+		XSetWindowBorder(dpy, sel->frame, style.color.sel[ColBorder]);
 		drawclient(c);
 	} else {
 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
@@ -1249,7 +1249,7 @@ manage(Window w, XWindowAttributes * wa)
 		twa.background_pixel = BlackPixel(dpy, screen);
 		twa.border_pixel = BlackPixel(dpy, screen);
 	} else {
-		twa.background_pixel = dc.color.norm[ColBG];
+		twa.background_pixel = style.color.norm[ColBG];
 	}
 	c->frame =
 	    XCreateWindow(dpy, root, cm->sx + c->x, cm->sy + c->y, c->w,
@@ -1258,7 +1258,7 @@ manage(Window w, XWindowAttributes * wa)
 		screen), mask, &twa);
 
 	XConfigureWindow(dpy, c->frame, CWBorderWidth, &wc);
-	XSetWindowBorder(dpy, c->frame, dc.color.norm[ColBorder]);
+	XSetWindowBorder(dpy, c->frame, style.color.norm[ColBorder]);
 
 	twa.event_mask = ExposureMask | MOUSEMASK;
 	/* we create title as root's child as a workaround for 32bit visuals */
@@ -1288,7 +1288,7 @@ manage(Window w, XWindowAttributes * wa)
 	XMapRaised(dpy, c->title);
 	wc.border_width = 0;
 	XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
-	XSetWindowBorder(dpy, c->win, dc.color.norm[ColBorder]);
+	XSetWindowBorder(dpy, c->win, style.color.norm[ColBorder]);
 	configure(c);	/* propagates border_width, if size doesn't change */
 	if (checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
 		ewmh_process_state_atom(c, atom[WindowStateFs], 1);
@@ -2075,23 +2075,23 @@ setup(void)
 	grabkeys();
 
 	/* init appearance */
-	dc.color.norm[ColBorder] = getcolor(getresource("normal.border", NORMBORDERCOLOR));
-	dc.color.norm[ColBG] = getcolor(getresource("normal.bg", NORMBGCOLOR));
-	dc.color.norm[ColFG] = getcolor(getresource("normal.fg", NORMFGCOLOR));
-	dc.color.norm[ColButton] = getcolor(getresource("normal.button", NORMBUTTONCOLOR));
+	style.color.norm[ColBorder] = getcolor(getresource("normal.border", NORMBORDERCOLOR));
+	style.color.norm[ColBG] = getcolor(getresource("normal.bg", NORMBGCOLOR));
+	style.color.norm[ColFG] = getcolor(getresource("normal.fg", NORMFGCOLOR));
+	style.color.norm[ColButton] = getcolor(getresource("normal.button", NORMBUTTONCOLOR));
 
-	dc.color.sel[ColBorder] = getcolor(getresource("selected.border", SELBORDERCOLOR));
-	dc.color.sel[ColBG] = getcolor(getresource("selected.bg", SELBGCOLOR));
-	dc.color.sel[ColFG] = getcolor(getresource("selected.fg", SELFGCOLOR));
-	dc.color.sel[ColButton] = getcolor(getresource("selected.button", SELBUTTONCOLOR));
+	style.color.sel[ColBorder] = getcolor(getresource("selected.border", SELBORDERCOLOR));
+	style.color.sel[ColBG] = getcolor(getresource("selected.bg", SELBGCOLOR));
+	style.color.sel[ColFG] = getcolor(getresource("selected.fg", SELFGCOLOR));
+	style.color.sel[ColButton] = getcolor(getresource("selected.button", SELBUTTONCOLOR));
 
-	dc.color.font[Selected] = emallocz(sizeof(XftColor));
-	dc.color.font[Normal] = emallocz(sizeof(XftColor));
+	style.color.font[Selected] = emallocz(sizeof(XftColor));
+	style.color.font[Normal] = emallocz(sizeof(XftColor));
 	XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
-		screen), getresource("selected.fg", SELFGCOLOR), dc.color.font[Selected]);
+		screen), getresource("selected.fg", SELFGCOLOR), style.color.font[Selected]);
 	XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
-		screen), getresource("normal.fg", SELFGCOLOR), dc.color.font[Normal]);
-	if (!dc.color.font[Normal] || !dc.color.font[Normal])
+		screen), getresource("normal.fg", SELFGCOLOR), style.color.font[Normal]);
+	if (!style.color.font[Normal] || !style.color.font[Normal])
 		eprint("error, cannot allocate colors\n");
 	initfont(getresource("font", FONT));
 	style.borderpx = atoi(getresource("border", STR(BORDERPX)));

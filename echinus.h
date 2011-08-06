@@ -69,6 +69,12 @@ typedef struct {
 	unsigned int drawoutline;
 	float uf_opacity;
 	char titlelayout[32];
+	struct {
+		unsigned long norm[ColLast];
+		unsigned long sel[ColLast];
+		XftColor *font[2];
+	} color;
+	XftFont *font;
 	Button button[LastBtn];
 } Style;
 
@@ -76,12 +82,6 @@ typedef struct {
 	unsigned int x, y, w, h;
 	GC gc;
 	struct {
-		unsigned long norm[ColLast];
-		unsigned long sel[ColLast];
-		XftColor *font[2];
-	} color;
-	struct {
-		XftFont *xftfont;
 		XGlyphInfo *extents;
 		int ascent;
 		int descent;

@@ -47,8 +47,8 @@ drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
 	XFillRectangle(dpy, drawable, dc.gc, x - dc.font.height / 2, 0,
 	    w + dc.font.height, h);
 	XftDrawStringUtf8(xftdrawable,
-	    (col == dc.color.norm) ? dc.color.font[Normal] : dc.color.font[Selected],
-	    dc.font.xftfont, x, y, (unsigned char *) buf, len);
+	    (col == style.color.norm) ? style.color.font[Normal] : style.color.font[Selected],
+	    style.font, x, y, (unsigned char *) buf, len);
 	return w + dc.font.height;
 }
 
@@ -69,8 +69,8 @@ initpixmap(const char *file, Button * b)
 void
 initbuttons()
 {
-	XSetForeground(dpy, dc.gc, dc.color.norm[ColButton]);
-	XSetBackground(dpy, dc.gc, dc.color.norm[ColBG]);
+	XSetForeground(dpy, dc.gc, style.color.norm[ColButton]);
+	XSetBackground(dpy, dc.gc, style.color.norm[ColBG]);
 	initpixmap(getresource("button.iconify.pixmap", ICONPIXMAP),
 	    &style.button[Iconify]);
 	initpixmap(getresource("button.maximize.pixmap", MAXPIXMAP),
@@ -99,7 +99,7 @@ drawelement(char which, int x, int position, Client * c)
 {
 	int w;
 	unsigned int j;
-	unsigned long *color = c == sel ? dc.color.sel : dc.color.norm;
+	unsigned long *color = c == sel ? style.color.sel : style.color.norm;
 
 	switch (which) {
 	case 'T':
@@ -188,7 +188,7 @@ drawclient(Client * c)
 	}
 	XMapRaised(dpy, c->title);
 	XftDrawChange(c->xftdraw, c->drawable);
-	XSetForeground(dpy, dc.gc, c == sel ? dc.color.sel[ColBG] : dc.color.norm[ColBG]);
+	XSetForeground(dpy, dc.gc, c == sel ? style.color.sel[ColBG] : style.color.norm[ColBG]);
 	XSetLineAttributes(dpy, dc.gc, style.borderpx, LineSolid, CapNotLast, JoinMiter);
 	XFillRectangle(dpy, c->drawable, dc.gc, 0, 0, c->w, c->th);
 	dc.x = dc.y = 0;
@@ -197,9 +197,9 @@ drawclient(Client * c)
 		dc.w -= dc.h;
 		style.button[Close].x = dc.w;
 		drawtext(c->name, c->drawable, c->xftdraw,
-		    c == sel ? dc.color.sel : dc.color.norm, dc.x, dc.y, dc.w);
+		    c == sel ? style.color.sel : style.color.norm, dc.x, dc.y, dc.w);
 		drawbutton(c->drawable, style.button[Close].pm,
-		    c == sel ? dc.color.sel : dc.color.norm, dc.w,
+		    c == sel ? style.color.sel : style.color.norm, dc.w,
 		    dc.h / 2 - style.button[Close].ph / 2);
 		goto end;
 	}
@@ -232,7 +232,7 @@ drawclient(Client * c)
       end:
 	if (style.drawoutline) {
 		XSetForeground(dpy, dc.gc,
-		    c == sel ? dc.color.sel[ColBorder] : dc.color.norm[ColBorder]);
+		    c == sel ? style.color.sel[ColBorder] : style.color.norm[ColBorder]);
 		XDrawLine(dpy, c->drawable, dc.gc, 0, dc.h - 1, dc.w, dc.h - 1);
 	}
 	XCopyArea(dpy, c->drawable, c->title, dc.gc, 0, 0, c->w, c->th, 0, 0);
@@ -241,24 +241,24 @@ drawclient(Client * c)
 void
 initfont(const char *fontstr)
 {
-	dc.font.xftfont = NULL;
-	dc.font.xftfont = XftFontOpenXlfd(dpy, screen, fontstr);
-	if (!dc.font.xftfont)
-		dc.font.xftfont = XftFontOpenName(dpy, screen, fontstr);
-	if (!dc.font.xftfont)
+	style.font = NULL;
+	style.font = XftFontOpenXlfd(dpy, screen, fontstr);
+	if (!style.font)
+		style.font = XftFontOpenName(dpy, screen, fontstr);
+	if (!style.font)
 		eprint("error, cannot load font: '%s'\n", fontstr);
 	dc.font.extents = emallocz(sizeof(XGlyphInfo));
-	XftTextExtentsUtf8(dpy, dc.font.xftfont,
+	XftTextExtentsUtf8(dpy, style.font,
 	    (const unsigned char *) fontstr, strlen(fontstr), dc.font.extents);
-	dc.font.height = dc.font.xftfont->ascent + dc.font.xftfont->descent + 1;
-	dc.font.ascent = dc.font.xftfont->ascent;
-	dc.font.descent = dc.font.xftfont->descent;
+	dc.font.height = style.font->ascent + style.font->descent + 1;
+	dc.font.ascent = style.font->ascent;
+	dc.font.descent = style.font->descent;
 }
 
 unsigned int
 textnw(const char *text, unsigned int len)
 {
-	XftTextExtentsUtf8(dpy, dc.font.xftfont,
+	XftTextExtentsUtf8(dpy, style.font,
 	    (const unsigned char *) text, len, dc.font.extents);
 	return dc.font.extents->xOff;
 }
