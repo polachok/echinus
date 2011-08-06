@@ -8,6 +8,18 @@
 #include "echinus.h"
 #include "config.h"
 
+typedef struct {
+	unsigned int x, y, w;
+	GC gc;
+	struct {
+		XGlyphInfo *extents;
+		int ascent;
+		int descent;
+		int height;
+		int width;
+	} font;
+} DC;				/* draw context */
+
 DC dc = { 0 };
 
 int

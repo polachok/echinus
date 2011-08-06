@@ -79,18 +79,6 @@ typedef struct {
 } Style;
 
 typedef struct {
-	unsigned int x, y, w;
-	GC gc;
-	struct {
-		XGlyphInfo *extents;
-		int ascent;
-		int descent;
-		int height;
-		int width;
-	} font;
-} DC;				/* draw context */
-
-typedef struct {
 	unsigned long mod;
 	KeySym keysym;
 	void (*func) (const char *arg);
@@ -233,6 +221,5 @@ extern char **tags;
 extern Key **keys;
 extern Rule **rules;
 extern Layout layouts[];
-extern DC dc;
 extern Bool dectiled;
 extern unsigned int modkey;
