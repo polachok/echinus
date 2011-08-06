@@ -187,6 +187,7 @@ Cursor cursor[CurLast];
 Display *dpy;
 DC dc = { 0 };
 Style style = { 0 };
+Button button[LastBtn];
 
 Window root;
 Regs *regs = NULL;
@@ -398,11 +399,11 @@ buttonpress(XEvent * e)
 		DPRINTF("TITLE %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
 		for (i = 0; i < LastBtn; i++) {
-			if ((ev->x > style.button[i].x)
-			    && ((int)ev->x < (int)(style.button[i].x + dc.h))
-			    && (style.button[i].x != -1)) {
+			if ((ev->x > button[i].x)
+			    && ((int)ev->x < (int)(button[i].x + dc.h))
+			    && (button[i].x != -1)) {
 				DPRINTF("BUTTON %d PRESSED\n", i);
-				style.button[i].action(NULL);
+				button[i].action(NULL);
 				return;
 			}
 		}

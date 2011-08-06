@@ -75,7 +75,6 @@ typedef struct {
 		XftColor *font[2];
 	} color;
 	XftFont *font;
-	Button button[LastBtn];
 } Style;
 
 typedef struct {
@@ -220,6 +219,7 @@ extern unsigned int nkeys;
 extern unsigned int nrules;
 extern int screen;
 extern Style style;
+extern Button button[LastBtn];
 extern char **tags;
 extern Key **keys;
 extern Rule **rules;

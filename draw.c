@@ -72,14 +72,14 @@ initbuttons()
 	XSetForeground(dpy, dc.gc, style.color.norm[ColButton]);
 	XSetBackground(dpy, dc.gc, style.color.norm[ColBG]);
 	initpixmap(getresource("button.iconify.pixmap", ICONPIXMAP),
-	    &style.button[Iconify]);
+	    &button[Iconify]);
 	initpixmap(getresource("button.maximize.pixmap", MAXPIXMAP),
-	    &style.button[Maximize]);
-	initpixmap(getresource("button.close.pixmap", CLOSEPIXMAP), &style.button[Close]);
-	style.button[Iconify].action = iconifyit;
-	style.button[Maximize].action = togglemax;
-	style.button[Close].action = killclient;
-	style.button[Iconify].x = style.button[Close].x = style.button[Maximize].x = -1;
+	    &button[Maximize]);
+	initpixmap(getresource("button.close.pixmap", CLOSEPIXMAP), &button[Close]);
+	button[Iconify].action = iconifyit;
+	button[Maximize].action = togglemax;
+	button[Close].action = killclient;
+	button[Iconify].x = button[Close].x = button[Maximize].x = -1;
 }
 
 int
@@ -89,8 +89,8 @@ drawbutton(Drawable d, Drawable btn, unsigned long col[ColLast], int x, int y)
 	XFillRectangle(dpy, d, dc.gc, x, 0, dc.h, dc.h);
 	XSetForeground(dpy, dc.gc, col[ColButton]);
 	XSetBackground(dpy, dc.gc, col[ColBG]);
-	XCopyPlane(dpy, btn, d, dc.gc, 0, 0, style.button[Iconify].pw,
-	    style.button[Iconify].ph, x, y + style.button[Iconify].py, 1);
+	XCopyPlane(dpy, btn, d, dc.gc, 0, 0, button[Iconify].pw,
+	    button[Iconify].ph, x, y + button[Iconify].py, 1);
 	return dc.h;
 }
 
@@ -120,19 +120,19 @@ drawelement(char which, int x, int position, Client * c)
 		w = drawtext(c->name, c->drawable, c->xftdraw, color, dc.x, dc.y, dc.w);
 		break;
 	case 'I':
-		style.button[Iconify].x = dc.x;
-		w = drawbutton(c->drawable, style.button[Iconify].pm, color,
-		    dc.x, dc.h / 2 - style.button[Iconify].ph / 2);
+		button[Iconify].x = dc.x;
+		w = drawbutton(c->drawable, button[Iconify].pm, color,
+		    dc.x, dc.h / 2 - button[Iconify].ph / 2);
 		break;
 	case 'M':
-		style.button[Maximize].x = dc.x;
-		w = drawbutton(c->drawable, style.button[Maximize].pm, color,
-		    dc.x, dc.h / 2 - style.button[Maximize].ph / 2);
+		button[Maximize].x = dc.x;
+		w = drawbutton(c->drawable, button[Maximize].pm, color,
+		    dc.x, dc.h / 2 - button[Maximize].ph / 2);
 		break;
 	case 'C':
-		style.button[Close].x = dc.x;
-		w = drawbutton(c->drawable, style.button[Close].pm, color, dc.x,
-		    dc.h / 2 - style.button[Maximize].ph / 2);
+		button[Close].x = dc.x;
+		w = drawbutton(c->drawable, button[Close].pm, color, dc.x,
+		    dc.h / 2 - button[Maximize].ph / 2);
 		break;
 	default:
 		w = 0;
@@ -195,12 +195,12 @@ drawclient(Client * c)
 	dc.w = c->w;
 	if (dc.w < textw(c->name)) {
 		dc.w -= dc.h;
-		style.button[Close].x = dc.w;
+		button[Close].x = dc.w;
 		drawtext(c->name, c->drawable, c->xftdraw,
 		    c == sel ? style.color.sel : style.color.norm, dc.x, dc.y, dc.w);
-		drawbutton(c->drawable, style.button[Close].pm,
+		drawbutton(c->drawable, button[Close].pm,
 		    c == sel ? style.color.sel : style.color.norm, dc.w,
-		    dc.h / 2 - style.button[Close].ph / 2);
+		    dc.h / 2 - button[Close].ph / 2);
 		goto end;
 	}
 	/* Left */
