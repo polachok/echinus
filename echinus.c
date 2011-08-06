@@ -2685,7 +2685,7 @@ main(int argc, char *argv[])
 	if (argc == 3 && !strcmp("-f", argv[1]))
 		snprintf(conf, sizeof(conf), "%s", argv[2]);
 	else if (argc == 2 && !strcmp("-v", argv[1]))
-		eprint("echinus-" VERSION ", (c) 2010 Alexander Polakov\n");
+		eprint("echinus-" VERSION " (c) 2011 Alexander Polakov\n");
 	else if (argc != 1)
 		eprint("usage: echinus [-v] [-f conf]\n");
 

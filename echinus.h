@@ -201,7 +201,6 @@ void deinitstyle();
 #define min(_a, _b)		((_a) < (_b) ? (_a) : (_b))
 #define max(_a, _b)		((_a) > (_b) ? (_a) : (_b))
 
-
 /* globals */
 extern Atom atom[NATOMS];
 extern Display *dpy;
