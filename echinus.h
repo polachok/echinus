@@ -15,10 +15,11 @@ enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };
 enum { StrutsOn, StrutsOff, StrutsHide };	/* struts position */
 enum { AlignLeft, AlignCenter, AlignRight };	/* title position */
 enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
-enum { ColBorder, ColFG, ColBG, ColButton, ColLast };	/* color */
+enum { ColFG, ColBG, ColBorder, ColButton, ColLast };	/* color */
 enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise };	/* focus model */
 enum { ClientWindow, ClientTitle, ClientFrame };	/* client parts */
 enum { Iconify, Maximize, Close, LastBtn };
+enum { Normal, Selected };
 
 /* typedefs */
 typedef struct Monitor Monitor;
@@ -73,11 +74,12 @@ typedef struct {
 
 typedef struct {
 	unsigned int x, y, w, h;
-	unsigned long norm[ColLast];
-	unsigned long sel[ColLast];
-	XftColor *xftnorm;
-	XftColor *xftsel;
 	GC gc;
+	struct {
+		unsigned long norm[ColLast];
+		unsigned long sel[ColLast];
+		XftColor *font[2];
+	} color;
 	struct {
 		XftFont *xftfont;
 		XGlyphInfo *extents;
