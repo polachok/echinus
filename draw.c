@@ -8,6 +8,8 @@
 #include "echinus.h"
 #include "config.h"
 
+DC dc = { 0 };
+
 int
 drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
     unsigned long col[ColLast], int x, int y, int mw)
@@ -254,7 +256,8 @@ initfont(const char *fontstr)
 }
 
 void
-initstyle() {
+initstyle()
+{
 	style.color.norm[ColBorder] = getcolor(getresource("normal.border", NORMBORDERCOLOR));
 	style.color.norm[ColBG] = getcolor(getresource("normal.bg", NORMBGCOLOR));
 	style.color.norm[ColFG] = getcolor(getresource("normal.fg", NORMFGCOLOR));
@@ -285,6 +288,19 @@ initstyle() {
 		style.titleheight = dc.font.height + 2;
 	dc.gc = XCreateGC(dpy, root, 0, 0);
 	initbuttons();
+}
+
+void
+deinitstyle()
+{	
+	/* XXX: more to do */
+	XftColorFree(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
+		screen), style.color.font[Normal]);
+	XftColorFree(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
+		screen), style.color.font[Selected]);
+	XftFontClose(dpy, style.font);
+	free(dc.font.extents);
+	XFreeGC(dpy, dc.gc);
 }
 
 unsigned int

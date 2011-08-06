@@ -177,6 +177,7 @@ int initkeys();
 /* draw.c */
 void initstyle();
 void initbuttons();
+void deinitstyle();
 
 #define curseltags curmonitor()->seltags
 #define curprevtags curmonitor()->prevtags

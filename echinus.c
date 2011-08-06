@@ -179,7 +179,6 @@ unsigned int *ltidxs;
 double *mwfacts;
 Cursor cursor[CurLast];
 Display *dpy;
-DC dc = { 0 };
 Style style = { 0 };
 Button button[LastBtn];
 
@@ -466,15 +465,8 @@ cleanup(void)
 	initmonitors(NULL);
 	/* free resource database */
 	XrmDestroyDatabase(xrdb);
-	/* free colors */
-	XftColorFree(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
-		screen), style.color.font[Normal]);
-	XftColorFree(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
-		screen), style.color.font[Selected]);
-	XftFontClose(dpy, style.font);
-	free(dc.font.extents);
+	deinitstyle();
 	XUngrabKey(dpy, AnyKey, AnyModifier, root);
-	XFreeGC(dpy, dc.gc);
 	XFreeCursor(dpy, cursor[CurNormal]);
 	XFreeCursor(dpy, cursor[CurResize]);
 	XFreeCursor(dpy, cursor[CurMove]);
