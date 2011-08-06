@@ -69,7 +69,7 @@ typedef struct {
 	float uf_opacity;
 	char titlelayout[32];
 	Button button[LastBtn];
-} Look;
+} Style;
 
 typedef struct {
 	unsigned int x, y, w, h;
@@ -217,7 +217,7 @@ extern unsigned int ntags;
 extern unsigned int nkeys;
 extern unsigned int nrules;
 extern int screen;
-extern Look look;
+extern Style style;
 extern char **tags;
 extern Key **keys;
 extern Rule **rules;

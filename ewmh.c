@@ -206,7 +206,7 @@ mwm_process_atom(Client * c)
 		hint = (CARD32 *) data;
 		if (MWM_HINTS_DECOR(hint[0]) && !(MWM_DECOR_ALL(hint[2]))) {
 			c->title = MWM_DECOR_TITLE(hint[2]) ? root : (Window) NULL;
-			c->border = MWM_DECOR_BORDER(hint[2]) ? look.borderpx : 0;
+			c->border = MWM_DECOR_BORDER(hint[2]) ? style.borderpx : 0;
 		}
 	}
 	XFree(data);

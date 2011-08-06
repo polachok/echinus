@@ -186,7 +186,7 @@ double *mwfacts;
 Cursor cursor[CurLast];
 Display *dpy;
 DC dc = { 0 };
-Look look = { 0 };
+Style style = { 0 };
 
 Window root;
 Regs *regs = NULL;
@@ -398,11 +398,11 @@ buttonpress(XEvent * e)
 		DPRINTF("TITLE %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
 		for (i = 0; i < LastBtn; i++) {
-			if ((ev->x > look.button[i].x)
-			    && ((int)ev->x < (int)(look.button[i].x + dc.h))
-			    && (look.button[i].x != -1)) {
+			if ((ev->x > style.button[i].x)
+			    && ((int)ev->x < (int)(style.button[i].x + dc.h))
+			    && (style.button[i].x != -1)) {
 				DPRINTF("BUTTON %d PRESSED\n", i);
-				look.button[i].action(NULL);
+				style.button[i].action(NULL);
 				return;
 			}
 		}
@@ -949,7 +949,7 @@ incnmaster(const char *arg)
 	} else {
 		i = atoi(arg);
 		if ((nmasters[curmontag] + i) < 1
-		    || curwah / (nmasters[curmontag] + i) <= 2 * look.borderpx)
+		    || curwah / (nmasters[curmontag] + i) <= 2 * style.borderpx)
 			return;
 		nmasters[curmontag] += i;
 	}
@@ -1184,7 +1184,7 @@ manage(Window w, XWindowAttributes * wa)
 	c->title = c->isbastard ? (Window) NULL : 1;
 	c->tags = emallocz(ntags * sizeof(curseltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
-	c->border = c->isbastard ? 0 : look.borderpx;
+	c->border = c->isbastard ? 0 : style.borderpx;
 	mwm_process_atom(c);
 	updatesizehints(c);
 
@@ -2094,12 +2094,12 @@ setup(void)
 	if (!dc.xftnorm || !dc.xftnorm)
 		eprint("error, cannot allocate colors\n");
 	initfont(getresource("font", FONT));
-	look.borderpx = atoi(getresource("border", STR(BORDERPX)));
-	look.uf_opacity = atof(getresource("opacity", STR(NF_OPACITY)));
-	look.drawoutline = atoi(getresource("outline", "0"));
-	strncpy(look.titlelayout, getresource("titlelayout", "N  IMC"),
-	    LENGTH(look.titlelayout));
-	look.titlelayout[LENGTH(look.titlelayout) - 1] = '\0';
+	style.borderpx = atoi(getresource("border", STR(BORDERPX)));
+	style.uf_opacity = atof(getresource("opacity", STR(NF_OPACITY)));
+	style.drawoutline = atoi(getresource("outline", "0"));
+	strncpy(style.titlelayout, getresource("titlelayout", "N  IMC"),
+	    LENGTH(style.titlelayout));
+	style.titlelayout[LENGTH(style.titlelayout) - 1] = '\0';
 	strncpy(command, getresource("command", COMMAND), LENGTH(command));
 	command[LENGTH(command) - 1] = '\0';
 
@@ -2308,15 +2308,15 @@ togglefill(const char *arg)
 		if(isvisible(c, m) && (c != sel) && !c->isbastard && (c->isfloating || ISLTFLOATING(m))) {
 			if(c->y + c->h > sel->y && c->y < sel->y + sel->h) {
 				if(c->x < sel->x)
-					x1 = max(x1, c->x + c->w + look.borderpx);
+					x1 = max(x1, c->x + c->w + style.borderpx);
 				else
-					x2 = min(x2, c->x - look.borderpx);
+					x2 = min(x2, c->x - style.borderpx);
 			}
 			if(c->x + c->w > sel->x && c->x < sel->x + sel->w) {
 				if(c->y < sel->y)
-					y1 = max(y1, c->y + c->h + look.borderpx);
+					y1 = max(y1, c->y + c->h + style.borderpx);
 				else
-					y2 = max(y2, c->y - look.borderpx);
+					y2 = max(y2, c->y - style.borderpx);
 			}
 		}
 		DPRINTF("x1 = %d x2 = %d y1 = %d y2 = %d\n", x1, x2, y1, y2);

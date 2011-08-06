@@ -25,7 +25,7 @@ drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
 	memcpy(buf, text, len);
 	buf[len] = 0;
 	h = dc.h;
-	y = dc.h / 2 + dc.font.ascent / 2 - 1 - look.drawoutline;
+	y = dc.h / 2 + dc.font.ascent / 2 - 1 - style.drawoutline;
 	x += dc.font.height / 2;
 	/* shorten text if necessary */
 	while (len && (w = textnw(buf, len)) > mw) {
@@ -72,14 +72,14 @@ initbuttons()
 	XSetForeground(dpy, dc.gc, dc.norm[ColButton]);
 	XSetBackground(dpy, dc.gc, dc.norm[ColBG]);
 	initpixmap(getresource("button.iconify.pixmap", ICONPIXMAP),
-	    &look.button[Iconify]);
+	    &style.button[Iconify]);
 	initpixmap(getresource("button.maximize.pixmap", MAXPIXMAP),
-	    &look.button[Maximize]);
-	initpixmap(getresource("button.close.pixmap", CLOSEPIXMAP), &look.button[Close]);
-	look.button[Iconify].action = iconifyit;
-	look.button[Maximize].action = togglemax;
-	look.button[Close].action = killclient;
-	look.button[Iconify].x = look.button[Close].x = look.button[Maximize].x = -1;
+	    &style.button[Maximize]);
+	initpixmap(getresource("button.close.pixmap", CLOSEPIXMAP), &style.button[Close]);
+	style.button[Iconify].action = iconifyit;
+	style.button[Maximize].action = togglemax;
+	style.button[Close].action = killclient;
+	style.button[Iconify].x = style.button[Close].x = style.button[Maximize].x = -1;
 }
 
 int
@@ -89,8 +89,8 @@ drawbutton(Drawable d, Drawable btn, unsigned long col[ColLast], int x, int y)
 	XFillRectangle(dpy, d, dc.gc, x, 0, dc.h, dc.h);
 	XSetForeground(dpy, dc.gc, col[ColButton]);
 	XSetBackground(dpy, dc.gc, col[ColBG]);
-	XCopyPlane(dpy, btn, d, dc.gc, 0, 0, look.button[Iconify].pw,
-	    look.button[Iconify].ph, x, y + look.button[Iconify].py, 1);
+	XCopyPlane(dpy, btn, d, dc.gc, 0, 0, style.button[Iconify].pw,
+	    style.button[Iconify].ph, x, y + style.button[Iconify].py, 1);
 	return dc.h;
 }
 
@@ -120,19 +120,19 @@ drawelement(char which, int x, int position, Client * c)
 		w = drawtext(c->name, c->drawable, c->xftdraw, color, dc.x, dc.y, dc.w);
 		break;
 	case 'I':
-		look.button[Iconify].x = dc.x;
-		w = drawbutton(c->drawable, look.button[Iconify].pm, color,
-		    dc.x, dc.h / 2 - look.button[Iconify].ph / 2);
+		style.button[Iconify].x = dc.x;
+		w = drawbutton(c->drawable, style.button[Iconify].pm, color,
+		    dc.x, dc.h / 2 - style.button[Iconify].ph / 2);
 		break;
 	case 'M':
-		look.button[Maximize].x = dc.x;
-		w = drawbutton(c->drawable, look.button[Maximize].pm, color,
-		    dc.x, dc.h / 2 - look.button[Maximize].ph / 2);
+		style.button[Maximize].x = dc.x;
+		w = drawbutton(c->drawable, style.button[Maximize].pm, color,
+		    dc.x, dc.h / 2 - style.button[Maximize].ph / 2);
 		break;
 	case 'C':
-		look.button[Close].x = dc.x;
-		w = drawbutton(c->drawable, look.button[Close].pm, color, dc.x,
-		    dc.h / 2 - look.button[Maximize].ph / 2);
+		style.button[Close].x = dc.x;
+		w = drawbutton(c->drawable, style.button[Close].pm, color, dc.x,
+		    dc.h / 2 - style.button[Maximize].ph / 2);
 		break;
 	default:
 		w = 0;
@@ -173,8 +173,8 @@ drawclient(Client * c)
 	size_t i;
 	unsigned int opacity;
 
-	if (look.uf_opacity) {
-		opacity = (c == sel) ? OPAQUE : look.uf_opacity * OPAQUE;
+	if (style.uf_opacity) {
+		opacity = (c == sel) ? OPAQUE : style.uf_opacity * OPAQUE;
 		setopacity(c, opacity);
 	}
 	if (!isvisible(c, NULL))
@@ -189,48 +189,48 @@ drawclient(Client * c)
 	XMapRaised(dpy, c->title);
 	XftDrawChange(c->xftdraw, c->drawable);
 	XSetForeground(dpy, dc.gc, c == sel ? dc.sel[ColBG] : dc.norm[ColBG]);
-	XSetLineAttributes(dpy, dc.gc, look.borderpx, LineSolid, CapNotLast, JoinMiter);
+	XSetLineAttributes(dpy, dc.gc, style.borderpx, LineSolid, CapNotLast, JoinMiter);
 	XFillRectangle(dpy, c->drawable, dc.gc, 0, 0, c->w, c->th);
 	dc.x = dc.y = 0;
 	dc.w = c->w;
 	if (dc.w < textw(c->name)) {
 		dc.w -= dc.h;
-		look.button[Close].x = dc.w;
+		style.button[Close].x = dc.w;
 		drawtext(c->name, c->drawable, c->xftdraw,
 		    c == sel ? dc.sel : dc.norm, dc.x, dc.y, dc.w);
-		drawbutton(c->drawable, look.button[Close].pm,
+		drawbutton(c->drawable, style.button[Close].pm,
 		    c == sel ? dc.sel : dc.norm, dc.w,
-		    dc.h / 2 - look.button[Close].ph / 2);
+		    dc.h / 2 - style.button[Close].ph / 2);
 		goto end;
 	}
 	/* Left */
-	for (i = 0; i < strlen(look.titlelayout); i++) {
-		if (look.titlelayout[i] == ' ' || look.titlelayout[i] == '-')
+	for (i = 0; i < strlen(style.titlelayout); i++) {
+		if (style.titlelayout[i] == ' ' || style.titlelayout[i] == '-')
 			break;
-		dc.x += drawelement(look.titlelayout[i], dc.x, AlignLeft, c);
+		dc.x += drawelement(style.titlelayout[i], dc.x, AlignLeft, c);
 	}
-	if (i == strlen(look.titlelayout) || dc.x >= dc.w)
+	if (i == strlen(style.titlelayout) || dc.x >= dc.w)
 		goto end;
 	/* Center */
 	dc.x = dc.w / 2;
-	for (i++; i < strlen(look.titlelayout); i++) {
-		if (look.titlelayout[i] == ' ' || look.titlelayout[i] == '-')
+	for (i++; i < strlen(style.titlelayout); i++) {
+		if (style.titlelayout[i] == ' ' || style.titlelayout[i] == '-')
 			break;
-		dc.x -= elementw(look.titlelayout[i], c) / 2;
-		dc.x += drawelement(look.titlelayout[i], 0, AlignCenter, c);
+		dc.x -= elementw(style.titlelayout[i], c) / 2;
+		dc.x += drawelement(style.titlelayout[i], 0, AlignCenter, c);
 	}
-	if (i == strlen(look.titlelayout) || dc.x >= dc.w)
+	if (i == strlen(style.titlelayout) || dc.x >= dc.w)
 		goto end;
 	/* Right */
 	dc.x = dc.w;
-	for (i = strlen(look.titlelayout); i-- ; ) {
-		if (look.titlelayout[i] == ' ' || look.titlelayout[i] == '-')
+	for (i = strlen(style.titlelayout); i-- ; ) {
+		if (style.titlelayout[i] == ' ' || style.titlelayout[i] == '-')
 			break;
-		dc.x -= elementw(look.titlelayout[i], c);
-		drawelement(look.titlelayout[i], 0, AlignRight, c);
+		dc.x -= elementw(style.titlelayout[i], c);
+		drawelement(style.titlelayout[i], 0, AlignRight, c);
 	}
       end:
-	if (look.drawoutline) {
+	if (style.drawoutline) {
 		XSetForeground(dpy, dc.gc,
 		    c == sel ? dc.sel[ColBorder] : dc.norm[ColBorder]);
 		XDrawLine(dpy, c->drawable, dc.gc, 0, dc.h - 1, dc.w, dc.h - 1);
