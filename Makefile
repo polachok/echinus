@@ -5,7 +5,6 @@
 include config.mk
 
 PIXMAPS = close.xbm iconify.xbm max.xbm 
-FILES = draw.c parse.c ewmh.c config.h
 SRC = draw.c echinus.c ewmh.c parse.c
 HEADERS = config.h echinus.h
 OBJ = ${SRC:.c=.o}
@@ -24,7 +23,7 @@ options:
 
 ${OBJ}: config.mk ${HEADERS}
 
-echinus: ${OBJ} ${FILES}
+echinus: ${OBJ} ${SRC} ${HEADERS}
 	@echo CC -o $@
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 
@@ -36,7 +35,7 @@ dist: clean
 	@echo creating dist tarball
 	@mkdir -p echinus-${VERSION}
 	@cp -R LICENSE Makefile README config.mk \
-		echinus.1 echinusrc ${SRC} ${FILES} ${PIXMAPS} echinus-${VERSION}
+		echinus.1 echinusrc ${SRC} ${HEADERS} ${PIXMAPS} echinus-${VERSION}
 	@tar -cf echinus-${VERSION}.tar echinus-${VERSION}
 	@gzip echinus-${VERSION}.tar
 	@rm -rf echinus-${VERSION}
