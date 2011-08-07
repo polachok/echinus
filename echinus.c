@@ -1507,16 +1507,16 @@ movemouse(Client * c)
 			nm = curmonitor();
 			nx = ocx + (ev.xmotion.x - x1);
 			ny = ocy + (ev.xmotion.y - y1);
-			if (abs(m->wax + nx) < snap)
-				nx = m->wax;
-			else if (abs((m->wax + m->waw) - (nx + c->w +
+			if (abs(nm->wax + nx) < snap)
+				nx = nm->wax;
+			else if (abs((nm->wax + nm->waw) - (nx + c->w +
 				    2 * c->border)) < snap)
-				nx = m->wax + m->waw - c->w - 2 * c->border;
-			if (abs(m->way - ny) < snap)
-				ny = m->way;
-			else if (abs((m->way + m->wah) - (ny + c->h +
+				nx = nm->wax + nm->waw - c->w - 2 * c->border;
+			if (abs(nm->way - ny) < snap)
+				ny = nm->way;
+			else if (abs((nm->way + nm->wah) - (ny + c->h +
 				    2 * c->border)) < snap)
-				ny = m->way + m->wah - c->h - 2 * c->border;
+				ny = nm->way + nm->wah - c->h - 2 * c->border;
 			resize(c, nm, nx - nm->sx, ny - nm->sy, c->w, c->h, False);
 			if (m != nm) {
 				for (i = 0; i < ntags; i++)
