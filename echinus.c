@@ -1505,8 +1505,8 @@ movemouse(Client * c)
 			XSync(dpy, False);
 			/* we are probably moving to a different monitor */
 			nm = curmonitor();
-			nx = ocx + (ev.xmotion.x - x1);
-			ny = ocy + (ev.xmotion.y - y1);
+			nx = ocx + (ev.xmotion.x - x1) - nm->sx;
+			ny = ocy + (ev.xmotion.y - y1) - nm->sy;
 			if (abs(nm->wax + nx) < snap)
 				nx = nm->wax;
 			else if (abs((nm->wax + nm->waw) - (nx + c->w +
@@ -1517,7 +1517,7 @@ movemouse(Client * c)
 			else if (abs((nm->way + nm->wah) - (ny + c->h +
 				    2 * c->border)) < snap)
 				ny = nm->way + nm->wah - c->h - 2 * c->border;
-			resize(c, nm, nx - nm->sx, ny - nm->sy, c->w, c->h, False);
+			resize(c, nm, nx, ny, c->w, c->h, False);
 			if (m != nm) {
 				for (i = 0; i < ntags; i++)
 					c->tags[i] = nm->seltags[i];
