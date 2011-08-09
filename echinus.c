@@ -2486,7 +2486,7 @@ unmapnotify(XEvent * e)
 	Client *c;
 	XUnmapEvent *ev = &e->xunmap;
 
-	if ((c = getclient(ev->window, clients, ClientWindow)) && ev->send_event) {
+	if ((c = getclient(ev->window, clients, ClientWindow)) /* && ev->send_event */) {
 		if (c->isicon)
 			return;
 		DPRINTF("killing self-unmapped window (%s)\n", c->name);
