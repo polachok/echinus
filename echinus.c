@@ -1389,21 +1389,15 @@ monocle(Monitor * m)
 	Client *c;
 
 	wasfloating = False;
-	for (c = clients; c; c = c->next) {
-		if (isvisible(c, m) && !c->isicon && !c->isbastard) {
+	for (c = nexttiled(clients, m); c; c = nexttled(c->next, m)) {
 			c->isplaced = False;
-			if (c->isfloating) {
-				resize(c, m, c->x, c->y, c->w, c->h, False);
-			} else {
-				if (bpos[m->curtag] != StrutsOn)
-					resize(c, m, m->wax - c->border,
-					    m->way - c->border, m->waw, m->wah, False);
-				else
-					resize(c, m, m->wax, m->way,
-					    m->waw - 2 * c->border,
-					    m->wah - 2 * c->border, False);
-			}
-		}
+			if (bpos[m->curtag] != StrutsOn)
+				resize(c, m, m->wax - c->border,
+						m->way - c->border, m->waw, m->wah, False);
+			else
+				resize(c, m, m->wax, m->way,
+						m->waw - 2 * c->border,
+						m->wah - 2 * c->border, False);
 	}
 }
 
@@ -1534,8 +1528,7 @@ movemouse(Client * c)
 Client *
 nexttiled(Client * c, Monitor * m)
 {
-	for (;
-	    c && (c->isfloating || !isvisible(c, m) || c->isbastard
+	for (; c && (c->isfloating || !isvisible(c, m) || c->isbastard
 		|| c->isicon); c = c->next);
 	return c;
 }
@@ -1543,8 +1536,7 @@ nexttiled(Client * c, Monitor * m)
 Client *
 prevtiled(Client * c, Monitor * m)
 {
-	for (;
-	    c && (c->isfloating || !isvisible(c, m) || c->isbastard
+	for (; c && (c->isfloating || !isvisible(c, m) || c->isbastard
 		|| c->isicon); c = c->prev);
 	return c;
 }
