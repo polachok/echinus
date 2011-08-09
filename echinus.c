@@ -224,7 +224,8 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[MapRequest] = maprequest,
 	[PropertyNotify] = propertynotify,
 	[ReparentNotify] = reparentnotify,
-	[UnmapNotify] = unmapnotify,[ClientMessage] = clientmessage,
+	[UnmapNotify] = unmapnotify,
+	[ClientMessage] = clientmessage,
 #ifdef XRANDR
 	[RRScreenChangeNotify] = initmonitors,
 #endif
