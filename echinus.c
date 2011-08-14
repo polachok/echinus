@@ -1230,14 +1230,12 @@ manage(Window w, XWindowAttributes * wa)
 	grabbuttons(c, False);
 	twa.override_redirect = True;
 	twa.event_mask = FRAMEMASK;
-	mask = CWOverrideRedirect | CWEventMask | CWBackPixel;
+	mask = CWOverrideRedirect | CWEventMask;
 	if (wa->depth == 32) {
-		mask |= CWColormap | CWBorderPixel;
+		mask |= CWColormap | CWBorderPixel | CWBackPixel;
 		twa.colormap = XCreateColormap(dpy, root, wa->visual, AllocNone);
 		twa.background_pixel = BlackPixel(dpy, screen);
 		twa.border_pixel = BlackPixel(dpy, screen);
-	} else {
-		twa.background_pixel = style.color.norm[ColBG];
 	}
 	c->frame =
 	    XCreateWindow(dpy, root, cm->sx + c->x, cm->sy + c->y, c->w,
