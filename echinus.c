@@ -272,9 +272,8 @@ arrangefloats(Monitor * m)
 	Client *c;
 
 	for(c = stack; c; c = c->snext) {
-	    if(clientmonitor(c) == m && !c->isicon && !c->isbastard && c->isfloating
-			    && !c->ismax)
-		resize(c, m, c->x, c->y, c->w, c->h, True);
+		if(isvisible(c, m) && !c->isbastard && c->isfloating && !c->ismax)
+			resize(c, m, c->x, c->y, c->w, c->h, True);
 	}
 }
 
@@ -1315,11 +1314,11 @@ maprequest(XEvent * e)
 		return;
 	if (wa.override_redirect)
 		return;
-	if ((c = getclient(ev->window, clients, ClientWindow)))
+	if ((c = getclient(ev->window, clients, ClientWindow))) {
 		unban(c);
-	else
+		arrange(curmonitor());
+	} else
 		manage(ev->window, &wa);
-	arrange(curmonitor());
 }
 
 int
@@ -1662,7 +1661,7 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 			XCreatePixmap(dpy, root, w, c->th, DefaultDepth(dpy, screen));
 		drawclient(c);
 	}
-	if (c->x != x || c->y != y || c->w != w || c->h != h || sizehints) {
+	if (c->x != x || c->y != y || c->w != w || c->h != h /* || sizehints */) {
 		if (c->isfloating || ISLTFLOATING(m)) {
 			c->rx = x;
 			c->ry = y;
