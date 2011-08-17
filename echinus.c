@@ -1389,8 +1389,7 @@ monocle(Monitor * m)
 	Client *c;
 
 	wasfloating = False;
-	for (c = nexttiled(clients, m); c; c = nexttled(c->next, m)) {
-			c->isplaced = False;
+	for (c = nexttiled(clients, m); c; c = nexttiled(c->next, m)) {
 			if (bpos[m->curtag] != StrutsOn)
 				resize(c, m, m->wax - c->border,
 						m->way - c->border, m->waw, m->wah, False);
