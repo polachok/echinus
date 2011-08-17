@@ -216,6 +216,7 @@ void
 ewmh_process_state_atom(Client * c, Atom state, int set)
 {
 	CARD32 data[2];
+
 	data[1] = None;
 	if ((state == atom[WindowStateFs])) {
 		focus(c);
