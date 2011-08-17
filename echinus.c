@@ -272,7 +272,8 @@ arrangefloats(Monitor * m)
 	Client *c;
 
 	for(c = stack; c; c = c->snext) {
-	    if(clientmonitor(c) == m && !c->isicon && !c->isbastard && c->isfloating)
+	    if(clientmonitor(c) == m && !c->isicon && !c->isbastard && c->isfloating
+			    && !c->ismax)
 		resize(c, m, c->x, c->y, c->w, c->h, True);
 	}
 }
@@ -1599,7 +1600,8 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 {
 	XWindowChanges wc;
 
-	c->th = c->title && (c->isfloating || dectiled || ISLTFLOATING(m)) ? style.titleheight : 0;
+	c->th = c->title && !c->ismax && (c->isfloating || dectiled ||
+		       	ISLTFLOATING(m)) ? style.titleheight : 0;
 	if (sizehints) {
 		h -= c->th;
 		/* set minimum possible */
@@ -1653,13 +1655,11 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 	if (y + h + 2 * c->border < m->sy)
 		y = m->way;
 #endif
-	if (c->title) {
-		if (c->th) {
-			XMoveResizeWindow(dpy, c->title, 0, 0, w, c->th);
-			XFreePixmap(dpy, c->drawable);
-			c->drawable =
-			    XCreatePixmap(dpy, root, w, c->th, DefaultDepth(dpy, screen));
-		}
+	if (w != c->w && c->th) {
+		XMoveResizeWindow(dpy, c->title, 0, 0, w, c->th);
+		XFreePixmap(dpy, c->drawable);
+		c->drawable =
+			XCreatePixmap(dpy, root, w, c->th, DefaultDepth(dpy, screen));
 		drawclient(c);
 	}
 	if (c->x != x || c->y != y || c->w != w || c->h != h || sizehints) {
@@ -2301,7 +2301,7 @@ togglemax(const char *arg)
 		sel->rw = sel->w;
 		sel->rh = sel->h;
 		resize(sel, m, m->wax - sel->border,
-		    m->way - sel->border - style.titleheight, m->waw, m->wah + style.titleheight, False);
+		    m->way - sel->border - sel->th, m->waw, m->wah + sel->th, False);
 	} else {
 		resize(sel, m, sel->rx, sel->ry, sel->rw, sel->rh, True);
 	}
