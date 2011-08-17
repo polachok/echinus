@@ -198,7 +198,6 @@ drawclient(Client * c)
 		XUnmapWindow(dpy, c->title);
 		return;
 	}
-	XMapRaised(dpy, c->title);
 	XftDrawChange(c->xftdraw, c->drawable);
 	XSetForeground(dpy, dc.gc, c == sel ? style.color.sel[ColBG] : style.color.norm[ColBG]);
 	XSetLineAttributes(dpy, dc.gc, style.border, LineSolid, CapNotLast, JoinMiter);
@@ -248,6 +247,7 @@ drawclient(Client * c)
 		XDrawLine(dpy, c->drawable, dc.gc, 0, style.titleheight - 1, dc.w, style.titleheight - 1);
 	}
 	XCopyArea(dpy, c->drawable, c->title, dc.gc, 0, 0, c->w, style.titleheight, 0, 0);
+	XMapRaised(dpy, c->title);
 }
 
 void
