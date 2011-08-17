@@ -346,10 +346,12 @@ ban(Client * c)
 {
 	if (c->isbanned)
 		return;
+	c->ignoreunmap++;
 	setclientstate(c, IconicState);
 	XSelectInput(dpy, c->win, CLIENTMASK & ~(StructureNotifyMask | EnterWindowMask));
 	XSelectInput(dpy, c->frame, NoEventMask);
 	XUnmapWindow(dpy, c->frame);
+	XUnmapWindow(dpy, c->win);
 	XSelectInput(dpy, c->win, CLIENTMASK);
 	XSelectInput(dpy, c->frame, FRAMEMASK);
 	c->isbanned = True;
@@ -1173,6 +1175,7 @@ manage(Window w, XWindowAttributes * wa)
 	c->tags = emallocz(ntags * sizeof(curseltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
 	c->border = c->isbastard ? 0 : style.border;
+	c->ignoreunmap++; /* reparent does unmap */
 	mwm_process_atom(c);
 	updatesizehints(c);
 
@@ -2401,6 +2404,7 @@ unban(Client * c)
 		return;
 	XSelectInput(dpy, c->win, CLIENTMASK & ~(StructureNotifyMask | EnterWindowMask));
 	XSelectInput(dpy, c->frame, NoEventMask);
+	XMapWindow(dpy, c->win);
 	XMapWindow(dpy, c->frame);
 	XSelectInput(dpy, c->win, CLIENTMASK);
 	XSelectInput(dpy, c->frame, FRAMEMASK);
@@ -2435,6 +2439,8 @@ unmanage(Client * c)
 	XSelectInput(dpy, c->win, CLIENTMASK & ~(StructureNotifyMask | EnterWindowMask));
 	XReparentWindow(dpy, c->win, root, c->x, c->y);
 	XMoveWindow(dpy, c->win, c->x, c->y);
+	if (!running)
+		XMapWindow(dpy, c->win);
 	wc.border_width = c->oldborder;
 	XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);	/* restore border */
 	detach(c);
@@ -2485,7 +2491,7 @@ unmapnotify(XEvent * e)
 	XUnmapEvent *ev = &e->xunmap;
 
 	if ((c = getclient(ev->window, clients, ClientWindow)) /* && ev->send_event */) {
-		if (c->isicon)
+		if (c->isicon || c->ignoreunmap--)
 			return;
 		DPRINTF("killing self-unmapped window (%s)\n", c->name);
 		unmanage(c);

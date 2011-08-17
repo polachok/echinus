@@ -54,6 +54,7 @@ struct Client {
 	Window frame;
 	Pixmap drawable;
 	XftDraw *xftdraw;
+	int ignoreunmap;
 };
 
 typedef struct {
