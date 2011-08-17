@@ -10,7 +10,6 @@
 
 typedef struct {
 	unsigned int x, y, w;
-	GC gc;
 	struct {
 		XGlyphInfo *extents;
 		int ascent;
@@ -18,6 +17,7 @@ typedef struct {
 		int height;
 		int width;
 	} font;
+	GC gc;
 } DC;				/* draw context */
 
 DC dc = { 0 };

@@ -28,7 +28,7 @@ LDFLAGS = -s ${LIBS}
 #LDFLAGS = -g3 -ggdb3 ${LIBS}
 
 # DEBUG: Show warnings (if any). Comment out to disable.
-CFLAGS += -Wall
+CFLAGS += -Wall -Wpadded
 # mostly useless warnings
 #CFLAGS += -W -Wcast-qual -Wshadow -Wwrite-strings
 #CFLAGS += -Werror        # Treat warnings as errors.

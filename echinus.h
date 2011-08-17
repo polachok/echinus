@@ -25,22 +25,22 @@ enum { Normal, Selected };
 typedef struct Monitor Monitor;
 struct Monitor {
 	int sx, sy, sw, sh, wax, way, waw, wah;
-	unsigned int curtag;
 	unsigned long struts[LastStrut];
 	Bool *seltags;
 	Bool *prevtags;
 	Monitor *next;
+	unsigned int curtag;
 };
 
 typedef struct Client Client;
 struct Client {
 	char name[256];
 	int x, y, w, h;
-	int th;			/* title window */
 	int rx, ry, rw, rh;	/* revert geometry */
-	int sfx, sfy, sfw, sfh;	/* stored float geometry, used on mode revert */
+	int th;			/* title window */
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
 	int minax, maxax, minay, maxay;
+	int ignoreunmap;
 	long flags;
 	int border, oldborder;
 	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon;
@@ -54,7 +54,6 @@ struct Client {
 	Window frame;
 	Pixmap drawable;
 	XftDraw *xftdraw;
-	int ignoreunmap;
 };
 
 typedef struct {

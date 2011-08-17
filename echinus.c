@@ -819,7 +819,7 @@ floating(Monitor * m)
 		if (isvisible(c, m) && !c->isicon) {
 			if (!c->isfloating)
 				/* restore last known float dimensions */
-				resize(c, m, c->sfx, c->sfy, c->sfw, c->sfh, True);
+				resize(c, m, c->rx, c->ry, c->rw, c->rh, True);
 			else
 				resize(c, m, c->x, c->y, c->w, c->h, True);
 		}
@@ -1197,10 +1197,10 @@ manage(Window w, XWindowAttributes * wa)
 		XFree(wmh);
 	}
 
-	c->x = c->sfx = wa->x % cm->sw;
-	c->y = c->sfy = wa->y % cm->sh;
-	c->w = c->sfw = wa->width;
-	c->h = c->sfh = wa->height + c->th;
+	c->x = c->rx = wa->x % cm->sw;
+	c->y = c->ry = wa->y % cm->sh;
+	c->w = c->rw = wa->width;
+	c->h = c->rh = wa->height + c->th;
 
 	if (wa->x && wa->y) {
 		c->isplaced = True;
@@ -1673,10 +1673,10 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 	}
 	if (c->x != x || c->y != y || c->w != w || c->h != h || sizehints) {
 		if (c->isfloating || ISLTFLOATING(m)) {
-			c->sfx = x;
-			c->sfy = y;
-			c->sfw = w;
-			c->sfh = h;
+			c->rx = x;
+			c->ry = y;
+			c->rw = w;
+			c->rh = h;
 			c->isplaced = True;
 		}
 		c->x = x;
@@ -2234,13 +2234,13 @@ togglefloating(const char *arg)
 	sel->isfloating = !sel->isfloating;
 	if (sel->isfloating) {
 		/*restore last known float dimensions */
-		resize(sel, curmonitor(), sel->sfx, sel->sfy, sel->sfw, sel->sfh, False);
+		resize(sel, curmonitor(), sel->rx, sel->ry, sel->rw, sel->rh, False);
 	} else {
 		/*save last known float dimensions */
-		sel->sfx = sel->x;
-		sel->sfy = sel->y;
-		sel->sfw = sel->w;
-		sel->sfh = sel->h;
+		sel->rx = sel->x;
+		sel->ry = sel->y;
+		sel->rw = sel->w;
+		sel->rh = sel->h;
 	}
 	drawclient(sel);
 	arrange(curmonitor());
