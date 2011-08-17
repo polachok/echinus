@@ -202,7 +202,7 @@ drawclient(Client * c)
 	XftDrawChange(c->xftdraw, c->drawable);
 	XSetForeground(dpy, dc.gc, c == sel ? style.color.sel[ColBG] : style.color.norm[ColBG]);
 	XSetLineAttributes(dpy, dc.gc, style.border, LineSolid, CapNotLast, JoinMiter);
-	XFillRectangle(dpy, c->drawable, dc.gc, 0, 0, c->w, c->th);
+	XFillRectangle(dpy, c->drawable, dc.gc, 0, 0, c->w, style.titleheight);
 	dc.x = dc.y = 0;
 	dc.w = c->w;
 	if (dc.w < textw(c->name)) {
@@ -247,7 +247,7 @@ drawclient(Client * c)
 		    c == sel ? style.color.sel[ColBorder] : style.color.norm[ColBorder]);
 		XDrawLine(dpy, c->drawable, dc.gc, 0, style.titleheight - 1, dc.w, style.titleheight - 1);
 	}
-	XCopyArea(dpy, c->drawable, c->title, dc.gc, 0, 0, c->w, c->th, 0, 0);
+	XCopyArea(dpy, c->drawable, c->title, dc.gc, 0, 0, c->w, style.titleheight, 0, 0);
 }
 
 void
