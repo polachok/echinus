@@ -1315,8 +1315,10 @@ maprequest(XEvent * e)
 	if (wa.override_redirect)
 		return;
 	if ((c = getclient(ev->window, clients, ClientWindow))) {
+#if 0
 		unban(c);
 		arrange(curmonitor());
+#endif
 	} else
 		manage(ev->window, &wa);
 }
