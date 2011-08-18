@@ -1277,7 +1277,6 @@ manage(Window w, XWindowAttributes * wa)
 	XMapRaised(dpy, c->title);
 	wc.border_width = 0;
 	XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
-	XSetWindowBorder(dpy, c->win, style.color.norm[ColBorder]);
 	configure(c);	/* propagates border_width, if size doesn't change */
 	if (checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
 		ewmh_process_state_atom(c, atom[WindowStateFs], 1);
