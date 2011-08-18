@@ -157,7 +157,6 @@ void zoom(const char *arg);
 
 /* variables */
 char **cargv;
-Bool wasfloating = True;
 int screen;
 int (*xerrorxlib) (Display *, XErrorEvent *);
 unsigned int numlockmask = 0;
@@ -824,7 +823,6 @@ floating(Monitor * m)
 				resize(c, m, c->x, c->y, c->w, c->h, True);
 		}
 	}
-	wasfloating = True;
 }
 
 void
@@ -1389,7 +1387,6 @@ monocle(Monitor * m)
 {
 	Client *c;
 
-	wasfloating = False;
 	for (c = nexttiled(clients, m); c; c = nexttiled(c->next, m)) {
 			if (bpos[m->curtag] != StrutsOn)
 				resize(c, m, m->wax - c->border,
@@ -2158,7 +2155,6 @@ tile(Monitor * m)
 	int nx, ny, nw, nh, mw, mh;
 	unsigned int i, n, th;
 	Client *c, *mc;
-	wasfloating = False;
 
 	domwfact = dozoom = True;
 	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
