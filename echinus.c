@@ -1285,10 +1285,10 @@ manage(Window w, XWindowAttributes * wa)
 	else
 		XSelectInput(dpy, w, CLIENTMASK);
 	ban(c);
-	updateatom[ClientList] (NULL);
-	updateatom[WindowDesk] (c);
 	if (!checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
 		focus(NULL);
+	updateatom[ClientList] (NULL);
+	updateatom[WindowDesk] (c);
 	arrange(clientmonitor(c));
 }
 
