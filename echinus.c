@@ -1229,7 +1229,6 @@ manage(Window w, XWindowAttributes * wa)
 			c->y = 0;
 	}
 
-	wc.border_width = c->border;
 	grabbuttons(c, False);
 	twa.override_redirect = True;
 	twa.event_mask = FRAMEMASK;
@@ -1246,6 +1245,7 @@ manage(Window w, XWindowAttributes * wa)
 	    InputOutput, wa->depth == 32 ? wa->visual : DefaultVisual(dpy,
 		screen), mask, &twa);
 
+	wc.border_width = c->border;
 	XConfigureWindow(dpy, c->frame, CWBorderWidth, &wc);
 	XSetWindowBorder(dpy, c->frame, style.color.norm[ColBorder]);
 
