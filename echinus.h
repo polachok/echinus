@@ -43,8 +43,9 @@ struct Client {
 	int ignoreunmap;
 	long flags;
 	int border, oldborder;
-	Bool isbanned, isfixed, ismax, isfloating, wasfloating, isicon;
-	Bool isplaced, isbastard, isfocusable;
+	Bool isbanned, ismax, isfloating, wasfloating;
+	Bool isplaced, isicon, isfill;
+	Bool isfixed, isbastard, isfocusable;
 	Bool *tags;
 	Client *next;
 	Client *prev;

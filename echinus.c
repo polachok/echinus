@@ -2271,7 +2271,7 @@ togglefill(const char *arg)
 	if((w < sel->w) || (h < sel->h))
 		return;
 
-	if ((sel->ismax = !sel->ismax)) {
+	if ((sel->isfill = !sel->isfill)) {
 		sel->rx = sel->x;
 		sel->ry = sel->y;
 		sel->rw = sel->w;
