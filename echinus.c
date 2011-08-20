@@ -265,7 +265,8 @@ arrangefloats(Monitor * m)
 	Client *c;
 
 	for(c = stack; c; c = c->snext) {
-		if(isvisible(c, m) && !c->isbastard && c->isfloating && !c->ismax)
+		if(isvisible(c, m) && !c->isbastard &&
+			       	c->isfloating && !c->ismax && !c->isicon)
 			resize(c, m, c->x, c->y, c->w, c->h, True);
 	}
 }
@@ -867,6 +868,18 @@ focus(Client * c)
 	updateatom[ActiveWindow] (sel);
 	updateatom[ClientList] (NULL);
 	updateatom[CurDesk] (NULL);
+}
+
+void
+focusicon(const char *arg)
+{
+	Client *c;
+
+	for(c = clients; c && (!c->isicon || !isvisible(c, curmonitor())); c = c->next);
+	if (!c)
+		return;
+	focus(c);
+	arrange(curmonitor());
 }
 
 void

@@ -152,6 +152,7 @@ void arrange(Monitor * m);
 Monitor *getmonitor(int x, int y);
 void setlayout(const char *arg);
 void incnmaster(const char *arg);
+void focusicon(const char *arg);
 void focusnext(const char *arg);
 void focusprev(const char *arg);
 void bstack(Monitor * m);
