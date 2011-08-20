@@ -165,8 +165,6 @@ Bool dozoom = True;
 Bool otherwm;
 Bool running = True;
 Bool selscreen = True;
-Bool sloppy = False;
-int snap;
 Client *clients = NULL;
 Monitor *monitors = NULL;
 Client *sel = NULL;
@@ -190,12 +188,17 @@ Rule **rules;
 unsigned int ntags = 0;
 unsigned int nkeys = 0;
 unsigned int nrules = 0;
-Bool hidebastards = 0;
-Bool dectiled = 0;
 unsigned int modkey = 0;
 char conf[256] = "\0";
 /* configuration, allows nested code to access above variables */
 #include "config.h"
+
+struct {
+	Bool dectiled;
+	Bool hidebastards;
+	int sloppy;
+	int snap;
+} options;
 
 Layout layouts[] = { 
 	/* symbol               function */
@@ -739,7 +742,7 @@ enternotify(XEvent * e)
 			grabbuttons(c, True);
 			return;
 		}
-		switch (sloppy) {
+		switch (options.sloppy) {
 		case Clk2Focus:
 			XGrabButton(dpy, AnyButton, AnyModifier, c->frame,
 			    False, BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
@@ -1487,15 +1490,15 @@ movemouse(Client * c)
 			nm = curmonitor();
 			nx = ocx + (ev.xmotion.x - x1) - nm->sx;
 			ny = ocy + (ev.xmotion.y - y1) - nm->sy;
-			if (abs(nm->wax + nx) < snap)
+			if (abs(nm->wax + nx) < options.snap)
 				nx = nm->wax;
 			else if (abs((nm->wax + nm->waw) - (nx + c->w +
-				    2 * c->border)) < snap)
+				    2 * c->border)) < options.snap)
 				nx = nm->wax + nm->waw - c->w - 2 * c->border;
-			if (abs(nm->way - ny) < snap)
+			if (abs(nm->way - ny) < options.snap)
 				ny = nm->way;
 			else if (abs((nm->way + nm->wah) - (ny + c->h +
-				    2 * c->border)) < snap)
+				    2 * c->border)) < options.snap)
 				ny = nm->way + nm->wah - c->h - 2 * c->border;
 			resize(c, nm, nx, ny, c->w, c->h, False);
 			if (m != nm) {
@@ -1584,7 +1587,7 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 {
 	XWindowChanges wc;
 
-	c->th = c->title && !c->ismax && (c->isfloating || dectiled ||
+	c->th = c->title && !c->ismax && (c->isfloating || options.dectiled ||
 		       	ISLTFLOATING(m)) ? style.titleheight : 0;
 	if (sizehints) {
 		h -= c->th;
@@ -2041,10 +2044,10 @@ setup(void)
 	initstyle();
 	strncpy(command, getresource("command", COMMAND), LENGTH(command));
 	command[LENGTH(command) - 1] = '\0';
-	dectiled = atoi(getresource("decoratetiled", STR(DECORATETILED)));
-	hidebastards = atoi(getresource("hidebastards", "0"));
-	sloppy = atoi(getresource("sloppy", "0"));
-	snap = atoi(getresource("snap", STR(SNAP)));
+	options.dectiled = atoi(getresource("decoratetiled", STR(DECORATETILED)));
+	options.hidebastards = atoi(getresource("options.hidebastards", "0"));
+	options.sloppy = atoi(getresource("options.sloppy", "0"));
+	options.snap = atoi(getresource("options.snap", STR(SNAP)));
 
 	for (m = monitors; m; m = m->next) {
 		m->struts[RightStrut] = m->struts[LeftStrut] =
@@ -2190,7 +2193,7 @@ togglestruts(const char *arg)
 {
 	bpos[curmontag] =
 	    (bpos[curmontag] ==
-	    StrutsOn) ? (hidebastards ? StrutsHide : StrutsOff) : StrutsOn;
+	    StrutsOn) ? (options.hidebastards ? StrutsHide : StrutsOff) : StrutsOn;
 	updategeom(curmonitor());
 	arrange(curmonitor());
 }

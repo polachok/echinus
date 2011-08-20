@@ -195,7 +195,7 @@ drawclient(Client * c)
 	if (!c->title)
 		return;
 	/* XXX: that's not nice. we map and unmap title all the time */
-	if (c->ismax || (!c->isfloating && !ISLTFLOATING(clientmonitor(c)) && !dectiled)) {
+	if (c->ismax || (!c->isfloating && !ISLTFLOATING(clientmonitor(c)))) {
 		assert(!c->th);
 		XUnmapWindow(dpy, c->title);
 		return;
