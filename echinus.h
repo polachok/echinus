@@ -57,6 +57,12 @@ struct Client {
 	XftDraw *xftdraw;
 };
 
+typedef struct View {
+	int barpos;
+	int nmaster;
+	double mwfact;
+} View;
+
 typedef struct {
 	Pixmap pm;
 	int px, py;
