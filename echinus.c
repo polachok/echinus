@@ -165,7 +165,6 @@ Bool dozoom = True;
 Bool otherwm;
 Bool running = True;
 Bool selscreen = True;
-Bool notitles = False;
 Bool sloppy = False;
 int snap;
 Client *clients = NULL;
@@ -801,7 +800,6 @@ void
 floating(Monitor * m)
 {				/* default floating layout */
 	Client *c;
-	notitles = False;
 
 	domwfact = dozoom = False;
 	for (c = clients; c; c = c->next) {
