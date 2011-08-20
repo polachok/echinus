@@ -153,8 +153,8 @@ void viewrighttag(const char *arg);
 int xerror(Display * dpy, XErrorEvent * ee);
 int xerrordummy(Display * dsply, XErrorEvent * ee);
 int xerrorstart(Display * dsply, XErrorEvent * ee);
-void zoom(const char *arg);
 int (*xerrorxlib) (Display *, XErrorEvent *);
+void zoom(const char *arg);
 
 /* variables */
 char **cargv;
