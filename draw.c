@@ -10,7 +10,7 @@
 #include "config.h"
 
 typedef struct {
-	unsigned int x, y, w;
+	unsigned int x, y, w, h;
 	struct {
 		XGlyphInfo *extents;
 		int ascent;
@@ -21,7 +21,7 @@ typedef struct {
 	GC gc;
 } DC;				/* draw context */
 
-DC dc = { 0 };
+DC dc;
 
 int
 drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
@@ -40,7 +40,7 @@ drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
 	memcpy(buf, text, len);
 	buf[len] = 0;
 	h = style.titleheight;
-	y = style.titleheight / 2 + dc.font.ascent / 2 - 1 - style.outline;
+	y = dc.h / 2 + dc.font.ascent / 2 - 1 - style.outline;
 	x += dc.font.height / 2;
 	/* shorten text if necessary */
 	while (len && (w = textnw(buf, len)) > mw) {
@@ -70,7 +70,7 @@ drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
 Pixmap
 initpixmap(const char *file, Button * b)
 {
-	b->pm = XCreatePixmap(dpy, root, style.titleheight, style.titleheight, 1);
+	b->pm = XCreatePixmap(dpy, root, dc.h, dc.h, 1);
 	if (BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph,
 		&b->pm, &b->px, &b->py)) {
 		if (b->px == -1 || b->py == -1)
@@ -101,12 +101,12 @@ int
 drawbutton(Drawable d, Button btn, unsigned long col[ColLast], int x, int y)
 {
 	XSetForeground(dpy, dc.gc, col[ColBG]);
-	XFillRectangle(dpy, d, dc.gc, x, 0, style.titleheight, style.titleheight);
+	XFillRectangle(dpy, d, dc.gc, x, 0, dc.h, dc.h);
 	XSetForeground(dpy, dc.gc, btn.pressed ? col[ColFG] : col[ColButton]);
 	XSetBackground(dpy, dc.gc, col[ColBG]);
 	XCopyPlane(dpy, btn.pm, d, dc.gc, 0, 0, button[Iconify].pw,
 	    button[Iconify].ph, x, y + button[Iconify].py, 1);
-	return style.titleheight;
+	return dc.h;
 }
 
 int
@@ -127,9 +127,9 @@ drawelement(char which, int x, int position, Client * c)
 		break;
 	case '|':
 		XSetForeground(dpy, dc.gc, color[ColBorder]);
-		XDrawLine(dpy, c->drawable, dc.gc, dc.x + style.titleheight / 4, 0,
-		    dc.x + style.titleheight / 4, style.titleheight);
-		w = style.titleheight / 2;
+		XDrawLine(dpy, c->drawable, dc.gc, dc.x + dc.h / 4, 0,
+		    dc.x + dc.h / 4, dc.h);
+		w = dc.h / 2;
 		break;
 	case 'N':
 		w = drawtext(c->name, c->drawable, c->xftdraw, color, dc.x, dc.y, dc.w);
@@ -137,17 +137,17 @@ drawelement(char which, int x, int position, Client * c)
 	case 'I':
 		button[Iconify].x = dc.x;
 		w = drawbutton(c->drawable, button[Iconify], color,
-		    dc.x, style.titleheight / 2 - button[Iconify].ph / 2);
+		    dc.x, dc.h / 2 - button[Iconify].ph / 2);
 		break;
 	case 'M':
 		button[Maximize].x = dc.x;
 		w = drawbutton(c->drawable, button[Maximize], color,
-		    dc.x, style.titleheight / 2 - button[Maximize].ph / 2);
+		    dc.x, dc.h / 2 - button[Maximize].ph / 2);
 		break;
 	case 'C':
 		button[Close].x = dc.x;
 		w = drawbutton(c->drawable, button[Close], color, dc.x,
-		    style.titleheight / 2 - button[Maximize].ph / 2);
+		    dc.h / 2 - button[Maximize].ph / 2);
 		break;
 	default:
 		w = 0;
@@ -166,7 +166,7 @@ elementw(char which, Client * c)
 	case 'I':
 	case 'M':
 	case 'C':
-		return style.titleheight;
+		return dc.h;
 	case 'N':
 		return textw(c->name);
 	case 'T':
@@ -177,7 +177,7 @@ elementw(char which, Client * c)
 		}
 		return w;
 	case '|':
-		return style.titleheight / 2;
+		return dc.h / 2;
 	}
 	return 0;
 }
@@ -195,20 +195,21 @@ drawclient(Client * c)
 	if (!c->title)
 		return;
 	updateframe(c);
+	dc.x = dc.y = 0;
+	dc.w = c->w;
+	dc.h = style.titleheight;
 	XftDrawChange(c->xftdraw, c->drawable);
 	XSetForeground(dpy, dc.gc, c == sel ? style.color.sel[ColBG] : style.color.norm[ColBG]);
 	XSetLineAttributes(dpy, dc.gc, style.border, LineSolid, CapNotLast, JoinMiter);
-	XFillRectangle(dpy, c->drawable, dc.gc, 0, 0, c->w, style.titleheight);
-	dc.x = dc.y = 0;
-	dc.w = c->w;
+	XFillRectangle(dpy, c->drawable, dc.gc, dc.x, dc.y, dc.w, dc.h);
 	if (dc.w < textw(c->name)) {
-		dc.w -= style.titleheight;
+		dc.w -= dc.h;
 		button[Close].x = dc.w;
 		drawtext(c->name, c->drawable, c->xftdraw,
 		    c == sel ? style.color.sel : style.color.norm, dc.x, dc.y, dc.w);
 		drawbutton(c->drawable, button[Close],
 		    c == sel ? style.color.sel : style.color.norm, dc.w,
-		    style.titleheight / 2 - button[Close].ph / 2);
+		    dc.h / 2 - button[Close].ph / 2);
 		goto end;
 	}
 	/* Left */
@@ -241,9 +242,9 @@ drawclient(Client * c)
 	if (style.outline) {
 		XSetForeground(dpy, dc.gc,
 		    c == sel ? style.color.sel[ColBorder] : style.color.norm[ColBorder]);
-		XDrawLine(dpy, c->drawable, dc.gc, 0, style.titleheight - 1, dc.w, style.titleheight - 1);
+		XDrawLine(dpy, c->drawable, dc.gc, 0, dc.h - 1, dc.w, dc.h - 1);
 	}
-	XCopyArea(dpy, c->drawable, c->title, dc.gc, 0, 0, c->w, style.titleheight, 0, 0);
+	XCopyArea(dpy, c->drawable, c->title, dc.gc, 0, 0, c->w, dc.h, 0, 0);
 }
 
 void
