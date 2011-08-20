@@ -1,5 +1,6 @@
 #include <regex.h>
 #include <ctype.h>
+#include <assert.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
@@ -195,6 +196,7 @@ drawclient(Client * c)
 		return;
 	/* XXX: that's not nice. we map and unmap title all the time */
 	if (c->ismax || (!c->isfloating && !ISLTFLOATING(clientmonitor(c)) && !dectiled)) {
+		assert(!c->th);
 		XUnmapWindow(dpy, c->title);
 		return;
 	}
