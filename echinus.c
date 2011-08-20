@@ -162,7 +162,6 @@ Display *dpy;
 int screen;
 Window root;
 XrmDatabase xrdb;
-unsigned int numlockmask;
 Bool domwfact = True;
 Bool dozoom = True;
 Bool otherwm;
@@ -178,12 +177,12 @@ Button button[LastBtn];
 View *views;
 Key **keys;
 Rule **rules;
-
 char **tags;
 unsigned int ntags;
 unsigned int nkeys;
 unsigned int nrules;
 unsigned int modkey;
+unsigned int numlockmask;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
