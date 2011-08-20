@@ -126,7 +126,7 @@ void scan(void);
 void setclientstate(Client * c, long state);
 void setlayout(const char *arg);
 void setmwfact(const char *arg);
-void setup(void);
+void setup(char *);
 void spawn(const char *arg);
 void tag(const char *arg);
 unsigned int textnw(const char *text, unsigned int len);
@@ -162,6 +162,7 @@ char **cargv;
 Display *dpy;
 int screen;
 Window root;
+XrmDatabase xrdb = NULL;
 unsigned int numlockmask = 0;
 Bool domwfact = True;
 Bool dozoom = True;
@@ -176,7 +177,6 @@ Cursor cursor[CurLast];
 Style style = { 0 };
 Button button[LastBtn];
 View *views;
-XrmDatabase xrdb = NULL;
 
 char command[255];
 char **tags;
@@ -186,7 +186,6 @@ unsigned int ntags = 0;
 unsigned int nkeys = 0;
 unsigned int nrules = 0;
 unsigned int modkey = 0;
-char conf[256] = "\0";
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -1948,7 +1947,7 @@ sighandler(int signum)
 }
 
 void
-setup(void)
+setup(char *conf)
 {
 	int d;
 	int i, j;
@@ -2005,7 +2004,7 @@ setup(void)
 	for (i = 0; confs[i] != NULL; i++) {
 		if (*confs[i] == '\0')
 			continue;
-		snprintf(conf, sizeof(conf), confs[i], home);
+		snprintf(conf, 255, confs[i], home);
 		/* retrieve path to chdir(2) to it */
 		slash = strrchr(conf, '/');
 		if (slash)
@@ -2674,6 +2673,8 @@ zoom(const char *arg)
 int
 main(int argc, char *argv[])
 {
+	char conf[256] = "\0";
+
 	if (argc == 3 && !strcmp("-f", argv[1]))
 		snprintf(conf, sizeof(conf), "%s", argv[2]);
 	else if (argc == 2 && !strcmp("-v", argv[1]))
@@ -2692,7 +2693,7 @@ main(int argc, char *argv[])
 	root = RootWindow(dpy, screen);
 
 	checkotherwm();
-	setup();
+	setup(conf);
 	scan();
 	run();
 	cleanup();
