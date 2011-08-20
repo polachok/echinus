@@ -7,8 +7,8 @@ enum { ClientList, ActiveWindow, WindowDesk,
 	ESelTags,
 	WindowName, WindowState, WindowStateFs, WindowStateModal,
 	WindowStateHidden,
-	Utf8String, Supported, WMProto, WMDelete, WMName, WMState, WMTakeFocus,
-	MWMHints, NATOMS
+	Utf8String, Supported, WMProto, WMDelete, WMName, WMState, WMChangeState,
+	WMTakeFocus, MWMHints, NATOMS
 };
 
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };

@@ -46,6 +46,7 @@ const char *atomnames[NATOMS][1] = {
 	{"WM_DELETE_WINDOW"},
 	{"WM_NAME"},
 	{"WM_STATE"},
+	{"WM_CHANGE_STATE"},
 	{"WM_TAKE_FOCUS"},
 	{"_MOTIF_WM_HINTS"},
 };
@@ -254,13 +255,19 @@ clientmessage(XEvent * e)
 		}
 	} else if (ev->message_type == atom[CurDesk]) {
 		view(tags[ev->data.l[0]]);
-	}
-	if (ev->message_type == atom[WindowState]) {
+	} else if (ev->message_type == atom[WindowState]) {
 		if ((c = getclient(ev->window, clients, False))) {
 			ewmh_process_state_atom(c, (Atom) ev->data.l[1], ev->data.l[0]);
 			if (ev->data.l[2])
 				ewmh_process_state_atom(c,
 				    (Atom) ev->data.l[2], ev->data.l[0]);
+		}
+	} else if (ev->message_type == atom[WMChangeState]) {
+		if ((c = getclient(ev->window, clients, False))) {
+			if (ev->data.l[0] == IconicState) {
+				focus(c);
+				iconifyit(NULL);
+			}
 		}
 	}
 }
