@@ -155,31 +155,28 @@ int xerror(Display * dpy, XErrorEvent * ee);
 int xerrordummy(Display * dsply, XErrorEvent * ee);
 int xerrorstart(Display * dsply, XErrorEvent * ee);
 void zoom(const char *arg);
+int (*xerrorxlib) (Display *, XErrorEvent *);
 
 /* variables */
 char **cargv;
+Display *dpy;
 int screen;
-int (*xerrorxlib) (Display *, XErrorEvent *);
+Window root;
 unsigned int numlockmask = 0;
 Bool domwfact = True;
 Bool dozoom = True;
 Bool otherwm;
 Bool running = True;
 Bool selscreen = True;
-Client *clients = NULL;
 Monitor *monitors = NULL;
+Client *clients = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
-unsigned int *bpos;
 unsigned int *ltidxs;
 Cursor cursor[CurLast];
-Display *dpy;
 Style style = { 0 };
 Button button[LastBtn];
 View *views;
-Pad *pads;
-
-Window root;
 XrmDatabase xrdb = NULL;
 
 char command[255];
@@ -297,7 +294,7 @@ arrangemon(Monitor * m)
 	for (c = stack; c; c = c->snext) {
 		if ((clientmonitor(c) == m) &&
 		    ((!c->isbastard && isvisible(c, m) && !c->isicon) ||
-			(c->isbastard && bpos[m->curtag] == StrutsOn))) {
+			(c->isbastard && views[m->curtag].barpos == StrutsOn))) {
 			unban(c);
 			if (c->isbastard)
 				c->isicon = False;
@@ -307,7 +304,7 @@ arrangemon(Monitor * m)
 	for (c = stack; c; c = c->snext) {
 		if ((clientmonitor(c) == m) &&
 		    ((!c->isbastard && (!isvisible(c, m) || c->isicon)) ||
-			(c->isbastard && bpos[m->curtag] == StrutsHide))) {
+			(c->isbastard && views[m->curtag].barpos == StrutsHide))) {
 			ban(c);
 			if (c->isbastard)
 				c->isicon = True;
@@ -1380,7 +1377,7 @@ monocle(Monitor * m)
 	Client *c;
 
 	for (c = nexttiled(clients, m); c; c = nexttiled(c->next, m)) {
-			if (bpos[m->curtag] != StrutsOn)
+			if (views[m->curtag].barpos != StrutsOn)
 				resize(c, m, m->wax - c->border,
 						m->way - c->border, m->waw, m->wah, False);
 			else
@@ -1901,7 +1898,6 @@ initlayouts()
 
 	/* init layouts */
 	ltidxs = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
-	bpos = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 
 	mwfact = atof(getresource("mwfact", STR(MWFACT)));
 	nmaster = atoi(getresource("nmaster", STR(NMASTER)));
@@ -1920,7 +1916,7 @@ initlayouts()
 		}
 		views[i].mwfact = mwfact;
 		views[i].nmaster = nmaster;
-		bpos[i] = StrutsOn;
+		views[i].barpos = StrutsOn;
 	}
 
 	updateatom[ELayout] (NULL);
@@ -2191,8 +2187,8 @@ tile(Monitor * m)
 void
 togglestruts(const char *arg)
 {
-	bpos[curmontag] =
-	    (bpos[curmontag] ==
+	views[curmontag].barpos =
+	    (views[curmontag].barpos ==
 	    StrutsOn) ? (options.hidebastards ? StrutsHide : StrutsOff) : StrutsOn;
 	updategeom(curmonitor());
 	arrange(curmonitor());
@@ -2445,7 +2441,7 @@ updategeom(Monitor * m)
 	m->way = 0;
 	m->wah = m->sh;
 	m->waw = m->sw;
-	switch (bpos[m->curtag]) {
+	switch (views[m->curtag].barpos) {
 	default:
 		m->wax += m->struts[LeftStrut];
 		m->waw -= (m->wax + m->struts[RightStrut]);
@@ -2627,7 +2623,7 @@ viewprevtag(const char *arg)
 	memcpy(tmptags, curseltags, ntags * sizeof(curseltags[0]));
 	memcpy(curseltags, curprevtags, ntags * sizeof(curseltags[0]));
 	memcpy(curprevtags, tmptags, ntags * sizeof(curseltags[0]));
-	if (bpos[prevcurtag] != bpos[curmontag])
+	if (views[prevcurtag].barpos != views[curmontag].barpos)
 		updategeom(curmonitor());
 	arrange(NULL);
 	focus(NULL);
