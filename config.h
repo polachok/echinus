@@ -17,7 +17,7 @@
 #define MINHEIGHT		12
 #define TITLEHEIGHT		0
 #define COMMAND			"xterm"
-#define MWFACT			0.6	/* master width factor [0.1 .. 0.9] */
+#define DEFMWFACT		0.6	/* master width factor [0.1 .. 0.9] */
+#define DEFNMASTER		1	/* number of windows in master area */
 #define SNAP			5	/* snap pixel */
-#define NMASTER			1	/* number of windows in master area */
 #define DECORATETILED		0	/* set to 1 to draw titles in tiled layouts */

@@ -165,7 +165,7 @@ initkeys()
 		}
 	}
 	/* layout setting */
-	for (i = 0; layouts[i].symbol != NULL; i++) {
+	for (i = 0; layouts[i].symbol != '\0'; i++) {
 		snprintf(t, sizeof(t), "setlayout%s", layouts[i].symbol);
 		tmp = getresource(t, NULL);
 		if (!tmp)
@@ -173,7 +173,7 @@ initkeys()
 		keys = realloc(keys, sizeof(Key *) * (nkeys + 1));
 		keys[nkeys] = malloc(sizeof(Key));
 		keys[nkeys]->func = setlayout;
-		keys[nkeys]->arg = layouts[i].symbol;
+		keys[nkeys]->arg = &layouts[i].symbol;
 		parsekey(tmp, keys[nkeys]);
 		nkeys++;
 	}

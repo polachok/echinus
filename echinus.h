@@ -33,8 +33,14 @@ struct Monitor {
 };
 
 typedef struct {
-	const char *symbol;
 	void (*arrange) (Monitor * m);
+	char symbol;
+	int features;
+#define BIT(_i)	(1 << (_i))
+#define MWFACT	BIT(0)
+#define NMASTER	BIT(1)
+#define	ZOOM	BIT(2)
+#define	OVERLAP	BIT(3)
 } Layout;
 
 

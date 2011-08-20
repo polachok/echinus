@@ -194,14 +194,14 @@ struct {
 	char command[255];
 } options;
 
-Layout layouts[] = { 
-	/* symbol               function */
-	{ "i", 			ifloating },	/* first entry is default */
-	{ "t", 			tile },
-	{ "m", 			monocle },
-	{ "b", 			bstack },
-	{ "f", 			floating },
-	{ NULL,			NULL },
+Layout layouts[] = {
+	/* function	symbol	features */
+	{  ifloating,	'i',	OVERLAP },
+	{  tile,	't',	MWFACT | NMASTER | ZOOM },
+	{  bstack,	'b',	MWFACT | NMASTER | ZOOM },
+	{  monocle,	'm',	0 },
+	{  floating,	'f',	OVERLAP },
+	{  NULL,	'\0',	0 },
 };
 
 void (*handler[LASTEvent]) (XEvent *) = {
@@ -918,7 +918,7 @@ incnmaster(const char *arg)
 	if (views[curmontag].layout->arrange != tile)
 		return;
 	if (!arg) {
-		views[curmontag].nmaster = NMASTER;
+		views[curmontag].nmaster = DEFNMASTER;
 	} else {
 		i = atoi(arg);
 		if ((views[curmontag].nmaster + i) < 1
@@ -1851,7 +1851,7 @@ setlayout(const char *arg)
 #endif
 	} else {
 		for (i = 0; i < LENGTH(layouts); i++)
-			if (!strcmp(arg, layouts[i].symbol))
+			if (*arg == layouts[i].symbol)
 				break;
 		if (i == LENGTH(layouts))
 			return;
@@ -1871,7 +1871,7 @@ setmwfact(const char *arg)
 		return;
 	/* arg handling, manipulate mwfact */
 	if (arg == NULL)
-		views[curmontag].mwfact = MWFACT;
+		views[curmontag].mwfact = DEFMWFACT;
 	else if (sscanf(arg, "%lf", &delta) == 1) {
 		if (arg[0] == '+' || arg[0] == '-')
 			views[curmontag].mwfact += delta;
@@ -1889,23 +1889,23 @@ void
 initlayouts()
 {
 	unsigned int i, j;
-	char conf[32], xres[256];
+	char conf[32], ltname;
 	float mwfact;
 	int nmaster;
 	const char *deflayout;
 
 	/* init layouts */
-	mwfact = atof(getresource("mwfact", STR(MWFACT)));
-	nmaster = atoi(getresource("nmaster", STR(NMASTER)));
+	mwfact = atof(getresource("mwfact", STR(DEFMWFACT)));
+	nmaster = atoi(getresource("nmaster", STR(DEFNMASTER)));
 	deflayout = getresource("deflayout", "i");
 	if (!nmaster)
 		nmaster = 1;
 	for (i = 0; i < ntags; i++) {
 		views[i].layout = &layouts[0];
 		snprintf(conf, sizeof(conf), "tags.layout%d", i);
-		strncpy(xres, getresource(conf, deflayout), 255);
+		strncpy(&ltname, getresource(conf, deflayout), 1);
 		for (j = 0; j < LENGTH(layouts); j++) {
-			if (!strcmp(layouts[j].symbol, xres)) {
+			if (layouts[j].symbol == ltname) {
 				views[i].layout = &layouts[j];
 				break;
 			}
