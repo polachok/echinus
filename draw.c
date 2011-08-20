@@ -70,7 +70,7 @@ drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
 Pixmap
 initpixmap(const char *file, Button * b)
 {
-	b->pm = XCreatePixmap(dpy, root, dc.h, dc.h, 1);
+	b->pm = XCreatePixmap(dpy, root, style.titleheight, style.titleheight, 1);
 	if (BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph,
 		&b->pm, &b->px, &b->py)) {
 		if (b->px == -1 || b->py == -1)
