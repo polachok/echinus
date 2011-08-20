@@ -161,30 +161,30 @@ char **cargv;
 Display *dpy;
 int screen;
 Window root;
-XrmDatabase xrdb = NULL;
-unsigned int numlockmask = 0;
+XrmDatabase xrdb;
+unsigned int numlockmask;
 Bool domwfact = True;
 Bool dozoom = True;
 Bool otherwm;
 Bool running = True;
 Bool selscreen = True;
-Monitor *monitors = NULL;
-Client *clients = NULL;
-Client *sel = NULL;
-Client *stack = NULL;
+Monitor *monitors;
+Client *clients;
+Client *sel;
+Client *stack;
 Cursor cursor[CurLast];
-Style style = { 0 };
+Style style;
 Button button[LastBtn];
 View *views;
+Key **keys;
+Rule **rules;
 
 char command[255];
 char **tags;
-Key **keys;
-Rule **rules;
-unsigned int ntags = 0;
-unsigned int nkeys = 0;
-unsigned int nrules = 0;
-unsigned int modkey = 0;
+unsigned int ntags;
+unsigned int nkeys;
+unsigned int nrules;
+unsigned int modkey;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
