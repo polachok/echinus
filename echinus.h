@@ -155,6 +155,7 @@ void toggleview(const char *arg);
 void togglemonitor(const char *arg);
 void focusview(const char *arg);
 void viewrighttag(const char *arg);
+void updateframe(Client *c);
 void zoom(const char *arg);
 
 /* parse.c */

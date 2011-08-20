@@ -25,6 +25,7 @@
 #include <sys/select.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <assert.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -2472,6 +2473,22 @@ unmapnotify(XEvent * e)
 		DPRINTF("killing self-unmapped window (%s)\n", c->name);
 		unmanage(c);
 	}
+}
+
+void
+updateframe(Client * c)
+{
+
+	if (!c->title)
+		return;
+	if (c->ismax || (!c->isfloating && !ISLTFLOATING(clientmonitor(c))
+			       	&& !options.dectiled)) {
+		assert(!c->th);
+		XUnmapWindow(dpy, c->title);
+		return;
+	}
+	assert(c->th);
+	XMapRaised(dpy, c->title);
 }
 
 void

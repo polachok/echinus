@@ -1,6 +1,5 @@
 #include <regex.h>
 #include <ctype.h>
-#include <assert.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
@@ -194,12 +193,7 @@ drawclient(Client * c)
 		return;
 	if (!c->title)
 		return;
-	/* XXX: that's not nice. we map and unmap title all the time */
-	if (c->ismax || (!c->isfloating && !ISLTFLOATING(clientmonitor(c)))) {
-		assert(!c->th);
-		XUnmapWindow(dpy, c->title);
-		return;
-	}
+	updateframe(c);
 	XftDrawChange(c->xftdraw, c->drawable);
 	XSetForeground(dpy, dc.gc, c == sel ? style.color.sel[ColBG] : style.color.norm[ColBG]);
 	XSetLineAttributes(dpy, dc.gc, style.border, LineSolid, CapNotLast, JoinMiter);
@@ -249,7 +243,6 @@ drawclient(Client * c)
 		XDrawLine(dpy, c->drawable, dc.gc, 0, style.titleheight - 1, dc.w, style.titleheight - 1);
 	}
 	XCopyArea(dpy, c->drawable, c->title, dc.gc, 0, 0, c->w, style.titleheight, 0, 0);
-	XMapRaised(dpy, c->title);
 }
 
 void
