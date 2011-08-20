@@ -410,7 +410,7 @@ buttonpress(XEvent * e)
 		if (ev->type == ButtonRelease)
 			return;
 		if (ev->button == Button1) {
-			if (ISLTFLOATING(curmonitor()) || c->isfloating)
+			if (FEATURES(curlayout, OVERLAP) || c->isfloating)
 				XRaiseWindow(dpy, c->frame);
 			movemouse(c);
 			arrange(NULL);
@@ -420,26 +420,26 @@ buttonpress(XEvent * e)
 	} else if ((c = getclient(ev->window, clients, ClientFrame))) {
 		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
-		if (ISLTFLOATING(curmonitor()) || c->isfloating)
+		if (FEATURES(curlayout, OVERLAP) || c->isfloating)
 			XRaiseWindow(dpy, c->frame);
 		if (CLEANMASK(ev->state) != modkey) {
 			XAllowEvents(dpy, ReplayPointer, CurrentTime);
 			return;
 		}
 		if (ev->button == Button1) {
-			if (!ISLTFLOATING(curmonitor()) && !c->isfloating)
+			if (!FEATURES(curlayout, OVERLAP) && !c->isfloating)
 				togglefloating(NULL);
 			if (c->ismax)
 				togglemax(NULL);
 			movemouse(c);
 			arrange(NULL);
 		} else if (ev->button == Button2) {
-			if (!ISLTFLOATING(curmonitor()) && c->isfloating)
+			if (!FEATURES(curlayout, OVERLAP) && c->isfloating)
 				togglefloating(NULL);
 			else
 				zoom(NULL);
 		} else if (ev->button == Button3 && !c->isfixed) {
-			if (!ISLTFLOATING(curmonitor()) && !c->isfloating)
+			if (!FEATURES(curlayout, OVERLAP) && !c->isfloating)
 				togglefloating(NULL);
 			if (c->ismax)
 				togglemax(NULL);
@@ -740,7 +740,7 @@ enternotify(XEvent * e)
 			    False, BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
 			break;
 		case SloppyFloat:
-			if (ISLTFLOATING(curmonitor()) || c->isfloating)
+			if (FEATURES(curlayout, OVERLAP) || c->isfloating)
 				focus(c);
 			XGrabButton(dpy, AnyButton, AnyModifier, c->frame,
 			    False, BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
@@ -2191,7 +2191,7 @@ togglefloating(const char *arg)
 	if (!sel)
 		return;
 
-	if (ISLTFLOATING(curmonitor()))
+	if (FEATURES(curlayout, OVERLAP))
 		return;
 
 	sel->isfloating = !sel->isfloating;
