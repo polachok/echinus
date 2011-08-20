@@ -140,7 +140,6 @@ void toggletag(const char *arg);
 void toggleview(const char *arg);
 void togglemonitor(const char *arg);
 void focusview(const char *arg);
-void saveconfig(Client * c);
 void unban(Client * c);
 void unmanage(Client * c);
 void updategeom(Monitor * m);
