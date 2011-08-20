@@ -172,7 +172,6 @@ Monitor *monitors = NULL;
 Client *clients = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
-unsigned int *ltidxs;
 Cursor cursor[CurLast];
 Style style = { 0 };
 Button button[LastBtn];
@@ -288,7 +287,7 @@ arrangemon(Monitor * m)
 			updatestruts(c->win);
 	}
 	updategeom(m);
-	layouts[ltidxs[m->curtag]].arrange(m);
+	views[m->curtag].layout->arrange(m);
 	arrangefloats(m);
 	restack(m);
 	for (c = stack; c; c = c->snext) {
@@ -919,7 +918,7 @@ incnmaster(const char *arg)
 {
 	unsigned int i;
 
-	if (layouts[ltidxs[curmontag]].arrange != tile)
+	if (views[curmontag].layout->arrange != tile)
 		return;
 	if (!arg) {
 		views[curmontag].nmaster = NMASTER;
@@ -1849,15 +1848,17 @@ setlayout(const char *arg)
 	unsigned int i;
 
 	if (!arg) {
+#if 0
 		if (&layouts[++ltidxs[curmontag]] == &layouts[LENGTH(layouts)])
 			ltidxs[curmontag] = 0;
+#endif
 	} else {
 		for (i = 0; i < LENGTH(layouts); i++)
 			if (!strcmp(arg, layouts[i].symbol))
 				break;
 		if (i == LENGTH(layouts))
 			return;
-		ltidxs[curmontag] = i;
+		views[curmontag].layout = &layouts[i];
 	}
 	if (sel)
 		arrange(curmonitor());
@@ -1897,20 +1898,18 @@ initlayouts()
 	const char *deflayout;
 
 	/* init layouts */
-	ltidxs = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
-
 	mwfact = atof(getresource("mwfact", STR(MWFACT)));
 	nmaster = atoi(getresource("nmaster", STR(NMASTER)));
 	deflayout = getresource("deflayout", "i");
 	if (!nmaster)
 		nmaster = 1;
 	for (i = 0; i < ntags; i++) {
-		ltidxs[i] = 0;
+		views[i].layout = &layouts[0];
 		snprintf(conf, sizeof(conf), "tags.layout%d", i);
 		strncpy(xres, getresource(conf, deflayout), 255);
 		for (j = 0; j < LENGTH(layouts); j++) {
 			if (!strcmp(layouts[j].symbol, xres)) {
-				ltidxs[i] = j;
+				views[i].layout = &layouts[j];
 				break;
 			}
 		}

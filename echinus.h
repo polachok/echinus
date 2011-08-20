@@ -32,6 +32,12 @@ struct Monitor {
 	unsigned int curtag;
 };
 
+typedef struct {
+	const char *symbol;
+	void (*arrange) (Monitor * m);
+} Layout;
+
+
 typedef struct Client Client;
 struct Client {
 	char name[256];
@@ -61,6 +67,7 @@ typedef struct View {
 	int barpos;
 	int nmaster;
 	double mwfact;
+	Layout *layout;
 } View;
 
 typedef struct {
@@ -92,11 +99,6 @@ typedef struct {
 	void (*func) (const char *arg);
 	const char *arg;
 } Key;
-
-typedef struct {
-	const char *symbol;
-	void (*arrange) (Monitor * m);
-} Layout;
 
 typedef struct {
 	char *prop;
@@ -197,7 +199,7 @@ void deinitstyle();
 #define DPRINTCLIENT(c) DPRINTF("%s: x: %d y: %d w: %d h: %d th: %d f: %d b: %d m: %d\n", \
 				    c->name, c->x, c->y, c->w, c->h, c->th, c->isfloating, c->isbastard, c->ismax)
 
-#define ISLTFLOATING(m) (m && ((layouts[ltidxs[m->curtag]].arrange == floating) || (layouts[ltidxs[m->curtag]].arrange == ifloating)))
+#define ISLTFLOATING(m) (m && ((views[m->curtag].layout->arrange == floating) || (views[m->curtag].layout->arrange == ifloating)))
 
 #define OPAQUE			0xffffffff
 #define RESNAME		       "echinus"
@@ -228,3 +230,4 @@ extern Rule **rules;
 extern Layout layouts[];
 extern Bool dectiled;
 extern unsigned int modkey;
+extern View *views;
