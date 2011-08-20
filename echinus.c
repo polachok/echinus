@@ -436,6 +436,8 @@ buttonpress(XEvent * e)
 		if (ev->button == Button1) {
 			if (!ISLTFLOATING(curmonitor()) && !c->isfloating)
 				togglefloating(NULL);
+			if (c->ismax)
+				togglemax(NULL);
 			movemouse(c);
 			arrange(NULL);
 		} else if (ev->button == Button2) {
@@ -446,6 +448,8 @@ buttonpress(XEvent * e)
 		} else if (ev->button == Button3 && !c->isfixed) {
 			if (!ISLTFLOATING(curmonitor()) && !c->isfloating)
 				togglefloating(NULL);
+			if (c->ismax)
+				togglemax(NULL);
 			resizemouse(c);
 		} else		/* don't know what to do? pass it on */
 			XAllowEvents(dpy, ReplayPointer, CurrentTime);
@@ -1494,7 +1498,6 @@ movemouse(Client * c)
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 		GrabModeAsync, None, cursor[CurMove], CurrentTime) != GrabSuccess)
 		return;
-	c->ismax = False;
 	XRaiseWindow(dpy, c->frame);
 	getpointer(&x1, &y1);
 	for (;;) {
@@ -1674,7 +1677,7 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 		drawclient(c);
 	}
 	if (c->x != x || c->y != y || c->w != w || c->h != h /* || sizehints */) {
-		if (c->isfloating || ISLTFLOATING(m)) {
+		if (!c->ismax && (c->isfloating || ISLTFLOATING(m))) {
 			c->rx = x;
 			c->ry = y;
 			c->rw = w;
