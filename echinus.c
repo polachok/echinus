@@ -170,7 +170,6 @@ Client *clients = NULL;
 Monitor *monitors = NULL;
 Client *sel = NULL;
 Client *stack = NULL;
-unsigned int *nmasters;
 unsigned int *bpos;
 unsigned int *ltidxs;
 Cursor cursor[CurLast];
@@ -926,13 +925,13 @@ incnmaster(const char *arg)
 	if (layouts[ltidxs[curmontag]].arrange != tile)
 		return;
 	if (!arg) {
-		nmasters[curmontag] = NMASTER;
+		views[curmontag].nmaster = NMASTER;
 	} else {
 		i = atoi(arg);
-		if ((nmasters[curmontag] + i) < 1
-		    || curwah / (nmasters[curmontag] + i) <= 2 * style.border)
+		if ((views[curmontag].nmaster + i) < 1
+		    || curwah / (views[curmontag].nmaster + i) <= 2 * style.border)
 			return;
-		nmasters[curmontag] += i;
+		views[curmontag].nmaster += i;
 	}
 	if (sel)
 		arrange(curmonitor());
@@ -1901,7 +1900,6 @@ initlayouts()
 	const char *deflayout;
 
 	/* init layouts */
-	nmasters = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 	ltidxs = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 	bpos = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 
@@ -1921,7 +1919,7 @@ initlayouts()
 			}
 		}
 		views[i].mwfact = mwfact;
-		nmasters[i] = nmaster;
+		views[i].nmaster = nmaster;
 		bpos[i] = StrutsOn;
 	}
 
@@ -2152,11 +2150,11 @@ tile(Monitor * m)
 		n++;
 
 	/* window geoms */
-	mh = (n <= nmasters[m->curtag]) ? m->wah / (n >
-	    0 ? n : 1) : m->wah / (nmasters[m->curtag] ? nmasters[m->curtag] : 1);
-	mw = (n <= nmasters[m->curtag]) ? m->waw : views[m->curtag].mwfact * m->waw;
-	th = (n > nmasters[m->curtag]) ? m->wah / (n - nmasters[m->curtag]) : 0;
-	if (n > nmasters[m->curtag] && th < style.titleheight)
+	mh = (n <= views[m->curtag].nmaster) ? m->wah / (n >
+	    0 ? n : 1) : m->wah / (views[m->curtag].nmaster ? views[m->curtag].nmaster : 1);
+	mw = (n <= views[m->curtag].nmaster) ? m->waw : views[m->curtag].mwfact * m->waw;
+	th = (n > views[m->curtag].nmaster) ? m->wah / (n - views[m->curtag].nmaster) : 0;
+	if (n > views[m->curtag].nmaster && th < style.titleheight)
 		th = m->wah;
 
 	nx = m->wax;
@@ -2164,15 +2162,15 @@ tile(Monitor * m)
 	nw = 0;
 	for (i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
 		c->ismax = False;
-		if (i < nmasters[m->curtag]) {	/* master */
+		if (i < views[m->curtag].nmaster) {	/* master */
 			ny = m->way + i * (mh - c->border);
 			nw = mw - 2 * c->border;
 			nh = mh;
-			if (i + 1 == (n < nmasters[m->curtag] ? n : nmasters[m->curtag]))	/* remainder */
+			if (i + 1 == (n < views[m->curtag].nmaster ? n : views[m->curtag].nmaster))	/* remainder */
 				nh = m->way + m->wah - ny;
 			nh -= 2 * c->border;
 		} else {	/* tile window */
-			if (i == nmasters[m->curtag]) {
+			if (i == views[m->curtag].nmaster) {
 				ny = m->way;
 				nx += mc->w + mc->border;
 				nw = m->waw - nx - 2 * c->border + m->wax;
@@ -2184,7 +2182,7 @@ tile(Monitor * m)
 				nh = th - 2 * c->border;
 		}
 		resize(c, m, nx, ny, nw, nh, False);
-		if (n > nmasters[m->curtag] && th != (unsigned int)m->wah) {
+		if (n > views[m->curtag].nmaster && th != (unsigned int)m->wah) {
 			ny = c->y + c->h + 2 * c->border;
 		}
 	}
