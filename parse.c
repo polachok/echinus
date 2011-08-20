@@ -202,6 +202,30 @@ parserule(const char *s, Rule * r)
 }
 
 void
+compileregs(void)
+{
+	unsigned int i;
+	regex_t *reg;
+
+	for (i = 0; i < nrules; i++) {
+		if (rules[i]->prop) {
+			reg = emallocz(sizeof(regex_t));
+			if (regcomp(reg, rules[i]->prop, REG_EXTENDED))
+				free(reg);
+			else
+				rules[i]->propregex = reg;
+		}
+		if (rules[i]->tags) {
+			reg = emallocz(sizeof(regex_t));
+			if (regcomp(reg, rules[i]->tags, REG_EXTENDED))
+				free(reg);
+			else
+				rules[i]->tagregex = reg;
+		}
+	}
+}
+
+void
 initrules()
 {
 	int i;
@@ -218,4 +242,5 @@ initrules()
 		nrules++;
 	}
 	rules = realloc(rules, nrules * sizeof(Rule *));
+	compileregs();
 }
