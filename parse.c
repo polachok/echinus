@@ -166,7 +166,7 @@ initkeys()
 	}
 	/* layout setting */
 	for (i = 0; layouts[i].symbol != '\0'; i++) {
-		snprintf(t, sizeof(t), "setlayout%s", layouts[i].symbol);
+		snprintf(t, sizeof(t), "setlayout%c", layouts[i].symbol);
 		tmp = getresource(t, NULL);
 		if (!tmp)
 			continue;

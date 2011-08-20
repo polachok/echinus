@@ -43,6 +43,7 @@ typedef struct {
 #define	OVERLAP	BIT(3)
 } Layout;
 
+#define FEATURES(_layout, _which) ((_layout)->features & (_which))
 
 typedef struct Client Client;
 struct Client {
@@ -193,6 +194,7 @@ void deinitstyle();
 #define curwah curmonitor()->wah
 #define curmontag curmonitor()->curtag
 #define curstruts curmonitor()->struts
+#define curlayout views[curmontag].layout
 
 #define LENGTH(x)		(sizeof(x) / sizeof x[0])
 #ifdef DEBUG

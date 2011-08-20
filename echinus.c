@@ -162,8 +162,6 @@ Display *dpy;
 int screen;
 Window root;
 XrmDatabase xrdb;
-Bool domwfact = True;
-Bool dozoom = True;
 Bool otherwm;
 Bool running = True;
 Bool selscreen = True;
@@ -198,7 +196,7 @@ Layout layouts[] = {
 	/* function	symbol	features */
 	{  ifloating,	'i',	OVERLAP },
 	{  tile,	't',	MWFACT | NMASTER | ZOOM },
-	{  bstack,	'b',	MWFACT | NMASTER | ZOOM },
+	{  bstack,	'b',	MWFACT | ZOOM },
 	{  monocle,	'm',	0 },
 	{  floating,	'f',	OVERLAP },
 	{  NULL,	'\0',	0 },
@@ -798,7 +796,6 @@ floating(Monitor * m)
 {				/* default floating layout */
 	Client *c;
 
-	domwfact = dozoom = False;
 	for (c = clients; c; c = c->next) {
 		if (isvisible(c, m) && !c->isicon) {
 			if (!c->isfloating)
@@ -915,7 +912,7 @@ incnmaster(const char *arg)
 {
 	unsigned int i;
 
-	if (views[curmontag].layout->arrange != tile)
+	if (!FEATURES(curlayout, NMASTER))
 		return;
 	if (!arg) {
 		views[curmontag].nmaster = DEFNMASTER;
@@ -1867,7 +1864,7 @@ setmwfact(const char *arg)
 {
 	double delta;
 
-	if (!domwfact)
+	if (!FEATURES(curlayout, MWFACT))
 		return;
 	/* arg handling, manipulate mwfact */
 	if (arg == NULL)
@@ -2097,7 +2094,6 @@ bstack(Monitor * m)
 	int i, n, nx, ny, nw, nh, mh, tw;
 	Client *c, *mc;
 
-	domwfact = dozoom = True;
 	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
 		n++;
 
@@ -2137,7 +2133,6 @@ tile(Monitor * m)
 	unsigned int i, n, th;
 	Client *c, *mc;
 
-	domwfact = dozoom = True;
 	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
 		n++;
 
@@ -2657,7 +2652,7 @@ zoom(const char *arg)
 {
 	Client *c;
 
-	if (!sel || !dozoom || sel->isfloating)
+	if (!sel || !FEATURES(curlayout, ZOOM) || sel->isfloating)
 		return;
 	if ((c = sel) == nexttiled(clients, curmonitor()))
 		if (!(c = nexttiled(c->next, curmonitor())))
