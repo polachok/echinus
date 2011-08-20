@@ -247,8 +247,11 @@ clientmessage(XEvent * e)
 	Client *c;
 
 	if (ev->message_type == atom[ActiveWindow]) {
-		focus(getclient(ev->window, clients, False));
-		arrange(curmonitor());
+		if ((c = getclient(ev->window, clients, False))) {
+				c->isicon = False;
+				focus(c);
+				arrange(curmonitor());
+		}
 	} else if (ev->message_type == atom[CurDesk]) {
 		view(tags[ev->data.l[0]]);
 	}

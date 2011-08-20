@@ -837,13 +837,12 @@ focus(Client * c)
 	o = sel;
 	if ((!c && selscreen) || (c && (c->isbastard || !isvisible(c, curmonitor()))))
 		for (c = stack;
-		    c && (c->isbastard || !isvisible(c, curmonitor())); c = c->snext);
+		    c && (c->isbastard || c->isicon || !isvisible(c, curmonitor())); c = c->snext);
 	if (sel && sel != c) {
 		grabbuttons(sel, False);
 		XSetWindowBorder(dpy, sel->frame, style.color.norm[ColBorder]);
 	}
 	if (c) {
-		c->isicon = False;
 		detachstack(c);
 		attachstack(c);
 		grabbuttons(c, True);
@@ -878,6 +877,7 @@ focusicon(const char *arg)
 	for(c = clients; c && (!c->isicon || !isvisible(c, curmonitor())); c = c->next);
 	if (!c)
 		return;
+	c->isicon = False;
 	focus(c);
 	arrange(curmonitor());
 }
