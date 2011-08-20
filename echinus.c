@@ -211,6 +211,7 @@ Layout layouts[] = {
 
 void (*handler[LASTEvent]) (XEvent *) = {
 	[ButtonPress] = buttonpress,
+	[ButtonRelease] = buttonpress,
 	[ConfigureRequest] = configurerequest,
 	[ConfigureNotify] = configurenotify,
 	[DestroyNotify] = destroynotify,
@@ -397,11 +398,24 @@ buttonpress(XEvent * e)
 			if ((ev->x > button[i].x)
 			    && ((int)ev->x < (int)(button[i].x + style.titleheight))
 			    && (button[i].x != -1)) {
-				DPRINTF("BUTTON %d PRESSED\n", i);
-				button[i].action(NULL);
+				if (ev->type == ButtonPress) {
+					DPRINTF("BUTTON %d PRESSED\n", i);
+					button[i].pressed = 1;
+				} else {
+					DPRINTF("BUTTON %d RELEASED\n", i);
+					button[i].pressed = 0;
+					button[i].action(NULL);
+				}
+				drawclient(c);
 				return;
 			}
 		}
+		for (i = 0; i < LastBtn; i++) {
+			button[i].pressed = 0;
+			drawclient(c);
+		}
+		if (ev->type == ButtonRelease)
+			return;
 		if (ev->button == Button1) {
 			if (ISLTFLOATING(curmonitor()) || c->isfloating)
 				XRaiseWindow(dpy, c->frame);
