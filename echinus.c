@@ -614,12 +614,14 @@ configurerequest(XEvent * e)
 	Client *c;
 	XConfigureRequestEvent *ev = &e->xconfigurerequest;
 	XWindowChanges wc;
+	Monitor *cm;
 
 	if ((c = getclient(ev->window, clients, ClientWindow))) {
 		c->ismax = False;
+		cm = clientmonitor(c);
 		if (ev->value_mask & CWBorderWidth)
 			c->border = ev->border_width;
-		if (c->isfixed || c->isfloating || ISLTFLOATING(clientmonitor(c))) {
+		if (c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
 			if (c->isbastard) {
 				if (ev->value_mask & CWX)
 					c->x = ev->x;
@@ -1579,7 +1581,7 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 	XWindowChanges wc;
 
 	c->th = c->title && !c->ismax && (c->isfloating || options.dectiled ||
-		       	ISLTFLOATING(m)) ? style.titleheight : 0;
+		       	MFEATURES(m, OVERLAP)) ? style.titleheight : 0;
 	if (sizehints) {
 		h -= c->th;
 		/* set minimum possible */
@@ -1641,7 +1643,7 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 		drawclient(c);
 	}
 	if (c->x != x || c->y != y || c->w != w || c->h != h /* || sizehints */) {
-		if (!c->ismax && (c->isfloating || ISLTFLOATING(m))) {
+		if (!c->ismax && (c->isfloating || MFEATURES(m, OVERLAP))) {
 			c->rx = x;
 			c->ry = y;
 			c->rw = w;
@@ -1721,7 +1723,7 @@ restack(Monitor * m)
 	if (!sel)
 		return;
 
-	if (ISLTFLOATING(m)) {
+	if (MFEATURES(m, OVERLAP)) {
 		XRaiseWindow(dpy, sel->frame);
 		goto end;
 	}
@@ -2225,7 +2227,7 @@ togglefill(const char *arg)
 	if (!sel || sel->isfixed)
 		return;
 	for(c = clients; c; c = c->next) {
-		if(isvisible(c, m) && (c != sel) && !c->isbastard && (c->isfloating || ISLTFLOATING(m))) {
+		if(isvisible(c, m) && (c != sel) && !c->isbastard && (c->isfloating || MFEATURES(m, OVERLAP))) {
 			if(c->y + c->h > sel->y && c->y < sel->y + sel->h) {
 				if(c->x < sel->x)
 					x1 = max(x1, c->x + c->w + style.border);
@@ -2467,7 +2469,7 @@ updateframe(Client * c)
 
 	if (!c->title)
 		return;
-	if (c->ismax || (!c->isfloating && !ISLTFLOATING(clientmonitor(c))
+	if (c->ismax || (!c->isfloating && !MFEATURES(clientmonitor(c), OVERLAP)
 			       	&& !options.dectiled)) {
 		assert(!c->th);
 		XUnmapWindow(dpy, c->title);

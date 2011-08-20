@@ -44,6 +44,8 @@ typedef struct {
 } Layout;
 
 #define FEATURES(_layout, _which) ((_layout)->features & (_which))
+#define M2LT(_mon) (views[(_mon)->curtag].layout)
+#define MFEATURES(_monitor, _which) (FEATURES(M2LT(_monitor), (_which)))
 
 typedef struct Client Client;
 struct Client {
@@ -206,8 +208,6 @@ void deinitstyle();
 #endif
 #define DPRINTCLIENT(c) DPRINTF("%s: x: %d y: %d w: %d h: %d th: %d f: %d b: %d m: %d\n", \
 				    c->name, c->x, c->y, c->w, c->h, c->th, c->isfloating, c->isbastard, c->ismax)
-
-#define ISLTFLOATING(m) (m && ((views[m->curtag].layout->arrange == floating) || (views[m->curtag].layout->arrange == ifloating)))
 
 #define OPAQUE			0xffffffff
 #define RESNAME		       "echinus"
