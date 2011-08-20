@@ -179,7 +179,6 @@ View *views;
 Key **keys;
 Rule **rules;
 
-char command[255];
 char **tags;
 unsigned int ntags;
 unsigned int nkeys;
@@ -193,6 +192,7 @@ struct {
 	Bool hidebastards;
 	int focus;
 	int snap;
+	char command[255];
 } options;
 
 Layout layouts[] = { 
@@ -376,7 +376,7 @@ buttonpress(XEvent * e)
 	if (ev->window == root) {
 		switch (ev->button) {
 		case Button3:
-			spawn(command);
+			spawn(options.command);
 			break;
 		case Button4:
 			viewlefttag(NULL);
@@ -2035,8 +2035,8 @@ setup(char *conf)
 
 	/* init appearance */
 	initstyle();
-	strncpy(command, getresource("command", COMMAND), LENGTH(command));
-	command[LENGTH(command) - 1] = '\0';
+	strncpy(options.command, getresource("command", COMMAND), LENGTH(options.command));
+	options.command[LENGTH(options.command) - 1] = '\0';
 	options.dectiled = atoi(getresource("decoratetiled", STR(DECORATETILED)));
 	options.hidebastards = atoi(getresource("hidebastards", "0"));
 	options.focus = atoi(getresource("sloppy", "0"));
