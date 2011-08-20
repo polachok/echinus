@@ -173,11 +173,12 @@ Client *stack = NULL;
 unsigned int *nmasters;
 unsigned int *bpos;
 unsigned int *ltidxs;
-double *mwfacts;
 Cursor cursor[CurLast];
 Display *dpy;
 Style style = { 0 };
 Button button[LastBtn];
+View *views;
+Pad *pads;
 
 Window root;
 XrmDatabase xrdb = NULL;
@@ -1876,16 +1877,16 @@ setmwfact(const char *arg)
 		return;
 	/* arg handling, manipulate mwfact */
 	if (arg == NULL)
-		mwfacts[curmontag] = MWFACT;
+		views[curmontag].mwfact = MWFACT;
 	else if (sscanf(arg, "%lf", &delta) == 1) {
 		if (arg[0] == '+' || arg[0] == '-')
-			mwfacts[curmontag] += delta;
+			views[curmontag].mwfact += delta;
 		else
-			mwfacts[curmontag] = delta;
-		if (mwfacts[curmontag] < 0.1)
-			mwfacts[curmontag] = 0.1;
-		else if (mwfacts[curmontag] > 0.9)
-			mwfacts[curmontag] = 0.9;
+			views[curmontag].mwfact = delta;
+		if (views[curmontag].mwfact < 0.1)
+			views[curmontag].mwfact = 0.1;
+		else if (views[curmontag].mwfact > 0.9)
+			views[curmontag].mwfact = 0.9;
 	}
 	arrange(curmonitor());
 }
@@ -1902,7 +1903,6 @@ initlayouts()
 	/* init layouts */
 	nmasters = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 	ltidxs = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
-	mwfacts = (double *) emallocz(sizeof(double) * ntags);
 	bpos = (unsigned int *) emallocz(sizeof(unsigned int) * ntags);
 
 	mwfact = atof(getresource("mwfact", STR(MWFACT)));
@@ -1920,7 +1920,7 @@ initlayouts()
 				break;
 			}
 		}
-		mwfacts[i] = mwfact;
+		views[i].mwfact = mwfact;
 		nmasters[i] = nmaster;
 		bpos[i] = StrutsOn;
 	}
@@ -1935,6 +1935,7 @@ inittags()
 	char tmp[25] = "\0";
 
 	ntags = atoi(getresource("tags.number", "5"));
+	views = emallocz(ntags * sizeof(View));
 	tags = emallocz(ntags * sizeof(char *));
 	for (i = 0; i < ntags; i++) {
 		tags[i] = emallocz(25);
@@ -2110,7 +2111,7 @@ bstack(Monitor * m)
 	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
 		n++;
 
-	mh = (n == 1) ? m->wah : mwfacts[m->curtag] * m->wah;
+	mh = (n == 1) ? m->wah : views[m->curtag].mwfact * m->wah;
 	tw = (n > 1) ? m->waw / (n - 1) : 0;
 
 	nx = m->wax;
@@ -2153,7 +2154,7 @@ tile(Monitor * m)
 	/* window geoms */
 	mh = (n <= nmasters[m->curtag]) ? m->wah / (n >
 	    0 ? n : 1) : m->wah / (nmasters[m->curtag] ? nmasters[m->curtag] : 1);
-	mw = (n <= nmasters[m->curtag]) ? m->waw : mwfacts[m->curtag] * m->waw;
+	mw = (n <= nmasters[m->curtag]) ? m->waw : views[m->curtag].mwfact * m->waw;
 	th = (n > nmasters[m->curtag]) ? m->wah / (n - nmasters[m->curtag]) : 0;
 	if (n > nmasters[m->curtag] && th < style.titleheight)
 		th = m->wah;
