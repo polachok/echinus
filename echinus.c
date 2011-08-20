@@ -196,7 +196,7 @@ char conf[256] = "\0";
 struct {
 	Bool dectiled;
 	Bool hidebastards;
-	int sloppy;
+	int focus;
 	int snap;
 } options;
 
@@ -742,7 +742,7 @@ enternotify(XEvent * e)
 			grabbuttons(c, True);
 			return;
 		}
-		switch (options.sloppy) {
+		switch (options.focus) {
 		case Clk2Focus:
 			XGrabButton(dpy, AnyButton, AnyModifier, c->frame,
 			    False, BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
@@ -2045,9 +2045,9 @@ setup(void)
 	strncpy(command, getresource("command", COMMAND), LENGTH(command));
 	command[LENGTH(command) - 1] = '\0';
 	options.dectiled = atoi(getresource("decoratetiled", STR(DECORATETILED)));
-	options.hidebastards = atoi(getresource("options.hidebastards", "0"));
-	options.sloppy = atoi(getresource("options.sloppy", "0"));
-	options.snap = atoi(getresource("options.snap", STR(SNAP)));
+	options.hidebastards = atoi(getresource("hidebastards", "0"));
+	options.focus = atoi(getresource("sloppy", "0"));
+	options.snap = atoi(getresource("snap", STR(SNAP)));
 
 	for (m = monitors; m; m = m->next) {
 		m->struts[RightStrut] = m->struts[LeftStrut] =
