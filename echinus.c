@@ -397,7 +397,7 @@ buttonpress(XEvent * e)
 		for (i = 0; i < LastBtn; i++) {
 			if ((ev->x > button[i].x)
 			    && ((int)ev->x < (int)(button[i].x + style.titleheight))
-			    && (button[i].x != -1)) {
+			    && (button[i].x != -1) && (int)ev->y < style.titleheight) {
 				if (ev->type == ButtonPress) {
 					DPRINTF("BUTTON %d PRESSED\n", i);
 					button[i].pressed = 1;
