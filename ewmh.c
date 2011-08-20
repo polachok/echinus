@@ -248,7 +248,7 @@ clientmessage(XEvent * e)
 	Client *c;
 
 	if (ev->message_type == atom[ActiveWindow]) {
-		if ((c = getclient(ev->window, clients, False))) {
+		if ((c = getclient(ev->window, clients, ClientWindow))) {
 				c->isicon = False;
 				focus(c);
 				arrange(curmonitor());
@@ -256,14 +256,14 @@ clientmessage(XEvent * e)
 	} else if (ev->message_type == atom[CurDesk]) {
 		view(tags[ev->data.l[0]]);
 	} else if (ev->message_type == atom[WindowState]) {
-		if ((c = getclient(ev->window, clients, False))) {
+		if ((c = getclient(ev->window, clients, ClientWindow))) {
 			ewmh_process_state_atom(c, (Atom) ev->data.l[1], ev->data.l[0]);
 			if (ev->data.l[2])
 				ewmh_process_state_atom(c,
 				    (Atom) ev->data.l[2], ev->data.l[0]);
 		}
 	} else if (ev->message_type == atom[WMChangeState]) {
-		if ((c = getclient(ev->window, clients, False))) {
+		if ((c = getclient(ev->window, clients, ClientWindow))) {
 			if (ev->data.l[0] == IconicState) {
 				focus(c);
 				iconify(NULL);
@@ -329,7 +329,7 @@ updatestruts(Window win)
 	Client *c;
 	unsigned long i, n;
 
-	c = getclient(win, clients, False);
+	c = getclient(win, clients, ClientWindow);
 	m = getmonitor(c->x, c->y);
 
 	state = (unsigned long*)getatom(win, atom[StrutPartial], &n);
