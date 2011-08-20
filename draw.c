@@ -97,13 +97,13 @@ initbuttons()
 }
 
 int
-drawbutton(Drawable d, Drawable btn, unsigned long col[ColLast], int x, int y)
+drawbutton(Drawable d, Button btn, unsigned long col[ColLast], int x, int y)
 {
 	XSetForeground(dpy, dc.gc, col[ColBG]);
 	XFillRectangle(dpy, d, dc.gc, x, 0, style.titleheight, style.titleheight);
-	XSetForeground(dpy, dc.gc, col[ColButton]);
+	XSetForeground(dpy, dc.gc, btn.pressed ? col[ColFG] : col[ColButton]);
 	XSetBackground(dpy, dc.gc, col[ColBG]);
-	XCopyPlane(dpy, btn, d, dc.gc, 0, 0, button[Iconify].pw,
+	XCopyPlane(dpy, btn.pm, d, dc.gc, 0, 0, button[Iconify].pw,
 	    button[Iconify].ph, x, y + button[Iconify].py, 1);
 	return style.titleheight;
 }
@@ -135,17 +135,17 @@ drawelement(char which, int x, int position, Client * c)
 		break;
 	case 'I':
 		button[Iconify].x = dc.x;
-		w = drawbutton(c->drawable, button[Iconify].pm, color,
+		w = drawbutton(c->drawable, button[Iconify], color,
 		    dc.x, style.titleheight / 2 - button[Iconify].ph / 2);
 		break;
 	case 'M':
 		button[Maximize].x = dc.x;
-		w = drawbutton(c->drawable, button[Maximize].pm, color,
+		w = drawbutton(c->drawable, button[Maximize], color,
 		    dc.x, style.titleheight / 2 - button[Maximize].ph / 2);
 		break;
 	case 'C':
 		button[Close].x = dc.x;
-		w = drawbutton(c->drawable, button[Close].pm, color, dc.x,
+		w = drawbutton(c->drawable, button[Close], color, dc.x,
 		    style.titleheight / 2 - button[Maximize].ph / 2);
 		break;
 	default:
@@ -209,7 +209,7 @@ drawclient(Client * c)
 		button[Close].x = dc.w;
 		drawtext(c->name, c->drawable, c->xftdraw,
 		    c == sel ? style.color.sel : style.color.norm, dc.x, dc.y, dc.w);
-		drawbutton(c->drawable, button[Close].pm,
+		drawbutton(c->drawable, button[Close],
 		    c == sel ? style.color.sel : style.color.norm, dc.w,
 		    style.titleheight / 2 - button[Close].ph / 2);
 		goto end;

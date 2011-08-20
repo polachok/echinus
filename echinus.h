@@ -62,6 +62,7 @@ typedef struct {
 	int px, py;
 	unsigned int pw, ph;
 	int x;
+	int pressed;
 	void (*action) (const char *arg);
 } Button;
 
