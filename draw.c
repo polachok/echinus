@@ -91,7 +91,7 @@ initbuttons()
 	initpixmap(getresource("button.maximize.pixmap", MAXPIXMAP),
 	    &button[Maximize]);
 	initpixmap(getresource("button.close.pixmap", CLOSEPIXMAP), &button[Close]);
-	button[Iconify].action = iconifyit;
+	button[Iconify].action = iconify;
 	button[Maximize].action = togglemax;
 	button[Close].action = killclient;
 	button[Iconify].x = button[Close].x = button[Maximize].x = -1;

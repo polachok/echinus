@@ -34,7 +34,7 @@ static KeyItem KeyItems[] = {
 	{"incmwfact", setmwfact},
 	{"incnmaster", incnmaster},
 	{"decnmaster", incnmaster},
-	{"iconify", iconifyit},
+	{"iconify", iconify},
 	{"zoom", zoom},
 	{"moveright", moveresizekb},
 	{"moveleft", moveresizekb},

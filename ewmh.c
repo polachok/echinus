@@ -266,7 +266,7 @@ clientmessage(XEvent * e)
 		if ((c = getclient(ev->window, clients, False))) {
 			if (ev->data.l[0] == IconicState) {
 				focus(c);
-				iconifyit(NULL);
+				iconify(NULL);
 			}
 		}
 	}

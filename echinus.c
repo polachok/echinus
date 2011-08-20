@@ -83,7 +83,7 @@ void eprint(const char *errstr, ...);
 void expose(XEvent * e);
 void floating(Monitor * m);	/* default floating layout */
 void ifloating(Monitor * m);	/* intellectual floating layout try */
-void iconifyit(const char *arg);
+void iconify(const char *arg);
 void incnmaster(const char *arg);
 void focus(Client * c);
 void focusnext(const char *arg);
@@ -352,7 +352,7 @@ ban(Client * c)
 }
 
 void
-iconifyit(const char *arg)
+iconify(const char *arg)
 {
 	Client *c;
 	if (!sel)

@@ -136,7 +136,7 @@ unsigned int textw(const char *text);
 Bool isvisible(Client * c, Monitor * m);
 void *emallocz(unsigned int size);
 Monitor *clientmonitor(Client * c);
-void iconifyit(const char *arg);
+void iconify(const char *arg);
 const char *getresource(const char *resource, const char *defval);
 void togglemax(const char *arg);
 void killclient(const char *arg);
