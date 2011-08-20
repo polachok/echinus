@@ -182,7 +182,6 @@ Style style = { 0 };
 Button button[LastBtn];
 
 Window root;
-Regs *regs = NULL;
 XrmDatabase xrdb = NULL;
 
 char command[255];
@@ -247,11 +246,11 @@ applyrules(Client * c)
 	    ch.res_class ? ch.res_class : "", ch.res_name ? ch.res_name : "", c->name);
 	buf[LENGTH(buf)-1] = 0;
 	for (i = 0; i < nrules; i++)
-		if (regs[i].propregex && !regexec(regs[i].propregex, buf, 1, &tmp, 0)) {
+		if (rules[i]->propregex && !regexec(rules[i]->propregex, buf, 1, &tmp, 0)) {
 			c->isfloating = rules[i]->isfloating;
 			c->title = rules[i]->hastitle;
-			for (j = 0; regs[i].tagregex && j < ntags; j++) {
-				if (!regexec(regs[i].tagregex, tags[j], 1, &tmp, 0)) {
+			for (j = 0; rules[i]->tagregex && j < ntags; j++) {
+				if (!regexec(rules[i]->tagregex, tags[j], 1, &tmp, 0)) {
 					matched = True;
 					c->tags[j] = True;
 				}
@@ -492,33 +491,6 @@ cleanup(void)
 	XFreeCursor(dpy, cursor[CurMove]);
 	XSetInputFocus(dpy, PointerRoot, RevertToPointerRoot, CurrentTime);
 	XSync(dpy, False);
-}
-
-void
-compileregs(void)
-{
-	unsigned int i;
-	regex_t *reg;
-
-	if (regs)
-		return;
-	regs = emallocz(nrules * sizeof(Regs));
-	for (i = 0; i < nrules; i++) {
-		if (rules[i]->prop) {
-			reg = emallocz(sizeof(regex_t));
-			if (regcomp(reg, rules[i]->prop, REG_EXTENDED))
-				free(reg);
-			else
-				regs[i].propregex = reg;
-		}
-		if (rules[i]->tags) {
-			reg = emallocz(sizeof(regex_t));
-			if (regcomp(reg, rules[i]->tags, REG_EXTENDED))
-				free(reg);
-			else
-				regs[i].tagregex = reg;
-		}
-	}
 }
 
 void
@@ -2065,7 +2037,6 @@ setup(void)
 	updateatom[DeskNames] (NULL);
 	updateatom[CurDesk] (NULL);
 
-	compileregs();
 	grabkeys();
 
 	/* init appearance */

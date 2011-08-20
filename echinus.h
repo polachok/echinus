@@ -97,12 +97,9 @@ typedef struct {
 	char *tags;
 	Bool isfloating;
 	Bool hastitle;
-} Rule;
-
-typedef struct {
 	regex_t *propregex;
 	regex_t *tagregex;
-} Regs;
+} Rule;
 
 /* ewmh.c */
 void clientmessage(XEvent * e);
