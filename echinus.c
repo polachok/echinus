@@ -2213,10 +2213,10 @@ togglefloating(const char *arg)
 
 	sel->isfloating = !sel->isfloating;
 	if (sel->isfloating) {
-		/*restore last known float dimensions */
+		/* restore last known float dimensions */
 		resize(sel, curmonitor(), sel->rx, sel->ry, sel->rw, sel->rh, False);
 	} else {
-		/*save last known float dimensions */
+		/* save last known float dimensions */
 		sel->rx = sel->x;
 		sel->ry = sel->y;
 		sel->rw = sel->w;
