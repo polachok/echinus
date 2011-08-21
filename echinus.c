@@ -291,8 +291,10 @@ arrangemon(Monitor * m)
 		    ((!c->isbastard && isvisible(c, m) && !c->isicon) ||
 			(c->isbastard && views[m->curtag].barpos == StrutsOn))) {
 			unban(c);
+#if 0
 			if (c->isbastard)
 				c->isicon = False;
+#endif
 		}
 	}
 
@@ -301,8 +303,10 @@ arrangemon(Monitor * m)
 		    ((!c->isbastard && (!isvisible(c, m) || c->isicon)) ||
 			(c->isbastard && views[m->curtag].barpos == StrutsHide))) {
 			ban(c);
+#if 0
 			if (c->isbastard)
 				c->isicon = True;
+#endif
 		}
 	}
 }
