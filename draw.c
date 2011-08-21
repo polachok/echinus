@@ -194,7 +194,6 @@ drawclient(Client * c)
 		return;
 	if (!c->title)
 		return;
-	updateframe(c);
 	dc.x = dc.y = 0;
 	dc.w = c->w;
 	dc.h = style.titleheight;

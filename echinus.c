@@ -1271,7 +1271,6 @@ manage(Window w, XWindowAttributes * wa)
 	XReparentWindow(dpy, c->title, c->frame, 0, 0);
 	XAddToSaveSet(dpy, c->win);
 	XMapWindow(dpy, c->win);
-	XMapRaised(dpy, c->title);
 	wc.border_width = 0;
 	XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
 	configure(c);	/* propagates border_width, if size doesn't change */
@@ -1284,6 +1283,7 @@ manage(Window w, XWindowAttributes * wa)
 	ban(c);
 	updateatom[ClientList] (NULL);
 	updateatom[WindowDesk] (c);
+	updateframe(c);
 	arrange(clientmonitor(c));
 	if (!checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
 		focus(NULL);
@@ -1595,8 +1595,6 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 {
 	XWindowChanges wc;
 
-	c->th = c->title && !c->ismax && (c->isfloating || options.dectiled ||
-		       	MFEATURES(m, OVERLAP)) ? style.titleheight : 0;
 	if (sizehints) {
 		h -= c->th;
 		/* set minimum possible */
@@ -1857,6 +1855,7 @@ void
 setlayout(const char *arg)
 {
 	unsigned int i;
+	Client *c;
 
 	if (!arg) {
 #if 0
@@ -1871,8 +1870,11 @@ setlayout(const char *arg)
 			return;
 		views[curmontag].layout = &layouts[i];
 	}
-	if (sel)
+	if (sel) {
+		for (c = clients; c; c = c->next)
+			updateframe(c);
 		arrange(curmonitor());
+	}
 	updateatom[ELayout] (NULL);
 }
 
@@ -2101,6 +2103,7 @@ tag(const char *arg)
 		sel->tags[i] = (NULL == arg);
 	sel->tags[idxoftag(arg)] = True;
 	updateatom[WindowDesk] (sel);
+	updateframe(sel);
 	arrange(NULL);
 	focus(NULL);
 }
@@ -2212,6 +2215,7 @@ togglefloating(const char *arg)
 		return;
 
 	sel->isfloating = !sel->isfloating;
+	updateframe(sel);
 	if (sel->isfloating) {
 		/* restore last known float dimensions */
 		resize(sel, curmonitor(), sel->rx, sel->ry, sel->rw, sel->rh, False);
@@ -2222,7 +2226,6 @@ togglefloating(const char *arg)
 		sel->rw = sel->w;
 		sel->rh = sel->h;
 	}
-	drawclient(sel);
 	arrange(curmonitor());
 }
 
@@ -2284,7 +2287,9 @@ togglemax(const char *arg)
 
 	if (!sel || sel->isfixed)
 		return;
-	if ((sel->ismax = !sel->ismax)) {
+	sel->ismax = !sel->ismax;
+	updateframe(sel);
+	if (sel->ismax) {
 		sel->rx = sel->x;
 		sel->ry = sel->y;
 		sel->rw = sel->w;
@@ -2389,8 +2394,6 @@ unban(Client * c)
 	XSelectInput(dpy, c->win, CLIENTMASK);
 	XSelectInput(dpy, c->frame, FRAMEMASK);
 	setclientstate(c, NormalState);
-	if (c->isfloating)
-		drawclient(c);
 	c->isbanned = False;
 }
 
@@ -2484,14 +2487,14 @@ updateframe(Client * c)
 
 	if (!c->title)
 		return;
-	if (c->ismax || (!c->isfloating && !MFEATURES(clientmonitor(c), OVERLAP)
-			       	&& !options.dectiled)) {
-		assert(!c->th);
+
+	c->th = !c->ismax && (c->isfloating || options.dectiled ||
+			MFEATURES(clientmonitor(c), OVERLAP)) ?
+			style.titleheight : 0;
+	if (!c->th)
 		XUnmapWindow(dpy, c->title);
-		return;
-	}
-	assert(c->th);
-	XMapRaised(dpy, c->title);
+	else
+		XMapRaised(dpy, c->title);
 }
 
 void
