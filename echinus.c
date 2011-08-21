@@ -1205,10 +1205,10 @@ manage(Window w, XWindowAttributes * wa)
 
 	if (wa->x && wa->y) {
 		c->isplaced = True;
-	} else if (!c->isbastard && c->isfloating) {
+	} else if (!c->isbastard) {
 		getpointer(&c->x, &c->y);
-		c->x -= cm->sx;
-		c->y -= cm->sy;
+		c->rx = c->x -= cm->sx;
+		c->ry = c->y -= cm->sy;
 	}
 	if (c->isbastard) {
 		c->x = wa->x;
