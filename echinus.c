@@ -846,7 +846,7 @@ focus(Client * c)
 		detachstack(c);
 		attachstack(c);
 		grabbuttons(c, True);
-		unban(c);
+		/* unban(c); */
 	}
 	sel = c;
 	if (!selscreen)
