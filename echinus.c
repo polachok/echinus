@@ -947,7 +947,9 @@ getclient(Window w, Client * list, int part)
 {
 	Client *c;
 
-#define ClientPart(_c, _part) ((_part == ClientWindow) ? _c->win : ((_part == ClientTitle) ? _c->title : _c->frame))
+#define ClientPart(_c, _part) (((_part) == ClientWindow) ? (_c)->win : \
+			       ((_part) == ClientTitle) ? (_c)->title : \
+			       ((_part) == ClientFrame) ? (_c)->frame : 0)
 
 	for (c = list; c && (ClientPart(c, part)) != w; c = c->next);
 
