@@ -6,7 +6,7 @@ enum { ClientList, ActiveWindow, WindowDesk,
 	WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial,
 	ESelTags,
 	WindowName, WindowState, WindowStateFs, WindowStateModal,
-	WindowStateHidden,
+	WindowStateHidden, WMCheck,
 	Utf8String, Supported, WMProto, WMDelete, WMName, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, NATOMS
 };

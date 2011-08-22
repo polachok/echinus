@@ -40,6 +40,7 @@ const char *atomnames[NATOMS][1] = {
 	{"_NET_WM_STATE_FULLSCREEN"},
 	{"_NET_WM_STATE_MODAL"},
 	{"_NET_WM_STATE_HIDDEN"},
+	{"_NET_SUPPORTING_WM_CHECK"},
 	{"UTF8_STRING"},
 	{"_NET_SUPPORTED"},
 	{"WM_PROTOCOLS"},
@@ -55,12 +56,24 @@ void
 initewmh(void)
 {
 	int i;
+	char name[] = "Echinus";
+	XSetWindowAttributes wa;
+	Window win;
 
 	for (i = 0; i < NATOMS; i++)
 		atom[i] = XInternAtom(dpy, atomnames[i][0], False);
 	XChangeProperty(dpy, root,
 	    atom[Supported], XA_ATOM, 32,
 	    PropModeReplace, (unsigned char *) atom, NATOMS);
+
+	wa.override_redirect = True;
+	win = XCreateWindow(dpy, root, -100, 0, 1, 1,
+			0, DefaultDepth(dpy, screen), CopyFromParent,
+			DefaultVisual(dpy, screen), CWOverrideRedirect, &wa);
+	XChangeProperty(dpy, win, atom[WindowName], atom[Utf8String], 8,
+		       	PropModeReplace, (unsigned char*)name, strlen(name));
+	XChangeProperty(dpy, root, atom[WMCheck], XA_WINDOW, 32,
+		       	PropModeReplace, (unsigned char*)&win, 1);
 }
 
 void
