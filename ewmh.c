@@ -56,7 +56,7 @@ void
 initewmh(void)
 {
 	int i;
-	char name[] = "Echinus";
+	char name[] = "echinus";
 	XSetWindowAttributes wa;
 	Window win;
 
