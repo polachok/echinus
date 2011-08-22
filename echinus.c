@@ -1984,9 +1984,6 @@ setup(char *conf)
 		NULL
 	};
 
-	/* init EWMH atom */
-	initatom();
-
 	/* init cursors */
 	cursor[CurNormal] = XCreateFontCursor(dpy, XC_left_ptr);
 	cursor[CurResize] = XCreateFontCursor(dpy, XC_sizing);
@@ -2036,6 +2033,9 @@ setup(char *conf)
 	}
 	if (confs[i] == NULL)
 		eprint("echinus: couldn't open a configuration file\n");
+
+	/* init EWMH atom */
+	initewmh();
 
 	/* init tags */
 	inittags();

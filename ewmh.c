@@ -52,7 +52,7 @@ const char *atomnames[NATOMS][1] = {
 };
 
 void
-initatom(void)
+initewmh(void)
 {
 	int i;
 
