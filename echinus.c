@@ -415,12 +415,10 @@ buttonpress(XEvent * e)
 			return;
 		if (FEATURES(curlayout, OVERLAP) || c->isfloating)
 			XRaiseWindow(dpy, c->frame);
-		if (ev->button == Button1) {
+		if (ev->button == Button1)
 			movemouse(c);
-			arrange(NULL);
-		} else if (ev->button == Button3 && !c->isfixed) {
+		else if (ev->button == Button3 && !c->isfixed)
 			resizemouse(c);
-		}
 	} else if ((c = getclient(ev->window, clients, ClientFrame))) {
 		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
@@ -436,7 +434,6 @@ buttonpress(XEvent * e)
 			if (c->ismax)
 				togglemax(NULL);
 			movemouse(c);
-			arrange(NULL);
 		} else if (ev->button == Button2) {
 			if (!FEATURES(curlayout, OVERLAP) && c->isfloating)
 				togglefloating(NULL);
@@ -1521,6 +1518,7 @@ movemouse(Client * c)
 					c->tags[i] = nm->seltags[i];
 				updateatom[WindowDesk] (c);
 				drawclient(c);
+				arrange(NULL);
 			}
 			break;
 		}
