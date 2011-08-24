@@ -1169,7 +1169,8 @@ manage(Window w, XWindowAttributes * wa)
 	c->tags = emallocz(ntags * sizeof(curseltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
 	c->border = c->isbastard ? 0 : style.border;
-	c->ignoreunmap++; /* reparent does unmap */
+	/*  XReparentWindow() unmaps *mapped* windows */
+	c->ignoreunmap = wa->map_state == IsViewable ? 1 : 0;
 	mwm_process_atom(c);
 	updatesizehints(c);
 
@@ -2486,7 +2487,7 @@ unmapnotify(XEvent * e)
 	XUnmapEvent *ev = &e->xunmap;
 
 	if ((c = getclient(ev->window, clients, ClientWindow)) /* && ev->send_event */) {
-		if (c->isicon || c->ignoreunmap--)
+		if (c->ignoreunmap--)
 			return;
 		DPRINTF("killing self-unmapped window (%s)\n", c->name);
 		unmanage(c);
