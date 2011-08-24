@@ -1882,7 +1882,8 @@ setlayout(const char *arg)
 		for (c = clients; c; c = c->next) {
 			if (wasfloat)
 				save(c);
-			updateframe(c);
+			if (wasfloat != FEATURES(curlayout, OVERLAP))
+				updateframe(c);
 		}
 		arrange(curmonitor());
 	}
