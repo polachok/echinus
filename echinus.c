@@ -1207,8 +1207,8 @@ manage(Window w, XWindowAttributes * wa)
 		c->isplaced = True;
 	} else if (!c->isbastard) {
 		getpointer(&c->x, &c->y);
-		c->rx = c->x -= cm->sx;
-		c->ry = c->y -= cm->sy;
+		c->rx = c->x = (c->x - c->w/2) % cm->sw;
+		c->ry = c->x = (c->y - c->h/2) % cm->sh;
 	}
 	if (c->isbastard) {
 		c->x = wa->x;
