@@ -43,7 +43,7 @@ typedef struct {
 #define	OVERLAP	BIT(3)
 } Layout;
 
-#define FEATURES(_layout, _which) ((_layout)->features & (_which))
+#define FEATURES(_layout, _which) (!(!((_layout)->features & (_which))))
 #define M2LT(_mon) (views[(_mon)->curtag].layout)
 #define MFEATURES(_monitor, _which) (FEATURES(M2LT(_monitor), (_which)))
 
