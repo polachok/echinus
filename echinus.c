@@ -1487,7 +1487,6 @@ movemouse(Client * c)
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 		GrabModeAsync, None, cursor[CurMove], CurrentTime) != GrabSuccess)
 		return;
-	XRaiseWindow(dpy, c->frame);
 	getpointer(&x1, &y1);
 	for (;;) {
 		XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
