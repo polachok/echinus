@@ -334,18 +334,16 @@ checkatom(Window win, Atom bigatom, Atom smallatom)
 }
 
 int
-updatestruts(Window win)
+updatestruts(Client * c)
 {
 	unsigned long *state;
 	int ret = 0;
 	Monitor *m;
-	Client *c;
 	unsigned long i, n;
 
-	c = getclient(win, clients, ClientWindow);
-	m = getmonitor(c->x, c->y);
+	m = clientmonitor(c);
 
-	state = (unsigned long*)getatom(win, atom[StrutPartial], &n);
+	state = (unsigned long*)getatom(c->win, atom[StrutPartial], &n);
 	if (n) {
 		for (i = LeftStrut; i < LastStrut; i++)
 			m->struts[i] =

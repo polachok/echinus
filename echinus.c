@@ -1283,7 +1283,7 @@ manage(Window w, XWindowAttributes * wa)
 	updateatom[WindowDesk] (c);
 	updateframe(c);
 	if (c->isbastard) {
-		updatestruts(c->win);
+		updatestruts(c);
 		updategeom(clientmonitor(c));
 	}
 	arrange(clientmonitor(c));
@@ -1575,7 +1575,7 @@ propertynotify(XEvent * e)
 			break;
 		}
 		if (ev->atom == atom[StrutPartial]) {
-			updatestruts(c->win);
+			updatestruts(c);
 			updategeom(clientmonitor(c));
 			arrange(clientmonitor(c));
 		} else if (ev->atom == atom[WindowName])
@@ -2450,7 +2450,7 @@ unmanage(Client * c)
 			m->struts[BotStrut] = 0;
 		for(c = clients; c; c = c->next)
 			if (c->isbastard)
-				updatestruts(c->win);
+				updatestruts(c);
 		updategeom(m);
 	}
 	if (doarrange) 

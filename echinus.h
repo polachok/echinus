@@ -121,7 +121,7 @@ typedef struct {
 /* ewmh.c */
 void clientmessage(XEvent * e);
 void initewmh(void);
-int updatestruts(Window win);
+int updatestruts(Client * c);
 void setopacity(Client * c, unsigned int opacity);
 void mwm_process_atom(Client * c);
 void ewmh_process_state_atom(Client * c, Atom state, int set);
