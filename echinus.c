@@ -413,9 +413,9 @@ buttonpress(XEvent * e)
 		}
 		if (ev->type == ButtonRelease)
 			return;
+		if (FEATURES(curlayout, OVERLAP) || c->isfloating)
+			XRaiseWindow(dpy, c->frame);
 		if (ev->button == Button1) {
-			if (FEATURES(curlayout, OVERLAP) || c->isfloating)
-				XRaiseWindow(dpy, c->frame);
 			movemouse(c);
 			arrange(NULL);
 		} else if (ev->button == Button3 && !c->isfixed) {
@@ -1740,12 +1740,12 @@ restack(Monitor * m)
 
 	if (!sel)
 		return;
-
+#if 0
 	if (MFEATURES(m, OVERLAP)) {
 		XRaiseWindow(dpy, sel->frame);
 		goto end;
 	}
-
+#endif
 	for (n = 0, c = stack; c; c = c->snext) {
 		if (isvisible(c, m) && !c->isicon) {
 			n++;
