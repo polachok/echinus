@@ -276,13 +276,6 @@ arrangemon(Monitor * m)
 {
 	Client *c;
 
-	m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] =
-	    m->struts[BotStrut] = 0;
-	for (c = clients; c; c = c->next) {
-		if (c->isbastard)
-			updatestruts(c->win);
-	}
-	updategeom(m);
 	views[m->curtag].layout->arrange(m);
 	arrangefloats(m);
 	restack(m);
@@ -1288,6 +1281,10 @@ manage(Window w, XWindowAttributes * wa)
 	updateatom[ClientList] (NULL);
 	updateatom[WindowDesk] (c);
 	updateframe(c);
+	if (c->isbastard) {
+		updatestruts(c->win);
+		updategeom(clientmonitor(c));
+	}
 	arrange(clientmonitor(c));
 	if (!checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
 		focus(NULL);
@@ -1558,8 +1555,8 @@ propertynotify(XEvent * e)
 	Window trans;
 	XPropertyEvent *ev = &e->xproperty;
 
-	if (ev->state == PropertyDelete)
-		return;		/* ignore */
+	if (ev->state == PropertyDelete) 
+		return;		/* XXX: ignoring, probably shouldn't */
 	if ((c = getclient(ev->window, clients, ClientWindow))) {
 		switch (ev->atom) {
 		case XA_WM_TRANSIENT_FOR:
@@ -1577,6 +1574,8 @@ propertynotify(XEvent * e)
 			break;
 		}
 		if (ev->atom == atom[StrutPartial]) {
+			updatestruts(c->win);
+			updategeom(clientmonitor(c));
 			arrange(clientmonitor(c));
 		} else if (ev->atom == atom[WindowName])
 			updatetitle(c);
@@ -2406,12 +2405,13 @@ unmanage(Client * c)
 {
 	Monitor *m;
 	XWindowChanges wc;
-	Bool doarrange;
+	Bool doarrange, dostruts;
 	Window trans;
 
 	m = clientmonitor(c);
 	doarrange = !(c->isfloating || c->isfixed
 	    || XGetTransientForHint(dpy, c->win, &trans)) || c->isbastard;
+	dostruts = c->isbastard;
 	/* The server grab construct avoids race conditions. */
 	XGrabServer(dpy);
 	XSelectInput(dpy, c->frame, NoEventMask);
@@ -2444,7 +2444,15 @@ unmanage(Client * c)
 	XSync(dpy, False);
 	XSetErrorHandler(xerror);
 	XUngrabServer(dpy);
-	if (doarrange)
+	if (dostruts) {
+		m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] =
+			m->struts[BotStrut] = 0;
+		for(c = clients; c; c = c->next)
+			if (c->isbastard)
+				updatestruts(c->win);
+		updategeom(m);
+	}
+	if (doarrange) 
 		arrange(m);
 	updateatom[ClientList] (NULL);
 }
