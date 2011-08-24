@@ -1660,13 +1660,8 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 		drawclient(c);
 	}
 	if (c->x != x || c->y != y || c->w != w || c->h != h /* || sizehints */) {
-		if (!c->ismax && (c->isfloating || MFEATURES(m, OVERLAP))) {
-			c->rx = x;
-			c->ry = y;
-			c->rw = w;
-			c->rh = h;
+		if (c->isfloating || MFEATURES(m, OVERLAP))
 			c->isplaced = True;
-		}
 		c->x = x;
 		c->y = y;
 		c->w = w;
@@ -1805,6 +1800,15 @@ run(void)
 }
 
 void
+savedim(Client *c, int x, int y, int w, int h)
+{
+	c->rx = x;
+	c->ry = y;
+	c->rw = w;
+	c->rh = h;
+}
+
+void
 scan(void)
 {
 	unsigned int i, num;
@@ -1860,6 +1864,9 @@ setlayout(const char *arg)
 {
 	unsigned int i;
 	Client *c;
+	Bool wasfloat;
+
+	wasfloat = FEATURES(curlayout, OVERLAP);
 
 	if (!arg) {
 #if 0
@@ -1875,8 +1882,11 @@ setlayout(const char *arg)
 		views[curmontag].layout = &layouts[i];
 	}
 	if (sel) {
-		for (c = clients; c; c = c->next)
+		for (c = clients; c; c = c->next) {
+			if (wasfloat)
+				savedim(c, c->x, c->y, c->w, c->h);
 			updateframe(c);
+		}
 		arrange(curmonitor());
 	}
 	updateatom[ELayout] (NULL);
@@ -2225,10 +2235,7 @@ togglefloating(const char *arg)
 		resize(sel, curmonitor(), sel->rx, sel->ry, sel->rw, sel->rh, False);
 	} else {
 		/* save last known float dimensions */
-		sel->rx = sel->x;
-		sel->ry = sel->y;
-		sel->rw = sel->w;
-		sel->rh = sel->h;
+		savedim(sel, sel->x, sel->y, sel->w, sel->h);
 	}
 	arrange(curmonitor());
 }
@@ -2272,10 +2279,7 @@ togglefill(const char *arg)
 		return;
 
 	if ((sel->isfill = !sel->isfill)) {
-		sel->rx = sel->x;
-		sel->ry = sel->y;
-		sel->rw = sel->w;
-		sel->rh = sel->h;
+		savedim(sel, sel->x, sel->y, sel->w, sel->h);
 		resize(sel, m, x1, y1, w, h, True);
 	} else {
 		resize(sel, m, sel->rx, sel->ry, sel->rw, sel->rh, True);
@@ -2294,10 +2298,7 @@ togglemax(const char *arg)
 	sel->ismax = !sel->ismax;
 	updateframe(sel);
 	if (sel->ismax) {
-		sel->rx = sel->x;
-		sel->ry = sel->y;
-		sel->rw = sel->w;
-		sel->rh = sel->h;
+		savedim(sel, sel->x, sel->y, sel->w, sel->h);
 		resize(sel, m, m->wax - sel->border,
 		    m->way - sel->border - sel->th, m->waw, m->wah + sel->th, False);
 	} else {
