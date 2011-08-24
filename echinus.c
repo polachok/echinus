@@ -59,6 +59,12 @@
 #define CLIENTMASK	        (PropertyChangeMask | EnterWindowMask | FocusChangeMask)
 #define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | EnterWindowMask | LeaveWindowMask)
 
+/* function-like macros */
+#define save(_c) { (_c)->rx = (_c)->x; \
+	       	(_c)->ry = (_c)->y; \
+		(_c)->rw = (_c)->w; \
+		(_c)->rh = (_c)->h; }
+
 /* function declarations */
 void applyrules(Client * c);
 void arrange(Monitor * m);
@@ -1800,15 +1806,6 @@ run(void)
 }
 
 void
-savedim(Client *c, int x, int y, int w, int h)
-{
-	c->rx = x;
-	c->ry = y;
-	c->rw = w;
-	c->rh = h;
-}
-
-void
 scan(void)
 {
 	unsigned int i, num;
@@ -1884,7 +1881,7 @@ setlayout(const char *arg)
 	if (sel) {
 		for (c = clients; c; c = c->next) {
 			if (wasfloat)
-				savedim(c, c->x, c->y, c->w, c->h);
+				save(c);
 			updateframe(c);
 		}
 		arrange(curmonitor());
@@ -2235,7 +2232,7 @@ togglefloating(const char *arg)
 		resize(sel, curmonitor(), sel->rx, sel->ry, sel->rw, sel->rh, False);
 	} else {
 		/* save last known float dimensions */
-		savedim(sel, sel->x, sel->y, sel->w, sel->h);
+		save(sel);
 	}
 	arrange(curmonitor());
 }
@@ -2279,7 +2276,7 @@ togglefill(const char *arg)
 		return;
 
 	if ((sel->isfill = !sel->isfill)) {
-		savedim(sel, sel->x, sel->y, sel->w, sel->h);
+		save(sel);
 		resize(sel, m, x1, y1, w, h, True);
 	} else {
 		resize(sel, m, sel->rx, sel->ry, sel->rw, sel->rh, True);
@@ -2298,7 +2295,7 @@ togglemax(const char *arg)
 	sel->ismax = !sel->ismax;
 	updateframe(sel);
 	if (sel->ismax) {
-		savedim(sel, sel->x, sel->y, sel->w, sel->h);
+		save(sel);
 		resize(sel, m, m->wax - sel->border,
 		    m->way - sel->border - sel->th, m->waw, m->wah + sel->th, False);
 	} else {
