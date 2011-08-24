@@ -417,7 +417,7 @@ buttonpress(XEvent * e)
 			XRaiseWindow(dpy, c->frame);
 		if (ev->button == Button1)
 			movemouse(c);
-		else if (ev->button == Button3 && !c->isfixed)
+		else if (ev->button == Button3)
 			resizemouse(c);
 	} else if ((c = getclient(ev->window, clients, ClientFrame))) {
 		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
@@ -439,7 +439,7 @@ buttonpress(XEvent * e)
 				togglefloating(NULL);
 			else
 				zoom(NULL);
-		} else if (ev->button == Button3 && !c->isfixed) {
+		} else if (ev->button == Button3) {
 			if (!FEATURES(curlayout, OVERLAP) && !c->isfloating)
 				togglefloating(NULL);
 			if (c->ismax)
@@ -1689,7 +1689,7 @@ resizemouse(Client * c)
 	Monitor *cm;
 	XEvent ev;
 
-	if (c->isbastard)
+	if (c->isbastard || c->isfixed)
 		return;
 	cm = curmonitor();
 
