@@ -12,8 +12,8 @@
 enum { Normal, Selected };
 enum { AlignLeft, AlignCenter, AlignRight };	/* title position */
 
-unsigned int textnw(const char *text, unsigned int len);
-unsigned int textw(const char *text);
+static unsigned int textnw(const char *text, unsigned int len);
+static unsigned int textw(const char *text);
 
 typedef struct {
 	unsigned int x, y, w, h;
@@ -29,7 +29,7 @@ typedef struct {
 
 DC dc;
 
-int
+static int
 drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
     unsigned long col[ColLast], int x, int y, int mw)
 {
@@ -73,7 +73,7 @@ drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
 	return w + dc.font.height;
 }
 
-Pixmap
+static Pixmap
 initpixmap(const char *file, Button * b)
 {
 	b->pm = XCreatePixmap(dpy, root, style.titleheight, style.titleheight, 1);
@@ -87,7 +87,7 @@ initpixmap(const char *file, Button * b)
 	return 0;
 }
 
-void
+static void
 initbuttons()
 {
 	XSetForeground(dpy, dc.gc, style.color.norm[ColButton]);
@@ -103,7 +103,7 @@ initbuttons()
 	button[Iconify].x = button[Close].x = button[Maximize].x = -1;
 }
 
-int
+static int
 drawbutton(Drawable d, Button btn, unsigned long col[ColLast], int x, int y)
 {
 	XSetForeground(dpy, dc.gc, col[ColBG]);
@@ -115,7 +115,7 @@ drawbutton(Drawable d, Button btn, unsigned long col[ColLast], int x, int y)
 	return dc.h;
 }
 
-int
+static int
 drawelement(char which, int x, int position, Client * c)
 {
 	int w;
@@ -162,7 +162,7 @@ drawelement(char which, int x, int position, Client * c)
 	return w;
 }
 
-int
+static int
 elementw(char which, Client * c)
 {
 	int w;
@@ -252,7 +252,7 @@ drawclient(Client * c)
 	XCopyArea(dpy, c->drawable, c->title, dc.gc, 0, 0, c->w, dc.h, 0, 0);
 }
 
-unsigned long
+static unsigned long
 getcolor(const char *colstr)
 {
 	XColor color;
@@ -262,7 +262,7 @@ getcolor(const char *colstr)
 	return color.pixel;
 }
 
-void
+static void
 initfont(const char *fontstr)
 {
 	style.font = NULL;
@@ -327,7 +327,7 @@ deinitstyle()
 	XFreeGC(dpy, dc.gc);
 }
 
-unsigned int
+static unsigned int
 textnw(const char *text, unsigned int len)
 {
 	XftTextExtentsUtf8(dpy, style.font,
@@ -335,7 +335,7 @@ textnw(const char *text, unsigned int len)
 	return dc.font.extents->xOff;
 }
 
-unsigned int
+static unsigned int
 textw(const char *text)
 {
 	return textnw(text, strlen(text)) + dc.font.height;

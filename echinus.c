@@ -87,7 +87,6 @@ void configurerequest(XEvent * e);
 void destroynotify(XEvent * e);
 void detach(Client * c);
 void detachstack(Client * c);
-void drawclient(Client * c);
 void *emallocz(unsigned int size);
 void enternotify(XEvent * e);
 void eprint(const char *errstr, ...);

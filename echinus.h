@@ -167,9 +167,9 @@ void initrules();
 int initkeys();
 
 /* draw.c */
-void initstyle();
-void initbuttons();
+void drawclient(Client * c);
 void deinitstyle();
+void initstyle();
 
 /* XXX: this block of defines must die */
 #define curseltags curmonitor()->seltags
