@@ -125,9 +125,8 @@ Bool checkatom(Window win, Atom bigatom, Atom smallatom);
 void *getatom(Window win, Atom atom, unsigned long *nitems);
 
 /* main */
+void arrange(Monitor * m);
 void eprint(const char *errstr, ...);
-unsigned int textnw(const char *text, unsigned int len);
-unsigned int textw(const char *text);
 Bool isvisible(Client * c, Monitor * m);
 void *emallocz(unsigned int size);
 Monitor *clientmonitor(Client * c);
@@ -135,31 +134,25 @@ void iconify(const char *arg);
 const char *getresource(const char *resource, const char *defval);
 void togglemax(const char *arg);
 void killclient(const char *arg);
-void floating(Monitor * m);	/* default floating layout */
-void ifloating(Monitor * m);	/* intellectual floating layout try */
 Monitor *curmonitor();
 Client *getclient(Window w, Client * list, int part);
 void focus(Client * c);
 void view(const char *arg);
 void viewprevtag(const char *arg);	/* views previous selected tags */
 void viewlefttag(const char *arg);
-void arrange(Monitor * m);
 Monitor *getmonitor(int x, int y);
 void setlayout(const char *arg);
 void incnmaster(const char *arg);
 void focusicon(const char *arg);
 void focusnext(const char *arg);
 void focusprev(const char *arg);
-void bstack(Monitor * m);
 void moveresizekb(const char *arg);
 unsigned long getcolor(const char *colstr);
-void monocle(Monitor * m);
 void quit(const char *arg);
 void restart(const char *arg);
 void setmwfact(const char *arg);
 void spawn(const char *arg);
 void tag(const char *arg);
-void tile(Monitor * m);
 void togglestruts(const char *arg);
 void togglefloating(const char *arg);
 void togglefill(const char *arg);
@@ -168,7 +161,6 @@ void toggleview(const char *arg);
 void togglemonitor(const char *arg);
 void focusview(const char *arg);
 void viewrighttag(const char *arg);
-void updateframe(Client *c);
 void zoom(const char *arg);
 
 /* parse.c */

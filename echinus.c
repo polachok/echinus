@@ -140,8 +140,6 @@ void setmwfact(const char *arg);
 void setup(char *);
 void spawn(const char *arg);
 void tag(const char *arg);
-unsigned int textnw(const char *text, unsigned int len);
-unsigned int textw(const char *text);
 void tile(Monitor * m);
 void togglestruts(const char *arg);
 void togglefloating(const char *arg);
@@ -156,6 +154,7 @@ void unmanage(Client * c);
 void updategeom(Monitor * m);
 void unmapnotify(XEvent * e);
 void updatesizehints(Client * c);
+void updateframe(Client * c);
 void updatetitle(Client * c);
 void view(const char *arg);
 void viewprevtag(const char *arg);	/* views previous selected tags */

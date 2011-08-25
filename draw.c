@@ -12,6 +12,9 @@
 enum { Normal, Selected };
 enum { AlignLeft, AlignCenter, AlignRight };	/* title position */
 
+unsigned int textnw(const char *text, unsigned int len);
+unsigned int textw(const char *text);
+
 typedef struct {
 	unsigned int x, y, w, h;
 	struct {
