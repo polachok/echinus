@@ -73,36 +73,6 @@ drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
 	return w + dc.font.height;
 }
 
-static Pixmap
-initpixmap(const char *file, Button * b)
-{
-	b->pm = XCreatePixmap(dpy, root, style.titleheight, style.titleheight, 1);
-	if (BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph,
-		&b->pm, &b->px, &b->py)) {
-		if (b->px == -1 || b->py == -1)
-			b->px = b->py = 0;
-		return 0;
-	} else
-		eprint("echinus: cannot load Button pixmaps, check your ~/.echinusrc\n");
-	return 0;
-}
-
-static void
-initbuttons()
-{
-	XSetForeground(dpy, dc.gc, style.color.norm[ColButton]);
-	XSetBackground(dpy, dc.gc, style.color.norm[ColBG]);
-	initpixmap(getresource("button.iconify.pixmap", ICONPIXMAP),
-	    &button[Iconify]);
-	initpixmap(getresource("button.maximize.pixmap", MAXPIXMAP),
-	    &button[Maximize]);
-	initpixmap(getresource("button.close.pixmap", CLOSEPIXMAP), &button[Close]);
-	button[Iconify].action = iconify;
-	button[Maximize].action = togglemax;
-	button[Close].action = killclient;
-	button[Iconify].x = button[Close].x = button[Maximize].x = -1;
-}
-
 static int
 drawbutton(Drawable d, Button btn, unsigned long col[ColLast], int x, int y)
 {
@@ -260,6 +230,36 @@ getcolor(const char *colstr)
 	if (!XAllocNamedColor(dpy, DefaultColormap(dpy, screen), colstr, &color, &color))
 		eprint("error, cannot allocate color '%s'\n", colstr);
 	return color.pixel;
+}
+
+static Pixmap
+initpixmap(const char *file, Button * b)
+{
+	b->pm = XCreatePixmap(dpy, root, style.titleheight, style.titleheight, 1);
+	if (BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph,
+		&b->pm, &b->px, &b->py)) {
+		if (b->px == -1 || b->py == -1)
+			b->px = b->py = 0;
+		return 0;
+	} else
+		eprint("echinus: cannot load Button pixmaps, check your ~/.echinusrc\n");
+	return 0;
+}
+
+static void
+initbuttons()
+{
+	XSetForeground(dpy, dc.gc, style.color.norm[ColButton]);
+	XSetBackground(dpy, dc.gc, style.color.norm[ColBG]);
+	initpixmap(getresource("button.iconify.pixmap", ICONPIXMAP),
+	    &button[Iconify]);
+	initpixmap(getresource("button.maximize.pixmap", MAXPIXMAP),
+	    &button[Maximize]);
+	initpixmap(getresource("button.close.pixmap", CLOSEPIXMAP), &button[Close]);
+	button[Iconify].action = iconify;
+	button[Maximize].action = togglemax;
+	button[Close].action = killclient;
+	button[Iconify].x = button[Close].x = button[Maximize].x = -1;
 }
 
 static void
