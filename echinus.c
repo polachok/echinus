@@ -356,6 +356,8 @@ buttonpress(XEvent * e) {
 	XButtonPressedEvent *ev = &e->xbutton;
 
 	if (ev->window == root) {
+		if (ev->type != ButtonRelease)
+			return;
 		switch (ev->button) {
 		case Button3:
 			spawn(options.command);
