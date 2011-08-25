@@ -18,6 +18,7 @@
 
 Atom atom[NATOMS];
 
+/* keep in sync with enum in echinus.h */
 const char *atomnames[NATOMS][1] = {
 	{"_NET_CLIENT_LIST"},
 	{"_NET_ACTIVE_WINDOW"},

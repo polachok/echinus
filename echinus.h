@@ -9,12 +9,12 @@ enum { ClientList, ActiveWindow, WindowDesk,
 	WindowStateHidden, WMCheck,
 	Utf8String, Supported, WMProto, WMDelete, WMName, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, NATOMS
-};
+}; /* keep in sync with atomnames[][] in ewmh.c */
 
-enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };
-enum { ColFG, ColBG, ColBorder, ColButton, ColLast };	/* color */
+enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut }; /* ewmh struts */
+enum { ColFG, ColBG, ColBorder, ColButton, ColLast };	/* colors */
 enum { ClientWindow, ClientTitle, ClientFrame };	/* client parts */
-enum { Iconify, Maximize, Close, LastBtn };
+enum { Iconify, Maximize, Close, LastBtn }; /* window buttons */
 
 /* typedefs */
 typedef struct Monitor Monitor;
@@ -47,7 +47,7 @@ struct Client {
 	char name[256];
 	int x, y, w, h;
 	int rx, ry, rw, rh;	/* revert geometry */
-	int th;			/* title window */
+	int th;			/* title height */
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
 	int minax, maxax, minay, maxay;
 	int ignoreunmap;
@@ -72,7 +72,7 @@ typedef struct View {
 	int nmaster;
 	double mwfact;
 	Layout *layout;
-} View;
+} View; /* per-tag settings */
 
 typedef struct {
 	Pixmap pm;
@@ -81,7 +81,7 @@ typedef struct {
 	int x;
 	int pressed;
 	void (*action) (const char *arg);
-} Button;
+} Button; /* window buttons */
 
 typedef struct {
 	unsigned int border;
@@ -102,7 +102,7 @@ typedef struct {
 	KeySym keysym;
 	void (*func) (const char *arg);
 	const char *arg;
-} Key;
+} Key; /* keyboard shortcuts */
 
 typedef struct {
 	char *prop;
@@ -111,7 +111,7 @@ typedef struct {
 	Bool hastitle;
 	regex_t *propregex;
 	regex_t *tagregex;
-} Rule;
+} Rule; /* window matching rules */
 
 /* ewmh.c */
 Bool checkatom(Window win, Atom bigatom, Atom smallatom);
@@ -171,6 +171,7 @@ void initstyle();
 void initbuttons();
 void deinitstyle();
 
+/* XXX: this block of defines must die */
 #define curseltags curmonitor()->seltags
 #define curprevtags curmonitor()->prevtags
 #define cursx curmonitor()->sx
