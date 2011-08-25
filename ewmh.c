@@ -347,8 +347,7 @@ updatestruts(Client * c)
 	state = (unsigned long*)getatom(c->win, atom[StrutPartial], &n);
 	if (n) {
 		for (i = LeftStrut; i < LastStrut; i++)
-			m->struts[i] =
-				(state[i] > m->struts[i]) ? state[i] : m->struts[i];
+			m->struts[i] = max(state[i], m->struts[i]);
 		ret = 1;
 	}
 	XFree(state);
