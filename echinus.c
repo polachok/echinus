@@ -116,7 +116,8 @@ void manage(Window w, XWindowAttributes * wa);
 void mappingnotify(XEvent * e);
 void monocle(Monitor * m);
 void maprequest(XEvent * e);
-void movemouse(Client * c);
+void mousemove(Client * c);
+void mouseresize(Client * c);
 void moveresizekb(const char *arg);
 Client *nexttiled(Client * c, Monitor * m);
 Client *prevtiled(Client * c, Monitor * m);
@@ -125,7 +126,6 @@ void reparentnotify(XEvent * e);
 void quit(const char *arg);
 void restart(const char *arg);
 void resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints);
-void resizemouse(Client * c);
 void restack(Monitor * m);
 void run(void);
 void scan(void);
@@ -416,9 +416,9 @@ buttonpress(XEvent * e)
 		if (FEATURES(curlayout, OVERLAP) || c->isfloating)
 			XRaiseWindow(dpy, c->frame);
 		if (ev->button == Button1)
-			movemouse(c);
+			mousemove(c);
 		else if (ev->button == Button3)
-			resizemouse(c);
+			mouseresize(c);
 	} else if ((c = getclient(ev->window, clients, ClientFrame))) {
 		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
@@ -433,7 +433,7 @@ buttonpress(XEvent * e)
 				togglefloating(NULL);
 			if (c->ismax)
 				togglemax(NULL);
-			movemouse(c);
+			mousemove(c);
 		} else if (ev->button == Button2) {
 			if (!FEATURES(curlayout, OVERLAP) && c->isfloating)
 				togglefloating(NULL);
@@ -444,7 +444,7 @@ buttonpress(XEvent * e)
 				togglefloating(NULL);
 			if (c->ismax)
 				togglemax(NULL);
-			resizemouse(c);
+			mouseresize(c);
 		} else		/* don't know what to do? pass it on */
 			XAllowEvents(dpy, ReplayPointer, CurrentTime);
 	}
@@ -1469,7 +1469,7 @@ curmonitor()
 }
 
 void
-movemouse(Client * c)
+mousemove(Client * c)
 {
 	int x1, y1, ocx, ocy, nx, ny;
 	unsigned int i;
@@ -1520,6 +1520,51 @@ movemouse(Client * c)
 				drawclient(c);
 				arrange(NULL);
 			}
+			break;
+		}
+	}
+}
+
+void
+mouseresize(Client * c)
+{
+	int ocx, ocy, nw, nh;
+	Monitor *cm;
+	XEvent ev;
+
+	if (c->isbastard || c->isfixed)
+		return;
+	cm = curmonitor();
+
+	ocx = c->x + cm->sx;
+	ocy = c->y + cm->sy;
+	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
+		GrabModeAsync, None, cursor[CurResize], CurrentTime) != GrabSuccess)
+		return;
+	c->ismax = False;
+	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->border - 1,
+	    c->h + c->border - 1);
+	for (;;) {
+		XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
+		switch (ev.type) {
+		case ButtonRelease:
+			XWarpPointer(dpy, None, c->win, 0, 0, 0, 0,
+			    c->w + c->border - 1, c->h + c->border - 1);
+			XUngrabPointer(dpy, CurrentTime);
+			while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+			return;
+		case ConfigureRequest:
+		case Expose:
+		case MapRequest:
+			handler[ev.type] (&ev);
+			break;
+		case MotionNotify:
+			XSync(dpy, False);
+			if ((nw = ev.xmotion.x - ocx - 2 * c->border + 1) <= 0)
+				nw = MINWIDTH;
+			if ((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
+				nh = MINHEIGHT;
+			resize(c, cm, c->x, c->y, nw, nh, True);
 			break;
 		}
 	}
@@ -1679,51 +1724,6 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 		    CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
 		configure(c);
 		XSync(dpy, False);
-	}
-}
-
-void
-resizemouse(Client * c)
-{
-	int ocx, ocy, nw, nh;
-	Monitor *cm;
-	XEvent ev;
-
-	if (c->isbastard || c->isfixed)
-		return;
-	cm = curmonitor();
-
-	ocx = c->x + cm->sx;
-	ocy = c->y + cm->sy;
-	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
-		GrabModeAsync, None, cursor[CurResize], CurrentTime) != GrabSuccess)
-		return;
-	c->ismax = False;
-	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->border - 1,
-	    c->h + c->border - 1);
-	for (;;) {
-		XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
-		switch (ev.type) {
-		case ButtonRelease:
-			XWarpPointer(dpy, None, c->win, 0, 0, 0, 0,
-			    c->w + c->border - 1, c->h + c->border - 1);
-			XUngrabPointer(dpy, CurrentTime);
-			while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
-			return;
-		case ConfigureRequest:
-		case Expose:
-		case MapRequest:
-			handler[ev.type] (&ev);
-			break;
-		case MotionNotify:
-			XSync(dpy, False);
-			if ((nw = ev.xmotion.x - ocx - 2 * c->border + 1) <= 0)
-				nw = MINWIDTH;
-			if ((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
-				nh = MINHEIGHT;
-			resize(c, cm, c->x, c->y, nw, nh, True);
-			break;
-		}
 	}
 }
 
