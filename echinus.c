@@ -108,7 +108,6 @@ Monitor *getmonitor(int x, int y);
 Monitor *curmonitor();
 Monitor *clientmonitor(Client * c);
 int idxoftag(const char *tag);
-Bool isoccupied(unsigned int t);
 Bool isvisible(Client * c, Monitor * m);
 void initmonitors(XEvent * e);
 void keypress(XEvent * e);
