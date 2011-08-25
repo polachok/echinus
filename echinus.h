@@ -114,51 +114,51 @@ typedef struct {
 } Rule;
 
 /* ewmh.c */
-void clientmessage(XEvent * e);
-void initewmh(void);
-int updatestruts(Client * c);
-void setopacity(Client * c, unsigned int opacity);
-void mwm_process_atom(Client * c);
-void ewmh_process_state_atom(Client * c, Atom state, int set);
-extern void (*updateatom[]) (Client *);
 Bool checkatom(Window win, Atom bigatom, Atom smallatom);
+void clientmessage(XEvent * e);
+void ewmh_process_state_atom(Client * c, Atom state, int set);
 void *getatom(Window win, Atom atom, unsigned long *nitems);
+void initewmh(void);
+void mwm_process_atom(Client * c);
+void setopacity(Client * c, unsigned int opacity);
+extern void (*updateatom[]) (Client *);
+int updatestruts(Client * c);
 
 /* main */
 void arrange(Monitor * m);
-void eprint(const char *errstr, ...);
-Bool isvisible(Client * c, Monitor * m);
-void *emallocz(unsigned int size);
 Monitor *clientmonitor(Client * c);
-void iconify(const char *arg);
-const char *getresource(const char *resource, const char *defval);
-void togglemax(const char *arg);
-void killclient(const char *arg);
 Monitor *curmonitor();
+void *emallocz(unsigned int size);
+void eprint(const char *errstr, ...);
+const char *getresource(const char *resource, const char *defval);
 Client *getclient(Window w, Client * list, int part);
-void focus(Client * c);
-void view(const char *arg);
-void viewprevtag(const char *arg);	/* views previous selected tags */
-void viewlefttag(const char *arg);
 Monitor *getmonitor(int x, int y);
-void setlayout(const char *arg);
+void iconify(const char *arg);
 void incnmaster(const char *arg);
+Bool isvisible(Client * c, Monitor * m);
+void focus(Client * c);
 void focusicon(const char *arg);
 void focusnext(const char *arg);
 void focusprev(const char *arg);
+void focusview(const char *arg);
+void killclient(const char *arg);
 void moveresizekb(const char *arg);
 void quit(const char *arg);
 void restart(const char *arg);
 void setmwfact(const char *arg);
+void setlayout(const char *arg);
 void spawn(const char *arg);
 void tag(const char *arg);
 void togglestruts(const char *arg);
 void togglefloating(const char *arg);
 void togglefill(const char *arg);
+void togglemax(const char *arg);
+void togglemonitor(const char *arg);
 void toggletag(const char *arg);
 void toggleview(const char *arg);
-void togglemonitor(const char *arg);
-void focusview(const char *arg);
+void view(const char *arg);
+void viewlefttag(const char *arg);
+void viewprevtag(const char *arg);
 void viewrighttag(const char *arg);
 void zoom(const char *arg);
 
