@@ -55,7 +55,7 @@ static KeyItem KeyItemsByTag[] = {
 	{ "toggletag", 		toggletag	},
 };
 
-void
+static void
 parsekey(const char *s, Key *k) {
 	int l = strlen(s);
 	unsigned long modmask = 0;
@@ -106,7 +106,7 @@ parsekey(const char *s, Key *k) {
 	}
 }
 
-void
+static void
 initmodkey() {
 	char tmp;
 
@@ -190,14 +190,14 @@ initkeys() {
 	return 0;
 }
 
-void
+static void
 parserule(const char *s, Rule *r) {
 	r->prop = emallocz(128);
 	r->tags = emallocz(64);
 	sscanf(s, "%s %s %d %d", r->prop, r->tags, &r->isfloating, &r->hastitle);
 }
 
-void
+static void
 compileregs(void) {
 	unsigned int i;
 	regex_t *reg;
