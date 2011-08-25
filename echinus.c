@@ -100,7 +100,6 @@ void focus(Client * c);
 void focusnext(const char *arg);
 void focusprev(const char *arg);
 Client *getclient(Window w, Client * list, int part);
-unsigned long getcolor(const char *colstr);
 const char *getresource(const char *resource, const char *defval);
 long getstate(Window w);
 Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
@@ -958,16 +957,6 @@ getclient(Window w, Client * list, int part)
 	for (c = list; c && (ClientPart(c, part)) != w; c = c->next);
 
 	return c;
-}
-
-unsigned long
-getcolor(const char *colstr)
-{
-	XColor color;
-
-	if (!XAllocNamedColor(dpy, DefaultColormap(dpy, screen), colstr, &color, &color))
-		eprint("error, cannot allocate color '%s'\n", colstr);
-	return color.pixel;
 }
 
 long

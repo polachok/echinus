@@ -252,6 +252,16 @@ drawclient(Client * c)
 	XCopyArea(dpy, c->drawable, c->title, dc.gc, 0, 0, c->w, dc.h, 0, 0);
 }
 
+unsigned long
+getcolor(const char *colstr)
+{
+	XColor color;
+
+	if (!XAllocNamedColor(dpy, DefaultColormap(dpy, screen), colstr, &color, &color))
+		eprint("error, cannot allocate color '%s'\n", colstr);
+	return color.pixel;
+}
+
 void
 initfont(const char *fontstr)
 {

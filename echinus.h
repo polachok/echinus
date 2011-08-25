@@ -147,7 +147,6 @@ void focusicon(const char *arg);
 void focusnext(const char *arg);
 void focusprev(const char *arg);
 void moveresizekb(const char *arg);
-unsigned long getcolor(const char *colstr);
 void quit(const char *arg);
 void restart(const char *arg);
 void setmwfact(const char *arg);
