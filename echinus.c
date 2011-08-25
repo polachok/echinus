@@ -134,6 +134,7 @@ void scan(void);
 void setclientstate(Client * c, long state);
 void setlayout(const char *arg);
 void setmwfact(const char *arg);
+static int smartcheckarea(Monitor * m, int x, int y, int w, int h);
 void setup(char *);
 void spawn(const char *arg);
 void tag(const char *arg);
@@ -349,18 +350,6 @@ ban(Client * c) {
 }
 
 void
-iconify(const char *arg) {
-	Client *c;
-	if (!sel)
-		return;
-	c = sel;
-	focusnext(NULL);
-	ban(c);
-	c->isicon = True;
-	arrange(curmonitor());
-}
-
-void
 buttonpress(XEvent * e) {
 	Client *c;
 	int i;
@@ -495,86 +484,6 @@ configure(Client * c) {
 	ce.above = None;
 	ce.override_redirect = False;
 	XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *) & ce);
-}
-
-void
-initmonitors(XEvent * e) {
-	Monitor *m;
-#ifdef XRANDR
-	Monitor *t;
-	XRRCrtcInfo *ci;
-	XRRScreenResources *sr;
-	int c, n;
-	int ncrtc = 0;
-	int dummy1, dummy2, major, minor;
-
-	/* free */
-	if (monitors) {
-		m = monitors;
-		do {
-			t = m->next;
-			free(m);
-			m = t;
-		} while (m);
-		monitors = NULL;
-	}
-	if(!running)
-	    return;
-	/* initial Xrandr setup */
-	if (XRRQueryExtension(dpy, &dummy1, &dummy2))
-		if (XRRQueryVersion(dpy, &major, &minor) && major < 1)
-			goto no_xrandr;
-
-	/* map virtual screens onto physical screens */
-	sr = XRRGetScreenResources(dpy, root);
-	if (sr == NULL)
-		goto no_xrandr;
-	else
-		ncrtc = sr->ncrtc;
-
-	for (c = 0, n = 0, ci = NULL; c < ncrtc; c++) {
-		ci = XRRGetCrtcInfo(dpy, sr, sr->crtcs[c]);
-		if (ci->noutput == 0)
-			continue;
-
-		if (ci != NULL && ci->mode == None)
-			fprintf(stderr, "???\n");
-		else {
-			/* If monitor is a mirror, we don't care about it */
-			if (n && ci->x == monitors->sx && ci->y == monitors->sy)
-				continue;
-			m = emallocz(sizeof(Monitor));
-			m->sx = m->wax = ci->x;
-			m->sy = m->way = ci->y;
-			m->sw = m->waw = ci->width;
-			m->sh = m->wah = ci->height;
-			m->curtag = n;
-			m->prevtags = emallocz(ntags * sizeof(Bool));
-			m->seltags = emallocz(ntags * sizeof(Bool));
-			m->seltags[n] = True;
-			m->next = monitors;
-			monitors = m;
-			n++;
-		}
-		XRRFreeCrtcInfo(ci);
-	}
-	XRRFreeScreenResources(sr);
-	updateatom[WorkArea](NULL);;
-	return;
-      no_xrandr:
-#endif
-	m = emallocz(sizeof(Monitor));
-	m->sx = m->wax = 0;
-	m->sy = m->way = 0;
-	m->sw = m->waw = DisplayWidth(dpy, screen);
-	m->sh = m->wah = DisplayHeight(dpy, screen);
-	m->curtag = 0;
-	m->prevtags = emallocz(ntags * sizeof(Bool));
-	m->seltags = emallocz(ntags * sizeof(Bool));
-	m->seltags[0] = True;
-	m->next = NULL;
-	monitors = m;
-	updateatom[WorkArea](NULL);;
 }
 
 void
@@ -891,6 +800,58 @@ focusprev(const char *arg) {
 	if (c) {
 		focus(c);
 		restack(curmonitor());
+	}
+}
+
+void
+iconify(const char *arg) {
+	Client *c;
+	if (!sel)
+		return;
+	c = sel;
+	focusnext(NULL);
+	ban(c);
+	c->isicon = True;
+	arrange(curmonitor());
+}
+
+void
+ifloating(Monitor * m) {
+	Client *c;
+	int x, y, f;
+
+	for (c = clients; c; c = c->next) {
+		if (isvisible(c, m) && !c->isicon && !c->isbastard) {
+			if (c->isplaced)
+				resize(c, m, c->x, c->y, c->w, c->h, True);
+			for (f = 0; !c->isplaced; f++) {
+				if ((c->w > m->sw / 2 && c->h > m->sw / 2)
+				    || c->h < 4) {
+					/* too big to deal with */
+					c->isplaced = True;
+					resize(c, m, c->x, c->y, c->w, c->h, True);
+				}
+				for (y = m->way;
+				    y + c->h <= m->way + m->wah
+				    && !c->isplaced; y += c->h / 4) {
+					for (x = m->wax;
+					    x + c->w <= m->wax + m->waw
+					    && !c->isplaced; x += c->w / 8) {
+						if (smartcheckarea(m, x, y,
+							0.8 * c->w, 0.8 * c->h) <= f) {
+							resize(c, m,
+							    x +
+							    c->th * (rand() %
+								3),
+							    y + c->th +
+							    c->th * (rand() %
+								3), c->w, c->h, True);
+							c->isplaced = True;
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -1269,67 +1230,6 @@ maprequest(XEvent * e) {
 #endif
 	} else
 		manage(ev->window, &wa);
-}
-
-/* ifloating() subroutine */
-int
-smartcheckarea(Monitor * m, int x, int y, int w, int h) {
-	Client *c;
-	int n = 0;
-	for (c = clients; c; c = c->next) {
-		if (isvisible(c, m) && !c->isicon && c->isplaced) {
-			/* A Kind Of Magic */
-			if ((c->y + c->h >= y && c->y + c->h <= y + h
-				&& c->x + c->w >= x && c->x + c->w <= x + w)
-			    || (c->x >= x && c->x <= x + w
-				&& c->y + c->h >= y && c->y + c->h <= y + h)
-			    || (c->x >= x && c->x <= x + w && c->y >= y && c->y <= y + h)
-			    || (c->x + c->w >= x && c->x + c->w <= x + w
-				&& c->y >= y && c->y <= y + h))
-				n++;
-		}
-	}
-	return n;
-}
-
-void
-ifloating(Monitor * m) {
-	Client *c;
-	int x, y, f;
-
-	for (c = clients; c; c = c->next) {
-		if (isvisible(c, m) && !c->isicon && !c->isbastard) {
-			if (c->isplaced)
-				resize(c, m, c->x, c->y, c->w, c->h, True);
-			for (f = 0; !c->isplaced; f++) {
-				if ((c->w > m->sw / 2 && c->h > m->sw / 2)
-				    || c->h < 4) {
-					/* too big to deal with */
-					c->isplaced = True;
-					resize(c, m, c->x, c->y, c->w, c->h, True);
-				}
-				for (y = m->way;
-				    y + c->h <= m->way + m->wah
-				    && !c->isplaced; y += c->h / 4) {
-					for (x = m->wax;
-					    x + c->w <= m->wax + m->waw
-					    && !c->isplaced; x += c->w / 8) {
-						if (smartcheckarea(m, x, y,
-							0.8 * c->w, 0.8 * c->h) <= f) {
-							resize(c, m,
-							    x +
-							    c->th * (rand() %
-								3),
-							    y + c->th +
-							    c->th * (rand() %
-								3), c->w, c->h, True);
-							c->isplaced = True;
-						}
-					}
-				}
-			}
-		}
-	}
 }
 
 void
@@ -1838,6 +1738,27 @@ setmwfact(const char *arg) {
 	arrange(curmonitor());
 }
 
+/* ifloating() subroutine */
+static int
+smartcheckarea(Monitor * m, int x, int y, int w, int h) {
+	Client *c;
+	int n = 0;
+	for (c = clients; c; c = c->next) {
+		if (isvisible(c, m) && !c->isicon && c->isplaced) {
+			/* A Kind Of Magic */
+			if ((c->y + c->h >= y && c->y + c->h <= y + h
+				&& c->x + c->w >= x && c->x + c->w <= x + w)
+			    || (c->x >= x && c->x <= x + w
+				&& c->y + c->h >= y && c->y + c->h <= y + h)
+			    || (c->x >= x && c->x <= x + w && c->y >= y && c->y <= y + h)
+			    || (c->x + c->w >= x && c->x + c->w <= x + w
+				&& c->y >= y && c->y <= y + h))
+				n++;
+		}
+	}
+	return n;
+}
+
 void
 initlayouts() {
 	unsigned int i, j;
@@ -1866,8 +1787,87 @@ initlayouts() {
 		views[i].nmaster = nmaster;
 		views[i].barpos = StrutsOn;
 	}
-
 	updateatom[ELayout] (NULL);
+}
+
+void
+initmonitors(XEvent * e) {
+	Monitor *m;
+#ifdef XRANDR
+	Monitor *t;
+	XRRCrtcInfo *ci;
+	XRRScreenResources *sr;
+	int c, n;
+	int ncrtc = 0;
+	int dummy1, dummy2, major, minor;
+
+	/* free */
+	if (monitors) {
+		m = monitors;
+		do {
+			t = m->next;
+			free(m);
+			m = t;
+		} while (m);
+		monitors = NULL;
+	}
+	if(!running)
+	    return;
+	/* initial Xrandr setup */
+	if (XRRQueryExtension(dpy, &dummy1, &dummy2))
+		if (XRRQueryVersion(dpy, &major, &minor) && major < 1)
+			goto no_xrandr;
+
+	/* map virtual screens onto physical screens */
+	sr = XRRGetScreenResources(dpy, root);
+	if (sr == NULL)
+		goto no_xrandr;
+	else
+		ncrtc = sr->ncrtc;
+
+	for (c = 0, n = 0, ci = NULL; c < ncrtc; c++) {
+		ci = XRRGetCrtcInfo(dpy, sr, sr->crtcs[c]);
+		if (ci->noutput == 0)
+			continue;
+
+		if (ci != NULL && ci->mode == None)
+			fprintf(stderr, "???\n");
+		else {
+			/* If monitor is a mirror, we don't care about it */
+			if (n && ci->x == monitors->sx && ci->y == monitors->sy)
+				continue;
+			m = emallocz(sizeof(Monitor));
+			m->sx = m->wax = ci->x;
+			m->sy = m->way = ci->y;
+			m->sw = m->waw = ci->width;
+			m->sh = m->wah = ci->height;
+			m->curtag = n;
+			m->prevtags = emallocz(ntags * sizeof(Bool));
+			m->seltags = emallocz(ntags * sizeof(Bool));
+			m->seltags[n] = True;
+			m->next = monitors;
+			monitors = m;
+			n++;
+		}
+		XRRFreeCrtcInfo(ci);
+	}
+	XRRFreeScreenResources(sr);
+	updateatom[WorkArea](NULL);;
+	return;
+      no_xrandr:
+#endif
+	m = emallocz(sizeof(Monitor));
+	m->sx = m->wax = 0;
+	m->sy = m->way = 0;
+	m->sw = m->waw = DisplayWidth(dpy, screen);
+	m->sh = m->wah = DisplayHeight(dpy, screen);
+	m->curtag = 0;
+	m->prevtags = emallocz(ntags * sizeof(Bool));
+	m->seltags = emallocz(ntags * sizeof(Bool));
+	m->seltags[0] = True;
+	m->next = NULL;
+	monitors = m;
+	updateatom[WorkArea](NULL);;
 }
 
 void
