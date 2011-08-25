@@ -1,3 +1,7 @@
+/*
+ *  echinus wm written by Alexander Polakov <polachok@gmail.com>
+ *  this file contains code related to drawing
+ */
 #include <regex.h>
 #include <ctype.h>
 #include <assert.h>
@@ -30,9 +34,8 @@ typedef struct {
 DC dc;
 
 static int
-drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
-    unsigned long col[ColLast], int x, int y, int mw)
-{
+drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable,
+    unsigned long col[ColLast], int x, int y, int mw) {
 	int w, h;
 	char buf[256];
 	unsigned int len, olen;
@@ -74,8 +77,7 @@ drawtext(const char *text, Drawable drawable, XftDraw * xftdrawable,
 }
 
 static int
-drawbutton(Drawable d, Button btn, unsigned long col[ColLast], int x, int y)
-{
+drawbutton(Drawable d, Button btn, unsigned long col[ColLast], int x, int y) {
 	XSetForeground(dpy, dc.gc, col[ColBG]);
 	XFillRectangle(dpy, d, dc.gc, x, 0, dc.h, dc.h);
 	XSetForeground(dpy, dc.gc, btn.pressed ? col[ColFG] : col[ColButton]);
@@ -86,8 +88,7 @@ drawbutton(Drawable d, Button btn, unsigned long col[ColLast], int x, int y)
 }
 
 static int
-drawelement(char which, int x, int position, Client * c)
-{
+drawelement(char which, int x, int position, Client *c) {
 	int w;
 	unsigned int j;
 	unsigned long *color = c == sel ? style.color.sel : style.color.norm;
@@ -133,8 +134,7 @@ drawelement(char which, int x, int position, Client * c)
 }
 
 static int
-elementw(char which, Client * c)
-{
+elementw(char which, Client *c) {
 	int w;
 	unsigned int j;
 
@@ -159,8 +159,7 @@ elementw(char which, Client * c)
 }
 
 void
-drawclient(Client * c)
-{
+drawclient(Client *c) {
 	size_t i;
 
 	if (style.opacity) {
@@ -223,8 +222,7 @@ drawclient(Client * c)
 }
 
 static unsigned long
-getcolor(const char *colstr)
-{
+getcolor(const char *colstr) {
 	XColor color;
 
 	if (!XAllocNamedColor(dpy, DefaultColormap(dpy, screen), colstr, &color, &color))
@@ -233,8 +231,7 @@ getcolor(const char *colstr)
 }
 
 static Pixmap
-initpixmap(const char *file, Button * b)
-{
+initpixmap(const char *file, Button *b) {
 	b->pm = XCreatePixmap(dpy, root, style.titleheight, style.titleheight, 1);
 	if (BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph,
 		&b->pm, &b->px, &b->py)) {
@@ -247,8 +244,7 @@ initpixmap(const char *file, Button * b)
 }
 
 static void
-initbuttons()
-{
+initbuttons() {
 	XSetForeground(dpy, dc.gc, style.color.norm[ColButton]);
 	XSetBackground(dpy, dc.gc, style.color.norm[ColBG]);
 	initpixmap(getresource("button.iconify.pixmap", ICONPIXMAP),
@@ -263,8 +259,7 @@ initbuttons()
 }
 
 static void
-initfont(const char *fontstr)
-{
+initfont(const char *fontstr) {
 	style.font = NULL;
 	style.font = XftFontOpenXlfd(dpy, screen, fontstr);
 	if (!style.font)
@@ -280,8 +275,7 @@ initfont(const char *fontstr)
 }
 
 void
-initstyle()
-{
+initstyle() {
 	style.color.norm[ColBorder] = getcolor(getresource("normal.border", NORMBORDERCOLOR));
 	style.color.norm[ColBG] = getcolor(getresource("normal.bg", NORMBGCOLOR));
 	style.color.norm[ColFG] = getcolor(getresource("normal.fg", NORMFGCOLOR));
@@ -315,8 +309,7 @@ initstyle()
 }
 
 void
-deinitstyle()
-{	
+deinitstyle() {	
 	/* XXX: more to do */
 	XftColorFree(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
 		screen), style.color.font[Normal]);
@@ -328,15 +321,13 @@ deinitstyle()
 }
 
 static unsigned int
-textnw(const char *text, unsigned int len)
-{
+textnw(const char *text, unsigned int len) {
 	XftTextExtentsUtf8(dpy, style.font,
 	    (const unsigned char *) text, len, dc.font.extents);
 	return dc.font.extents->xOff;
 }
 
 static unsigned int
-textw(const char *text)
-{
+textw(const char *text) {
 	return textnw(text, strlen(text)) + dc.font.height;
 }

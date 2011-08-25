@@ -1,3 +1,7 @@
+/*
+ *  echinus wm written by Alexander Polakov <polachok@gmail.com>
+ *  this file contains code to parse rules and keybindings
+ */
 #include <regex.h>
 #include <ctype.h>
 #include <X11/Xatom.h>
@@ -8,57 +12,51 @@
 #include "echinus.h"
 #include "config.h"
 
-
-/*
- *  echinus wm written by Alexander Polakov <polachok@gmail.com>
- *  this file contains code to parse rules and keybindings
- */
 typedef struct {
 	const char *name;
 	void (*action) (const char *arg);
 } KeyItem;
 
 static KeyItem KeyItems[] = {
-	{"togglestruts", togglestruts},
-	{"focusicon", focusicon},
-	{"focusnext", focusnext},
-	{"focusprev", focusprev},
-	{"viewprevtag", viewprevtag},
-	{"viewlefttag", viewlefttag},
-	{"viewrighttag", viewrighttag},
-	{"quit", quit},
-	{"restart", quit},
-	{"killclient", killclient},
-	{"togglefloating", togglefloating},
-	{"decmwfact", setmwfact},
-	{"incmwfact", setmwfact},
-	{"incnmaster", incnmaster},
-	{"decnmaster", incnmaster},
-	{"iconify", iconify},
-	{"zoom", zoom},
-	{"moveright", moveresizekb},
-	{"moveleft", moveresizekb},
-	{"moveup", moveresizekb},
-	{"movedown", moveresizekb},
-	{"resizedecx", moveresizekb},
-	{"resizeincx", moveresizekb},
-	{"resizedecy", moveresizekb},
-	{"resizeincy", moveresizekb},
-	{"togglemonitor", togglemonitor},
-	{"togglefill", togglefill},
+	{ "togglestruts",	togglestruts	},
+	{ "focusicon",		focusicon	},
+	{ "focusnext",		focusnext	},
+	{ "focusprev",		focusprev	},
+	{ "viewprevtag",	viewprevtag	},
+	{ "viewlefttag",	viewlefttag	},
+	{ "viewrighttag",	viewrighttag	},
+	{ "quit",		quit		},
+	{ "restart", 		quit		},
+	{ "killclient",		killclient	},
+	{ "togglefloating", 	togglefloating	},
+	{ "decmwfact", 		setmwfact	},
+	{ "incmwfact", 		setmwfact	},
+	{ "incnmaster", 	incnmaster	},
+	{ "decnmaster", 	incnmaster	},
+	{ "iconify", 		iconify		},
+	{ "zoom", 		zoom		},
+	{ "moveright", 		moveresizekb	},
+	{ "moveleft", 		moveresizekb	},
+	{ "moveup", 		moveresizekb	},
+	{ "movedown", 		moveresizekb	},
+	{ "resizedecx", 	moveresizekb	},
+	{ "resizeincx", 	moveresizekb	},
+	{ "resizedecy", 	moveresizekb	},
+	{ "resizeincy", 	moveresizekb	},
+	{ "togglemonitor", 	togglemonitor	},
+	{ "togglefill", 	togglefill	},
 };
 
 static KeyItem KeyItemsByTag[] = {
-	{"view", view},
-	{"toggleview", toggleview},
-	{"focusview", focusview},
-	{"tag", tag},
-	{"toggletag", toggletag},
+	{ "view",		view		},
+	{ "toggleview",		toggleview	},
+	{ "focusview",		focusview	},
+	{ "tag", 		tag		},
+	{ "toggletag", 		toggletag	},
 };
 
 void
-parsekey(const char *s, Key * k)
-{
+parsekey(const char *s, Key *k) {
 	int l = strlen(s);
 	unsigned long modmask = 0;
 	char *pos, *opos;
@@ -109,8 +107,7 @@ parsekey(const char *s, Key * k)
 }
 
 void
-initmodkey()
-{
+initmodkey() {
 	char tmp;
 
 	strncpy(&tmp, getresource("modkey", "A"), 1);
@@ -130,8 +127,7 @@ initmodkey()
 }
 
 int
-initkeys()
-{
+initkeys() {
 	unsigned int i, j;
 	const char *tmp;
 	char t[64];
@@ -195,16 +191,14 @@ initkeys()
 }
 
 void
-parserule(const char *s, Rule * r)
-{
+parserule(const char *s, Rule *r) {
 	r->prop = emallocz(128);
 	r->tags = emallocz(64);
 	sscanf(s, "%s %s %d %d", r->prop, r->tags, &r->isfloating, &r->hastitle);
 }
 
 void
-compileregs(void)
-{
+compileregs(void) {
 	unsigned int i;
 	regex_t *reg;
 
@@ -227,8 +221,7 @@ compileregs(void)
 }
 
 void
-initrules()
-{
+initrules() {
 	int i;
 	char t[64];
 	const char *tmp;

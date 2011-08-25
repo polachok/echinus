@@ -234,8 +234,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 
 /* function implementations */
 void
-applyrules(Client * c)
-{
+applyrules(Client * c) {
 	static char buf[512];
 	unsigned int i, j;
 	regmatch_t tmp;
@@ -268,8 +267,7 @@ applyrules(Client * c)
 }
 
 void
-arrangefloats(Monitor * m)
-{
+arrangefloats(Monitor * m) {
 	Client *c;
 
 	for(c = stack; c; c = c->snext) {
@@ -280,8 +278,7 @@ arrangefloats(Monitor * m)
 }
 
 void
-arrangemon(Monitor * m)
-{
+arrangemon(Monitor * m) {
 	Client *c;
 
 	views[m->curtag].layout->arrange(m);
@@ -313,8 +310,7 @@ arrangemon(Monitor * m)
 }
 
 void
-arrange(Monitor * m)
-{
+arrange(Monitor * m) {
 	Monitor *i;
 
 	if (!m) {
@@ -325,8 +321,7 @@ arrange(Monitor * m)
 }
 
 void
-attach(Client * c)
-{
+attach(Client * c) {
 	if (clients)
 		clients->prev = c;
 	c->next = clients;
@@ -334,15 +329,13 @@ attach(Client * c)
 }
 
 void
-attachstack(Client * c)
-{
+attachstack(Client * c) {
 	c->snext = stack;
 	stack = c;
 }
 
 void
-ban(Client * c)
-{
+ban(Client * c) {
 	if (c->isbanned)
 		return;
 	c->ignoreunmap++;
@@ -357,8 +350,7 @@ ban(Client * c)
 }
 
 void
-iconify(const char *arg)
-{
+iconify(const char *arg) {
 	Client *c;
 	if (!sel)
 		return;
@@ -370,8 +362,7 @@ iconify(const char *arg)
 }
 
 void
-buttonpress(XEvent * e)
-{
+buttonpress(XEvent * e) {
 	Client *c;
 	int i;
 	XButtonPressedEvent *ev = &e->xbutton;
@@ -453,8 +444,7 @@ buttonpress(XEvent * e)
 }
 
 void
-checkotherwm(void)
-{
+checkotherwm(void) {
 	otherwm = False;
 	XSetErrorHandler(xerrorstart);
 
@@ -470,8 +460,7 @@ checkotherwm(void)
 }
 
 void
-cleanup(void)
-{
+cleanup(void) {
 	while (stack) {
 		unban(stack);
 		unmanage(stack);
@@ -491,8 +480,7 @@ cleanup(void)
 }
 
 void
-configure(Client * c)
-{
+configure(Client * c) {
 	XConfigureEvent ce;
 	Monitor *m = clientmonitor(c);
 
@@ -511,8 +499,7 @@ configure(Client * c)
 }
 
 void
-initmonitors(XEvent * e)
-{
+initmonitors(XEvent * e) {
 	Monitor *m;
 #ifdef XRANDR
 	Monitor *t;
@@ -592,8 +579,7 @@ initmonitors(XEvent * e)
 }
 
 void
-configurenotify(XEvent * e)
-{
+configurenotify(XEvent * e) {
 	XConfigureEvent *ev = &e->xconfigure;
 	Monitor *m;
 
@@ -612,8 +598,7 @@ configurenotify(XEvent * e)
 }
 
 void
-configurerequest(XEvent * e)
-{
+configurerequest(XEvent * e) {
 	Client *c;
 	XConfigureRequestEvent *ev = &e->xconfigurerequest;
 	XWindowChanges wc;
@@ -682,8 +667,7 @@ configurerequest(XEvent * e)
 }
 
 void
-destroynotify(XEvent * e)
-{
+destroynotify(XEvent * e) {
 	Client *c;
 	XDestroyWindowEvent *ev = &e->xdestroywindow;
 
@@ -694,8 +678,7 @@ destroynotify(XEvent * e)
 }
 
 void
-detach(Client * c)
-{
+detach(Client * c) {
 	if (c->prev)
 		c->prev->next = c->next;
 	if (c->next)
@@ -706,8 +689,7 @@ detach(Client * c)
 }
 
 void
-detachstack(Client * c)
-{
+detachstack(Client * c) {
 	Client **tc;
 
 	for (tc = &stack; *tc && *tc != c; tc = &(*tc)->snext);
@@ -715,8 +697,7 @@ detachstack(Client * c)
 }
 
 void *
-emallocz(unsigned int size)
-{
+emallocz(unsigned int size) {
 	void *res = calloc(1, size);
 
 	if (!res)
@@ -725,8 +706,7 @@ emallocz(unsigned int size)
 }
 
 void
-enternotify(XEvent * e)
-{
+enternotify(XEvent * e) {
 	XCrossingEvent *ev = &e->xcrossing;
 	Client *c;
 
@@ -765,8 +745,7 @@ enternotify(XEvent * e)
 }
 
 void
-eprint(const char *errstr, ...)
-{
+eprint(const char *errstr, ...) {
 	va_list ap;
 
 	va_start(ap, errstr);
@@ -776,8 +755,7 @@ eprint(const char *errstr, ...)
 }
 
 void
-focusin(XEvent * e)
-{
+focusin(XEvent * e) {
 	XFocusChangeEvent *ev = &e->xfocus;
 
 	if (sel && (ev->window != sel->win))
@@ -785,8 +763,7 @@ focusin(XEvent * e)
 }
 
 void
-expose(XEvent * e)
-{
+expose(XEvent * e) {
 	XExposeEvent *ev = &e->xexpose;
 	XEvent tmp;
 	Client *c;
@@ -797,8 +774,7 @@ expose(XEvent * e)
 }
 
 void
-floating(Monitor * m)
-{				/* default floating layout */
+floating(Monitor * m) {		/* default floating layout */
 	Client *c;
 
 	for (c = clients; c; c = c->next) {
@@ -813,8 +789,7 @@ floating(Monitor * m)
 }
 
 void
-givefocus(Client * c)
-{
+givefocus(Client * c) {
 	XEvent ce;
 	if (checkatom(c->win, atom[WMProto], atom[WMTakeFocus])) {
 		ce.xclient.type = ClientMessage;
@@ -832,8 +807,7 @@ givefocus(Client * c)
 }
 
 void
-focus(Client * c)
-{
+focus(Client * c) {
 	Client *o;
 
 	o = sel;
@@ -872,8 +846,7 @@ focus(Client * c)
 }
 
 void
-focusicon(const char *arg)
-{
+focusicon(const char *arg) {
 	Client *c;
 
 	for(c = clients; c && (!c->isicon || !isvisible(c, curmonitor())); c = c->next);
@@ -885,8 +858,7 @@ focusicon(const char *arg)
 }
 
 void
-focusnext(const char *arg)
-{
+focusnext(const char *arg) {
 	Client *c;
 
 	if (!sel)
@@ -904,8 +876,7 @@ focusnext(const char *arg)
 }
 
 void
-focusprev(const char *arg)
-{
+focusprev(const char *arg) {
 	Client *c;
 
 	if (!sel)
@@ -925,8 +896,7 @@ focusprev(const char *arg)
 }
 
 void
-incnmaster(const char *arg)
-{
+incnmaster(const char *arg) {
 	unsigned int i;
 
 	if (!FEATURES(curlayout, NMASTER))
@@ -945,8 +915,7 @@ incnmaster(const char *arg)
 }
 
 Client *
-getclient(Window w, Client * list, int part)
-{
+getclient(Window w, Client * list, int part) {
 	Client *c;
 
 #define ClientPart(_c, _part) (((_part) == ClientWindow) ? (_c)->win : \
@@ -959,8 +928,7 @@ getclient(Window w, Client * list, int part)
 }
 
 long
-getstate(Window w)
-{
+getstate(Window w) {
 	long ret = -1;
 	long *p = NULL;
 	unsigned long n;
@@ -973,8 +941,7 @@ getstate(Window w)
 }
 
 const char *
-getresource(const char *resource, const char *defval)
-{
+getresource(const char *resource, const char *defval) {
 	static char name[256], class[256], *type;
 	XrmValue value;
 
@@ -987,8 +954,7 @@ getresource(const char *resource, const char *defval)
 }
 
 Bool
-gettextprop(Window w, Atom atom, char *text, unsigned int size)
-{
+gettextprop(Window w, Atom atom, char *text, unsigned int size) {
 	char **list = NULL;
 	int n;
 	XTextProperty name;
@@ -1014,8 +980,7 @@ gettextprop(Window w, Atom atom, char *text, unsigned int size)
 }
 
 void
-grabbuttons(Client * c, Bool focused)
-{
+grabbuttons(Client * c, Bool focused) {
 	unsigned int Buttons[] = { Button1, Button2, Button3 };
 	unsigned int Modifiers[] = { modkey, modkey | LockMask,
 		modkey | numlockmask, modkey | numlockmask | LockMask
@@ -1036,8 +1001,7 @@ grabbuttons(Client * c, Bool focused)
 }
 
 int
-idxoftag(const char *tag)
-{
+idxoftag(const char *tag) {
 	unsigned int i;
 
 	for (i = 0; (i < ntags) && strcmp(tag, tags[i]); i++);
@@ -1045,8 +1009,7 @@ idxoftag(const char *tag)
 }
 
 Bool
-isvisible(Client * c, Monitor * m)
-{
+isvisible(Client * c, Monitor * m) {
 	unsigned int i;
 
 	if (!c)
@@ -1066,8 +1029,7 @@ isvisible(Client * c, Monitor * m)
 }
 
 void
-grabkeys(void)
-{
+grabkeys(void) {
 	unsigned int modifiers[] = { 0, LockMask, numlockmask, numlockmask|LockMask };
 	unsigned int i, j;
 	KeyCode code;
@@ -1082,8 +1044,7 @@ grabkeys(void)
 }
 
 void
-keypress(XEvent * e)
-{
+keypress(XEvent * e) {
 	unsigned int i;
 	KeySym keysym;
 	XKeyEvent *ev;
@@ -1100,8 +1061,7 @@ keypress(XEvent * e)
 }
 
 void
-killclient(const char *arg)
-{
+killclient(const char *arg) {
 	XEvent ev;
 
 	if (!sel)
@@ -1120,8 +1080,7 @@ killclient(const char *arg)
 }
 
 void
-leavenotify(XEvent * e)
-{
+leavenotify(XEvent * e) {
 	XCrossingEvent *ev = &e->xcrossing;
 	Client *c;
 
@@ -1134,8 +1093,7 @@ leavenotify(XEvent * e)
 }
 
 void
-manage(Window w, XWindowAttributes * wa)
-{
+manage(Window w, XWindowAttributes * wa) {
 	Client *c, *t = NULL;
 	Monitor *cm;
 	Window trans;
@@ -1287,8 +1245,7 @@ manage(Window w, XWindowAttributes * wa)
 }
 
 void
-mappingnotify(XEvent * e)
-{
+mappingnotify(XEvent * e) {
 	XMappingEvent *ev = &e->xmapping;
 
 	XRefreshKeyboardMapping(ev);
@@ -1297,8 +1254,7 @@ mappingnotify(XEvent * e)
 }
 
 void
-maprequest(XEvent * e)
-{
+maprequest(XEvent * e) {
 	static XWindowAttributes wa;
 	Client *c;
 	XMapRequestEvent *ev = &e->xmaprequest;
@@ -1316,9 +1272,9 @@ maprequest(XEvent * e)
 		manage(ev->window, &wa);
 }
 
+/* ifloating() subroutine */
 int
-smartcheckarea(Monitor * m, int x, int y, int w, int h)
-{
+smartcheckarea(Monitor * m, int x, int y, int w, int h) {
 	Client *c;
 	int n = 0;
 	for (c = clients; c; c = c->next) {
@@ -1338,8 +1294,7 @@ smartcheckarea(Monitor * m, int x, int y, int w, int h)
 }
 
 void
-ifloating(Monitor * m)
-{
+ifloating(Monitor * m) {
 	Client *c;
 	int x, y, f;
 
@@ -1379,8 +1334,7 @@ ifloating(Monitor * m)
 }
 
 void
-monocle(Monitor * m)
-{
+monocle(Monitor * m) {
 	Client *c;
 
 	for (c = nexttiled(clients, m); c; c = nexttiled(c->next, m)) {
@@ -1395,8 +1349,7 @@ monocle(Monitor * m)
 }
 
 void
-moveresizekb(const char *arg)
-{
+moveresizekb(const char *arg) {
 	int dw, dh, dx, dy;
 
 	dw = dh = dx = dy = 0;
@@ -1414,8 +1367,7 @@ moveresizekb(const char *arg)
 }
 
 void
-getpointer(int *x, int *y)
-{
+getpointer(int *x, int *y) {
 	int di;
 	unsigned int dui;
 	Window dummy;
@@ -1424,8 +1376,7 @@ getpointer(int *x, int *y)
 }
 
 Monitor *
-getmonitor(int x, int y)
-{
+getmonitor(int x, int y) {
 	Monitor *m;
 	for (m = monitors; m; m = m->next) {
 		if ((x >= m->sx && x < m->sx + m->sw)) {
@@ -1436,8 +1387,7 @@ getmonitor(int x, int y)
 }
 
 Monitor *
-clientmonitor(Client * c)
-{
+clientmonitor(Client * c) {
 	Monitor *m;
 	unsigned int i;
 	if (c) {
@@ -1453,16 +1403,14 @@ clientmonitor(Client * c)
 }
 
 Monitor *
-curmonitor()
-{
+curmonitor() {
 	int x, y;
 	getpointer(&x, &y);
 	return getmonitor(x, y);
 }
 
 void
-mousemove(Client * c)
-{
+mousemove(Client * c) {
 	int x1, y1, ocx, ocy, nx, ny;
 	unsigned int i;
 	XEvent ev;
@@ -1518,8 +1466,7 @@ mousemove(Client * c)
 }
 
 void
-mouseresize(Client * c)
-{
+mouseresize(Client * c) {
 	int ocx, ocy, nw, nh;
 	Monitor *cm;
 	XEvent ev;
@@ -1563,24 +1510,21 @@ mouseresize(Client * c)
 }
 
 Client *
-nexttiled(Client * c, Monitor * m)
-{
+nexttiled(Client * c, Monitor * m) {
 	for (; c && (c->isfloating || !isvisible(c, m) || c->isbastard
 		|| c->isicon); c = c->next);
 	return c;
 }
 
 Client *
-prevtiled(Client * c, Monitor * m)
-{
+prevtiled(Client * c, Monitor * m) {
 	for (; c && (c->isfloating || !isvisible(c, m) || c->isbastard
 		|| c->isicon); c = c->prev);
 	return c;
 }
 
 void
-reparentnotify(XEvent * e)
-{
+reparentnotify(XEvent * e) {
 	Client *c;
 	XReparentEvent *ev = &e->xreparent;
 
@@ -1590,8 +1534,7 @@ reparentnotify(XEvent * e)
 }
 
 void
-propertynotify(XEvent * e)
-{
+propertynotify(XEvent * e) {
 	Client *c;
 	Window trans;
 	XPropertyEvent *ev = &e->xproperty;
@@ -1624,8 +1567,7 @@ propertynotify(XEvent * e)
 }
 
 void
-quit(const char *arg)
-{
+quit(const char *arg) {
 	running = False;
 	if (arg) {
 		cleanup();
@@ -1635,8 +1577,7 @@ quit(const char *arg)
 }
 
 void
-resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
-{
+resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints) {
 	XWindowChanges wc;
 
 	if (sizehints) {
@@ -1720,8 +1661,7 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints)
 }
 
 void
-restack(Monitor * m)
-{
+restack(Monitor * m) {
 	Client *c;
 	XEvent ev;
 	Window *wl;
@@ -1769,8 +1709,7 @@ restack(Monitor * m)
 }
 
 void
-run(void)
-{
+run(void) {
 	fd_set rd;
 	int xfd;
 	XEvent ev;
@@ -1795,8 +1734,7 @@ run(void)
 }
 
 void
-scan(void)
-{
+scan(void) {
 	unsigned int i, num;
 	Window *wins, d1, d2;
 	XWindowAttributes wa;
@@ -1828,8 +1766,7 @@ scan(void)
 }
 
 void
-setclientstate(Client * c, long state)
-{
+setclientstate(Client * c, long state) {
 	long data[] = { state, None };
 	long winstate[2];
 
@@ -1846,8 +1783,7 @@ setclientstate(Client * c, long state)
 }
 
 void
-setlayout(const char *arg)
-{
+setlayout(const char *arg) {
 	unsigned int i;
 	Client *c;
 	Bool wasfloat;
@@ -1882,8 +1818,7 @@ setlayout(const char *arg)
 }
 
 void
-setmwfact(const char *arg)
-{
+setmwfact(const char *arg) {
 	double delta;
 
 	if (!FEATURES(curlayout, MWFACT))
@@ -1905,8 +1840,7 @@ setmwfact(const char *arg)
 }
 
 void
-initlayouts()
-{
+initlayouts() {
 	unsigned int i, j;
 	char conf[32], ltname;
 	float mwfact;
@@ -1938,8 +1872,7 @@ initlayouts()
 }
 
 void
-inittags()
-{
+inittags() {
 	unsigned int i;
 	char tmp[25] = "\0";
 
@@ -1955,8 +1888,7 @@ inittags()
 }
 
 void
-sighandler(int signum)
-{
+sighandler(int signum) {
 	if (signum == SIGHUP)
 		quit("HUP!");
 	else
@@ -1964,8 +1896,7 @@ sighandler(int signum)
 }
 
 void
-setup(char *conf)
-{
+setup(char *conf) {
 	int d;
 	int i, j;
 	unsigned int mask;
@@ -2073,8 +2004,7 @@ setup(char *conf)
 }
 
 void
-spawn(const char *arg)
-{
+spawn(const char *arg) {
 	static char shell[] = "/bin/sh";
 
 	if (!arg)
@@ -2096,8 +2026,7 @@ spawn(const char *arg)
 }
 
 void
-tag(const char *arg)
-{
+tag(const char *arg) {
 	unsigned int i;
 
 	if (!sel)
@@ -2112,8 +2041,7 @@ tag(const char *arg)
 }
 
 void
-bstack(Monitor * m)
-{
+bstack(Monitor * m) {
 	int i, n, nx, ny, nw, nh, mh, tw;
 	Client *c, *mc;
 
@@ -2150,8 +2078,7 @@ bstack(Monitor * m)
 }
 
 void
-tile(Monitor * m)
-{
+tile(Monitor * m) {
 	int nx, ny, nw, nh, mw, mh;
 	unsigned int i, n, th;
 	Client *c, *mc;
@@ -2199,8 +2126,7 @@ tile(Monitor * m)
 }
 
 void
-togglestruts(const char *arg)
-{
+togglestruts(const char *arg) {
 	views[curmontag].barpos =
 	    (views[curmontag].barpos ==
 	    StrutsOn) ? (options.hidebastards ? StrutsHide : StrutsOff) : StrutsOn;
@@ -2209,8 +2135,7 @@ togglestruts(const char *arg)
 }
 
 void
-togglefloating(const char *arg)
-{
+togglefloating(const char *arg) {
 	if (!sel)
 		return;
 
@@ -2230,8 +2155,7 @@ togglefloating(const char *arg)
 }
 
 void
-togglefill(const char *arg)
-{
+togglefill(const char *arg) {
 	XEvent ev;
 	Monitor *m = curmonitor();
 	Client *c;
@@ -2245,7 +2169,8 @@ togglefill(const char *arg)
 	if (!sel || sel->isfixed)
 		return;
 	for(c = clients; c; c = c->next) {
-		if(isvisible(c, m) && (c != sel) && !c->isbastard && (c->isfloating || MFEATURES(m, OVERLAP))) {
+		if(isvisible(c, m) && (c != sel) && !c->isbastard
+			       	&& (c->isfloating || MFEATURES(m, OVERLAP))) {
 			if(c->y + c->h > sel->y && c->y < sel->y + sel->h) {
 				if(c->x < sel->x)
 					x1 = max(x1, c->x + c->w + style.border);
@@ -2277,8 +2202,7 @@ togglefill(const char *arg)
 }
 
 void
-togglemax(const char *arg)
-{
+togglemax(const char *arg) {
 	XEvent ev;
 	Monitor *m = curmonitor();
 
@@ -2297,8 +2221,7 @@ togglemax(const char *arg)
 }
 
 void
-toggletag(const char *arg)
-{
+toggletag(const char *arg) {
 	unsigned int i, j;
 
 	if (!sel)
@@ -2313,8 +2236,7 @@ toggletag(const char *arg)
 }
 
 void
-togglemonitor(const char *arg)
-{
+togglemonitor(const char *arg) {
 	Monitor *m, *cm;
 	int x, y;
 
@@ -2327,8 +2249,7 @@ togglemonitor(const char *arg)
 }
 
 void
-toggleview(const char *arg)
-{
+toggleview(const char *arg) {
 	unsigned int i, j;
 	Monitor *m, *cm;
 
@@ -2358,8 +2279,7 @@ toggleview(const char *arg)
 }
 
 void
-focusview(const char *arg)
-{
+focusview(const char *arg) {
 	Client *c;
 	int i;
 
@@ -2377,8 +2297,7 @@ focusview(const char *arg)
 }
 
 void
-unban(Client * c)
-{
+unban(Client * c) {
 	if (!c->isbanned)
 		return;
 	XSelectInput(dpy, c->win, CLIENTMASK & ~(StructureNotifyMask | EnterWindowMask));
@@ -2392,8 +2311,7 @@ unban(Client * c)
 }
 
 void
-unmanage(Client * c)
-{
+unmanage(Client * c) {
 	Monitor *m;
 	XWindowChanges wc;
 	Bool doarrange, dostruts;
@@ -2449,8 +2367,7 @@ unmanage(Client * c)
 }
 
 void
-updategeom(Monitor * m)
-{
+updategeom(Monitor * m) {
 	m->wax = 0;
 	m->way = 0;
 	m->wah = m->sh;
@@ -2471,8 +2388,7 @@ updategeom(Monitor * m)
 }
 
 void
-unmapnotify(XEvent * e)
-{
+unmapnotify(XEvent * e) {
 	Client *c;
 	XUnmapEvent *ev = &e->xunmap;
 
@@ -2485,8 +2401,7 @@ unmapnotify(XEvent * e)
 }
 
 void
-updateframe(Client * c)
-{
+updateframe(Client * c) {
 
 	if (!c->title)
 		return;
@@ -2501,8 +2416,7 @@ updateframe(Client * c)
 }
 
 void
-updatesizehints(Client * c)
-{
+updatesizehints(Client * c) {
 	long msize;
 	XSizeHints size;
 
@@ -2547,8 +2461,7 @@ updatesizehints(Client * c)
 }
 
 void
-updatetitle(Client * c)
-{
+updatetitle(Client * c) {
 	if (!gettextprop(c->win, atom[WindowName], c->name, sizeof(c->name)))
 		gettextprop(c->win, atom[WMName], c->name, sizeof(c->name));
 	drawclient(c);
@@ -2558,8 +2471,7 @@ updatetitle(Client * c)
  * ignored (ebastardly on UnmapNotify's).  Other types of errors call Xlibs
  * default error handler, which may call exit.	*/
 int
-xerror(Display * dsply, XErrorEvent * ee)
-{
+xerror(Display * dsply, XErrorEvent * ee) {
 	if (ee->error_code == BadWindow
 	    || (ee->request_code == X_SetInputFocus && ee->error_code == BadMatch)
 	    || (ee->request_code == X_PolyText8 && ee->error_code == BadDrawable)
@@ -2576,23 +2488,20 @@ xerror(Display * dsply, XErrorEvent * ee)
 }
 
 int
-xerrordummy(Display * dsply, XErrorEvent * ee)
-{
+xerrordummy(Display * dsply, XErrorEvent * ee) {
 	return 0;
 }
 
 /* Startup Error handler to check if another window manager
  * is already running. */
 int
-xerrorstart(Display * dsply, XErrorEvent * ee)
-{
+xerrorstart(Display * dsply, XErrorEvent * ee) {
 	otherwm = True;
 	return -1;
 }
 
 void
-view(const char *arg)
-{
+view(const char *arg) {
 	int i, j;
 	Monitor *m, *cm;
 
@@ -2623,8 +2532,7 @@ view(const char *arg)
 }
 
 void
-viewprevtag(const char *arg)
-{
+viewprevtag(const char *arg) {
 	Bool tmptags[ntags];
 	unsigned int i = 0;
 	int prevcurtag;
@@ -2645,8 +2553,7 @@ viewprevtag(const char *arg)
 }
 
 void
-viewlefttag(const char *arg)
-{
+viewlefttag(const char *arg) {
 	unsigned int i;
 
 	for (i = 0; i < ntags; i++) {
@@ -2658,8 +2565,7 @@ viewlefttag(const char *arg)
 }
 
 void
-viewrighttag(const char *arg)
-{
+viewrighttag(const char *arg) {
 	unsigned int i;
 
 	for (i = 0; i < ntags - 1; i++) {
@@ -2671,8 +2577,7 @@ viewrighttag(const char *arg)
 }
 
 void
-zoom(const char *arg)
-{
+zoom(const char *arg) {
 	Client *c;
 
 	if (!sel || !FEATURES(curlayout, ZOOM) || sel->isfloating)
@@ -2687,8 +2592,7 @@ zoom(const char *arg)
 }
 
 int
-main(int argc, char *argv[])
-{
+main(int argc, char *argv[]) {
 	char conf[256] = "\0";
 
 	if (argc == 3 && !strcmp("-f", argv[1]))

@@ -20,42 +20,41 @@ Atom atom[NATOMS];
 
 /* keep in sync with enum in echinus.h */
 const char *atomnames[NATOMS][1] = {
-	{"_NET_CLIENT_LIST"},
-	{"_NET_ACTIVE_WINDOW"},
-	{"_NET_WM_DESKTOP"},
-	{"_NET_NUMBER_OF_DESKTOPS"},
-	{"_NET_DESKTOP_NAMES"},
-	{"_NET_CURRENT_DESKTOP"},
-	{"_ECHINUS_LAYOUT"},
-	{"_NET_WORKAREA"},
-	{"_NET_CLIENT_LIST_STACKING"},
-	{"_NET_WM_WINDOW_OPACITY"},
-	{"_NET_WM_WINDOW_TYPE"},
-	{"_NET_WM_WINDOW_TYPE_DESKTOP"},
-	{"_NET_WM_WINDOW_TYPE_DOCK"},
-	{"_NET_WM_WINDOW_TYPE_DIALOG"},
-	{"_NET_WM_STRUT_PARTIAL"},
-	{"_ECHINUS_SELTAGS"},
-	{"_NET_WM_NAME"},
-	{"_NET_WM_STATE"},
-	{"_NET_WM_STATE_FULLSCREEN"},
-	{"_NET_WM_STATE_MODAL"},
-	{"_NET_WM_STATE_HIDDEN"},
-	{"_NET_SUPPORTING_WM_CHECK"},
-	{"UTF8_STRING"},
-	{"_NET_SUPPORTED"},
-	{"WM_PROTOCOLS"},
-	{"WM_DELETE_WINDOW"},
-	{"WM_NAME"},
-	{"WM_STATE"},
-	{"WM_CHANGE_STATE"},
-	{"WM_TAKE_FOCUS"},
-	{"_MOTIF_WM_HINTS"},
+	{ "_NET_CLIENT_LIST"		},
+	{ "_NET_ACTIVE_WINDOW"		},
+	{ "_NET_WM_DESKTOP"		},
+	{ "_NET_NUMBER_OF_DESKTOPS"	},
+	{ "_NET_DESKTOP_NAMES"		},
+	{ "_NET_CURRENT_DESKTOP"	},
+	{ "_ECHINUS_LAYOUT"		},
+	{ "_NET_WORKAREA"		},
+	{ "_NET_CLIENT_LIST_STACKING"	},
+	{ "_NET_WM_WINDOW_OPACITY"	},
+	{ "_NET_WM_WINDOW_TYPE"		},
+	{ "_NET_WM_WINDOW_TYPE_DESKTOP"	},
+	{ "_NET_WM_WINDOW_TYPE_DOCK"	},
+	{ "_NET_WM_WINDOW_TYPE_DIALOG"	},
+	{ "_NET_WM_STRUT_PARTIAL"	},
+	{ "_ECHINUS_SELTAGS"		},
+	{ "_NET_WM_NAME"		},
+	{ "_NET_WM_STATE"		},
+	{ "_NET_WM_STATE_FULLSCREEN"	},
+	{ "_NET_WM_STATE_MODAL"		},
+	{ "_NET_WM_STATE_HIDDEN"	},
+	{ "_NET_SUPPORTING_WM_CHECK"	},
+	{ "UTF8_STRING"			},
+	{ "_NET_SUPPORTED"		},
+	{ "WM_PROTOCOLS"		},
+	{ "WM_DELETE_WINDOW"		},
+	{ "WM_NAME"			},
+	{ "WM_STATE"			},
+	{ "WM_CHANGE_STATE"		},
+	{ "WM_TAKE_FOCUS"		},
+	{ "_MOTIF_WM_HINTS"		},
 };
 
 void
-initewmh(void)
-{
+initewmh(void) {
 	int i;
 	char name[] = "echinus";
 	XSetWindowAttributes wa;
@@ -78,16 +77,14 @@ initewmh(void)
 }
 
 void
-update_echinus_layout_name(Client * c)
-{
+update_echinus_layout_name(Client *c) {
 	XChangeProperty(dpy, root, atom[ELayout],
 	    XA_STRING, 8, PropModeReplace,
 	    (const unsigned char *) &views[curmontag].layout->symbol, 1L);
 }
 
 void
-ewmh_update_net_client_list()
-{
+ewmh_update_net_client_list() {
 	Window *wins = NULL;
 	Client *c;
 	int i, n = 0;
@@ -116,16 +113,14 @@ ewmh_update_net_client_list()
 }
 
 void
-ewmh_update_net_number_of_desktops()
-{
+ewmh_update_net_number_of_desktops() {
 	XChangeProperty(dpy, root,
 	    atom[NumberOfDesk], XA_CARDINAL, 32, PropModeReplace,
 	    (unsigned char *) &ntags, 1);
 }
 
 void
-ewmh_update_net_current_desktop()
-{
+ewmh_update_net_current_desktop() {
 	Monitor *m;
 	unsigned long *seltags;
 	unsigned int i;
@@ -145,8 +140,7 @@ ewmh_update_net_current_desktop()
 }
 
 void
-ewmh_update_net_window_desktop(Client * c)
-{
+ewmh_update_net_window_desktop(Client *c) {
 	unsigned int i;
 
 	for (i = 0; i < ntags && !c->tags[i]; i++);
@@ -155,8 +149,7 @@ ewmh_update_net_window_desktop(Client * c)
 }
 
 void
-ewmh_update_net_work_area(Client * c)
-{
+ewmh_update_net_work_area(Client *c) {
 	unsigned long *geoms;
 	int i;
 
@@ -173,8 +166,7 @@ ewmh_update_net_work_area(Client * c)
 }
 
 void
-ewmh_update_net_desktop_names()
-{
+ewmh_update_net_desktop_names() {
 	char buf[1024], *pos;
 	unsigned int i;
 	int len = 0;
@@ -192,8 +184,7 @@ ewmh_update_net_desktop_names()
 }
 
 void
-ewmh_update_net_active_window()
-{
+ewmh_update_net_active_window() {
 	Window win;
 
 	win = sel ? sel->win : None;
@@ -203,8 +194,7 @@ ewmh_update_net_active_window()
 }
 
 void
-mwm_process_atom(Client * c)
-{
+mwm_process_atom(Client *c) {
 	Atom real;
 	int format;
 	unsigned char *data = NULL;
@@ -228,8 +218,7 @@ mwm_process_atom(Client * c)
 }
 
 void
-ewmh_process_state_atom(Client * c, Atom state, int set)
-{
+ewmh_process_state_atom(Client *c, Atom state, int set) {
 	CARD32 data[2];
 
 	data[1] = None;
@@ -256,8 +245,7 @@ ewmh_process_state_atom(Client * c, Atom state, int set)
 }
 
 void
-clientmessage(XEvent * e)
-{
+clientmessage(XEvent *e) {
 	XClientMessageEvent *ev = &e->xclient;
 	Client *c;
 
@@ -287,8 +275,7 @@ clientmessage(XEvent * e)
 }
 
 void
-setopacity(Client * c, unsigned int opacity)
-{
+setopacity(Client *c, unsigned int opacity) {
 	if (opacity == OPAQUE) {
 		XDeleteProperty(dpy, c->win, atom[WindowOpacity]);
 		XDeleteProperty(dpy, c->frame, atom[WindowOpacity]);
@@ -319,8 +306,7 @@ getatom(Window win, Atom atom, unsigned long *nitems) {
 }
 
 Bool
-checkatom(Window win, Atom bigatom, Atom smallatom)
-{
+checkatom(Window win, Atom bigatom, Atom smallatom) {
 	Atom *state;
 	unsigned long i, n;
 	Bool ret = False;
@@ -335,8 +321,7 @@ checkatom(Window win, Atom bigatom, Atom smallatom)
 }
 
 int
-updatestruts(Client * c)
-{
+updatestruts(Client *c) {
 	unsigned long *state;
 	int ret = 0;
 	Monitor *m;
