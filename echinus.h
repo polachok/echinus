@@ -12,14 +12,9 @@ enum { ClientList, ActiveWindow, WindowDesk,
 };
 
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut };
-enum { StrutsOn, StrutsOff, StrutsHide };	/* struts position */
-enum { AlignLeft, AlignCenter, AlignRight };	/* title position */
-enum { CurNormal, CurResize, CurMove, CurLast };	/* cursor */
 enum { ColFG, ColBG, ColBorder, ColButton, ColLast };	/* color */
-enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise };	/* focus model */
 enum { ClientWindow, ClientTitle, ClientFrame };	/* client parts */
 enum { Iconify, Maximize, Close, LastBtn };
-enum { Normal, Selected };
 
 /* typedefs */
 typedef struct Monitor Monitor;

@@ -9,6 +9,9 @@
 #include "echinus.h"
 #include "config.h"
 
+enum { Normal, Selected };
+enum { AlignLeft, AlignCenter, AlignRight };	/* title position */
+
 typedef struct {
 	unsigned int x, y, w, h;
 	struct {

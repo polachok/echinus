@@ -65,6 +65,11 @@
 		(_c)->rw = (_c)->w; \
 		(_c)->rh = (_c)->h; }
 
+/* enums */
+enum { StrutsOn, StrutsOff, StrutsHide };		    /* struts position */
+enum { CurNormal, CurResize, CurMove, CurLast };	    /* cursor */
+enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise };    /* focus model */
+
 /* function declarations */
 void applyrules(Client * c);
 void arrange(Monitor * m);
