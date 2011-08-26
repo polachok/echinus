@@ -321,7 +321,7 @@ checkatom(Window win, Atom bigatom, Atom smallatom) {
 }
 
 int
-updatestruts(Client *c) {
+getstruts(Client *c) {
 	unsigned long *state;
 	int ret = 0;
 	Monitor *m;

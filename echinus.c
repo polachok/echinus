@@ -149,6 +149,7 @@ void focusview(const char *arg);
 void unban(Client * c);
 void unmanage(Client * c);
 void updategeom(Monitor * m);
+void updatestruts(Monitor * m);
 void unmapnotify(XEvent * e);
 void updatesizehints(Client * c);
 void updateframe(Client * c);
@@ -498,9 +499,7 @@ configurenotify(XEvent * e) {
 		if (XRRUpdateConfiguration((XEvent *) ev)) {
 #endif
 			initmonitors(e);
-			for(c = clients; c; c = c->next)
-				if (c->hasstruts)
-					updatestruts(c);
+			updatestruts(m);
 			for (m = monitors; m; m = m->next)
 				updategeom(m);
 			arrange(NULL);
@@ -1119,7 +1118,7 @@ manage(Window w, XWindowAttributes * wa) {
 		c->y = wa->y;
 	}
 	cm = c->isbastard ? getmonitor(c->x, c->y) : clientmonitor(c);
-	c->hasstruts = updatestruts(c); 
+	c->hasstruts = getstruts(c); 
 	c->oldborder = c->isbastard ? 0 : wa->border_width;
 	if (c->w == cursw && c->h == cursh) {
 		c->x = 0;
@@ -1462,7 +1461,7 @@ propertynotify(XEvent * e) {
 
 	if ((c = getclient(ev->window, clients, ClientWindow))) {
 		if (ev->atom == atom[StrutPartial]) {
-			c->hasstruts = updatestruts(c);
+			c->hasstruts = getstruts(c);
 			updategeom(clientmonitor(c));
 			arrange(clientmonitor(c));
 		}
@@ -2357,11 +2356,7 @@ unmanage(Client * c) {
 	XSetErrorHandler(xerror);
 	XUngrabServer(dpy);
 	if (dostruts) {
-		m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] =
-			m->struts[BotStrut] = 0;
-		for(c = clients; c; c = c->next)
-			if (c->hasstruts)
-				updatestruts(c);
+		updatestruts(m);
 		updategeom(m);
 	}
 	if (doarrange) 
@@ -2388,6 +2383,17 @@ updategeom(Monitor * m) {
 	case StrutsOff:
 		break;
 	}
+}
+
+void
+updatestruts(Monitor *m) {
+	Client *c;
+
+	m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] =
+		m->struts[BotStrut] = 0;
+	for(c = clients; c; c = c->next)
+		if (c->hasstruts)
+			getstruts(c);
 }
 
 void
