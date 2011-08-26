@@ -513,6 +513,7 @@ configurerequest(XEvent * e) {
 	XConfigureRequestEvent *ev = &e->xconfigurerequest;
 	XWindowChanges wc;
 	Monitor *cm;
+	int x, y, w, h;
 
 	if ((c = getclient(ev->window, clients, ClientWindow))) {
 		c->ismax = False;
@@ -520,29 +521,63 @@ configurerequest(XEvent * e) {
 		if (ev->value_mask & CWBorderWidth)
 			c->border = ev->border_width;
 		if (c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
+#if 0
 			if (c->isbastard) {
 				if (ev->value_mask & CWX)
 					c->x = ev->x;
 				if (ev->value_mask & CWY)
 					c->y = ev->y;
 			}
+#endif
+#if 0
 			if (ev->value_mask & CWWidth)
 				c->w = ev->width;
 			if (ev->value_mask & CWHeight)
 				c->h = ev->height + c->th;
 			if (!(ev->value_mask & (CWX | CWY | CWWidth | CWHeight)))
 				return;
+#endif
 #if 0
 			if ((c->x + c->w) > (curwax + cursw) && c->isfloating)
 				c->x = cursw / 2 - c->w / 2;	/* center in x direction */
 			if ((c->y + c->h) > (curway + cursh) && c->isfloating)
 				c->y = cursh / 2 - c->h / 2;	/* center in y direction */
 #endif
-			if (!(ev->value_mask & (CWX | CWY))
+			/* get x,y, convert to relative */
+			if (ev->value_mask & CWX)
+				x = ev->x - cm->sx;
+			if (ev->value_mask & CWY)
+				y = ev->y - cm->sy;
+			if (ev->value_mask & CWWidth)
+				w = ev->width;
+			if (ev->value_mask & CWHeight)
+				h = ev->height + c->th;
+			cm = getmonitor(ev->x, ev->y);
+			if (!(ev->value_mask & (CWX | CWY)) /* resize request */
 			    && (ev->value_mask & (CWWidth | CWHeight))) {
-				resize(c, clientmonitor(c), c->x, c->y, c->w, c->h, True);
-				return;
+				DPRINTF("RESIZE %s (%d,%d)->(%d,%d)\n", c->name, c->w, c->h, w, h);
+				resize(c, clientmonitor(c), c->x, c->y, w, h, True);
+			} else if ((ev->value_mask & (CWX | CWY)) /* move request */
+			    && !(ev->value_mask & (CWWidth | CWHeight))) {
+				DPRINTF("MOVE %s (%d,%d)->(%d,%d)\n", c->name, c->x, c->y, x, y);
+				resize(c, cm, x, y, c->w, c->h, True);
+#if 0
+				XMoveWindow(dpy, c->frame, ev->x, ev->y);
+				c->x = ev->x;
+				c->y = ev->y;
+				configure(c);
+				arrange(cm);
+#endif
+			} else if ((ev->value_mask & (CWX | CWY)) /* move and resize request */
+			    && (ev->value_mask & (CWWidth | CWHeight))) {
+				DPRINTF("MOVE&RESIZE(MOVE) %s (%d,%d)->(%d,%d)\n", c->name, c->x, c->y, ev->x, ev->y);
+				DPRINTF("MOVE&RESIZE(RESIZE) %s (%d,%d)->(%d,%d)\n", c->name, c->w, c->h, ev->width, ev->height);
+				resize(c, cm, x, y, w, h, True);
+			} else if ((ev->value_mask & CWStackMode)) {
+				DPRINTF("RESTACK %s ignoring\n", c->name);
+				configure(c);
 			}
+#if 0
 			if (isvisible(c, NULL)) {
 				DPRINTF("%s %d %d => %d %d\n", c->name, c->x,
 				    c->y, ev->x, ev->y);
@@ -560,6 +595,7 @@ configurerequest(XEvent * e) {
 				drawclient(c);
 				arrange(NULL);
 			}
+#endif
 		} else {
 			configure(c);
 		}
@@ -1549,14 +1585,17 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints) {
 		c->w = w;
 		c->h = h;
 		XMoveResizeWindow(dpy, c->frame, m->sx + c->x, m->sy + c->y, c->w, c->h);
+		XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h - c->th);
+		configure(c);
+#if 0
 		wc.x = 0;
 		wc.y = c->th;
-		wc.width = w;
-		wc.height = h - c->th;
+		wc.width = c->w;
+		wc.height = c->h - c->th;
 		wc.border_width = 0;
 		XConfigureWindow(dpy, c->win,
 		    CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
-		configure(c);
+#endif
 		XSync(dpy, False);
 	}
 }
