@@ -1611,9 +1611,9 @@ restack(Monitor * m) {
 
 	if (!sel)
 		return;
-#if 0
+#if 1
 	if (MFEATURES(m, OVERLAP)) {
-		XRaiseWindow(dpy, sel->frame);
+		XRaiseWindow(dpy, stack->frame);
 		goto end;
 	}
 #endif
