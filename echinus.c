@@ -1611,7 +1611,7 @@ restack(Monitor * m) {
 
 	if (!sel)
 		return;
-#if 1
+#if 0
 	if (MFEATURES(m, OVERLAP)) {
 		XRaiseWindow(dpy, stack->frame);
 		goto end;
@@ -1625,26 +1625,26 @@ restack(Monitor * m) {
 	if (!n)
 		return;
 	wl = malloc(sizeof(Window) * n);
-	for (i = 0, c = stack; c && i < n; c = c->snext) {
+	i = 0;
+	for (c = stack; c && i < n; c = c->snext)
 		if (isvisible(c, m) && !c->isicon && c->isbastard &&
 		    !checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
 			wl[i++] = c->frame;
-	}
 	for (c = stack; c && i < n; c = c->snext)
 		if (isvisible(c, m) && !c->isicon) {
 			if (!c->isbastard && c->isfloating)
 				wl[i++] = c->frame;
 		}
-	for (c = stack; c && i < n; c = c->snext) {
+	for (c = stack; c && i < n; c = c->snext) 
 		if (isvisible(c, m) && !c->isicon)
 			if (!c->isfloating && !c->isbastard)
 				wl[i++] = c->frame;
-	}
+	for (c = stack; c && i < n; c = c->snext)
+		if (isvisible(c, m) && !c->isicon && c->isbastard && 
+			checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
+				wl[i++] = c->frame;
 	XRestackWindows(dpy, wl, n);
 	free(wl);
-	for (c = stack; c; c = c->snext)
-		if (checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
-			XLowerWindow(dpy, c->frame);
       end:
 	XSync(dpy, False);
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
