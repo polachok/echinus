@@ -92,7 +92,6 @@ void enternotify(XEvent * e);
 void eprint(const char *errstr, ...);
 void expose(XEvent * e);
 void floating(Monitor * m);	/* default floating layout */
-void ifloating(Monitor * m);	/* intellectual floating layout try */
 void iconify(const char *arg);
 void incnmaster(const char *arg);
 void focus(Client * c);
@@ -135,7 +134,6 @@ void scan(void);
 void setclientstate(Client * c, long state);
 void setlayout(const char *arg);
 void setmwfact(const char *arg);
-static int smartcheckarea(Monitor * m, int x, int y, int w, int h);
 void setup(char *);
 void spawn(const char *arg);
 void tag(const char *arg);
@@ -203,7 +201,7 @@ struct {
 
 Layout layouts[] = {
 	/* function	symbol	features */
-	{  ifloating,	'i',	OVERLAP },
+	{  floating,	'i',	OVERLAP },
 	{  tile,	't',	MWFACT | NMASTER | ZOOM },
 	{  bstack,	'b',	MWFACT | ZOOM },
 	{  monocle,	'm',	0 },
@@ -852,46 +850,6 @@ iconify(const char *arg) {
 	ban(c);
 	c->isicon = True;
 	arrange(curmonitor());
-}
-
-void
-ifloating(Monitor * m) {
-	Client *c;
-	int x, y, f;
-
-	for (c = clients; c; c = c->next) {
-		if (isvisible(c, m) && !c->isicon && !c->isbastard) {
-			if (c->isplaced)
-				resize(c, m, c->x, c->y, c->w, c->h, True);
-			for (f = 0; !c->isplaced; f++) {
-				if ((c->w > m->sw / 2 && c->h > m->sw / 2)
-				    || c->h < 4) {
-					/* too big to deal with */
-					c->isplaced = True;
-					resize(c, m, c->x, c->y, c->w, c->h, True);
-				}
-				for (y = m->way;
-				    y + c->h <= m->way + m->wah
-				    && !c->isplaced; y += c->h / 4) {
-					for (x = m->wax;
-					    x + c->w <= m->wax + m->waw
-					    && !c->isplaced; x += c->w / 8) {
-						if (smartcheckarea(m, x, y,
-							0.8 * c->w, 0.8 * c->h) <= f) {
-							resize(c, m,
-							    x +
-							    c->th * (rand() %
-								3),
-							    y + c->th +
-							    c->th * (rand() %
-								3), c->w, c->h, True);
-							c->isplaced = True;
-						}
-					}
-				}
-			}
-		}
-	}
 }
 
 void
@@ -1803,27 +1761,6 @@ setmwfact(const char *arg) {
 			views[curmontag].mwfact = 0.9;
 	}
 	arrange(curmonitor());
-}
-
-/* ifloating() subroutine */
-static int
-smartcheckarea(Monitor * m, int x, int y, int w, int h) {
-	Client *c;
-	int n = 0;
-	for (c = clients; c; c = c->next) {
-		if (isvisible(c, m) && !c->isicon && c->isplaced) {
-			/* A Kind Of Magic */
-			if ((c->y + c->h >= y && c->y + c->h <= y + h
-				&& c->x + c->w >= x && c->x + c->w <= x + w)
-			    || (c->x >= x && c->x <= x + w
-				&& c->y + c->h >= y && c->y + c->h <= y + h)
-			    || (c->x >= x && c->x <= x + w && c->y >= y && c->y <= y + h)
-			    || (c->x + c->w >= x && c->x + c->w <= x + w
-				&& c->y >= y && c->y <= y + h))
-				n++;
-		}
-	}
-	return n;
 }
 
 void
