@@ -1104,6 +1104,7 @@ manage(Window w, XWindowAttributes * wa) {
 		c->isfocusable = !(wmh->flags & InputHint) || wmh->input;
 		XFree(wmh);
 	}
+	cm = c->isbastard ? getmonitor(wa->x, wa->y) : clientmonitor(c);
 
 	c->x = c->rx = wa->x - cm->sx;
 	c->y = c->ry = wa->y - cm->sy;
@@ -1113,11 +1114,6 @@ manage(Window w, XWindowAttributes * wa) {
 	if (!wa->x && !wa->y && !c->isbastard)
 		place(c);
 
-	if (c->isbastard) { /* XXX: convert to relative coords */
-		c->x = wa->x;
-		c->y = wa->y;
-	}
-	cm = c->isbastard ? getmonitor(c->x, c->y) : clientmonitor(c);
 	c->hasstruts = getstruts(c); 
 	c->oldborder = c->isbastard ? 0 : wa->border_width;
 	if (c->w == cursw && c->h == cursh) {
@@ -1285,8 +1281,6 @@ clientmonitor(Client * c) {
 	Monitor *m;
 	unsigned int i;
 	if (c) {
-		if (c->isbastard)
-			return getmonitor(c->x, c->y);
 		for (m = monitors; m; m = m->next) {
 			for (i = 0; i < ntags; i++)
 				if (c->tags[i] & m->seltags[i])
