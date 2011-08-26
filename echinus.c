@@ -1107,11 +1107,9 @@ manage(Window w, XWindowAttributes * wa) {
 	c->w = c->rw = wa->width;
 	c->h = c->rh = wa->height + c->th;
 
-	if (wa->x && wa->y) {
-		c->isplaced = True;
-	} else if (!c->isbastard) {
+	if (!wa->x && !wa->y && !c->isbastard)
 		place(c);
-	}
+
 	if (c->isbastard) { /* XXX: convert to relative coords */
 		c->x = wa->x;
 		c->y = wa->y;
@@ -1561,8 +1559,6 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints) {
 		drawclient(c);
 	}
 	if (c->x != x || c->y != y || c->w != w || c->h != h /* || sizehints */) {
-		if (c->isfloating || MFEATURES(m, OVERLAP))
-			c->isplaced = True;
 		c->x = x;
 		c->y = y;
 		c->w = w;

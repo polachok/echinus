@@ -54,7 +54,7 @@ struct Client {
 	long flags;
 	int border, oldborder;
 	Bool isbanned, ismax, isfloating, wasfloating;
-	Bool isplaced, isicon, isfill;
+	Bool isicon, isfill;
 	Bool isfixed, isbastard, isfocusable;
 	Bool *tags;
 	Client *next;
