@@ -1390,6 +1390,7 @@ mousemove(Client * c) {
 				    2 * c->border)) < options.snap)
 				ny = nm->way + nm->wah - c->h - 2 * c->border;
 			resize(c, nm, nx, ny, c->w, c->h, False);
+			save(c);
 			if (m != nm) {
 				for (i = 0; i < ntags; i++)
 					c->tags[i] = nm->seltags[i];
@@ -1441,6 +1442,7 @@ mouseresize(Client * c) {
 			if ((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
 				nh = MINHEIGHT;
 			resize(c, cm, c->x, c->y, nw, nh, True);
+			save(c);
 			break;
 		}
 	}
