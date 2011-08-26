@@ -491,12 +491,16 @@ void
 configurenotify(XEvent * e) {
 	XConfigureEvent *ev = &e->xconfigure;
 	Monitor *m;
+	Client *c;
 
 	if (ev->window == root) {
 #ifdef XRANDR
 		if (XRRUpdateConfiguration((XEvent *) ev)) {
 #endif
 			initmonitors(e);
+			for(c = clients; c; c = c->next)
+				if (c->isbastard)
+					updatestruts(c);
 			for (m = monitors; m; m = m->next)
 				updategeom(m);
 			arrange(NULL);
@@ -1852,7 +1856,7 @@ initmonitors(XEvent * e) {
 		XRRFreeCrtcInfo(ci);
 	}
 	XRRFreeScreenResources(sr);
-	updateatom[WorkArea](NULL);;
+	updateatom[WorkArea](NULL);
 	return;
       no_xrandr:
 #endif
