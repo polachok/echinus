@@ -55,7 +55,7 @@ struct Client {
 	int border, oldborder;
 	Bool isbanned, ismax, isfloating, wasfloating;
 	Bool isicon, isfill;
-	Bool isfixed, isbastard, isfocusable;
+	Bool isfixed, isbastard, isfocusable, hasstruts;
 	Bool *tags;
 	Client *next;
 	Client *prev;

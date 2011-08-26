@@ -499,7 +499,7 @@ configurenotify(XEvent * e) {
 #endif
 			initmonitors(e);
 			for(c = clients; c; c = c->next)
-				if (c->isbastard)
+				if (c->hasstruts)
 					updatestruts(c);
 			for (m = monitors; m; m = m->next)
 				updategeom(m);
@@ -1119,6 +1119,7 @@ manage(Window w, XWindowAttributes * wa) {
 		c->y = wa->y;
 	}
 	cm = c->isbastard ? getmonitor(c->x, c->y) : clientmonitor(c);
+	c->hasstruts = updatestruts(c); 
 	c->oldborder = c->isbastard ? 0 : wa->border_width;
 	if (c->w == cursw && c->h == cursh) {
 		c->x = 0;
@@ -1192,10 +1193,8 @@ manage(Window w, XWindowAttributes * wa) {
 	updateatom[ClientList] (NULL);
 	updateatom[WindowDesk] (c);
 	updateframe(c);
-	if (c->isbastard) {
-		updatestruts(c);
+	if (c->hasstruts)
 		updategeom(clientmonitor(c));
-	}
 	arrange(clientmonitor(c));
 	if (!checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
 		focus(NULL);
@@ -1461,9 +1460,16 @@ propertynotify(XEvent * e) {
 	Window trans;
 	XPropertyEvent *ev = &e->xproperty;
 
-	if (ev->state == PropertyDelete) 
-		return;		/* XXX: ignoring, probably shouldn't */
 	if ((c = getclient(ev->window, clients, ClientWindow))) {
+		if (ev->atom == atom[StrutPartial]) {
+			c->hasstruts = updatestruts(c);
+			updategeom(clientmonitor(c));
+			arrange(clientmonitor(c));
+		}
+		if (ev->state == PropertyDelete) 
+			return;
+		if (ev->atom == atom[WindowName])
+			updatetitle(c);
 		switch (ev->atom) {
 		case XA_WM_TRANSIENT_FOR:
 			XGetTransientForHint(dpy, c->win, &trans);
@@ -1479,12 +1485,6 @@ propertynotify(XEvent * e) {
 			updatetitle(c);
 			break;
 		}
-		if (ev->atom == atom[StrutPartial]) {
-			updatestruts(c);
-			updategeom(clientmonitor(c));
-			arrange(clientmonitor(c));
-		} else if (ev->atom == atom[WindowName])
-			updatetitle(c);
 	}
 }
 
@@ -2323,7 +2323,7 @@ unmanage(Client * c) {
 	m = clientmonitor(c);
 	doarrange = !(c->isfloating || c->isfixed
 	    || XGetTransientForHint(dpy, c->win, &trans)) || c->isbastard;
-	dostruts = c->isbastard;
+	dostruts = c->hasstruts;
 	/* The server grab construct avoids race conditions. */
 	XGrabServer(dpy);
 	XSelectInput(dpy, c->frame, NoEventMask);
@@ -2360,7 +2360,7 @@ unmanage(Client * c) {
 		m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] =
 			m->struts[BotStrut] = 0;
 		for(c = clients; c; c = c->next)
-			if (c->isbastard)
+			if (c->hasstruts)
 				updatestruts(c);
 		updategeom(m);
 	}
