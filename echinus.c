@@ -1643,6 +1643,7 @@ restack(Monitor * m) {
 		if (isvisible(c, m) && !c->isicon && c->isbastard && 
 			checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
 				wl[i++] = c->frame;
+	assert(i == n);
 	XRestackWindows(dpy, wl, n);
 	free(wl);
       end:
