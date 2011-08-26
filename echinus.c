@@ -123,6 +123,7 @@ void mouseresize(Client * c);
 void moveresizekb(const char *arg);
 Client *nexttiled(Client * c, Monitor * m);
 Client *prevtiled(Client * c, Monitor * m);
+void place(Client *c);
 void propertynotify(XEvent * e);
 void reparentnotify(XEvent * e);
 void quit(const char *arg);
@@ -1143,19 +1144,17 @@ manage(Window w, XWindowAttributes * wa) {
 		XFree(wmh);
 	}
 
-	c->x = c->rx = wa->x % cm->sw;
-	c->y = c->ry = wa->y % cm->sh;
+	c->x = c->rx = wa->x - cm->sx;
+	c->y = c->ry = wa->y - cm->sy;
 	c->w = c->rw = wa->width;
 	c->h = c->rh = wa->height + c->th;
 
 	if (wa->x && wa->y) {
 		c->isplaced = True;
 	} else if (!c->isbastard) {
-		getpointer(&c->x, &c->y);
-		c->rx = c->x = (c->x - c->w/2) % cm->sw;
-		c->ry = c->x = (c->y - c->h/2) % cm->sh;
+		place(c);
 	}
-	if (c->isbastard) {
+	if (c->isbastard) { /* XXX: convert to relative coords */
 		c->x = wa->x;
 		c->y = wa->y;
 	}
@@ -1470,6 +1469,30 @@ reparentnotify(XEvent * e) {
 	if ((c = getclient(ev->window, clients, ClientWindow)))
 		if (ev->parent != c->frame)
 			unmanage(c);
+}
+
+void
+place(Client *c) {
+	int x, y;
+	Monitor *m;
+	int d = style.titleheight;
+
+	/* XXX: do something better */
+	getpointer(&x, &y);
+	m = getmonitor(x, y);
+	x = x - m->sx + rand()%d - c->w/2;
+	y = y - m->sy + rand()%d - c->h/2;
+	if (x < 0)
+		x = 0;
+	if (y < 0)
+		y = 0;
+	if (x + c->w > m->sw)
+		x = m->sw - c->w - rand()%d;
+	if (y + c->h > m->sh)
+		y = m->sh - c->h - rand()%d;
+
+	c->rx = c->x = x;
+	c->ry = c->y = y;
 }
 
 void
