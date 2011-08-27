@@ -91,7 +91,6 @@ void *emallocz(unsigned int size);
 void enternotify(XEvent * e);
 void eprint(const char *errstr, ...);
 void expose(XEvent * e);
-void floating(Monitor * m);	/* default floating layout */
 void iconify(const char *arg);
 void incnmaster(const char *arg);
 void focus(Client * c);
@@ -202,11 +201,11 @@ struct {
 
 Layout layouts[] = {
 	/* function	symbol	features */
-	{  floating,	'i',	OVERLAP },
+	{  NULL,	'i',	OVERLAP },
 	{  tile,	't',	MWFACT | NMASTER | ZOOM },
 	{  bstack,	'b',	MWFACT | ZOOM },
 	{  monocle,	'm',	0 },
-	{  floating,	'f',	OVERLAP },
+	{  NULL,	'f',	OVERLAP },
 	{  NULL,	'\0',	0 },
 };
 
@@ -272,8 +271,9 @@ arrangefloats(Monitor * m) {
 
 	for(c = stack; c; c = c->snext) {
 		if(isvisible(c, m) && !c->isbastard &&
-			       	c->isfloating && !c->ismax && !c->isicon)
-			resize(c, m, c->x, c->y, c->w, c->h, True);
+			       	(c->isfloating || MFEATURES(m, OVERLAP))
+			       	&& !c->ismax && !c->isicon)
+			resize(c, m, c->rx, c->ry, c->rw, c->rh, True);
 	}
 }
 
@@ -281,7 +281,8 @@ void
 arrangemon(Monitor * m) {
 	Client *c;
 
-	views[m->curtag].layout->arrange(m);
+	if(views[m->curtag].layout->arrange)
+		views[m->curtag].layout->arrange(m);
 	arrangefloats(m);
 	restack(m);
 	for (c = stack; c; c = c->snext) {
@@ -719,21 +720,6 @@ expose(XEvent * e) {
 	while (XCheckWindowEvent(dpy, ev->window, ExposureMask, &tmp));
 	if((c = getclient(ev->window, clients, ClientTitle)))
 		drawclient(c);
-}
-
-void
-floating(Monitor * m) {		/* default floating layout */
-	Client *c;
-
-	for (c = clients; c; c = c->next) {
-		if (isvisible(c, m) && !c->isicon) {
-			if (!c->isfloating)
-				/* restore last known float dimensions */
-				resize(c, m, c->rx, c->ry, c->rw, c->rh, True);
-			else
-				resize(c, m, c->x, c->y, c->w, c->h, True);
-		}
-	}
 }
 
 void
