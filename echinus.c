@@ -2417,6 +2417,7 @@ void
 view(const char *arg) {
 	int i, j;
 	Monitor *m, *cm;
+	int prevtag;
 
 	i = idxoftag(arg);
 	cm = curmonitor();
@@ -2429,9 +2430,11 @@ view(const char *arg) {
 	for (j = 0; j < ntags; j++)
 		cm->seltags[j] = (arg == NULL);
 	cm->seltags[i] = True;
+	prevtag = cm->curtag;
 	cm->curtag = i;
 	for (m = monitors; m; m = m->next) {
 		if (m->seltags[i] && m != cm) {
+			m->curtag = prevtag;
 			memcpy(m->prevtags, m->seltags, ntags * sizeof(m->seltags[0]));
 			memcpy(m->seltags, cm->prevtags, ntags * sizeof(cm->seltags[0]));
 			updategeom(m);
