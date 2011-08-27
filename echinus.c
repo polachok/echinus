@@ -290,10 +290,6 @@ arrangemon(Monitor * m) {
 		    ((!c->isbastard && isvisible(c, m) && !c->isicon) ||
 			(c->isbastard && views[m->curtag].barpos == StrutsOn))) {
 			unban(c);
-#if 0
-			if (c->isbastard)
-				c->isicon = False;
-#endif
 		}
 	}
 
@@ -302,10 +298,6 @@ arrangemon(Monitor * m) {
 		    ((!c->isbastard && (!isvisible(c, m) || c->isicon)) ||
 			(c->isbastard && views[m->curtag].barpos == StrutsHide))) {
 			ban(c);
-#if 0
-			if (c->isbastard)
-				c->isicon = True;
-#endif
 		}
 	}
 }
@@ -524,28 +516,6 @@ configurerequest(XEvent * e) {
 		if (ev->value_mask & CWBorderWidth)
 			c->border = ev->border_width;
 		if (c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
-#if 0
-			if (c->isbastard) {
-				if (ev->value_mask & CWX)
-					c->x = ev->x;
-				if (ev->value_mask & CWY)
-					c->y = ev->y;
-			}
-#endif
-#if 0
-			if (ev->value_mask & CWWidth)
-				c->w = ev->width;
-			if (ev->value_mask & CWHeight)
-				c->h = ev->height + c->th;
-			if (!(ev->value_mask & (CWX | CWY | CWWidth | CWHeight)))
-				return;
-#endif
-#if 0
-			if ((c->x + c->w) > (curwax + cursw) && c->isfloating)
-				c->x = cursw / 2 - c->w / 2;	/* center in x direction */
-			if ((c->y + c->h) > (curway + cursh) && c->isfloating)
-				c->y = cursh / 2 - c->h / 2;	/* center in y direction */
-#endif
 			/* get x,y, convert to relative */
 			if (ev->value_mask & CWX)
 				x = ev->x - cm->sx;
@@ -564,13 +534,6 @@ configurerequest(XEvent * e) {
 			    && !(ev->value_mask & (CWWidth | CWHeight))) {
 				DPRINTF("MOVE %s (%d,%d)->(%d,%d)\n", c->name, c->x, c->y, x, y);
 				resize(c, cm, x, y, c->w, c->h, True);
-#if 0
-				XMoveWindow(dpy, c->frame, ev->x, ev->y);
-				c->x = ev->x;
-				c->y = ev->y;
-				configure(c);
-				arrange(cm);
-#endif
 			} else if ((ev->value_mask & (CWX | CWY)) /* move and resize request */
 			    && (ev->value_mask & (CWWidth | CWHeight))) {
 				DPRINTF("MOVE&RESIZE(MOVE) %s (%d,%d)->(%d,%d)\n", c->name, c->x, c->y, ev->x, ev->y);
@@ -580,25 +543,6 @@ configurerequest(XEvent * e) {
 				DPRINTF("RESTACK %s ignoring\n", c->name);
 				configure(c);
 			}
-#if 0
-			if (isvisible(c, NULL)) {
-				DPRINTF("%s %d %d => %d %d\n", c->name, c->x,
-				    c->y, ev->x, ev->y);
-				XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
-				if (c->title) {
-					XMoveResizeWindow(dpy, c->title, 0, 0,
-					    c->w, c->th);
-					XFreePixmap(dpy, c->drawable);
-					c->drawable =
-					    XCreatePixmap(dpy, root, c->w,
-					    c->th, DefaultDepth(dpy, screen));
-				}
-				XMoveResizeWindow(dpy, c->win, 0, c->th,
-				    ev->width, ev->height);
-				drawclient(c);
-				arrange(NULL);
-			}
-#endif
 		} else {
 			configure(c);
 		}
@@ -1200,12 +1144,7 @@ maprequest(XEvent * e) {
 		return;
 	if (wa.override_redirect)
 		return;
-	if ((c = getclient(ev->window, clients, ClientWindow))) {
-#if 0
-		unban(c);
-		arrange(curmonitor());
-#endif
-	} else
+	if (!(c = getclient(ev->window, clients, ClientWindow)))
 		manage(ev->window, &wa);
 }
 
@@ -1528,12 +1467,6 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints) {
 		x = m->sw - w - 2 * c->border;
 	if (y > m->way + m->sh)
 		y = m->sh - h - 2 * c->border;
-#if 0
-	if (x + w + 2 * c->border < m->sx)
-		x = m->wax;
-	if (y + h + 2 * c->border < m->sy)
-		y = m->way;
-#endif
 	if (w != c->w && c->th) {
 		XMoveResizeWindow(dpy, c->title, 0, 0, w, c->th);
 		XFreePixmap(dpy, c->drawable);
@@ -1549,15 +1482,6 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints) {
 		XMoveResizeWindow(dpy, c->frame, m->sx + c->x, m->sy + c->y, c->w, c->h);
 		XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h - c->th);
 		configure(c);
-#if 0
-		wc.x = 0;
-		wc.y = c->th;
-		wc.width = c->w;
-		wc.height = c->h - c->th;
-		wc.border_width = 0;
-		XConfigureWindow(dpy, c->win,
-		    CWY | CWWidth | CWHeight | CWBorderWidth, &wc);
-#endif
 		XSync(dpy, False);
 	}
 }
@@ -1693,12 +1617,7 @@ setlayout(const char *arg) {
 
 	wasfloat = FEATURES(curlayout, OVERLAP);
 
-	if (!arg) {
-#if 0
-		if (&layouts[++ltidxs[curmontag]] == &layouts[LENGTH(layouts)])
-			ltidxs[curmontag] = 0;
-#endif
-	} else {
+	if (arg) {
 		for (i = 0; i < LENGTH(layouts); i++)
 			if (*arg == layouts[i].symbol)
 				break;
