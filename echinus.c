@@ -1049,18 +1049,18 @@ manage(Window w, XWindowAttributes * wa) {
 
 	c->hasstruts = getstruts(c); 
 	c->oldborder = c->isbastard ? 0 : wa->border_width;
-	if (c->w == cursw && c->h == cursh) {
+	if (c->w == cm->sw && c->h == cm->sh) {
 		c->x = 0;
 		c->y = 0;
 	} else if (!c->isbastard) {
-		if (c->x + c->w > curwax + curwaw)
-			c->x = curwaw - c->w;
-		if (c->y + c->h > curway + curwah)
-			c->y = curwah - c->h;
-		if (c->x < curwax)
-			c->x = 0;
-		if (c->y < curway)
-			c->y = 0;
+		if (c->x + c->w > cm->wax + cm->waw)
+			c->x = cm->waw - c->w;
+		if (c->y + c->h > cm->way + cm->wah)
+			c->y = cm->wah - c->h;
+		if (c->x < cm->wax)
+			c->x = cm->wax;
+		if (c->y < cm->way)
+			c->y = cm->way;
 	}
 
 	grabbuttons(c, False);
