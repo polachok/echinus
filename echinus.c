@@ -999,7 +999,7 @@ leavenotify(XEvent * e) {
 void
 manage(Window w, XWindowAttributes * wa) {
 	Client *c, *t = NULL;
-	Monitor *cm;
+	Monitor *m, *cm = NULL;
 	Window trans;
 	Status rettrans;
 	XWindowChanges wc;
@@ -1007,7 +1007,6 @@ manage(Window w, XWindowAttributes * wa) {
 	XWMHints *wmh;
 	unsigned long mask = 0;
 
-	cm = curmonitor();
 	c = emallocz(sizeof(Client));
 	c->win = w;
 	if (checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]) ||
@@ -1023,7 +1022,7 @@ manage(Window w, XWindowAttributes * wa) {
 
 	c->isicon = False;
 	c->title = c->isbastard ? (Window) NULL : 1;
-	c->tags = emallocz(ntags * sizeof(cm->seltags[0]));
+	c->tags = emallocz(ntags * sizeof(curseltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
 	c->border = c->isbastard ? 0 : style.border;
 	/*  XReparentWindow() unmaps *mapped* windows */
@@ -1034,11 +1033,14 @@ manage(Window w, XWindowAttributes * wa) {
 	if ((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
 		for (t = clients; t && t->win != trans; t = t->next);
 	if (t)
-		memcpy(c->tags, t->tags, ntags * sizeof(cm->seltags[0]));
+		memcpy(c->tags, t->tags, ntags * sizeof(curseltags[0]));
 
 	updatetitle(c);
-	if(!applyrules(c))
-		memcpy(c->tags, cm->seltags, ntags * sizeof(cm->seltags[0]));
+	if (applyrules(c)) {
+		for (m = monitors; m; m = m->next)
+			if (isvisible(c, m))
+				cm = m;
+	}
 
 	c->th = c->title ? style.titleheight : 0;
 
@@ -1058,9 +1060,10 @@ manage(Window w, XWindowAttributes * wa) {
 	if (!wa->x && !wa->y && !c->isbastard)
 		place(c);
 
-	if (!(cm = clientmonitor(c)))
-		cm = curmonitor();
-	DPRINTF("cm [%dx%d]\n", cm->sw, cm->sh);
+	if (!cm) {
+		cm = clientmonitor(c);
+		memcpy(c->tags, cm->seltags, ntags * sizeof(cm->seltags[0]));
+	}
 	c->hasstruts = getstruts(c); 
 	c->oldborder = c->isbastard ? 0 : wa->border_width;
 	if (c->w == cm->sw && c->h == cm->sh) {
@@ -1136,8 +1139,8 @@ manage(Window w, XWindowAttributes * wa) {
 	updateatom[WindowDesk] (c);
 	updateframe(c);
 	if (c->hasstruts)
-		updategeom(clientmonitor(c));
-	arrange(clientmonitor(c));
+		updategeom(cm);
+	arrange(cm);
 	if (!checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
 		focus(NULL);
 }
