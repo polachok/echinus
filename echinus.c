@@ -548,11 +548,13 @@ configurerequest(XEvent * e) {
 			    && !(ev->value_mask & (CWWidth | CWHeight))) {
 				DPRINTF("MOVE %s (%d,%d)->(%d,%d)\n", c->name, c->x, c->y, x, y);
 				resize(c, x, y, c->w, c->h, True);
+				save(c);
 			} else if ((ev->value_mask & (CWX | CWY)) /* move and resize request */
 			    && (ev->value_mask & (CWWidth | CWHeight))) {
 				DPRINTF("MOVE&RESIZE(MOVE) %s (%d,%d)->(%d,%d)\n", c->name, c->x, c->y, ev->x, ev->y);
 				DPRINTF("MOVE&RESIZE(RESIZE) %s (%d,%d)->(%d,%d)\n", c->name, c->w, c->h, ev->width, ev->height);
 				resize(c, x, y, w, h, True);
+				save(c);
 			} else if ((ev->value_mask & CWStackMode)) {
 				DPRINTF("RESTACK %s ignoring\n", c->name);
 				configure(c);
