@@ -1429,7 +1429,6 @@ void
 resize(Client * c, int x, int y, int w, int h, Bool sizehints) {
 	XWindowChanges wc;
 
-	DPRINTF("%d %d %d %d\n", x, y, w, h);
 	if (sizehints) {
 		h -= c->th;
 		/* set minimum possible */
