@@ -71,7 +71,7 @@ enum { CurNormal, CurResize, CurMove, CurLast };	    /* cursor */
 enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise };    /* focus model */
 
 /* function declarations */
-void applyrules(Client * c);
+Bool applyrules(Client * c);
 void arrange(Monitor * m);
 void attach(Client * c);
 void attachstack(Client * c);
@@ -232,7 +232,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 };
 
 /* function implementations */
-void
+Bool
 applyrules(Client * c) {
 	static char buf[512];
 	unsigned int i, j;
@@ -260,9 +260,7 @@ applyrules(Client * c) {
 		XFree(ch.res_class);
 	if (ch.res_name)
 		XFree(ch.res_name);
-	if (!matched) {
-		memcpy(c->tags, curseltags, ntags * sizeof(curseltags[0]));
-	}
+	return matched;
 }
 
 void
@@ -1012,7 +1010,7 @@ manage(Window w, XWindowAttributes * wa) {
 
 	c->isicon = False;
 	c->title = c->isbastard ? (Window) NULL : 1;
-	c->tags = emallocz(ntags * sizeof(curseltags[0]));
+	c->tags = emallocz(ntags * sizeof(cm->seltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
 	c->border = c->isbastard ? 0 : style.border;
 	/*  XReparentWindow() unmaps *mapped* windows */
@@ -1023,10 +1021,11 @@ manage(Window w, XWindowAttributes * wa) {
 	if ((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
 		for (t = clients; t && t->win != trans; t = t->next);
 	if (t)
-		memcpy(c->tags, t->tags, ntags * sizeof(curseltags[0]));
+		memcpy(c->tags, t->tags, ntags * sizeof(cm->seltags[0]));
 
 	updatetitle(c);
-	applyrules(c);
+	if(!applyrules(c))
+		memcpy(c->tags, cm->seltags, ntags * sizeof(cm->seltags[0]));
 
 	c->th = c->title ? style.titleheight : 0;
 
@@ -1037,16 +1036,17 @@ manage(Window w, XWindowAttributes * wa) {
 		c->isfocusable = !(wmh->flags & InputHint) || wmh->input;
 		XFree(wmh);
 	}
-	cm = c->isbastard ? getmonitor(wa->x, wa->y) : clientmonitor(c);
 
-	c->x = c->rx = wa->x - cm->sx;
-	c->y = c->ry = wa->y - cm->sy;
+	c->x = c->rx = wa->x;
+	c->y = c->ry = wa->y;
 	c->w = c->rw = wa->width;
 	c->h = c->rh = wa->height + c->th;
 
 	if (!wa->x && !wa->y && !c->isbastard)
 		place(c);
 
+	if (!(cm = clientmonitor(c)))
+		cm = getmonitor(c->x, c->y);
 	c->hasstruts = getstruts(c); 
 	c->oldborder = c->isbastard ? 0 : wa->border_width;
 	if (c->w == cm->sw && c->h == cm->sh) {
