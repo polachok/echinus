@@ -284,15 +284,17 @@ arrangemon(Monitor * m) {
 	arrangefloats(m);
 	restack(m);
 	for (c = stack; c; c = c->snext) {
-		if ((!c->isbastard && isvisible(c, m) && !c->isicon) ||
-			(c->isbastard && views[m->curtag].barpos == StrutsOn)) {
+		if ((clientmonitor(c) == m) &&
+		 	((!c->isbastard && isvisible(c, m) && !c->isicon) ||
+			(c->isbastard && views[m->curtag].barpos == StrutsOn))) {
 			unban(c);
 		}
 	}
 
 	for (c = stack; c; c = c->snext) {
-		if ((!c->isbastard && (!isvisible(c, m) || c->isicon)) ||
-			(c->isbastard && views[m->curtag].barpos == StrutsHide)) {
+		if ((clientmonitor(c) == m) &&
+			((!c->isbastard && (!isvisible(c, m) || c->isicon)) ||
+			(c->isbastard && views[m->curtag].barpos == StrutsHide))) {
 			ban(c);
 		}
 	}
