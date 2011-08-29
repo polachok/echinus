@@ -1041,10 +1041,11 @@ manage(Window w, XWindowAttributes * wa) {
 	c->w = c->rw = wa->width;
 	c->h = c->rh = wa->height + c->th;
 
+	DPRINTF("X%d Y%d\n", c->x, c->y);
 	if (!wa->x && !wa->y && !c->isbastard)
 		place(c);
 
-	DPRINTF("%d %d\n", c->x, c->y);
+	DPRINTF("X%d Y%d\n", c->x, c->y);
 	if (!(cm = clientmonitor(c)))
 		cm = getmonitor(c->x, c->y);
 	DPRINTF("cm [%dx%d]\n", cm->sw, cm->sh);
@@ -1368,6 +1369,7 @@ place(Client *c) {
 	DPRINTF("%d %d\n", x, y);
 	if (y < m->way)
 		y = m->way;
+	DPRINTF("%d+%d > %d+%d\n", x, c->w, m->wax, m->waw);
 	if (x + c->w > m->wax + m->waw)
 		x = m->wax + m->waw - c->w - rand()%d;
 	DPRINTF("%d %d\n", x, y);
@@ -1427,6 +1429,7 @@ void
 resize(Client * c, int x, int y, int w, int h, Bool sizehints) {
 	XWindowChanges wc;
 
+	DPRINTF("%d %d %d %d\n", x, y, w, h);
 	if (sizehints) {
 		h -= c->th;
 		/* set minimum possible */
@@ -2282,11 +2285,10 @@ updategeom(Monitor * m) {
 	switch (views[m->curtag].barpos) {
 	default:
 		m->wax += m->struts[LeftStrut];
-		m->waw -= (m->wax + m->struts[RightStrut]);
+		m->waw -= (m->struts[RightStrut] + m->struts[LeftStrut]);
 		m->way += m->struts[TopStrut];
-		m->wah =
-		    (int)(m->struts[BotStrut]) ? DisplayHeight(dpy, screen)
-		    - m->struts[BotStrut] - m->way : m->sh - m->way;
+		m->wah = min(m->wah - m->struts[TopStrut],
+			(DisplayHeight(dpy, screen) - (m->struts[BotStrut] + m->struts[TopStrut])));
 		break;
 	case StrutsHide:
 	case StrutsOff:
