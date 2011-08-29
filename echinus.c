@@ -469,8 +469,8 @@ configure(Client * c) {
 	ce.display = dpy;
 	ce.event = c->win;
 	ce.window = c->win;
-	ce.x = c->x + m->sx;
-	ce.y = c->y + m->sy;
+	ce.x = c->x;
+	ce.y = c->y;
 	ce.width = c->w;
 	ce.height = c->h - c->th;
 	ce.border_width = 0;
@@ -1463,10 +1463,10 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints) {
 	if (w <= 0 || h <= 0)
 		return;
 	/* offscreen appearance fixes */
-	if (x > m->wax + m->sw)
-		x = m->sw - w - 2 * c->border;
-	if (y > m->way + m->sh)
-		y = m->sh - h - 2 * c->border;
+	if (x > DisplayWidth(dpy, screen))
+		x = DisplayWidth(dpy, screen) - w - 2 * c->border;
+	if (y > DisplayHeight(dpy, screen))
+		y = DisplayHeight(dpy, screen) - h - 2 * c->border;
 	if (w != c->w && c->th) {
 		XMoveResizeWindow(dpy, c->title, 0, 0, w, c->th);
 		XFreePixmap(dpy, c->drawable);
@@ -1479,7 +1479,7 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints) {
 		c->y = y;
 		c->w = w;
 		c->h = h;
-		XMoveResizeWindow(dpy, c->frame, m->sx + c->x, m->sy + c->y, c->w, c->h);
+		XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
 		XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h - c->th);
 		configure(c);
 		XSync(dpy, False);
