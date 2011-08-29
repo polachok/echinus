@@ -277,6 +277,10 @@ arrangefloats(Monitor * m) {
 			om = getmonitor(c->rx, c->ry);
 			dx = om->sx + om->sw - c->rx;
 			dy = om->sy + om->sh - c->ry;
+			if (dx > m->sw) 
+				dx = m->sw;
+			if (dy > m->sh) 
+				dy = m->sh;
 			resize(c, m->sx + m->sw - dx, m->sy + m->sh - dy, c->rw, c->rh, True);
 			save(c);
 		}
