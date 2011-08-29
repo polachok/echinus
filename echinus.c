@@ -1237,8 +1237,8 @@ mousemove(Client * c) {
 	if (c->isbastard)
 		return;
 	m = curmonitor();
-	ocx = c->x + m->sx;
-	ocy = c->y + m->sy;
+	ocx = c->x;
+	ocy = c->y;
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 		GrabModeAsync, None, cursor[CurMove], CurrentTime) != GrabSuccess)
 		return;
@@ -1272,7 +1272,6 @@ mousemove(Client * c) {
 				ny = nm->way + nm->wah - c->h - 2 * c->border;
 			resize(c, nx, ny, c->w, c->h, True);
 			save(c);
-			nm = clientmonitor(c);
 			if (m != nm) {
 				for (i = 0; i < ntags; i++)
 					c->tags[i] = nm->seltags[i];
