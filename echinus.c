@@ -266,12 +266,20 @@ applyrules(Client * c) {
 void
 arrangefloats(Monitor * m) {
 	Client *c;
+	Monitor *om;
+	int dx, dy;
 
 	for(c = stack; c; c = c->snext) {
 		if(isvisible(c, m) && !c->isbastard &&
 			       	(c->isfloating || MFEATURES(m, OVERLAP))
-			       	&& !c->ismax && !c->isicon)
-			resize(c, c->rx, c->ry, c->rw, c->rh, True);
+			       	&& !c->ismax && !c->isicon) {
+			DPRINTF("%d %d\n", c->rx, c->ry);
+			om = getmonitor(c->rx, c->ry);
+			dx = om->sx + om->sw - c->rx;
+			dy = om->sy + om->sh - c->ry;
+			resize(c, m->sx + m->sw - dx, m->sy + m->sh - dy, c->rw, c->rh, True);
+			save(c);
+		}
 	}
 }
 
