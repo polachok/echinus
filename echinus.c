@@ -1245,6 +1245,8 @@ mousemove(Client * c) {
 	m = curmonitor();
 	ocx = c->x;
 	ocy = c->y;
+	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w / 2,
+	    c->h / 2);
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 		GrabModeAsync, None, cursor[CurMove], CurrentTime) != GrabSuccess)
 		return;
