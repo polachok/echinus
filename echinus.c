@@ -2285,7 +2285,8 @@ updategeom(Monitor * m) {
 		m->wax += m->struts[LeftStrut];
 		m->waw -= (m->struts[RightStrut] + m->struts[LeftStrut]);
 		m->way += m->struts[TopStrut];
-		m->wah -= (m->struts[BotStrut] + m->struts[TopStrut]);
+		m->wah = min(m->wah,
+			(DisplayHeight(dpy, screen) - (m->struts[BotStrut] + m->struts[TopStrut])));
 		break;
 	case StrutsHide:
 	case StrutsOff:
