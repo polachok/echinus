@@ -461,7 +461,6 @@ cleanup(void) {
 void
 configure(Client * c) {
 	XConfigureEvent ce;
-	Monitor *m = clientmonitor(c);
 
 	ce.type = ConfigureNotify;
 	ce.display = dpy;
