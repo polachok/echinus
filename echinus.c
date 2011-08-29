@@ -1091,7 +1091,7 @@ manage(Window w, XWindowAttributes * wa) {
 		twa.border_pixel = BlackPixel(dpy, screen);
 	}
 	c->frame =
-	    XCreateWindow(dpy, root, cm->sx + c->x, cm->sy + c->y, c->w,
+	    XCreateWindow(dpy, root, c->x, c->y, c->w,
 	    c->h, c->border, wa->depth == 32 ? 32 : DefaultDepth(dpy, screen),
 	    InputOutput, wa->depth == 32 ? wa->visual : DefaultVisual(dpy,
 		screen), mask, &twa);
