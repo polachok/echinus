@@ -1207,15 +1207,12 @@ getmonitor(int x, int y) {
 Monitor *
 clientmonitor(Client * c) {
 	Monitor *m;
-	unsigned int i;
-	if (c) {
-		for (m = monitors; m; m = m->next) {
-			for (i = 0; i < ntags; i++)
-				if (c->tags[i] & m->seltags[i])
-					return m;
-		}
-	}
-	return curmonitor();
+
+	assert(c != NULL);
+	for (m = monitors; m; m = m->next)
+		if(isvisible(c, m))
+			return m;
+	return NULL;
 }
 
 Monitor *
