@@ -490,10 +490,13 @@ configurenotify(XEvent * e) {
 		if (XRRUpdateConfiguration((XEvent *) ev)) {
 #endif
 			initmonitors(e);
-			for (c = clients; c; c = c->next)
-				if (c->isbastard)
-					c->tags = NULL; /* invalid */
-			updatestruts(m);
+			for (c = clients; c; c = c->next) {
+				if (c->isbastard) {
+					m = getmonitor(c->x + c->w/2, c->y);
+					c->tags = m->seltags;
+					updatestruts(m);
+				}
+			}
 			for (m = monitors; m; m = m->next)
 				updategeom(m);
 			arrange(NULL);
