@@ -517,16 +517,15 @@ configurerequest(XEvent * e) {
 		if (ev->value_mask & CWBorderWidth)
 			c->border = ev->border_width;
 		if (c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
-			/* get x,y, convert to relative */
 			if (ev->value_mask & CWX)
-				x = ev->x - cm->sx;
+				x = ev->x;
 			if (ev->value_mask & CWY)
-				y = ev->y - cm->sy;
+				y = ev->y;
 			if (ev->value_mask & CWWidth)
 				w = ev->width;
 			if (ev->value_mask & CWHeight)
 				h = ev->height + c->th;
-			cm = getmonitor(ev->x, ev->y);
+			cm = getmonitor(x, y);
 			if (!(ev->value_mask & (CWX | CWY)) /* resize request */
 			    && (ev->value_mask & (CWWidth | CWHeight))) {
 				DPRINTF("RESIZE %s (%d,%d)->(%d,%d)\n", c->name, c->w, c->h, w, h);
