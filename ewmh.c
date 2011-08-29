@@ -327,7 +327,8 @@ getstruts(Client *c) {
 	Monitor *m;
 	unsigned long i, n;
 
-	m = clientmonitor(c);
+	if(!(m = clientmonitor(c)))
+		return ret;
 
 	state = (unsigned long*)getatom(c->win, atom[StrutPartial], &n);
 	if (n) {
