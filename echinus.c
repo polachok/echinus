@@ -1357,16 +1357,16 @@ place(Client *c) {
 	/* XXX: do something better */
 	getpointer(&x, &y);
 	m = getmonitor(x, y);
-	x = x - m->sx + rand()%d - c->w/2;
-	y = y - m->sy + rand()%d - c->h/2;
-	if (x < 0)
-		x = 0;
-	if (y < 0)
-		y = 0;
-	if (x + c->w > m->sw)
-		x = m->sw - c->w - rand()%d;
-	if (y + c->h > m->sh)
-		y = m->sh - c->h - rand()%d;
+	x = x + rand()%d - c->w/2;
+	y = y + rand()%d - c->h/2;
+	if (x < m->wax)
+		x = m->wax;
+	if (y < m->way)
+		y = m->way;
+	if (x + c->w > m->wax + m->waw)
+		x = m->waw - c->w - rand()%d;
+	if (y + c->h > m->way + m->wah)
+		y = m->wah - c->h - rand()%d;
 
 	c->rx = c->x = x;
 	c->ry = c->y = y;
