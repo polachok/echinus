@@ -126,7 +126,7 @@ void propertynotify(XEvent * e);
 void reparentnotify(XEvent * e);
 void quit(const char *arg);
 void restart(const char *arg);
-void resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints);
+void resize(Client * c, int x, int y, int w, int h, Bool sizehints);
 void restack(Monitor * m);
 void run(void);
 void scan(void);
@@ -271,7 +271,7 @@ arrangefloats(Monitor * m) {
 		if(isvisible(c, m) && !c->isbastard &&
 			       	(c->isfloating || MFEATURES(m, OVERLAP))
 			       	&& !c->ismax && !c->isicon)
-			resize(c, m, c->rx, c->ry, c->rw, c->rh, True);
+			resize(c, c->rx, c->ry, c->rw, c->rh, True);
 	}
 }
 
@@ -529,16 +529,16 @@ configurerequest(XEvent * e) {
 			if (!(ev->value_mask & (CWX | CWY)) /* resize request */
 			    && (ev->value_mask & (CWWidth | CWHeight))) {
 				DPRINTF("RESIZE %s (%d,%d)->(%d,%d)\n", c->name, c->w, c->h, w, h);
-				resize(c, clientmonitor(c), c->x, c->y, w, h, True);
+				resize(c, c->x, c->y, w, h, True);
 			} else if ((ev->value_mask & (CWX | CWY)) /* move request */
 			    && !(ev->value_mask & (CWWidth | CWHeight))) {
 				DPRINTF("MOVE %s (%d,%d)->(%d,%d)\n", c->name, c->x, c->y, x, y);
-				resize(c, cm, x, y, c->w, c->h, True);
+				resize(c, x, y, c->w, c->h, True);
 			} else if ((ev->value_mask & (CWX | CWY)) /* move and resize request */
 			    && (ev->value_mask & (CWWidth | CWHeight))) {
 				DPRINTF("MOVE&RESIZE(MOVE) %s (%d,%d)->(%d,%d)\n", c->name, c->x, c->y, ev->x, ev->y);
 				DPRINTF("MOVE&RESIZE(RESIZE) %s (%d,%d)->(%d,%d)\n", c->name, c->w, c->h, ev->width, ev->height);
-				resize(c, cm, x, y, w, h, True);
+				resize(c, x, y, w, h, True);
 			} else if ((ev->value_mask & CWStackMode)) {
 				DPRINTF("RESTACK %s ignoring\n", c->name);
 				configure(c);
@@ -1158,10 +1158,10 @@ monocle(Monitor * m) {
 
 	for (c = nexttiled(clients, m); c; c = nexttiled(c->next, m)) {
 			if (views[m->curtag].barpos != StrutsOn)
-				resize(c, m, m->wax - c->border,
+				resize(c, m->wax - c->border,
 						m->way - c->border, m->waw, m->wah, False);
 			else
-				resize(c, m, m->wax, m->way,
+				resize(c, m->wax, m->way,
 						m->waw - 2 * c->border,
 						m->wah - 2 * c->border, False);
 	}
@@ -1181,7 +1181,7 @@ moveresizekb(const char *arg) {
 		dw = (dw / abs(dw)) * sel->incw;
 	if (dh && (dh < sel->inch))
 		dh = (dh / abs(dh)) * sel->inch;
-	resize(sel, curmonitor(), sel->x + dx, sel->y + dy, sel->w + dw,
+	resize(sel, sel->x + dx, sel->y + dy, sel->w + dw,
 	    sel->h + dh, True);
 }
 
@@ -1267,7 +1267,7 @@ mousemove(Client * c) {
 			else if (abs((nm->way + nm->wah) - (ny + c->h +
 				    2 * c->border)) < options.snap)
 				ny = nm->way + nm->wah - c->h - 2 * c->border;
-			resize(c, nm, nx, ny, c->w, c->h, True);
+			resize(c, nx, ny, c->w, c->h, True);
 			save(c);
 			nm = clientmonitor(c);
 			if (m != nm) {
@@ -1320,7 +1320,7 @@ mouseresize(Client * c) {
 				nw = MINWIDTH;
 			if ((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
 				nh = MINHEIGHT;
-			resize(c, cm, c->x, c->y, nw, nh, True);
+			resize(c, c->x, c->y, nw, nh, True);
 			save(c);
 			break;
 		}
@@ -1424,7 +1424,7 @@ quit(const char *arg) {
 }
 
 void
-resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints) {
+resize(Client * c, int x, int y, int w, int h, Bool sizehints) {
 	XWindowChanges wc;
 
 	if (sizehints) {
@@ -1982,7 +1982,7 @@ bstack(Monitor * m) {
 			else
 				nw = tw - c->border;
 		}
-		resize(c, m, nx, ny, nw, nh, False);
+		resize(c, nx, ny, nw, nh, False);
 		if (n > 1 && tw != curwaw)
 			nx = c->x + c->w + c->border;
 	}
@@ -2029,7 +2029,7 @@ tile(Monitor * m) {
 			else
 				nh = th - 2 * c->border;
 		}
-		resize(c, m, nx, ny, nw, nh, False);
+		resize(c, nx, ny, nw, nh, False);
 		if (n > views[m->curtag].nmaster && th != (unsigned int)m->wah) {
 			ny = c->y + c->h + 2 * c->border;
 		}
@@ -2057,7 +2057,7 @@ togglefloating(const char *arg) {
 	updateframe(sel);
 	if (sel->isfloating) {
 		/* restore last known float dimensions */
-		resize(sel, curmonitor(), sel->rx, sel->ry, sel->rw, sel->rh, False);
+		resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, False);
 	} else {
 		/* save last known float dimensions */
 		save(sel);
@@ -2105,9 +2105,9 @@ togglefill(const char *arg) {
 
 	if ((sel->isfill = !sel->isfill)) {
 		save(sel);
-		resize(sel, m, x1, y1, w, h, True);
+		resize(sel, x1, y1, w, h, True);
 	} else {
-		resize(sel, m, sel->rx, sel->ry, sel->rw, sel->rh, True);
+		resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, True);
 	}
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -2123,10 +2123,10 @@ togglemax(const char *arg) {
 	updateframe(sel);
 	if (sel->ismax) {
 		save(sel);
-		resize(sel, m, m->wax - sel->border,
+		resize(sel, m->wax - sel->border,
 		    m->way - sel->border - sel->th, m->waw, m->wah + sel->th, False);
 	} else {
-		resize(sel, m, sel->rx, sel->ry, sel->rw, sel->rh, True);
+		resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, True);
 	}
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
