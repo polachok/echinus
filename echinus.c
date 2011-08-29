@@ -2267,8 +2267,8 @@ unmanage(Client * c) {
 
 void
 updategeom(Monitor * m) {
-	m->wax = 0;
-	m->way = 0;
+	m->wax = m->sx;
+	m->way = m->sy;
 	m->wah = m->sh;
 	m->waw = m->sw;
 	switch (views[m->curtag].barpos) {
