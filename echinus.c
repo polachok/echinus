@@ -1043,13 +1043,11 @@ manage(Window w, XWindowAttributes * wa) {
 	c->w = c->rw = wa->width;
 	c->h = c->rh = wa->height + c->th;
 
-	DPRINTF("X%d Y%d\n", c->x, c->y);
 	if (!wa->x && !wa->y && !c->isbastard)
 		place(c);
 
-	DPRINTF("X%d Y%d\n", c->x, c->y);
 	if (!(cm = clientmonitor(c)))
-		cm = getmonitor(c->x, c->y);
+		cm = curmonitor();
 	DPRINTF("cm [%dx%d]\n", cm->sw, cm->sh);
 	c->hasstruts = getstruts(c); 
 	c->oldborder = c->isbastard ? 0 : wa->border_width;
