@@ -1003,7 +1003,6 @@ manage(Window w, XWindowAttributes * wa) {
 	Client *c, *t = NULL;
 	Monitor *m, *cm = NULL;
 	Window trans;
-	Status rettrans;
 	XWindowChanges wc;
 	XSetWindowAttributes twa;
 	XWMHints *wmh;
@@ -1032,10 +1031,12 @@ manage(Window w, XWindowAttributes * wa) {
 	mwm_process_atom(c);
 	updatesizehints(c);
 
-	if ((rettrans = XGetTransientForHint(dpy, w, &trans) == Success))
-		for (t = clients; t && t->win != trans; t = t->next);
-	if (t)
-		memcpy(c->tags, t->tags, ntags * sizeof(curseltags[0]));
+	if (XGetTransientForHint(dpy, w, &trans)) {
+		if (t = getclient(trans, clients, ClientWindow)) {
+			memcpy(c->tags, t->tags, ntags * sizeof(curseltags[0]));
+			c->isfloating = True;
+		}
+	}
 
 	updatetitle(c);
 	if (applyrules(c)) {
@@ -1047,7 +1048,7 @@ manage(Window w, XWindowAttributes * wa) {
 	c->th = c->title ? style.titleheight : 0;
 
 	if (!c->isfloating)
-		c->isfloating = (rettrans == Success) || c->isfixed;
+		c->isfloating = c->isfixed;
 
 	if ((wmh = XGetWMHints(dpy, c->win))) {
 		c->isfocusable = !(wmh->flags & InputHint) || wmh->input;
