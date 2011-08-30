@@ -1033,6 +1033,8 @@ manage(Window w, XWindowAttributes * wa) {
 
 	if (XGetTransientForHint(dpy, w, &trans)) {
 		if (t = getclient(trans, clients, ClientWindow)) {
+			DPRINTF("Client [%s] transient for [%s]\n",
+					c->name, t->name);
 			memcpy(c->tags, t->tags, ntags * sizeof(curseltags[0]));
 			c->isfloating = True;
 		}
@@ -1414,8 +1416,10 @@ propertynotify(XEvent * e) {
 		}
 		if (ev->state == PropertyDelete) 
 			return;
-		if (ev->atom == atom[WindowName])
+		if (ev->atom == atom[WindowName]) {
 			updatetitle(c);
+			drawclient(c);
+		}
 		switch (ev->atom) {
 		case XA_WM_TRANSIENT_FOR:
 			XGetTransientForHint(dpy, c->win, &trans);
@@ -1429,6 +1433,7 @@ propertynotify(XEvent * e) {
 			break;
 		case XA_WM_NAME:
 			updatetitle(c);
+			drawclient(c);
 			break;
 		}
 	}
@@ -2402,7 +2407,6 @@ void
 updatetitle(Client * c) {
 	if (!gettextprop(c->win, atom[WindowName], c->name, sizeof(c->name)))
 		gettextprop(c->win, atom[WMName], c->name, sizeof(c->name));
-	drawclient(c);
 }
 
 /* There's no way to check accesses to destroyed windows, thus those cases are
