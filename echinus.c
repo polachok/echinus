@@ -1311,8 +1311,8 @@ mouseresize(Client * c) {
 		return;
 	cm = curmonitor();
 
-	ocx = c->x + cm->sx;
-	ocy = c->y + cm->sy;
+	ocx = c->x;
+	ocy = c->y;
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 		GrabModeAsync, None, cursor[CurResize], CurrentTime) != GrabSuccess)
 		return;
