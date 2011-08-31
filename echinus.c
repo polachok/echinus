@@ -250,6 +250,7 @@ applyrules(Client * c) {
 			c->isfloating = rules[i]->isfloating;
 			c->title = rules[i]->hastitle;
 			for (j = 0; rules[i]->tagregex && j < ntags; j++) {
+				c->tags[j] = False;
 				if (!regexec(rules[i]->tagregex, tags[j], 1, &tmp, 0)) {
 					matched = True;
 					c->tags[j] = True;
@@ -260,9 +261,6 @@ applyrules(Client * c) {
 		XFree(ch.res_class);
 	if (ch.res_name)
 		XFree(ch.res_name);
-	if (!matched) {
-		memcpy(c->tags, curseltags, ntags * sizeof(curseltags[0]));
-	}
 }
 
 void
@@ -1023,11 +1021,13 @@ manage(Window w, XWindowAttributes * wa) {
 		c->isfixed = True;
 	}
 
+	cm = curmonitor();
 	c->isicon = False;
 	c->title = c->isbastard ? (Window) NULL : 1;
-	c->tags = emallocz(ntags * sizeof(curseltags[0]));
+	c->tags = emallocz(ntags * sizeof(cm->seltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
 	c->border = c->isbastard ? 0 : style.border;
+	c->oldborder = c->isbastard ? 0 : wa->border_width; /* XXX: why? */
 	/*  XReparentWindow() unmaps *mapped* windows */
 	c->ignoreunmap = wa->map_state == IsViewable ? 1 : 0;
 	mwm_process_atom(c);
@@ -1035,12 +1035,12 @@ manage(Window w, XWindowAttributes * wa) {
 
 	if (XGetTransientForHint(dpy, w, &trans)) {
 		if (t = getclient(trans, clients, ClientWindow)) {
-			DPRINTF("Client [%s] transient for [%s]\n",
-					c->name, t->name);
-			memcpy(c->tags, t->tags, ntags * sizeof(curseltags[0]));
+			memcpy(c->tags, t->tags, ntags * sizeof(cm->seltags[0]));
 			c->isfloating = True;
 		}
 	}
+
+	memcpy(c->tags, cm->seltags, ntags * sizeof(cm->seltags[0]));
 
 	updatetitle(c);
 	applyrules(c);
@@ -1063,12 +1063,13 @@ manage(Window w, XWindowAttributes * wa) {
 	if (!wa->x && !wa->y && !c->isbastard)
 		place(c);
 
-	if(!(cm = c->isbastard ? getmonitor(wa->x, wa->y) : clientmonitor(c))) {
-		cm = getmonitor(c->x, c->y);
-		memcpy(c->tags, cm->seltags, ntags * sizeof(cm->seltags[0]));
-	}
+	cm = c->isbastard ? getmonitor(wa->x, wa->y) : clientmonitor(c);
 	c->hasstruts = getstruts(c); 
-	c->oldborder = c->isbastard ? 0 : wa->border_width;
+	if (c->isbastard) {
+		free(c->tags);
+		c->tags = cm->seltags;
+	}
+#if 0
 	if (c->w == cm->sw && c->h == cm->sh) {
 		c->x = 0;
 		c->y = 0;
@@ -1082,7 +1083,7 @@ manage(Window w, XWindowAttributes * wa) {
 		if (c->y < cm->way)
 			c->y = cm->way;
 	}
-
+#endif
 	grabbuttons(c, False);
 	twa.override_redirect = True;
 	twa.event_mask = FRAMEMASK;
@@ -1118,10 +1119,6 @@ manage(Window w, XWindowAttributes * wa) {
 		c->title = (Window) NULL;
 	}
 
-	if (c->isbastard) {
-		free(c->tags);
-		c->tags = cm->seltags;
-	}
 	attach(c);
 	attachstack(c);
 	XReparentWindow(dpy, c->win, c->frame, 0, c->th);
@@ -1141,6 +1138,8 @@ manage(Window w, XWindowAttributes * wa) {
 	updateatom[ClientList] (NULL);
 	updateatom[WindowDesk] (c);
 	updateframe(c);
+	if (!cm)
+		return;
 	if (c->hasstruts)
 		updategeom(cm);
 	arrange(cm);
