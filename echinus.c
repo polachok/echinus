@@ -71,7 +71,7 @@ enum { CurNormal, CurResize, CurMove, CurLast };	    /* cursor */
 enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise };    /* focus model */
 
 /* function declarations */
-Bool applyrules(Client * c);
+void applyrules(Client * c);
 void arrange(Monitor * m);
 void attach(Client * c);
 void attachstack(Client * c);
@@ -232,7 +232,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 };
 
 /* function implementations */
-Bool
+void
 applyrules(Client * c) {
 	static char buf[512];
 	unsigned int i, j;
@@ -260,7 +260,9 @@ applyrules(Client * c) {
 		XFree(ch.res_class);
 	if (ch.res_name)
 		XFree(ch.res_name);
-	return matched;
+	if (!matched) {
+		memcpy(c->tags, curseltags, ntags * sizeof(curseltags[0]));
+	}
 }
 
 void
@@ -1041,11 +1043,7 @@ manage(Window w, XWindowAttributes * wa) {
 	}
 
 	updatetitle(c);
-	if (applyrules(c)) {
-		for (m = monitors; m; m = m->next)
-			if (isvisible(c, m))
-				cm = m;
-	}
+	applyrules(c);
 
 	c->th = c->title ? style.titleheight : 0;
 
@@ -1065,8 +1063,8 @@ manage(Window w, XWindowAttributes * wa) {
 	if (!wa->x && !wa->y && !c->isbastard)
 		place(c);
 
-	if (!cm) {
-		cm = clientmonitor(c);
+	if(!(cm = c->isbastard ? getmonitor(wa->x, wa->y) : clientmonitor(c))) {
+		cm = getmonitor(c->x, c->y);
 		memcpy(c->tags, cm->seltags, ntags * sizeof(cm->seltags[0]));
 	}
 	c->hasstruts = getstruts(c); 
