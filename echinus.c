@@ -1044,8 +1044,10 @@ manage(Window w, XWindowAttributes * wa) {
 	if (!wa->x && !wa->y && !c->isbastard)
 		place(c);
 
+	DPRINTF("%d %d\n", c->x, c->y);
 	if (!(cm = clientmonitor(c)))
 		cm = getmonitor(c->x, c->y);
+	DPRINTF("cm [%dx%d]\n", cm->sw, cm->sh);
 	c->hasstruts = getstruts(c); 
 	c->oldborder = c->isbastard ? 0 : wa->border_width;
 	if (c->w == cm->sw && c->h == cm->sh) {
@@ -1195,12 +1197,13 @@ getpointer(int *x, int *y) {
 Monitor *
 getmonitor(int x, int y) {
 	Monitor *m;
+
 	for (m = monitors; m; m = m->next) {
-		if ((x >= m->sx && x < m->sx + m->sw)) {
-			break;
-		}
+		if ((x >= m->sx && x <= m->sx + m->sw) &&
+		    (y >= m->sy && y <= m->sy + m->sh))
+			return m;
 	}
-	return m ? m : monitors;
+	return NULL;
 }
 
 Monitor *
@@ -1356,17 +1359,21 @@ place(Client *c) {
 
 	/* XXX: do something better */
 	getpointer(&x, &y);
+	DPRINTF("%d %d\n", x, y);
 	m = getmonitor(x, y);
 	x = x + rand()%d - c->w/2;
 	y = y + rand()%d - c->h/2;
 	if (x < m->wax)
 		x = m->wax;
+	DPRINTF("%d %d\n", x, y);
 	if (y < m->way)
 		y = m->way;
 	if (x + c->w > m->wax + m->waw)
-		x = m->waw - c->w - rand()%d;
+		x = m->wax + m->waw - c->w - rand()%d;
+	DPRINTF("%d %d\n", x, y);
 	if (y + c->h > m->way + m->wah)
-		y = m->wah - c->h - rand()%d;
+		y = m->way + m->wah - c->h - rand()%d;
+	DPRINTF("%d %d\n", x, y);
 
 	c->rx = c->x = x;
 	c->ry = c->y = y;
@@ -1479,6 +1486,7 @@ resize(Client * c, Monitor * m, int x, int y, int w, int h, Bool sizehints) {
 		c->y = y;
 		c->w = w;
 		c->h = h;
+		DPRINTF("x = %d y = %d w = %d h = %d\n", c->x, c->y, c->w, c->h);
 		XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
 		XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h - c->th);
 		configure(c);
