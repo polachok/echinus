@@ -291,22 +291,20 @@ void
 arrangemon(Monitor * m) {
 	Client *c;
 
-	if(views[m->curtag].layout->arrange)
+	if (views[m->curtag].layout->arrange)
 		views[m->curtag].layout->arrange(m);
 	arrangefloats(m);
 	restack(m);
 	for (c = stack; c; c = c->snext) {
-		if ((clientmonitor(c) == m) &&
-		 	((!c->isbastard && isvisible(c, m) && !c->isicon) ||
+		if ((clientmonitor(c) == m) && ((!c->isbastard && !c->isicon) ||
 			(c->isbastard && views[m->curtag].barpos == StrutsOn))) {
 			unban(c);
 		}
 	}
 
 	for (c = stack; c; c = c->snext) {
-		if ((clientmonitor(c) == m) &&
-			((!c->isbastard && (!isvisible(c, m) || c->isicon)) ||
-			(c->isbastard && views[m->curtag].barpos == StrutsHide))) {
+		if ((clientmonitor(c) == NULL) || (!c->isbastard && c->isicon) ||
+			(c->isbastard && views[m->curtag].barpos == StrutsHide)) {
 			ban(c);
 		}
 	}
@@ -1230,7 +1228,7 @@ clientmonitor(Client * c) {
 
 	assert(c != NULL);
 	for (m = monitors; m; m = m->next)
-		if(isvisible(c, m))
+		if (isvisible(c, m))
 			return m;
 	return NULL;
 }
