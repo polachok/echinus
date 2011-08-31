@@ -1033,17 +1033,17 @@ manage(Window w, XWindowAttributes * wa) {
 	mwm_process_atom(c);
 	updatesizehints(c);
 
+	memcpy(c->tags, cm->seltags, ntags * sizeof(cm->seltags[0]));
+
+	updatetitle(c);
+	applyrules(c);
+
 	if (XGetTransientForHint(dpy, w, &trans)) {
 		if (t = getclient(trans, clients, ClientWindow)) {
 			memcpy(c->tags, t->tags, ntags * sizeof(cm->seltags[0]));
 			c->isfloating = True;
 		}
 	}
-
-	memcpy(c->tags, cm->seltags, ntags * sizeof(cm->seltags[0]));
-
-	updatetitle(c);
-	applyrules(c);
 
 	c->th = c->title ? style.titleheight : 0;
 
