@@ -1055,8 +1055,8 @@ manage(Window w, XWindowAttributes * wa) {
 		XFree(wmh);
 	}
 
-	c->x = c->rx = wa->x - cm->sx;
-	c->y = c->ry = wa->y - cm->sy;
+	c->x = c->rx = wa->x;
+	c->y = c->ry = wa->y;
 	c->w = c->rw = wa->width;
 	c->h = c->rh = wa->height + c->th;
 
