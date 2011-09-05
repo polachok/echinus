@@ -40,7 +40,7 @@ typedef struct {
 
 #define FEATURES(_layout, _which) (!(!((_layout)->features & (_which))))
 #define M2LT(_mon) (views[(_mon)->curtag].layout)
-#define MFEATURES(_monitor, _which) (FEATURES(M2LT(_monitor), (_which)))
+#define MFEATURES(_monitor, _which) ((_monitor) && FEATURES(M2LT(_monitor), (_which)))
 
 typedef struct Client Client;
 struct Client {
