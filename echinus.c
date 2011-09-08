@@ -357,6 +357,8 @@ buttonpress(XEvent * e) {
 	int i;
 	XButtonPressedEvent *ev = &e->xbutton;
 
+	if (!curmonitor())
+		return;
 	if (ev->window == root) {
 		if (ev->type != ButtonRelease)
 			return;
@@ -954,6 +956,8 @@ keypress(XEvent * e) {
 	KeySym keysym;
 	XKeyEvent *ev;
 
+	if (!curmonitor())
+		return;
 	ev = &e->xkey;
 	keysym = XKeycodeToKeysym(dpy, (KeyCode) ev->keycode, 0);
 	for (i = 0; i < nkeys; i++)
