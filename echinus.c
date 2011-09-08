@@ -959,6 +959,8 @@ keypress(XEvent * e) {
 	KeySym keysym;
 	XKeyEvent *ev;
 
+	if (!curmonitor())
+		return;
 	ev = &e->xkey;
 	keysym = XKeycodeToKeysym(dpy, (KeyCode) ev->keycode, 0);
 	for (i = 0; i < nkeys; i++)
