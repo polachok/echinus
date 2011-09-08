@@ -1280,7 +1280,8 @@ mousemove(Client * c) {
 		case MotionNotify:
 			XSync(dpy, False);
 			/* we are probably moving to a different monitor */
-			nm = curmonitor();
+			if(!(nm = curmonitor()))
+				break;
 			nx = ocx + (ev.xmotion.x - x1);
 			ny = ocy + (ev.xmotion.y - y1);
 			if (abs(nx - nm->wax) < options.snap)
