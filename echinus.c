@@ -358,6 +358,8 @@ buttonpress(XEvent * e) {
 	int i;
 	XButtonPressedEvent *ev = &e->xbutton;
 
+	if (!curmonitor())
+		return;
 	if (ev->window == root) {
 		if (ev->type != ButtonRelease)
 			return;
