@@ -1301,6 +1301,7 @@ mousemove(Client * c) {
 				updateatom[WindowDesk] (c);
 				drawclient(c);
 				arrange(NULL);
+				m = nm;
 			}
 			break;
 		}
