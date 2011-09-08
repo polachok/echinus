@@ -357,6 +357,8 @@ buttonpress(XEvent * e) {
 	int i;
 	XButtonPressedEvent *ev = &e->xbutton;
 
+	if (!curmonitor())
+		return;
 	if (ev->window == root) {
 		if (ev->type != ButtonRelease)
 			return;
@@ -620,9 +622,13 @@ enternotify(XEvent * e) {
 
 	if (ev->mode != NotifyNormal || ev->detail == NotifyInferior)
 		return;
+	if (!curmonitor())
+		return;
 	if ((c = getclient(ev->window, clients, ClientFrame))) {
+#if 0 /* WTF ? */
 		if (!isvisible(sel, curmonitor()))
 			focus(c);
+#endif 
 		if (c->isbastard) {
 			grabbuttons(c, True);
 			return;
@@ -954,6 +960,8 @@ keypress(XEvent * e) {
 	KeySym keysym;
 	XKeyEvent *ev;
 
+	if (!curmonitor())
+		return;
 	ev = &e->xkey;
 	keysym = XKeycodeToKeysym(dpy, (KeyCode) ev->keycode, 0);
 	for (i = 0; i < nkeys; i++)
@@ -1253,8 +1261,7 @@ mousemove(Client * c) {
 	m = curmonitor();
 	ocx = c->x;
 	ocy = c->y;
-	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w / 2,
-	    c->h / 2);
+	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w / 2, c->h / 2);
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 		GrabModeAsync, None, cursor[CurMove], CurrentTime) != GrabSuccess)
 		return;
