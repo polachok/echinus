@@ -807,6 +807,8 @@ void
 incnmaster(const char *arg) {
 	unsigned int i;
 
+	if (!curmonitor())
+		return;
 	if (!FEATURES(curlayout, NMASTER))
 		return;
 	if (!arg) {
@@ -1649,6 +1651,8 @@ setlayout(const char *arg) {
 	Client *c;
 	Bool wasfloat;
 
+	if (!curmonitor())
+		return;
 	wasfloat = FEATURES(curlayout, OVERLAP);
 
 	if (arg) {
@@ -1677,6 +1681,8 @@ void
 setmwfact(const char *arg) {
 	double delta;
 
+	if (!curmonitor())
+		return;
 	if (!FEATURES(curlayout, MWFACT))
 		return;
 	/* arg handling, manipulate mwfact */
@@ -2525,6 +2531,8 @@ void
 zoom(const char *arg) {
 	Client *c;
 
+	if (!curmonitor())
+		return;
 	if (!sel || !FEATURES(curlayout, ZOOM) || sel->isfloating)
 		return;
 	if ((c = sel) == nexttiled(clients, curmonitor()))
