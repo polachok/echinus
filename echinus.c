@@ -712,13 +712,11 @@ focus(Client * c) {
 		for (c = stack;
 		    c && (c->isbastard || c->isicon || !isvisible(c, curmonitor())); c = c->snext);
 	if (sel && sel != c) {
-		//grabbuttons(sel, False);
 		XSetWindowBorder(dpy, sel->frame, style.color.norm[ColBorder]);
 	}
 	if (c) {
 		detachstack(c);
 		attachstack(c);
-		//grabbuttons(c, True);
 		/* unban(c); */
 	}
 	sel = c;
