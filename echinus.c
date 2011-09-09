@@ -1142,6 +1142,7 @@ manage(Window w, XWindowAttributes * wa) {
 	twa.event_mask = CLIENTMASK;
 	twa.do_not_propagate_mask = CLIENTNOPROPAGATEMASK;
 	XChangeWindowAttributes(dpy, c->win, CWEventMask|CWDontPropagate, &twa);
+	XSelectInput(dpy, c->win, CLIENTMASK);
 
 	XReparentWindow(dpy, c->win, c->frame, 0, c->th);
 	XReparentWindow(dpy, c->title, c->frame, 0, 0);
@@ -1152,10 +1153,6 @@ manage(Window w, XWindowAttributes * wa) {
 	configure(c);	/* propagates border_width, if size doesn't change */
 	if (checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
 		ewmh_process_state_atom(c, atom[WindowStateFs], 1);
-	if (c->isbastard)
-		XSelectInput(dpy, w, PropertyChangeMask);
-	else
-		XSelectInput(dpy, w, CLIENTMASK);
 	ban(c);
 	updateatom[ClientList] (NULL);
 	updateatom[WindowDesk] (c);
