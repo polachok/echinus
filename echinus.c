@@ -56,7 +56,8 @@
 #define BUTTONMASK		(ButtonPressMask | ButtonReleaseMask)
 #define CLEANMASK(mask)		(mask & ~(numlockmask | LockMask))
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
-#define CLIENTMASK	        (PropertyChangeMask | EnterWindowMask | FocusChangeMask)
+#define CLIENTMASK	        (PropertyChangeMask | StructureNotifyMask)
+#define CLIENTNOPROPAGATEMASK 	(BUTTONMASK | ButtonMotionMask)
 #define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | EnterWindowMask | LeaveWindowMask)
 
 /* function-like macros */
@@ -1128,6 +1129,11 @@ manage(Window w, XWindowAttributes * wa) {
 
 	attach(c);
 	attachstack(c);
+
+	twa.event_mask = CLIENTMASK;
+	twa.do_not_propagate_mask = CLIENTNOPROPAGATEMASK;
+	XChangeWindowAttributes(dpy, c->win, CWEventMask|CWDontPropagate, &twa);
+
 	XReparentWindow(dpy, c->win, c->frame, 0, c->th);
 	XReparentWindow(dpy, c->title, c->frame, 0, 0);
 	XAddToSaveSet(dpy, c->win);
