@@ -358,6 +358,7 @@ buttonpress(XEvent * e) {
 	int i;
 	XButtonPressedEvent *ev = &e->xbutton;
 
+	fprintf(stderr, "OH MAI GOD ITZ BUTONPRES\n");
 	if (!curmonitor())
 		return;
 	if (ev->window == root) {
@@ -413,7 +414,7 @@ buttonpress(XEvent * e) {
 		if (FEATURES(curlayout, OVERLAP) || c->isfloating)
 			XRaiseWindow(dpy, c->frame);
 		if (CLEANMASK(ev->state) != modkey) {
-			XAllowEvents(dpy, ReplayPointer, CurrentTime);
+			//XAllowEvents(dpy, ReplayPointer, CurrentTime);
 			return;
 		}
 		if (ev->button == Button1) {
@@ -433,8 +434,15 @@ buttonpress(XEvent * e) {
 			if (c->ismax)
 				togglemax(NULL);
 			mouseresize(c);
-		} else		/* don't know what to do? pass it on */
+		}
+#if 0
+		else
 			XAllowEvents(dpy, ReplayPointer, CurrentTime);
+#endif
+	} else if ((c = getclient(ev->window, clients, ClientWindow))) {
+		DPRINTF("WINDOW %s: 0x%x\n", c->name, (int) ev->window);
+		focus(c);
+		XAllowEvents(dpy, ReplayPointer, CurrentTime);
 	}
 }
 
@@ -631,19 +639,23 @@ enternotify(XEvent * e) {
 			focus(c);
 #endif 
 		if (c->isbastard) {
-			grabbuttons(c, True);
+			//grabbuttons(c, True);
 			return;
 		}
 		switch (options.focus) {
 		case Clk2Focus:
+#if 0
 			XGrabButton(dpy, AnyButton, AnyModifier, c->frame,
 			    False, BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
+#endif
 			break;
 		case SloppyFloat:
 			if (FEATURES(curlayout, OVERLAP) || c->isfloating)
 				focus(c);
+#if 0
 			XGrabButton(dpy, AnyButton, AnyModifier, c->frame,
 			    False, BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
+#endif
 			break;
 		case AllSloppy:
 			focus(c);
@@ -715,13 +727,13 @@ focus(Client * c) {
 		for (c = stack;
 		    c && (c->isbastard || c->isicon || !isvisible(c, curmonitor())); c = c->snext);
 	if (sel && sel != c) {
-		grabbuttons(sel, False);
+		//grabbuttons(sel, False);
 		XSetWindowBorder(dpy, sel->frame, style.color.norm[ColBorder]);
 	}
 	if (c) {
 		detachstack(c);
 		attachstack(c);
-		grabbuttons(c, True);
+		//grabbuttons(c, True);
 		/* unban(c); */
 	}
 	sel = c;
@@ -898,17 +910,17 @@ grabbuttons(Client * c, Bool focused) {
 		modkey | numlockmask, modkey | numlockmask | LockMask
 	};
 	unsigned int i, j;
-	XUngrabButton(dpy, AnyButton, AnyModifier, c->frame);
+	//XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 
 	if (focused) {
 		for (i = 0; i < LENGTH(Buttons); i++)
 			for (j = 0; j < LENGTH(Modifiers); j++)
 				XGrabButton(dpy, Buttons[i], Modifiers[j],
-				    c->frame, False, BUTTONMASK, GrabModeAsync,
+				    c->win, False, BUTTONMASK, GrabModeAsync,
 				    GrabModeSync, None, None);
 	} else {
-		XGrabButton(dpy, AnyButton, AnyModifier, c->frame, False,
-		    BUTTONMASK, GrabModeAsync, GrabModeSync, None, None);
+		XGrabButton(dpy, AnyButton, AnyModifier, c->win, True,
+		    ButtonPressMask, GrabModeSync, GrabModeAsync, None, None);
 	}
 }
 
@@ -1002,8 +1014,10 @@ leavenotify(XEvent * e) {
 		selscreen = False;
 		focus(NULL);
 	}
+#if 0
 	if ((c = getclient(ev->window, clients, ClientFrame)))
 		XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
+#endif
 }
 
 void
@@ -2281,6 +2295,7 @@ unmanage(Client * c) {
 		c->title = (Window) NULL;
 	}
 	XSelectInput(dpy, c->win, CLIENTMASK & ~(StructureNotifyMask | EnterWindowMask));
+	XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 	XReparentWindow(dpy, c->win, root, c->x, c->y);
 	XMoveWindow(dpy, c->win, c->x, c->y);
 	if (!running)
@@ -2291,7 +2306,6 @@ unmanage(Client * c) {
 	detachstack(c);
 	if (sel == c)
 		focus(NULL);
-	XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 	setclientstate(c, WithdrawnState);
 	XDestroyWindow(dpy, c->frame);
 	/* c->tags points to monitor */
