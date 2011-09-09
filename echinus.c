@@ -56,7 +56,8 @@
 #define BUTTONMASK		(ButtonPressMask | ButtonReleaseMask)
 #define CLEANMASK(mask)		(mask & ~(numlockmask | LockMask))
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
-#define CLIENTMASK	        (PropertyChangeMask | EnterWindowMask | FocusChangeMask)
+#define CLIENTMASK	        (PropertyChangeMask | StructureNotifyMask)
+#define CLIENTNOPROPAGATEMASK 	(BUTTONMASK | ButtonMotionMask)
 #define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | EnterWindowMask | LeaveWindowMask)
 
 /* function-like macros */
@@ -100,7 +101,6 @@ Client *getclient(Window w, Client * list, int part);
 const char *getresource(const char *resource, const char *defval);
 long getstate(Window w);
 Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
-void grabbuttons(Client * c, Bool focused);
 void getpointer(int *x, int *y);
 Monitor *getmonitor(int x, int y);
 Monitor *curmonitor();
@@ -406,8 +406,8 @@ buttonpress(XEvent * e) {
 			mousemove(c);
 		else if (ev->button == Button3)
 			mouseresize(c);
-	} else if ((c = getclient(ev->window, clients, ClientFrame))) {
-		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
+	} else if ((c = getclient(ev->window, clients, ClientWindow))) {
+		DPRINTF("WINDOW %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
 		if (FEATURES(curlayout, OVERLAP) || c->isfloating)
 			XRaiseWindow(dpy, c->frame);
@@ -432,8 +432,11 @@ buttonpress(XEvent * e) {
 			if (c->ismax)
 				togglemax(NULL);
 			mouseresize(c);
-		} else		/* don't know what to do? pass it on */
-			XAllowEvents(dpy, ReplayPointer, CurrentTime);
+		}
+		XAllowEvents(dpy, ReplayPointer, CurrentTime);
+	} else if ((c = getclient(ev->window, clients, ClientFrame))) {
+		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
+		/* Not supposed to happen */
 	}
 }
 
@@ -629,20 +632,14 @@ enternotify(XEvent * e) {
 		if (!isvisible(sel, curmonitor()))
 			focus(c);
 #endif 
-		if (c->isbastard) {
-			grabbuttons(c, True);
+		if (c->isbastard)
 			return;
-		}
 		switch (options.focus) {
 		case Clk2Focus:
-			XGrabButton(dpy, AnyButton, AnyModifier, c->frame,
-			    False, BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
 			break;
 		case SloppyFloat:
 			if (FEATURES(curlayout, OVERLAP) || c->isfloating)
 				focus(c);
-			XGrabButton(dpy, AnyButton, AnyModifier, c->frame,
-			    False, BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
 			break;
 		case AllSloppy:
 			focus(c);
@@ -714,13 +711,11 @@ focus(Client * c) {
 		for (c = stack;
 		    c && (c->isbastard || c->isicon || !isvisible(c, curmonitor())); c = c->snext);
 	if (sel && sel != c) {
-		grabbuttons(sel, False);
 		XSetWindowBorder(dpy, sel->frame, style.color.norm[ColBorder]);
 	}
 	if (c) {
 		detachstack(c);
 		attachstack(c);
-		grabbuttons(c, True);
 		/* unban(c); */
 	}
 	sel = c;
@@ -890,27 +885,6 @@ gettextprop(Window w, Atom atom, char *text, unsigned int size) {
 	return True;
 }
 
-void
-grabbuttons(Client * c, Bool focused) {
-	unsigned int Buttons[] = { Button1, Button2, Button3 };
-	unsigned int Modifiers[] = { modkey, modkey | LockMask,
-		modkey | numlockmask, modkey | numlockmask | LockMask
-	};
-	unsigned int i, j;
-	XUngrabButton(dpy, AnyButton, AnyModifier, c->frame);
-
-	if (focused) {
-		for (i = 0; i < LENGTH(Buttons); i++)
-			for (j = 0; j < LENGTH(Modifiers); j++)
-				XGrabButton(dpy, Buttons[i], Modifiers[j],
-				    c->frame, False, BUTTONMASK, GrabModeAsync,
-				    GrabModeSync, None, None);
-	} else {
-		XGrabButton(dpy, AnyButton, AnyModifier, c->frame, False,
-		    BUTTONMASK, GrabModeAsync, GrabModeSync, None, None);
-	}
-}
-
 int
 idxoftag(const char *tag) {
 	unsigned int i;
@@ -1001,8 +975,6 @@ leavenotify(XEvent * e) {
 		selscreen = False;
 		focus(NULL);
 	}
-	if ((c = getclient(ev->window, clients, ClientFrame)))
-		XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 }
 
 void
@@ -1091,7 +1063,9 @@ manage(Window w, XWindowAttributes * wa) {
 			c->y = cm->way;
 	}
 #endif
-	grabbuttons(c, False);
+
+	XGrabButton(dpy, AnyButton, AnyModifier, c->win, True,
+			ButtonPressMask, GrabModeSync, GrabModeAsync, None, None);
 	twa.override_redirect = True;
 	twa.event_mask = FRAMEMASK;
 	mask = CWOverrideRedirect | CWEventMask;
@@ -1128,6 +1102,12 @@ manage(Window w, XWindowAttributes * wa) {
 
 	attach(c);
 	attachstack(c);
+
+	twa.event_mask = CLIENTMASK;
+	twa.do_not_propagate_mask = CLIENTNOPROPAGATEMASK;
+	XChangeWindowAttributes(dpy, c->win, CWEventMask|CWDontPropagate, &twa);
+	XSelectInput(dpy, c->win, CLIENTMASK);
+
 	XReparentWindow(dpy, c->win, c->frame, 0, c->th);
 	XReparentWindow(dpy, c->title, c->frame, 0, 0);
 	XAddToSaveSet(dpy, c->win);
@@ -1137,10 +1117,6 @@ manage(Window w, XWindowAttributes * wa) {
 	configure(c);	/* propagates border_width, if size doesn't change */
 	if (checkatom(c->win, atom[WindowState], atom[WindowStateFs]))
 		ewmh_process_state_atom(c, atom[WindowStateFs], 1);
-	if (c->isbastard)
-		XSelectInput(dpy, w, PropertyChangeMask);
-	else
-		XSelectInput(dpy, w, CLIENTMASK);
 	ban(c);
 	updateatom[ClientList] (NULL);
 	updateatom[WindowDesk] (c);
@@ -2275,6 +2251,7 @@ unmanage(Client * c) {
 		c->title = (Window) NULL;
 	}
 	XSelectInput(dpy, c->win, CLIENTMASK & ~(StructureNotifyMask | EnterWindowMask));
+	XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 	XReparentWindow(dpy, c->win, root, c->x, c->y);
 	XMoveWindow(dpy, c->win, c->x, c->y);
 	if (!running)
@@ -2285,7 +2262,6 @@ unmanage(Client * c) {
 	detachstack(c);
 	if (sel == c)
 		focus(NULL);
-	XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 	setclientstate(c, WithdrawnState);
 	XDestroyWindow(dpy, c->frame);
 	/* c->tags points to monitor */
