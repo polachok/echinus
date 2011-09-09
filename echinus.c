@@ -101,7 +101,6 @@ Client *getclient(Window w, Client * list, int part);
 const char *getresource(const char *resource, const char *defval);
 long getstate(Window w);
 Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
-void grabbuttons(Client * c, Bool focused);
 void getpointer(int *x, int *y);
 Monitor *getmonitor(int x, int y);
 Monitor *curmonitor();
@@ -886,26 +885,6 @@ gettextprop(Window w, Atom atom, char *text, unsigned int size) {
 	return True;
 }
 
-void
-grabbuttons(Client * c, Bool focused) {
-	unsigned int Buttons[] = { Button1, Button2, Button3 };
-	unsigned int Modifiers[] = { modkey, modkey | LockMask,
-		modkey | numlockmask, modkey | numlockmask | LockMask
-	};
-	unsigned int i, j;
-
-	if (focused) {
-		for (i = 0; i < LENGTH(Buttons); i++)
-			for (j = 0; j < LENGTH(Modifiers); j++)
-				XGrabButton(dpy, Buttons[i], Modifiers[j],
-				    c->win, False, BUTTONMASK, GrabModeAsync,
-				    GrabModeSync, None, None);
-	} else {
-		XGrabButton(dpy, AnyButton, AnyModifier, c->win, True,
-		    ButtonPressMask, GrabModeSync, GrabModeAsync, None, None);
-	}
-}
-
 int
 idxoftag(const char *tag) {
 	unsigned int i;
@@ -1084,7 +1063,9 @@ manage(Window w, XWindowAttributes * wa) {
 			c->y = cm->way;
 	}
 #endif
-	grabbuttons(c, False);
+
+	XGrabButton(dpy, AnyButton, AnyModifier, c->win, True,
+			ButtonPressMask, GrabModeSync, GrabModeAsync, None, None);
 	twa.override_redirect = True;
 	twa.event_mask = FRAMEMASK;
 	mask = CWOverrideRedirect | CWEventMask;
