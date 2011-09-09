@@ -358,7 +358,6 @@ buttonpress(XEvent * e) {
 	int i;
 	XButtonPressedEvent *ev = &e->xbutton;
 
-	fprintf(stderr, "OH MAI GOD ITZ BUTONPRES\n");
 	if (!curmonitor())
 		return;
 	if (ev->window == root) {
@@ -408,13 +407,13 @@ buttonpress(XEvent * e) {
 			mousemove(c);
 		else if (ev->button == Button3)
 			mouseresize(c);
-	} else if ((c = getclient(ev->window, clients, ClientFrame))) {
-		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
+	} else if ((c = getclient(ev->window, clients, ClientWindow))) {
+		DPRINTF("WINDOW %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
 		if (FEATURES(curlayout, OVERLAP) || c->isfloating)
 			XRaiseWindow(dpy, c->frame);
 		if (CLEANMASK(ev->state) != modkey) {
-			//XAllowEvents(dpy, ReplayPointer, CurrentTime);
+			XAllowEvents(dpy, ReplayPointer, CurrentTime);
 			return;
 		}
 		if (ev->button == Button1) {
@@ -435,14 +434,10 @@ buttonpress(XEvent * e) {
 				togglemax(NULL);
 			mouseresize(c);
 		}
-#if 0
-		else
-			XAllowEvents(dpy, ReplayPointer, CurrentTime);
-#endif
-	} else if ((c = getclient(ev->window, clients, ClientWindow))) {
-		DPRINTF("WINDOW %s: 0x%x\n", c->name, (int) ev->window);
-		focus(c);
 		XAllowEvents(dpy, ReplayPointer, CurrentTime);
+	} else if ((c = getclient(ev->window, clients, ClientFrame))) {
+		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
+		/* Not supposed to happen */
 	}
 }
 
