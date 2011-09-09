@@ -633,24 +633,14 @@ enternotify(XEvent * e) {
 		if (!isvisible(sel, curmonitor()))
 			focus(c);
 #endif 
-		if (c->isbastard) {
-			//grabbuttons(c, True);
+		if (c->isbastard)
 			return;
-		}
 		switch (options.focus) {
 		case Clk2Focus:
-#if 0
-			XGrabButton(dpy, AnyButton, AnyModifier, c->frame,
-			    False, BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
-#endif
 			break;
 		case SloppyFloat:
 			if (FEATURES(curlayout, OVERLAP) || c->isfloating)
 				focus(c);
-#if 0
-			XGrabButton(dpy, AnyButton, AnyModifier, c->frame,
-			    False, BUTTONMASK, GrabModeSync, GrabModeSync, None, None);
-#endif
 			break;
 		case AllSloppy:
 			focus(c);
@@ -905,7 +895,6 @@ grabbuttons(Client * c, Bool focused) {
 		modkey | numlockmask, modkey | numlockmask | LockMask
 	};
 	unsigned int i, j;
-	//XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 
 	if (focused) {
 		for (i = 0; i < LENGTH(Buttons); i++)
@@ -1009,10 +998,6 @@ leavenotify(XEvent * e) {
 		selscreen = False;
 		focus(NULL);
 	}
-#if 0
-	if ((c = getclient(ev->window, clients, ClientFrame)))
-		XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
-#endif
 }
 
 void
