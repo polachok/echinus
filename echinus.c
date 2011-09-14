@@ -250,7 +250,6 @@ applyrules(Client * c) {
 			c->isfloating = rules[i]->isfloating;
 			c->title = rules[i]->hastitle;
 			for (j = 0; rules[i]->tagregex && j < ntags; j++) {
-				c->tags[j] = False;
 				if (!regexec(rules[i]->tagregex, tags[j], 1, &tmp, 0)) {
 					matched = True;
 					c->tags[j] = True;
@@ -261,6 +260,8 @@ applyrules(Client * c) {
 		XFree(ch.res_class);
 	if (ch.res_name)
 		XFree(ch.res_name);
+	if (!matched)
+		memcpy(c->tags, curseltags, ntags * sizeof(curseltags[0]));
 }
 
 void
@@ -1011,8 +1012,6 @@ manage(Window w, XWindowAttributes * wa) {
 	c->ignoreunmap = wa->map_state == IsViewable ? 1 : 0;
 	mwm_process_atom(c);
 	updatesizehints(c);
-
-	memcpy(c->tags, cm->seltags, ntags * sizeof(cm->seltags[0]));
 
 	updatetitle(c);
 	applyrules(c);
