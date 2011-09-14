@@ -1833,7 +1833,7 @@ setup(char *conf) {
 
 	/* init cursors */
 	cursor[CurNormal] = XCreateFontCursor(dpy, XC_left_ptr);
-	cursor[CurResize] = XCreateFontCursor(dpy, XC_sizing);
+	cursor[CurResize] = XCreateFontCursor(dpy, XC_bottom_right_corner);
 	cursor[CurMove] = XCreateFontCursor(dpy, XC_fleur);
 
 	/* init modifier map */
