@@ -1256,8 +1256,8 @@ mousemove(Client * c) {
 			/* we are probably moving to a different monitor */
 			if(!(nm = curmonitor()))
 				break;
-			nx = ocx + (ev.xmotion.x - x1);
-			ny = ocy + (ev.xmotion.y - y1);
+			nx = ocx + (ev.xmotion.x_root - x1);
+			ny = ocy + (ev.xmotion.y_root - y1);
 			if (abs(nx - nm->wax) < options.snap)
 				nx = nm->wax;
 			else if (abs((nm->wax + nm->waw) - (nx + c->w +
