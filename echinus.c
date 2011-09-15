@@ -56,7 +56,7 @@
 #define BUTTONMASK		(ButtonPressMask | ButtonReleaseMask)
 #define CLEANMASK(mask)		(mask & ~(numlockmask | LockMask))
 #define MOUSEMASK		(BUTTONMASK | PointerMotionMask)
-#define CLIENTMASK	        (PropertyChangeMask | StructureNotifyMask)
+#define CLIENTMASK	        (PropertyChangeMask | StructureNotifyMask | FocusChangeMask)
 #define CLIENTNOPROPAGATEMASK 	(BUTTONMASK | ButtonMotionMask)
 #define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | EnterWindowMask | LeaveWindowMask)
 
