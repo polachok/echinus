@@ -275,8 +275,9 @@ arrangefloats(Monitor * m) {
 			       	(c->isfloating || MFEATURES(m, OVERLAP))
 			       	&& !c->ismax && !c->isicon) {
 			DPRINTF("%d %d\n", c->rx, c->ry);
-			om = getmonitor(c->rx + c->rw/2,
-				       	c->ry + c->rh/2);
+			if (!(om = getmonitor(c->rx + c->rw/2,
+				       	c->ry + c->rh/2)))
+				continue;
 			dx = om->sx + om->sw - c->rx;
 			dy = om->sy + om->sh - c->ry;
 			if (dx > m->sw) 
