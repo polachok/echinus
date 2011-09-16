@@ -296,7 +296,7 @@ initstyle() {
 	XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
 				screen), getresource("selected.fg", SELFGCOLOR), style.color.font[Selected]);
 	XftColorAllocName(dpy, DefaultVisual(dpy, screen), DefaultColormap(dpy,
-				screen), getresource("normal.fg", SELFGCOLOR), style.color.font[Normal]);
+				screen), getresource("normal.fg", NORMFGCOLOR), style.color.font[Normal]);
 	if (!style.color.font[Normal] || !style.color.font[Normal])
 		eprint("error, cannot allocate colors\n");
 	initfont(getresource("font", FONT));
