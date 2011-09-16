@@ -239,7 +239,7 @@ initpixmap(const char *file, Button *b) {
 			b->px = b->py = 0;
 		return 0;
 	} else
-		eprint("echinus: cannot load Button pixmaps, check your ~/.echinusrc\n");
+		eprint("echinus: cannot load Button pixmaps, check your configuration\n");
 	return 0;
 }
 
