@@ -78,6 +78,8 @@ drawtext(const char *text, Drawable drawable, XftDraw *xftdrawable,
 
 static int
 drawbutton(Drawable d, Button btn, unsigned long col[ColLast], int x, int y) {
+	if (btn.action == NULL)
+		return 0;
 	XSetForeground(dpy, dc.gc, col[ColBG]);
 	XFillRectangle(dpy, d, dc.gc, x, 0, dc.h, dc.h);
 	XSetForeground(dpy, dc.gc, btn.pressed ? col[ColFG] : col[ColButton]);
@@ -230,7 +232,7 @@ getcolor(const char *colstr) {
 	return color.pixel;
 }
 
-static Pixmap
+static int
 initpixmap(const char *file, Button *b) {
 	b->pm = XCreatePixmap(dpy, root, style.titleheight, style.titleheight, 1);
 	if (BitmapSuccess == XReadBitmapFile(dpy, root, file, &b->pw, &b->ph,
@@ -239,23 +241,26 @@ initpixmap(const char *file, Button *b) {
 			b->px = b->py = 0;
 		return 0;
 	} else
-		eprint("echinus: cannot load Button pixmaps, check your configuration\n");
-	return 0;
+		return 1;
 }
 
 static void
 initbuttons() {
-	XSetForeground(dpy, dc.gc, style.color.norm[ColButton]);
-	XSetBackground(dpy, dc.gc, style.color.norm[ColBG]);
-	initpixmap(getresource("button.iconify.pixmap", ICONPIXMAP),
-	    &button[Iconify]);
-	initpixmap(getresource("button.maximize.pixmap", MAXPIXMAP),
-	    &button[Maximize]);
-	initpixmap(getresource("button.close.pixmap", CLOSEPIXMAP), &button[Close]);
 	button[Iconify].action = iconify;
 	button[Maximize].action = togglemax;
 	button[Close].action = killclient;
 	button[Iconify].x = button[Close].x = button[Maximize].x = -1;
+	XSetForeground(dpy, dc.gc, style.color.norm[ColButton]);
+	XSetBackground(dpy, dc.gc, style.color.norm[ColBG]);
+	if (initpixmap(getresource("button.iconify.pixmap", ICONPIXMAP),
+	    &button[Iconify]))
+		button[Iconify].action = NULL;
+	if (initpixmap(getresource("button.maximize.pixmap", MAXPIXMAP),
+	    &button[Maximize]))
+		button[Maximize].action = NULL;
+	if (initpixmap(getresource("button.close.pixmap", CLOSEPIXMAP),
+	    &button[Close]))
+		button[Close].action = NULL;
 }
 
 static void

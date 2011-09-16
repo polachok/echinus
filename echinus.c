@@ -381,6 +381,8 @@ buttonpress(XEvent * e) {
 		DPRINTF("TITLE %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
 		for (i = 0; i < LastBtn; i++) {
+			if (button[i].action == NULL)
+				continue;
 			if ((ev->x > button[i].x)
 			    && ((int)ev->x < (int)(button[i].x + style.titleheight))
 			    && (button[i].x != -1) && (int)ev->y < style.titleheight) {
@@ -1876,10 +1878,8 @@ setup(char *conf) {
 		/* configuration file loaded successfully; break out */
 		if (xrdb)
 			break;
-		fprintf(stderr, "echinus: cannot open configuration file %s\n", conf);
 	}
-	if (confs[i] == NULL)
-		eprint("echinus: couldn't open a configuration file\n");
+	fprintf(stderr, "echinus: no configuration file found, using defaults\n");
 
 	/* init EWMH atom */
 	initewmh();
