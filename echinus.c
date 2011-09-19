@@ -437,7 +437,6 @@ buttonpress(XEvent * e) {
 				togglemax(NULL);
 			mouseresize(c);
 		}
-		XAllowEvents(dpy, ReplayPointer, CurrentTime);
 	} else if ((c = getclient(ev->window, clients, ClientFrame))) {
 		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
 		/* Not supposed to happen */
@@ -672,9 +671,12 @@ eprint(const char *errstr, ...) {
 void
 focusin(XEvent * e) {
 	XFocusChangeEvent *ev = &e->xfocus;
+	Client *c;
 
-	if (sel && (ev->window != sel->win))
+	if (sel && ((c = getclient(ev->window, clients, ClientWindow)) != sel))
 		XSetInputFocus(dpy, sel->win, RevertToPointerRoot, CurrentTime);
+	else if (!c)
+		fprintf(stderr, "Caught FOCUSIN for unknown window 0x%x\n", ev->window);
 }
 
 void
