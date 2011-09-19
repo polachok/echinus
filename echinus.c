@@ -2327,13 +2327,17 @@ unmapnotify(XEvent * e) {
 
 void
 updateframe(Client * c) {
+	int i, f = 0;
 
 	if (!c->title)
 		return;
 
-	c->th = !c->ismax && (c->isfloating || options.dectiled ||
-			MFEATURES(clientmonitor(c), OVERLAP)) ?
-			style.titleheight : 0;
+	for (i = 0; i < ntags; i++) {
+		if (c->tags[i])
+			f += FEATURES(views[i].layout, OVERLAP);
+	}
+	c->th = !c->ismax && (c->isfloating || options.dectiled || f) ?
+				style.titleheight : 0;
 	if (!c->th)
 		XUnmapWindow(dpy, c->title);
 	else
