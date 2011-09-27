@@ -1881,7 +1881,8 @@ setup(char *conf) {
 		if (xrdb)
 			break;
 	}
-	fprintf(stderr, "echinus: no configuration file found, using defaults\n");
+	if (!xrdb)
+		fprintf(stderr, "echinus: no configuration file found, using defaults\n");
 
 	/* init EWMH atom */
 	initewmh();
