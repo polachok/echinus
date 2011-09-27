@@ -88,7 +88,9 @@ parsekey(const char *s, Key *k) {
 	k->mod = modmask;
 	pos = strchr(s, '=');
 	if (pos) {
-		tmp = emallocz((pos - opos));
+		if (pos - opos < 0)
+			opos = (char *) s;
+		tmp = emallocz(pos - opos);
 		for (; !isalnum(opos[0]); opos++);
 		strncpy(tmp, opos, pos - opos - 1);
 		k->keysym = XStringToKeysym(tmp);

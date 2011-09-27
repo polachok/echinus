@@ -24,8 +24,8 @@ DEFS = -DVERSION=\"${VERSION}\" -DSYSCONFPATH=\"${CONF}\"
 CFLAGS = -Os ${INCS} ${DEFS}
 LDFLAGS = -s ${LIBS}
 # debug flags
-#CFLAGS = -g3 -ggdb3 -std=c99 -pedantic -O0 ${INCS} -DDEBUG ${DEFS}
-#LDFLAGS = -g3 -ggdb3 ${LIBS}
+CFLAGS = -g3 -ggdb3 -std=c99 -pedantic -O0 ${INCS} -DDEBUG ${DEFS}
+LDFLAGS = -g3 -ggdb3 ${LIBS}
 
 # DEBUG: Show warnings (if any). Comment out to disable.
 #CFLAGS += -Wall -Wpadded
