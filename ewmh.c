@@ -154,7 +154,7 @@ ewmh_update_net_work_area(Client *c) {
 	int i;
 
 	geoms = malloc(sizeof(unsigned long)*4*ntags);
-	for(i = 0; i < ntags; i++) {
+	for (i = 0; i < ntags; i++) {
 		geoms[i*4] = 0;
 		geoms[i*4+1] = 0;
 		geoms[i*4+2] = DisplayWidth(dpy, screen);
@@ -327,7 +327,7 @@ getstruts(Client *c) {
 	Monitor *m;
 	unsigned long i, n;
 
-	if(!(m = clientmonitor(c)))
+	if (!(m = clientmonitor(c)))
 		return ret;
 
 	state = (unsigned long*)getatom(c->win, atom[StrutPartial], &n);

@@ -270,8 +270,8 @@ arrangefloats(Monitor * m) {
 	Monitor *om;
 	int dx, dy;
 
-	for(c = stack; c; c = c->snext) {
-		if(isvisible(c, m) && !c->isbastard &&
+	for (c = stack; c; c = c->snext) {
+		if (isvisible(c, m) && !c->isbastard &&
 			       	(c->isfloating || MFEATURES(m, OVERLAP))
 			       	&& !c->ismax && !c->isicon) {
 			DPRINTF("%d %d\n", c->rx, c->ry);
@@ -686,7 +686,7 @@ expose(XEvent * e) {
 	Client *c;
 
 	while (XCheckWindowEvent(dpy, ev->window, ExposureMask, &tmp));
-	if((c = getclient(ev->window, clients, ClientTitle)))
+	if ((c = getclient(ev->window, clients, ClientTitle)))
 		drawclient(c);
 }
 
@@ -749,7 +749,7 @@ void
 focusicon(const char *arg) {
 	Client *c;
 
-	for(c = clients; c && (!c->isicon || !isvisible(c, curmonitor())); c = c->next);
+	for (c = clients; c && (!c->isicon || !isvisible(c, curmonitor())); c = c->next);
 	if (!c)
 		return;
 	c->isicon = False;
@@ -1259,7 +1259,7 @@ mousemove(Client * c) {
 		case MotionNotify:
 			XSync(dpy, False);
 			/* we are probably moving to a different monitor */
-			if(!(nm = curmonitor()))
+			if (!(nm = curmonitor()))
 				break;
 			nx = ocx + (ev.xmotion.x_root - x1);
 			ny = ocy + (ev.xmotion.y_root - y1);
@@ -1645,7 +1645,7 @@ setlayout(const char *arg) {
 	}
 	if (sel) {
 		for (c = clients; c; c = c->next) {
-			if(isvisible(c, curmonitor())) {
+			if (isvisible(c, curmonitor())) {
 				if (wasfloat)
 					save(c);
 				if (wasfloat != FEATURES(curlayout, OVERLAP))
@@ -1733,7 +1733,7 @@ initmonitors(XEvent * e) {
 		} while (m);
 		monitors = NULL;
 	}
-	if(!running)
+	if (!running)
 	    return;
 	/* initial Xrandr setup */
 	if (XRRQueryExtension(dpy, &dummy1, &dummy2))
@@ -2088,17 +2088,17 @@ togglefill(const char *arg) {
 
 	if (!sel || sel->isfixed)
 		return;
-	for(c = clients; c; c = c->next) {
-		if(isvisible(c, m) && (c != sel) && !c->isbastard
+	for (c = clients; c; c = c->next) {
+		if (isvisible(c, m) && (c != sel) && !c->isbastard
 			       	&& (c->isfloating || MFEATURES(m, OVERLAP))) {
-			if(c->y + c->h > sel->y && c->y < sel->y + sel->h) {
-				if(c->x < sel->x)
+			if (c->y + c->h > sel->y && c->y < sel->y + sel->h) {
+				if (c->x < sel->x)
 					x1 = max(x1, c->x + c->w + style.border);
 				else
 					x2 = min(x2, c->x - style.border);
 			}
-			if(c->x + c->w > sel->x && c->x < sel->x + sel->w) {
-				if(c->y < sel->y)
+			if (c->x + c->w > sel->x && c->x < sel->x + sel->w) {
+				if (c->y < sel->y)
 					y1 = max(y1, c->y + c->h + style.border);
 				else
 					y2 = max(y2, c->y - style.border);
@@ -2109,7 +2109,7 @@ togglefill(const char *arg) {
 	w = x2 - x1;
 	h = y2 - y1;
 	DPRINTF("x1 = %d w = %d y1 = %d h = %d\n", x1, w, y1, h);
-	if((w < sel->w) || (h < sel->h))
+	if ((w < sel->w) || (h < sel->h))
 		return;
 
 	if ((sel->isfill = !sel->isfill)) {
@@ -2308,7 +2308,7 @@ updatestruts(Monitor *m) {
 
 	m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] =
 		m->struts[BotStrut] = 0;
-	for(c = clients; c; c = c->next)
+	for (c = clients; c; c = c->next)
 		if (c->hasstruts)
 			getstruts(c);
 }
