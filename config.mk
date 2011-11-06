@@ -15,8 +15,8 @@ X11INC?= /usr/X11R6/include
 X11LIB?= /usr/X11R6/lib
 
 # includes and libs
-INCS = -I. -I/usr/include -I${X11INC} `pkg-config --cflags xft`
-LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 `pkg-config --libs xft`
+INCS = -I. -I${X11INC} `pkg-config --cflags xft`
+LIBS = -L${X11LIB} -lX11 `pkg-config --libs xft`
 
 DEFS = -DVERSION=\"${VERSION}\" -DSYSCONFPATH=\"${CONF}\"
 
