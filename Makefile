@@ -13,19 +13,21 @@ all: options echinus ${HEADERS}
 
 options:
 	@echo echinus build options:
+	@echo "CPPFLAGS = ${CPPFLAGS}"
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
+	@echo "LIBS     = ${LIBS}"
 	@echo "CC       = ${CC}"
 
 .c.o:
 	@echo CC $<
-	@${CC} -c ${CFLAGS} $<
+	@${CC} ${CPPFLAGS} -c ${CFLAGS} $<
 
 ${OBJ}: config.mk ${HEADERS}
 
 echinus: ${OBJ} ${SRC} ${HEADERS}
 	@echo CC -o $@
-	@${CC} -o $@ ${OBJ} ${LDFLAGS}
+	@${CC} ${CFLAGS} ${LDFLAGS} -o $@ ${OBJ} ${LIBS}
 
 clean:
 	@echo cleaning
