@@ -11,12 +11,9 @@ CONFPREFIX?= ${PREFIX}/share/examples
 DOCPREFIX?= ${PREFIX}/share/doc
 CONF?= ${CONFPREFIX}
 
-X11INC?= /usr/X11R6/include
-X11LIB?= /usr/X11R6/lib
-
 # includes and libs
-INCS = -I. -I${X11INC} `pkg-config --cflags xft`
-LIBS = -L${X11LIB} -lX11 `pkg-config --libs xft`
+INCS = -I. `pkg-config --cflags x11 xft`
+LIBS = `pkg-config --libs x11 xft`
 
 DEFS = -DVERSION=\"${VERSION}\" -DSYSCONFPATH=\"${CONF}\"
 
