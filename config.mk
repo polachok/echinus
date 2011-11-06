@@ -2,12 +2,13 @@
 VERSION = 0.4.9
 
 # Customize below to fit your system
+INSTALL?=/usr/bin/install
 
 # paths
 PREFIX?= /usr/local
 BINPREFIX?= ${PREFIX}/bin
 MANPREFIX?= ${PREFIX}/share/man
-CONFPREFIX?= ${PREFIX}/share/examples
+CONFPREFIX?= ${PREFIX}/share/echinus
 DOCPREFIX?= ${PREFIX}/share/doc
 CONF?= ${CONFPREFIX}
 

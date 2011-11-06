@@ -44,19 +44,18 @@ dist: clean
 
 install: all
 	@echo installing executable file to ${DESTDIR}${BINPREFIX}
-	mkdir -p ${DESTDIR}${BINPREFIX}
-	cp -f echinus ${DESTDIR}${BINPREFIX}
-	chmod 755 ${DESTDIR}${BINPREFIX}/echinus
-	@echo installing configuration file and pixmaps to ${DESTDIR}${CONFPREFIX}/echinus
-	mkdir -p ${DESTDIR}${CONFPREFIX}/echinus
-	cp echinusrc ${DESTDIR}${CONFPREFIX}/echinus
-	cp ${PIXMAPS} ${DESTDIR}${CONFPREFIX}/echinus
+	$(INSTALL) -D -m 755 echinus ${DESTDIR}${BINPREFIX}/echinus
+	@echo installing configuration file and pixmaps to ${DESTDIR}${CONFPREFIX}
+	$(INSTALL) -D -m 644 echinusrc ${DESTDIR}${CONFPREFIX}/echinusrc
+	for file in $(PIXMAPS); do \
+		$(INSTALL) -m 644 $${file} ${DESTDIR}${CONFPREFIX}/$${file} ; \
+	done ;
 	@echo installing manual page to ${DESTDIR}${MANPREFIX}/man1
-	mkdir -p ${DESTDIR}${MANPREFIX}/man1
-	sed "s/VERSION/${VERSION}/g;s|CONFDIR|${DESTDIR}${CONF}|g" < echinus.1 > ${DESTDIR}${MANPREFIX}/man1/echinus.1
-	@echo installing README to ${DESTDIR}${DOCPREFIX}/echinus
-	mkdir -p ${DESTDIR}${DOCPREFIX}/echinus
-	sed "s|CONFDIR|${CONF}|" < README > ${DESTDIR}${DOCPREFIX}/echinus/README
+	sed -i -e "s/VERSION/${VERSION}/g;s|CONFDIR|${DESTDIR}${CONF}|g" echinus.1
+	$(INSTALL) -D -m 644 echinus.1 ${DESTDIR}${MANPREFIX}/man1/echinus.1
+	@echo installing README to ${DESTDIR}${DOCPREFIX}/echinus-${VERSION}
+	sed -i -e "s|CONFDIR|${CONF}|" README
+	$(INSTALL) -D -m 644 README ${DESTDIR}${DOCPREFIX}/echinus-${VERSION}/README
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${BINPREFIX}/bin
