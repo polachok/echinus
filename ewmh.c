@@ -35,6 +35,7 @@ const char *atomnames[NATOMS][1] = {
 	{ "_NET_WM_WINDOW_TYPE_DOCK"	},
 	{ "_NET_WM_WINDOW_TYPE_DIALOG"	},
 	{ "_NET_WM_STRUT_PARTIAL"	},
+	{ "_NET_WM_STRUT"		},
 	{ "_ECHINUS_SELTAGS"		},
 	{ "_NET_WM_NAME"		},
 	{ "_NET_WM_STATE"		},
@@ -149,16 +150,16 @@ ewmh_update_net_window_desktop(Client *c) {
 }
 
 void
-ewmh_update_net_work_area(Client *c) {
+ewmh_update_net_work_area(Monitor *m) {
 	unsigned long *geoms;
 	int i;
 
 	geoms = malloc(sizeof(unsigned long)*4*ntags);
 	for (i = 0; i < ntags; i++) {
-		geoms[i*4] = 0;
-		geoms[i*4+1] = 0;
-		geoms[i*4+2] = DisplayWidth(dpy, screen);
-		geoms[i*4+3] = DisplayHeight(dpy, screen);
+		geoms[i*4] = m->struts[LeftStrut];
+		geoms[i*4+1] = m->struts[TopStrut];
+		geoms[i*4+2] = DisplayWidth(dpy, screen) - m->struts[LeftStrut] - m->struts[RightStrut];
+		geoms[i*4+3] = DisplayHeight(dpy, screen) - m->struts[TopStrut] - m->struts[BotStrut];
 	}
 	XChangeProperty(dpy, root,
 	    atom[WorkArea], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) geoms, ntags*4);
@@ -336,6 +337,16 @@ getstruts(Client *c) {
 			m->struts[i] = max(state[i], m->struts[i]);
 		ret = 1;
 	}
+	else {
+		XFree(state);
+		
+		state = (unsigned long*)getatom(c->win, atom[Strut], &n);
+		if (n) {
+			for (i = LeftStrut; i < LastStrut; i++)
+				m->struts[i] = max(state[i], m->struts[i]);
+			ret = 1;
+		}
+	}
 	XFree(state);
 	return ret;
 }
@@ -348,5 +359,4 @@ void (*updateatom[]) (Client *) = {
 	[DeskNames] = ewmh_update_net_desktop_names,
 	[CurDesk] = ewmh_update_net_current_desktop,
 	[ELayout] = update_echinus_layout_name,
-	[WorkArea] = ewmh_update_net_work_area,
 };

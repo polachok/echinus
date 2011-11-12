@@ -3,7 +3,7 @@
 enum { ClientList, ActiveWindow, WindowDesk,
 	NumberOfDesk, DeskNames, CurDesk, ELayout, WorkArea,
 	ClientListStacking, WindowOpacity, WindowType,
-	WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial,
+	WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial, Strut,
 	ESelTags,
 	WindowName, WindowState, WindowStateFs, WindowStateModal,
 	WindowStateHidden, WMCheck,
@@ -123,6 +123,7 @@ void mwm_process_atom(Client * c);
 void setopacity(Client * c, unsigned int opacity);
 extern void (*updateatom[]) (Client *);
 int getstruts(Client * c);
+void ewmh_update_net_work_area(Monitor *m);
 
 /* main */
 void arrange(Monitor * m);

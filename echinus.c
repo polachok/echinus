@@ -1774,7 +1774,7 @@ initmonitors(XEvent * e) {
 		XRRFreeCrtcInfo(ci);
 	}
 	XRRFreeScreenResources(sr);
-	updateatom[WorkArea](NULL);
+	ewmh_update_net_work_area(m);
 	return;
       no_xrandr:
 #endif
@@ -1789,7 +1789,7 @@ initmonitors(XEvent * e) {
 	m->seltags[0] = True;
 	m->next = NULL;
 	monitors = m;
-	updateatom[WorkArea](NULL);;
+	ewmh_update_net_work_area(m);
 }
 
 void
@@ -2300,6 +2300,7 @@ updategeom(Monitor * m) {
 	case StrutsOff:
 		break;
 	}
+	ewmh_update_net_work_area(m);
 }
 
 void
