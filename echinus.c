@@ -1774,7 +1774,6 @@ initmonitors(XEvent * e) {
 		XRRFreeCrtcInfo(ci);
 	}
 	XRRFreeScreenResources(sr);
-	ewmh_update_net_work_area(m);
 	return;
       no_xrandr:
 #endif
@@ -1789,7 +1788,6 @@ initmonitors(XEvent * e) {
 	m->seltags[0] = True;
 	m->next = NULL;
 	monitors = m;
-	ewmh_update_net_work_area(m);
 }
 
 void

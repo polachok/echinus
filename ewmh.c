@@ -156,10 +156,10 @@ ewmh_update_net_work_area(Monitor *m) {
 
 	geoms = malloc(sizeof(unsigned long)*4*ntags);
 	for (i = 0; i < ntags; i++) {
-		geoms[i*4] = m->struts[LeftStrut];
-		geoms[i*4+1] = m->struts[TopStrut];
-		geoms[i*4+2] = DisplayWidth(dpy, screen) - m->struts[LeftStrut] - m->struts[RightStrut];
-		geoms[i*4+3] = DisplayHeight(dpy, screen) - m->struts[TopStrut] - m->struts[BotStrut];
+		geoms[i*4] = m->wax;
+		geoms[i*4+1] = m->way;
+		geoms[i*4+2] = m->waw;
+		geoms[i*4+3] = m->wah;
 	}
 	XChangeProperty(dpy, root,
 	    atom[WorkArea], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) geoms, ntags*4);
