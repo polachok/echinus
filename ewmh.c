@@ -152,14 +152,25 @@ ewmh_update_net_window_desktop(void *p) {
 void
 ewmh_update_net_work_area() {
 	unsigned long *geoms;
-	int i;
+	Monitor *m = monitors;
+	int i, x, y, w, h;
 
 	geoms = malloc(sizeof(unsigned long)*4*ntags);
+	x = m->wax - m->sx;
+	y = m->way - m->sy;
+	w = m->waw;
+	h = m->wah;
+	for (m = m->next; m != NULL; m = m->next) {
+		x = max(x, m->wax - m->sx);
+		y = max(y, m->way - m->sy);
+		w = min(w, m->waw);
+		h = min(h, m->wah);
+	}
 	for (i = 0; i < ntags; i++) {
-		geoms[i*4] = 0;
-		geoms[i*4+1] = 0;
-		geoms[i*4+2] = DisplayWidth(dpy, screen);
-		geoms[i*4+3] = DisplayHeight(dpy, screen);
+		geoms[i*4] = x;
+		geoms[i*4+1] = y;
+		geoms[i*4+2] = w;
+		geoms[i*4+3] = h;
 	}
 	XChangeProperty(dpy, root,
 	    atom[WorkArea], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) geoms, ntags*4);
