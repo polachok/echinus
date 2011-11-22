@@ -1047,6 +1047,11 @@ manage(Window w, XWindowAttributes * wa) {
 		place(c);
 
 	cm = c->isbastard ? getmonitor(wa->x, wa->y) : clientmonitor(c);
+	if (!cm) {
+		DPRINTF("Cannot find monitor for window 0x%x,"
+				"requested coordinates %d,%d\n", w, wa->x, wa->y);
+		cm = curmonitor();
+	}
 	c->hasstruts = getstruts(c); 
 	if (c->isbastard) {
 		free(c->tags);
