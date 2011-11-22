@@ -631,12 +631,11 @@ enternotify(XEvent * e) {
 	if (!curmonitor())
 		return;
 	if ((c = getclient(ev->window, clients, ClientFrame))) {
-#if 0 /* WTF ? */
-		if (!isvisible(sel, curmonitor()))
-			focus(c);
-#endif 
 		if (c->isbastard)
 			return;
+		/* focus when switching monitors */
+		if (!isvisible(sel, curmonitor()))
+			focus(c);
 		switch (options.focus) {
 		case Clk2Focus:
 			break;
