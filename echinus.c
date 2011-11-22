@@ -1789,7 +1789,7 @@ initmonitors(XEvent * e) {
 	m->seltags[0] = True;
 	m->next = NULL;
 	monitors = m;
-	updateatom[WorkArea](NULL);;
+	updateatom[WorkArea](NULL);
 }
 
 void
@@ -2286,13 +2286,13 @@ void
 updategeom(Monitor * m) {
 	m->wax = m->sx;
 	m->way = m->sy;
-	m->wah = m->sh;
 	m->waw = m->sw;
+	m->wah = m->sh;
 	switch (views[m->curtag].barpos) {
 	default:
 		m->wax += m->struts[LeftStrut];
-		m->waw -= (m->struts[RightStrut] + m->struts[LeftStrut]);
 		m->way += m->struts[TopStrut];
+		m->waw -= (m->struts[RightStrut] + m->struts[LeftStrut]);
 		m->wah = min(m->wah - m->struts[TopStrut],
 			(DisplayHeight(dpy, screen) - (m->struts[BotStrut] + m->struts[TopStrut])));
 		break;
