@@ -77,7 +77,7 @@ initewmh(void) {
 }
 
 void
-update_echinus_layout_name(Client *c) {
+update_echinus_layout_name() {
 	XChangeProperty(dpy, root, atom[ELayout],
 	    XA_STRING, 8, PropModeReplace,
 	    (const unsigned char *) &views[curmontag].layout->symbol, 1L);
@@ -140,8 +140,9 @@ ewmh_update_net_current_desktop() {
 }
 
 void
-ewmh_update_net_window_desktop(Client *c) {
+ewmh_update_net_window_desktop(void *p) {
 	unsigned int i;
+	Client *c = (Client *)p;
 
 	for (i = 0; i < ntags && !c->tags[i]; i++);
 	XChangeProperty(dpy, c->win,
@@ -149,7 +150,7 @@ ewmh_update_net_window_desktop(Client *c) {
 }
 
 void
-ewmh_update_net_work_area(Client *c) {
+ewmh_update_net_work_area() {
 	unsigned long *geoms;
 	int i;
 
@@ -340,7 +341,7 @@ getstruts(Client *c) {
 	return ret;
 }
 
-void (*updateatom[]) (Client *) = {
+void (*updateatom[]) (void *) = {
 	[ClientList] = ewmh_update_net_client_list,
 	[ActiveWindow] = ewmh_update_net_active_window,
 	[WindowDesk] = ewmh_update_net_window_desktop,
