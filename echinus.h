@@ -3,7 +3,7 @@
 enum { ClientList, ActiveWindow, WindowDesk,
 	NumberOfDesk, DeskNames, CurDesk, ELayout, WorkArea,
 	ClientListStacking, WindowOpacity, WindowType,
-	WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial,
+	WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial, Strut,
 	ESelTags,
 	WindowName, WindowState, WindowStateFs, WindowStateModal,
 	WindowStateHidden, WMCheck,
