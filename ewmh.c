@@ -371,4 +371,5 @@ void (*updateatom[]) (void *) = {
 	[DeskNames] = ewmh_update_net_desktop_names,
 	[CurDesk] = ewmh_update_net_current_desktop,
 	[ELayout] = update_echinus_layout_name,
+	[WorkArea] = ewmh_update_net_work_area,
 };

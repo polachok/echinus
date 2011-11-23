@@ -123,7 +123,6 @@ void mwm_process_atom(Client * c);
 void setopacity(Client * c, unsigned int opacity);
 extern void (*updateatom[]) (void *);
 int getstruts(Client * c);
-void ewmh_update_net_work_area(Monitor *m);
 
 /* main */
 void arrange(Monitor * m);
