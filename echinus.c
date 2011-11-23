@@ -631,12 +631,11 @@ enternotify(XEvent * e) {
 	if (!curmonitor())
 		return;
 	if ((c = getclient(ev->window, clients, ClientFrame))) {
-#if 0 /* WTF ? */
-		if (!isvisible(sel, curmonitor()))
-			focus(c);
-#endif 
 		if (c->isbastard)
 			return;
+		/* focus when switching monitors */
+		if (!isvisible(sel, curmonitor()))
+			focus(c);
 		switch (options.focus) {
 		case Clk2Focus:
 			break;
@@ -1047,6 +1046,11 @@ manage(Window w, XWindowAttributes * wa) {
 		place(c);
 
 	cm = c->isbastard ? getmonitor(wa->x, wa->y) : clientmonitor(c);
+	if (!cm) {
+		DPRINTF("Cannot find monitor for window 0x%x,"
+				"requested coordinates %d,%d\n", w, wa->x, wa->y);
+		cm = curmonitor();
+	}
 	c->hasstruts = getstruts(c); 
 	if (c->isbastard) {
 		free(c->tags);
@@ -1774,6 +1778,7 @@ initmonitors(XEvent * e) {
 		XRRFreeCrtcInfo(ci);
 	}
 	XRRFreeScreenResources(sr);
+	updateatom[WorkArea] (NULL);
 	return;
       no_xrandr:
 #endif
@@ -1788,6 +1793,7 @@ initmonitors(XEvent * e) {
 	m->seltags[0] = True;
 	m->next = NULL;
 	monitors = m;
+	updateatom[WorkArea] (NULL);
 }
 
 void
@@ -2284,13 +2290,13 @@ void
 updategeom(Monitor * m) {
 	m->wax = m->sx;
 	m->way = m->sy;
-	m->wah = m->sh;
 	m->waw = m->sw;
+	m->wah = m->sh;
 	switch (views[m->curtag].barpos) {
 	default:
 		m->wax += m->struts[LeftStrut];
-		m->waw -= (m->struts[RightStrut] + m->struts[LeftStrut]);
 		m->way += m->struts[TopStrut];
+		m->waw -= (m->struts[RightStrut] + m->struts[LeftStrut]);
 		m->wah = min(m->wah - m->struts[TopStrut],
 			(DisplayHeight(dpy, screen) - (m->struts[BotStrut] + m->struts[TopStrut])));
 		break;
@@ -2298,7 +2304,7 @@ updategeom(Monitor * m) {
 	case StrutsOff:
 		break;
 	}
-	ewmh_update_net_work_area(m);
+	updateatom[WorkArea] (NULL);
 }
 
 void

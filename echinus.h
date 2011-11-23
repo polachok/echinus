@@ -121,7 +121,7 @@ void *getatom(Window win, Atom atom, unsigned long *nitems);
 void initewmh(void);
 void mwm_process_atom(Client * c);
 void setopacity(Client * c, unsigned int opacity);
-extern void (*updateatom[]) (Client *);
+extern void (*updateatom[]) (void *);
 int getstruts(Client * c);
 void ewmh_update_net_work_area(Monitor *m);
 

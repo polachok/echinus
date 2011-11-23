@@ -78,7 +78,7 @@ initewmh(void) {
 }
 
 void
-update_echinus_layout_name(Client *c) {
+update_echinus_layout_name() {
 	XChangeProperty(dpy, root, atom[ELayout],
 	    XA_STRING, 8, PropModeReplace,
 	    (const unsigned char *) &views[curmontag].layout->symbol, 1L);
@@ -141,8 +141,9 @@ ewmh_update_net_current_desktop() {
 }
 
 void
-ewmh_update_net_window_desktop(Client *c) {
+ewmh_update_net_window_desktop(void *p) {
 	unsigned int i;
+	Client *c = (Client *)p;
 
 	for (i = 0; i < ntags && !c->tags[i]; i++);
 	XChangeProperty(dpy, c->win,
@@ -150,16 +151,27 @@ ewmh_update_net_window_desktop(Client *c) {
 }
 
 void
-ewmh_update_net_work_area(Monitor *m) {
+ewmh_update_net_work_area() {
 	unsigned long *geoms;
-	int i;
+	Monitor *m = monitors;
+	int i, x, y, w, h;
 
 	geoms = malloc(sizeof(unsigned long)*4*ntags);
+	x = m->wax - m->sx;
+	y = m->way - m->sy;
+	w = m->waw;
+	h = m->wah;
+	for (m = m->next; m != NULL; m = m->next) {
+		x = max(x, m->wax - m->sx);
+		y = max(y, m->way - m->sy);
+		w = min(w, m->waw);
+		h = min(h, m->wah);
+	}
 	for (i = 0; i < ntags; i++) {
-		geoms[i*4] = m->wax;
-		geoms[i*4+1] = m->way;
-		geoms[i*4+2] = m->waw;
-		geoms[i*4+3] = m->wah;
+		geoms[i*4] = x;
+		geoms[i*4+1] = y;
+		geoms[i*4+2] = w;
+		geoms[i*4+3] = h;
 	}
 	XChangeProperty(dpy, root,
 	    atom[WorkArea], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) geoms, ntags*4);
@@ -351,7 +363,7 @@ getstruts(Client *c) {
 	return ret;
 }
 
-void (*updateatom[]) (Client *) = {
+void (*updateatom[]) (void *) = {
 	[ClientList] = ewmh_update_net_client_list,
 	[ActiveWindow] = ewmh_update_net_active_window,
 	[WindowDesk] = ewmh_update_net_window_desktop,
