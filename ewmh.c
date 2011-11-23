@@ -350,13 +350,14 @@ static int update_strut_atom(int a, Client *c, Monitor *m) {
 
 int
 getstruts(Client *c) {
-	int ret = 1;
+	int ret = 0;
 	Monitor *m;
 
 	if (!(m = clientmonitor(c)))
 		return ret;
 
-	if( !update_strut_atom(StrutPartial, c, m) )
+	ret = update_strut_atom(StrutPartial, c, m);
+	if( !ret )
 		ret = update_strut_atom(Strut, c, m);
 
 	return ret;
