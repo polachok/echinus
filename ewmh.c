@@ -333,33 +333,32 @@ checkatom(Window win, Atom bigatom, Atom smallatom) {
 	return ret;
 }
 
-int
-getstruts(Client *c) {
+static int update_strut_atom(int a, Client *c, Monitor *m) {
 	unsigned long *state;
 	int ret = 0;
-	Monitor *m;
 	unsigned long i, n;
 
-	if (!(m = clientmonitor(c)))
-		return ret;
-
-	state = (unsigned long*)getatom(c->win, atom[StrutPartial], &n);
+	state = (unsigned long*)getatom(c->win, atom[a], &n);
 	if (n) {
 		for (i = LeftStrut; i < LastStrut; i++)
 			m->struts[i] = max(state[i], m->struts[i]);
 		ret = 1;
 	}
-	else {
-		XFree(state);
-		
-		state = (unsigned long*)getatom(c->win, atom[Strut], &n);
-		if (n) {
-			for (i = LeftStrut; i < LastStrut; i++)
-				m->struts[i] = max(state[i], m->struts[i]);
-			ret = 1;
-		}
-	}
 	XFree(state);
+	return ret;
+}
+
+int
+getstruts(Client *c) {
+	int ret = 1;
+	Monitor *m;
+
+	if (!(m = clientmonitor(c)))
+		return ret;
+
+	if( !update_strut_atom(StrutPartial, c, m) )
+		ret = update_strut_atom(Strut, c, m);
+
 	return ret;
 }
 
