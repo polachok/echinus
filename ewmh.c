@@ -35,6 +35,7 @@ const char *atomnames[NATOMS][1] = {
 	{ "_NET_WM_WINDOW_TYPE_DOCK"	},
 	{ "_NET_WM_WINDOW_TYPE_DIALOG"	},
 	{ "_NET_WM_STRUT_PARTIAL"	},
+	{ "_NET_WM_STRUT"		},
 	{ "_ECHINUS_SELTAGS"		},
 	{ "_NET_WM_NAME"		},
 	{ "_NET_WM_STATE"		},
@@ -333,7 +334,7 @@ checkatom(Window win, Atom bigatom, Atom smallatom) {
 }
 
 int
-getstruts(Client *c) {
+getstrut(Client *c, Atom strut) {
 	unsigned long *state;
 	int ret = 0;
 	Monitor *m;
@@ -342,7 +343,7 @@ getstruts(Client *c) {
 	if (!(m = clientmonitor(c)))
 		return ret;
 
-	state = (unsigned long*)getatom(c->win, atom[StrutPartial], &n);
+	state = (unsigned long*)getatom(c->win, strut, &n);
 	if (n) {
 		for (i = LeftStrut; i < LastStrut; i++)
 			m->struts[i] = max(state[i], m->struts[i]);
@@ -350,6 +351,10 @@ getstruts(Client *c) {
 	}
 	XFree(state);
 	return ret;
+}
+
+int getstruts(Client *c) {
+	return (getstrut(c, atom[StrutPartial]) || getstrut(c, atom[Strut]));
 }
 
 void (*updateatom[]) (void *) = {
