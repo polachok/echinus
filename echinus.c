@@ -974,7 +974,6 @@ killclient(const char *arg) {
 void
 leavenotify(XEvent * e) {
 	XCrossingEvent *ev = &e->xcrossing;
-	Client *c;
 
 	if ((ev->window == root) && !ev->same_screen) {
 		selscreen = False;
@@ -985,7 +984,7 @@ leavenotify(XEvent * e) {
 void
 manage(Window w, XWindowAttributes * wa) {
 	Client *c, *t = NULL;
-	Monitor *m, *cm = NULL;
+	Monitor *cm = NULL;
 	Window trans;
 	XWindowChanges wc;
 	XSetWindowAttributes twa;
@@ -1552,7 +1551,6 @@ restack(Monitor * m) {
 	assert(i == n);
 	XRestackWindows(dpy, wl, n);
 	free(wl);
-      end:
 	XSync(dpy, False);
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
