@@ -24,6 +24,7 @@ struct Monitor {
 	Bool *seltags;
 	Bool *prevtags;
 	Monitor *next;
+	int mx, my;
 	unsigned int curtag;
 };
 

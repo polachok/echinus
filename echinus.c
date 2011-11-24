@@ -1765,6 +1765,8 @@ initmonitors(XEvent * e) {
 			m->sy = m->way = ci->y;
 			m->sw = m->waw = ci->width;
 			m->sh = m->wah = ci->height;
+			m->mx = m->sx + m->sw/2;
+			m->my = m->sy + m->sh/2;
 			m->curtag = n;
 			m->prevtags = emallocz(ntags * sizeof(Bool));
 			m->seltags = emallocz(ntags * sizeof(Bool));
@@ -1785,6 +1787,8 @@ initmonitors(XEvent * e) {
 	m->sy = m->way = 0;
 	m->sw = m->waw = DisplayWidth(dpy, screen);
 	m->sh = m->wah = DisplayHeight(dpy, screen);
+	m->mx = m->sx + m->sw/2;
+	m->my = m->sy + m->sh/2;
 	m->curtag = 0;
 	m->prevtags = emallocz(ntags * sizeof(Bool));
 	m->seltags = emallocz(ntags * sizeof(Bool));
@@ -2163,10 +2167,14 @@ togglemonitor(const char *arg) {
 	int x, y;
 
 	getpointer(&x, &y);
-	for (cm = curmonitor(), m = monitors; m == cm && m && m->next; m = m->next);
+	if (!(cm = getmonitor(x, y)))
+		return;
+	cm->mx = x;
+	cm->my = y;
+	for (m = monitors; m == cm && m && m->next; m = m->next);
 	if (!m)
 		return;
-	XWarpPointer(dpy, None, root, 0, 0, 0, 0, m->sx + x % m->sw, m->sy + y % m->sh);
+	XWarpPointer(dpy, None, root, 0, 0, 0, 0, m->mx, m->my);
 	focus(NULL);
 }
 
