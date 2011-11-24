@@ -78,14 +78,14 @@ initewmh(void) {
 }
 
 void
-update_echinus_layout_name() {
+update_echinus_layout_name(void *p) {
 	XChangeProperty(dpy, root, atom[ELayout],
 	    XA_STRING, 8, PropModeReplace,
 	    (const unsigned char *) &views[curmontag].layout->symbol, 1L);
 }
 
 void
-ewmh_update_net_client_list() {
+ewmh_update_net_client_list(void *p) {
 	Window *wins = NULL;
 	Client *c;
 	int i, n = 0;
@@ -114,14 +114,14 @@ ewmh_update_net_client_list() {
 }
 
 void
-ewmh_update_net_number_of_desktops() {
+ewmh_update_net_number_of_desktops(void *p) {
 	XChangeProperty(dpy, root,
 	    atom[NumberOfDesk], XA_CARDINAL, 32, PropModeReplace,
 	    (unsigned char *) &ntags, 1);
 }
 
 void
-ewmh_update_net_current_desktop() {
+ewmh_update_net_current_desktop(void *p) {
 	Monitor *m;
 	unsigned long *seltags;
 	unsigned int i;
@@ -151,7 +151,7 @@ ewmh_update_net_window_desktop(void *p) {
 }
 
 void
-ewmh_update_net_work_area() {
+ewmh_update_net_work_area(void *p) {
 	unsigned long *geoms;
 	Monitor *m = monitors;
 	int i, x, y, w, h;
@@ -179,7 +179,7 @@ ewmh_update_net_work_area() {
 }
 
 void
-ewmh_update_net_desktop_names() {
+ewmh_update_net_desktop_names(void *p) {
 	char buf[1024], *pos;
 	unsigned int i;
 	int len = 0;
@@ -197,7 +197,7 @@ ewmh_update_net_desktop_names() {
 }
 
 void
-ewmh_update_net_active_window() {
+ewmh_update_net_active_window(void *p) {
 	Window win;
 
 	win = sel ? sel->win : None;
