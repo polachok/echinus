@@ -2138,8 +2138,8 @@ togglemax(const char *arg) {
 	updateframe(sel);
 	if (sel->ismax) {
 		save(sel);
-		resize(sel, m->wax - sel->border,
-		    m->way - sel->border - sel->th, m->waw, m->wah + sel->th, False);
+		resize(sel, m->sx - sel->border,
+		    m->sy - sel->border - sel->th, m->sw, m->sh + sel->th, False);
 	} else {
 		resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, True);
 	}
