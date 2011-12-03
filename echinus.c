@@ -1532,14 +1532,13 @@ restack(Monitor * m) {
 	wl = malloc(sizeof(Window) * n);
 	i = 0;
 	for (c = stack; c && i < n; c = c->snext)
+		if (isvisible(c, m) && !c->isicon)
+			if (!c->isbastard && c->isfloating)
+				wl[i++] = c->frame;
+	for (c = stack; c && i < n; c = c->snext)
 		if (isvisible(c, m) && !c->isicon && c->isbastard &&
 		    !checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
 			wl[i++] = c->frame;
-	for (c = stack; c && i < n; c = c->snext)
-		if (isvisible(c, m) && !c->isicon) {
-			if (!c->isbastard && c->isfloating)
-				wl[i++] = c->frame;
-		}
 	for (c = stack; c && i < n; c = c->snext) 
 		if (isvisible(c, m) && !c->isicon)
 			if (!c->isfloating && !c->isbastard)
