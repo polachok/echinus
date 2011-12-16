@@ -2091,7 +2091,7 @@ togglefill(const char *arg) {
 	y1 = m->way;
 	y2 = m->sh;
 
-	if (!sel || sel->isfixed)
+	if (!sel || sel->isfixed || !sel->isfloating || MFEATURES(m, OVERLAP))
 		return;
 	for (c = clients; c; c = c->next) {
 		if (isvisible(c, m) && (c != sel) && !c->isbastard
@@ -2131,7 +2131,7 @@ togglemax(const char *arg) {
 	XEvent ev;
 	Monitor *m = curmonitor();
 
-	if (!sel || sel->isfixed)
+	if (!sel || sel->isfixed || !sel->isfloating || MFEATURES(m, OVERLAP))
 		return;
 	sel->ismax = !sel->ismax;
 	updateframe(sel);
