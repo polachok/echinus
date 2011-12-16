@@ -60,11 +60,6 @@
 #define CLIENTNOPROPAGATEMASK 	(BUTTONMASK | ButtonMotionMask)
 #define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | EnterWindowMask | LeaveWindowMask)
 
-/* function-like macros */
-#define save(_c) { (_c)->rx = (_c)->x; \
-	       	(_c)->ry = (_c)->y; \
-		(_c)->rw = (_c)->w; \
-		(_c)->rh = (_c)->h; }
 
 /* enums */
 enum { StrutsOn, StrutsOff, StrutsHide };		    /* struts position */
@@ -129,6 +124,7 @@ void restart(const char *arg);
 void resize(Client * c, int x, int y, int w, int h, Bool sizehints);
 void restack(Monitor * m);
 void run(void);
+void save(Client * c);
 void scan(void);
 void setclientstate(Client * c, long state);
 void setlayout(const char *arg);
@@ -1577,6 +1573,14 @@ run(void) {
 				(handler[ev.type]) (&ev);	/* call handler */
 		}
 	}
+}
+
+void
+save(Client *c) {
+	c->rx = c->x;
+	c->ry = c->y;
+	c->rw = c->w;
+	c->rh = c->h;
 }
 
 void
