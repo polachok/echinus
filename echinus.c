@@ -533,7 +533,6 @@ configurerequest(XEvent * e) {
 	int x, y, w, h;
 
 	if ((c = getclient(ev->window, clients, ClientWindow))) {
-		c->ismax = False;
 		cm = clientmonitor(c);
 		if (ev->value_mask & CWBorderWidth)
 			c->border = ev->border_width;
@@ -551,6 +550,7 @@ configurerequest(XEvent * e) {
 			    && (ev->value_mask & (CWWidth | CWHeight))) {
 				DPRINTF("RESIZE %s (%d,%d)->(%d,%d)\n", c->name, c->w, c->h, w, h);
 				resize(c, c->x, c->y, w, h, True);
+				save(c);
 			} else if ((ev->value_mask & (CWX | CWY)) /* move request */
 			    && !(ev->value_mask & (CWWidth | CWHeight))) {
 				DPRINTF("MOVE %s (%d,%d)->(%d,%d)\n", c->name, c->x, c->y, x, y);
