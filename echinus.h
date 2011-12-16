@@ -157,6 +157,7 @@ void togglemax(const char *arg);
 void togglemonitor(const char *arg);
 void toggletag(const char *arg);
 void toggleview(const char *arg);
+void updateframe(Client *c);
 void view(const char *arg);
 void viewlefttag(const char *arg);
 void viewprevtag(const char *arg);

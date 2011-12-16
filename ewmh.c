@@ -239,17 +239,19 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 		focus(c);
 		if (set && !c->ismax) {
 			c->wasfloating = c->isfloating;
-			c->isfloating = True;
+			if (!c->isfloating)
+				c->isfloating = True;
+			togglemax(NULL);
 			data[0] = state;
-		} else {
+		} else if (!set && c->ismax) {
+			togglemax(NULL);
 			c->isfloating = c->wasfloating;
-			c->wasfloating = True;
+			updateframe(c);
 			data[0] = None;
 		}
 		XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
 		    PropModeReplace, (unsigned char *) data, 2);
 		DPRINT;
-		togglemax(NULL);
 		arrange(curmonitor());
 		DPRINTF("%s: x%d y%d w%d h%d\n", c->name, c->x, c->y, c->w, c->h);
 	}
