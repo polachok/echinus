@@ -240,13 +240,13 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 		if (set && !c->ismax) {
 			c->wasfloating = c->isfloating;
 			if (!c->isfloating)
-				c->isfloating = True;
+				togglefloating(NULL);
 			togglemax(NULL);
 			data[0] = state;
 		} else if (!set && c->ismax) {
 			togglemax(NULL);
-			c->isfloating = c->wasfloating;
-			updateframe(c);
+			if (!c->wasfloating)
+				togglefloating(NULL);
 			data[0] = None;
 		}
 		XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
