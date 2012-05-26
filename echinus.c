@@ -416,8 +416,7 @@ buttonpress(XEvent * e) {
 		drawclient(c);
 		if (ev->type == ButtonRelease)
 			return;
-		if (FEATURES(curlayout, OVERLAP) || c->isfloating)
-			XRaiseWindow(dpy, c->frame);
+		restack(curmonitor());
 		if (ev->button == Button1)
 			mousemove(c);
 		else if (ev->button == Button3)
@@ -425,8 +424,7 @@ buttonpress(XEvent * e) {
 	} else if ((c = getclient(ev->window, clients, ClientWindow))) {
 		DPRINTF("WINDOW %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
-		if (FEATURES(curlayout, OVERLAP) || c->isfloating)
-			XRaiseWindow(dpy, c->frame);
+		restack(curmonitor());
 		if (CLEANMASK(ev->state) != modkey) {
 			XAllowEvents(dpy, ReplayPointer, CurrentTime);
 			return;
