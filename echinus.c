@@ -67,6 +67,7 @@ enum { CurNormal, CurResize, CurMove, CurLast };	    /* cursor */
 enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise };    /* focus model */
 
 /* function declarations */
+void applyatoms(Client * c);
 void applyrules(Client * c);
 void arrange(Monitor * m);
 void attach(Client * c);
@@ -228,6 +229,22 @@ void (*handler[LASTEvent]) (XEvent *) = {
 };
 
 /* function implementations */
+void
+applyatoms(Client * c) {
+	unsigned int *t;
+	unsigned long n;
+	int i;
+
+	/* restore tag number from atom */
+	t = (unsigned int*)getatom(c->win, atom[WindowDesk], &n);
+	if (n != 0) {
+		if (*t >= ntags)
+			return;
+		for (i = 0; i < ntags; i++)
+			c->tags[i] = (i == *t) ? 1 : 0;
+	}
+}
+
 void
 applyrules(Client * c) {
 	static char buf[512];
@@ -1013,6 +1030,7 @@ manage(Window w, XWindowAttributes * wa) {
 
 	updatetitle(c);
 	applyrules(c);
+	applyatoms(c);
 
 	if (XGetTransientForHint(dpy, w, &trans)) {
 		if (t = getclient(trans, clients, ClientWindow)) {
