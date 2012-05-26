@@ -1551,26 +1551,14 @@ restack(Monitor * m) {
 
 void
 run(void) {
-	fd_set rd;
-	int xfd;
 	XEvent ev;
 
 	/* main event loop */
 	XSync(dpy, False);
-	xfd = ConnectionNumber(dpy);
 	while (running) {
-		FD_ZERO(&rd);
-		FD_SET(xfd, &rd);
-		if (select(xfd + 1, &rd, NULL, NULL, NULL) == -1) {
-			if (errno == EINTR)
-				continue;
-			eprint("select failed\n");
-		}
-		while (XPending(dpy)) {
-			XNextEvent(dpy, &ev);
-			if (handler[ev.type])
-				(handler[ev.type]) (&ev);	/* call handler */
-		}
+		XNextEvent(dpy, &ev);
+		if(handler[ev.type])
+			(handler[ev.type]) (&ev);	/* call handler */
 	}
 }
 
@@ -1941,8 +1929,6 @@ spawn(const char *arg) {
 	 * clean from stupid signal handlers. */
 	if (fork() == 0) {
 		if (fork() == 0) {
-			if (dpy)
-				close(ConnectionNumber(dpy));
 			setsid();
 			execl(shell, shell, "-c", arg, (char *) NULL);
 			fprintf(stderr, "echinus: execl '%s -c %s'", shell, arg);
