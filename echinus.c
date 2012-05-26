@@ -394,10 +394,9 @@ buttonpress(XEvent * e) {
 				return;
 			}
 		}
-		for (i = 0; i < LastBtn; i++) {
+		for (i = 0; i < LastBtn; i++)
 			button[i].pressed = 0;
-			drawclient(c);
-		}
+		drawclient(c);
 		if (ev->type == ButtonRelease)
 			return;
 		if (FEATURES(curlayout, OVERLAP) || c->isfloating)
