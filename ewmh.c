@@ -54,6 +54,10 @@ const char *atomnames[NATOMS][1] = {
 	{ "_MOTIF_WM_HINTS"		},
 };
 
+#define _NET_WM_STATE_REMOVE	0
+#define _NET_WM_STATE_ADD	1
+#define _NET_WM_STATE_TOGGLE	2
+
 void
 initewmh(void) {
 	int i;
@@ -237,13 +241,15 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 	data[1] = None;
 	if (state == atom[WindowStateFs]) {
 		focus(c);
-		if (set && !c->ismax) {
+		if ((set == _NET_WM_STATE_ADD || set == _NET_WM_STATE_TOGGLE)
+				&& !c->ismax) {
 			c->wasfloating = c->isfloating;
 			if (!c->isfloating)
 				togglefloating(NULL);
 			togglemax(NULL);
 			data[0] = state;
-		} else if (!set && c->ismax) {
+		} else if ((set == _NET_WM_STATE_REMOVE ||
+				set == _NET_WM_STATE_TOGGLE) && c->ismax) {
 			togglemax(NULL);
 			if (!c->wasfloating)
 				togglefloating(NULL);
