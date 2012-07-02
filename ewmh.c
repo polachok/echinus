@@ -146,7 +146,7 @@ ewmh_update_net_current_desktop(void *p) {
 
 void
 ewmh_update_net_window_desktop(void *p) {
-	unsigned int i;
+	unsigned long i;
 	Client *c = (Client *)p;
 
 	for (i = 0; i < ntags && !c->tags[i]; i++);
