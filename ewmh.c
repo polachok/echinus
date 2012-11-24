@@ -43,6 +43,7 @@ const char *atomnames[NATOMS][1] = {
 	{ "_NET_WM_STATE_MODAL"		},
 	{ "_NET_WM_STATE_HIDDEN"	},
 	{ "_NET_SUPPORTING_WM_CHECK"	},
+	{ "_NET_CLOSE_WINDOW" 		},
 	{ "UTF8_STRING"			},
 	{ "_NET_SUPPORTED"		},
 	{ "WM_PROTOCOLS"		},
@@ -270,7 +271,11 @@ clientmessage(XEvent *e) {
 	XClientMessageEvent *ev = &e->xclient;
 	Client *c;
 
-	if (ev->message_type == atom[ActiveWindow]) {
+	if (ev->message_type == atom[CloseWindow]) {
+		if ((c = getclient(ev->window, clients, ClientWindow)))
+			killclient(c);
+	}
+	else if (ev->message_type == atom[ActiveWindow]) {
 		if ((c = getclient(ev->window, clients, ClientWindow))) {
 				c->isicon = False;
 				focus(c);

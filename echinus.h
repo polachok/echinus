@@ -6,7 +6,7 @@ enum { ClientList, ActiveWindow, WindowDesk,
 	WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial,
 	Strut, ESelTags,
 	WindowName, WindowState, WindowStateFs, WindowStateModal,
-	WindowStateHidden, WMCheck,
+	WindowStateHidden, WMCheck, CloseWindow,
 	Utf8String, Supported, WMProto, WMDelete, WMName, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, NATOMS
 }; /* keep in sync with atomnames[][] in ewmh.c */
