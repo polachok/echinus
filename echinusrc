@@ -14,6 +14,7 @@ Echinus*button.iconify.pixmap: iconify.xbm
 Echinus*button.maximize.pixmap: max.xbm
 Echinus*button.close.pixmap: close.xbm
 
+Echinus*attachaside: 0
 Echinus*sloppy: 0
 Echinus*opacity: 0.8
 Echinus*decoratetiled: 0

@@ -70,7 +70,7 @@ enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise };    /* focus model */
 void applyatoms(Client * c);
 void applyrules(Client * c);
 void arrange(Monitor * m);
-void attach(Client * c);
+void attach(Client * c, Bool attachaside);
 void attachstack(Client * c);
 void ban(Client * c);
 void buttonpress(XEvent * e);
@@ -189,6 +189,7 @@ unsigned int numlockmask;
 #include "config.h"
 
 struct {
+	Bool attachaside;
 	Bool dectiled;
 	Bool hidebastards;
 	int focus;
@@ -338,11 +339,24 @@ arrange(Monitor * m) {
 }
 
 void
-attach(Client * c) {
-	if (clients)
-		clients->prev = c;
-	c->next = clients;
-	clients = c;
+attach(Client * c, Bool attachaside) {
+	if (attachaside) {
+		if (clients) {
+			Client * lastClient = clients;
+			while (lastClient->next)
+				lastClient = lastClient->next;
+			c->prev = lastClient;
+			lastClient->next = c;
+		}
+		else
+			clients = c;
+	}
+	else {
+		if (clients)
+			clients->prev = c;
+		c->next = clients;
+		clients = c;
+	}
 }
 
 void
@@ -1118,7 +1132,7 @@ manage(Window w, XWindowAttributes * wa) {
 		c->title = (Window) NULL;
 	}
 
-	attach(c);
+	attach(c, options.attachaside);
 	attachstack(c);
 
 	twa.event_mask = CLIENTMASK;
@@ -1928,6 +1942,7 @@ setup(char *conf) {
 
 	/* init appearance */
 	initstyle();
+	options.attachaside = atoi(getresource("attachaside", "1"));
 	strncpy(options.command, getresource("command", COMMAND), LENGTH(options.command));
 	options.command[LENGTH(options.command) - 1] = '\0';
 	options.dectiled = atoi(getresource("decoratetiled", STR(DECORATETILED)));
@@ -2547,7 +2562,7 @@ zoom(const char *arg) {
 		if (!(c = nexttiled(c->next, curmonitor())))
 			return;
 	detach(c);
-	attach(c);
+	attach(c, 0);
 	arrange(curmonitor());
 	focus(c);
 }
