@@ -136,6 +136,13 @@ Every relative path specified is relative to the directory in which the
 configuration file is in.
 .Sh MAIN SETTINGS
 .Bl -tag -width Ds
+.It Ic attachaside
+Set new windows as slave or master.
+.Bl -column "Character" "Meaning" -offset indent
+.It Sy "Value" Ta Sy "Meaning"
+.It Li "0" Ta "New windows as master"
+.It Li "1" Ta "New masters as slave"
+.El
 .It Ic deflayout
 Layout applied to tag if not explicitly set by tags.layout later.
 .Bl -column "Character" "Meaning" -offset indent
