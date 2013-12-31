@@ -20,7 +20,15 @@ nodist_man1_MANS = echinus.man
 dist_pkgdata_DATA = close.xbm echinusrc iconify.xbm max.xbm
 nodist_doc_DATA = README.echinus
 
-EXTRA_DIST = LICENSE echinus.1 README
+EXTRA_DIST = LICENSE echinus.1 README TODO ChangeLog \
+	     debian/changelog \
+	     debian/compat \
+	     debian/control \
+	     debian/copyright \
+	     debian/docs \
+	     debian/menu \
+	     debian/rules \
+	     debian/watch
 
 CLEANFILES = echinus.man README.echinus
 
