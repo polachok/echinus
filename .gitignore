@@ -1,4 +1,3 @@
-*.tar.*
 *~
 aclocal.m4
 autoconf.h
@@ -23,5 +22,6 @@ README.echinus
 scripts/
 stamp-h1
 .*.sw[op]
+*.tar.*
 _test/
 tests/ewmhpanel
