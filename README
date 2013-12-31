@@ -16,6 +16,7 @@ Packages containing this stuff are probably named libx11-dev and libxft-dev
 disabled with --disable-xrandr if not needed). XRandr-enabled binary still
 works with single monitor configurations.
 
+# ./autogen.sh                # if working from git
 # ./configure --prefix=/usr
 # make
 # make install
