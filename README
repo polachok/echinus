@@ -13,9 +13,10 @@ echinus wm.
 You need X11 and Xft headers to compile echinus wm and the pkg-config tool.
 Packages containing this stuff are probably named libx11-dev and libxft-dev
 (note "-dev" suffix). You need libxrandr for multihead support (can be 
-disabled in config.mk if not needed). XRandr-enabled binary still works
-with single monitor configurations.
+disabled with --disable-xrandr if not needed). XRandr-enabled binary still
+works with single monitor configurations.
 
+# ./configure --prefix=/usr
 # make
 # make install
 
