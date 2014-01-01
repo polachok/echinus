@@ -25,3 +25,4 @@ stamp-h1
 *.tar.*
 _test/
 tests/ewmhpanel
+cscope.*

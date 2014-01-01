@@ -269,11 +269,14 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 void
 clientmessage(XEvent *e) {
 	XClientMessageEvent *ev = &e->xclient;
-	Client *c;
+	Client *c, *old_sel;
 
 	if (ev->message_type == atom[CloseWindow]) {
-		if ((c = getclient(ev->window, clients, ClientWindow)))
-			killclient(c);
+		if ((c = getclient(ev->window, clients, ClientWindow))) {
+			old_sel = sel;
+			killclient(NULL);
+			sel = old_sel;
+		}
 	}
 	else if (ev->message_type == atom[ActiveWindow]) {
 		if ((c = getclient(ev->window, clients, ClientWindow))) {

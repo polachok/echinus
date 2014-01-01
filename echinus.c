@@ -39,6 +39,7 @@
 #include <signal.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
+#include <X11/XKBlib.h>
 #include <X11/XF86keysym.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
@@ -553,11 +554,11 @@ configurerequest(XEvent * e) {
 	Client *c;
 	XConfigureRequestEvent *ev = &e->xconfigurerequest;
 	XWindowChanges wc;
-	Monitor *cm;
-	int x, y, w, h;
+	/* Monitor *cm; */
+	int x = 0, y = 0, w = 0, h = 0;
 
 	if ((c = getclient(ev->window, clients, ClientWindow))) {
-		cm = clientmonitor(c);
+		/* cm = clientmonitor(c); */
 		if (ev->value_mask & CWBorderWidth)
 			c->border = ev->border_width;
 		if (c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
@@ -569,7 +570,7 @@ configurerequest(XEvent * e) {
 				w = ev->width;
 			if (ev->value_mask & CWHeight)
 				h = ev->height + c->th;
-			cm = getmonitor(x, y);
+			/* cm = getmonitor(x, y); */
 			if (!(ev->value_mask & (CWX | CWY)) /* resize request */
 			    && (ev->value_mask & (CWWidth | CWHeight))) {
 				DPRINTF("RESIZE %s (%d,%d)->(%d,%d)\n", c->name, c->w, c->h, w, h);
@@ -699,7 +700,7 @@ focusin(XEvent * e) {
 	if (sel && ((c = getclient(ev->window, clients, ClientWindow)) != sel))
 		XSetInputFocus(dpy, sel->win, RevertToPointerRoot, CurrentTime);
 	else if (!c)
-		fprintf(stderr, "Caught FOCUSIN for unknown window 0x%x\n", ev->window);
+		fprintf(stderr, "Caught FOCUSIN for unknown window 0x%lx\n", ev->window);
 }
 
 void
@@ -966,7 +967,7 @@ keypress(XEvent * e) {
 	if (!curmonitor())
 		return;
 	ev = &e->xkey;
-	keysym = XKeycodeToKeysym(dpy, (KeyCode) ev->keycode, 0);
+	keysym = XkbKeycodeToKeysym(dpy, (KeyCode) ev->keycode, 0, 0);
 	for (i = 0; i < nkeys; i++)
 		if (keysym == keys[i]->keysym
 		    && CLEANMASK(keys[i]->mod) == CLEANMASK(ev->state)) {
@@ -1045,7 +1046,7 @@ manage(Window w, XWindowAttributes * wa) {
 	applyatoms(c);
 
 	if (XGetTransientForHint(dpy, w, &trans)) {
-		if (t = getclient(trans, clients, ClientWindow)) {
+		if ((t = getclient(trans, clients, ClientWindow))) {
 			memcpy(c->tags, t->tags, ntags * sizeof(cm->seltags[0]));
 			c->isfloating = True;
 		}
@@ -1319,12 +1320,12 @@ mousemove(Client * c) {
 void
 mouseresize(Client * c) {
 	int ocx, ocy, nw, nh;
-	Monitor *cm;
+	/* Monitor *cm; */
 	XEvent ev;
 
 	if (c->isbastard || c->isfixed)
 		return;
-	cm = curmonitor();
+	/* cm = curmonitor(); */
 
 	ocx = c->x;
 	ocy = c->y;
@@ -1463,8 +1464,6 @@ quit(const char *arg) {
 
 void
 resize(Client * c, int x, int y, int w, int h, Bool sizehints) {
-	XWindowChanges wc;
-
 	if (sizehints) {
 		h -= c->th;
 		/* set minimum possible */
@@ -1839,9 +1838,9 @@ inittags() {
 	views = emallocz(ntags * sizeof(View));
 	tags = emallocz(ntags * sizeof(char *));
 	for (i = 0; i < ntags; i++) {
-		tags[i] = emallocz(25);
+		tags[i] = emallocz(sizeof(tmp));
 		snprintf(tmp, sizeof(tmp), "tags.name%d", i);
-		snprintf(tags[i], sizeof(tags[i]), "%s", getresource(tmp,
+		snprintf(tags[i], sizeof(tmp), "%s", getresource(tmp,
 		    "null"));
 	}
 }
@@ -1913,7 +1912,8 @@ setup(char *conf) {
 		slash = strrchr(conf, '/');
 		if (slash)
 			snprintf(path, slash - conf + 1, "%s", conf);
-		chdir(path);
+		if (chdir(path) != 0)
+			fprintf(stderr, "echinus: cannot change directory\n");
 		xrdb = XrmGetFileDatabase(conf);
 		/* configuration file loaded successfully; break out */
 		if (xrdb)
@@ -1956,7 +1956,8 @@ setup(char *conf) {
 		updategeom(m);
 	}
 
-	chdir(oldcwd);
+	if (chdir(oldcwd) != 0)
+		fprintf(stderr, "echinus: cannot change directory\n");
 
 	/* multihead support */
 	selscreen = XQueryPointer(dpy, root, &w, &w, &d, &d, &d, &d, &mask);
