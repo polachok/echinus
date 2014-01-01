@@ -7,6 +7,7 @@
  *
  */
 
+#include <unistd.h>
 #include <regex.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
@@ -37,6 +38,7 @@ const char *atomnames[NATOMS][1] = {
 	{ "_NET_WM_STRUT_PARTIAL"	},
 	{ "_NET_WM_STRUT"		},
 	{ "_ECHINUS_SELTAGS"		},
+	{ "_NET_WM_PID"			},
 	{ "_NET_WM_NAME"		},
 	{ "_NET_WM_STATE"		},
 	{ "_NET_WM_STATE_FULLSCREEN"	},
@@ -65,6 +67,7 @@ initewmh(void) {
 	char name[] = "echinus";
 	XSetWindowAttributes wa;
 	Window win;
+	long data;
 
 	for (i = 0; i < NATOMS; i++)
 		atom[i] = XInternAtom(dpy, atomnames[i][0], False);
@@ -78,6 +81,9 @@ initewmh(void) {
 			DefaultVisual(dpy, screen), CWOverrideRedirect, &wa);
 	XChangeProperty(dpy, win, atom[WindowName], atom[Utf8String], 8,
 		       	PropModeReplace, (unsigned char*)name, strlen(name));
+	data = getpid();
+	XChangeProperty(dpy, win, atom[WindowPid], XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char*)&data, 1);
 	XChangeProperty(dpy, root, atom[WMCheck], XA_WINDOW, 32,
 		       	PropModeReplace, (unsigned char*)&win, 1);
 	XChangeProperty(dpy, win, atom[WMCheck], XA_WINDOW, 32,

@@ -5,7 +5,7 @@ enum { ClientList, ActiveWindow, WindowDesk,
 	ClientListStacking, WindowOpacity, WindowType,
 	WindowTypeDesk, WindowTypeDock, WindowTypeDialog, StrutPartial,
 	Strut, ESelTags,
-	WindowName, WindowState, WindowStateFs, WindowStateModal,
+	WindowPid, WindowName, WindowState, WindowStateFs, WindowStateModal,
 	WindowStateHidden, WMCheck, CloseWindow,
 	Utf8String, Supported, WMProto, WMDelete, WMName, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, NATOMS
