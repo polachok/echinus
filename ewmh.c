@@ -80,6 +80,8 @@ initewmh(void) {
 		       	PropModeReplace, (unsigned char*)name, strlen(name));
 	XChangeProperty(dpy, root, atom[WMCheck], XA_WINDOW, 32,
 		       	PropModeReplace, (unsigned char*)&win, 1);
+	XChangeProperty(dpy, win, atom[WMCheck], XA_WINDOW, 32,
+			PropModeReplace, (unsigned char*)&win, 1);
 }
 
 void
