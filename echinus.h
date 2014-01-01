@@ -9,7 +9,7 @@ enum { ClientList, ActiveWindow, WindowDesk,
 	WindowStateHidden, WMCheck, CloseWindow,
 	Utf8String, Supported, WMProto, WMDelete, WMName, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, NATOMS
-}; /* keep in sync with atomnames[][] in ewmh.c */
+}; /* keep in sync with atomnames[] in ewmh.c */
 
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut }; /* ewmh struts */
 enum { ColFG, ColBG, ColBorder, ColButton, ColLast };	/* colors */
@@ -119,7 +119,7 @@ Bool checkatom(Window win, Atom bigatom, Atom smallatom);
 void clientmessage(XEvent * e);
 void ewmh_process_state_atom(Client * c, Atom state, int set);
 void *getatom(Window win, Atom atom, unsigned long *nitems);
-void initewmh(void);
+void initewmh(Window w);
 void mwm_process_atom(Client * c);
 void setopacity(Client * c, unsigned int opacity);
 extern void (*updateatom[]) (void *);
@@ -163,6 +163,7 @@ void viewlefttag(const char *arg);
 void viewprevtag(const char *arg);
 void viewrighttag(const char *arg);
 void zoom(const char *arg);
+void selectionclear(XEvent *e);
 
 /* parse.c */
 void initrules();

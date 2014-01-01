@@ -20,41 +20,41 @@
 Atom atom[NATOMS];
 
 /* keep in sync with enum in echinus.h */
-const char *atomnames[NATOMS][1] = {
-	{ "_NET_CLIENT_LIST"		},
-	{ "_NET_ACTIVE_WINDOW"		},
-	{ "_NET_WM_DESKTOP"		},
-	{ "_NET_NUMBER_OF_DESKTOPS"	},
-	{ "_NET_DESKTOP_NAMES"		},
-	{ "_NET_CURRENT_DESKTOP"	},
-	{ "_ECHINUS_LAYOUT"		},
-	{ "_NET_WORKAREA"		},
-	{ "_NET_CLIENT_LIST_STACKING"	},
-	{ "_NET_WM_WINDOW_OPACITY"	},
-	{ "_NET_WM_WINDOW_TYPE"		},
-	{ "_NET_WM_WINDOW_TYPE_DESKTOP"	},
-	{ "_NET_WM_WINDOW_TYPE_DOCK"	},
-	{ "_NET_WM_WINDOW_TYPE_DIALOG"	},
-	{ "_NET_WM_STRUT_PARTIAL"	},
-	{ "_NET_WM_STRUT"		},
-	{ "_ECHINUS_SELTAGS"		},
-	{ "_NET_WM_PID"			},
-	{ "_NET_WM_NAME"		},
-	{ "_NET_WM_STATE"		},
-	{ "_NET_WM_STATE_FULLSCREEN"	},
-	{ "_NET_WM_STATE_MODAL"		},
-	{ "_NET_WM_STATE_HIDDEN"	},
-	{ "_NET_SUPPORTING_WM_CHECK"	},
-	{ "_NET_CLOSE_WINDOW" 		},
-	{ "UTF8_STRING"			},
-	{ "_NET_SUPPORTED"		},
-	{ "WM_PROTOCOLS"		},
-	{ "WM_DELETE_WINDOW"		},
-	{ "WM_NAME"			},
-	{ "WM_STATE"			},
-	{ "WM_CHANGE_STATE"		},
-	{ "WM_TAKE_FOCUS"		},
-	{ "_MOTIF_WM_HINTS"		},
+char *atomnames[NATOMS] = {
+	"_NET_CLIENT_LIST",
+	"_NET_ACTIVE_WINDOW",
+	"_NET_WM_DESKTOP",
+	"_NET_NUMBER_OF_DESKTOPS",
+	"_NET_DESKTOP_NAMES",
+	"_NET_CURRENT_DESKTOP",
+	"_ECHINUS_LAYOUT",
+	"_NET_WORKAREA",
+	"_NET_CLIENT_LIST_STACKING",
+	"_NET_WM_WINDOW_OPACITY",
+	"_NET_WM_WINDOW_TYPE",
+	"_NET_WM_WINDOW_TYPE_DESKTOP",
+	"_NET_WM_WINDOW_TYPE_DOCK",
+	"_NET_WM_WINDOW_TYPE_DIALOG",
+	"_NET_WM_STRUT_PARTIAL",
+	"_NET_WM_STRUT",
+	"_ECHINUS_SELTAGS",
+	"_NET_WM_PID",
+	"_NET_WM_NAME",
+	"_NET_WM_STATE",
+	"_NET_WM_STATE_FULLSCREEN",
+	"_NET_WM_STATE_MODAL",
+	"_NET_WM_STATE_HIDDEN",
+	"_NET_SUPPORTING_WM_CHECK",
+	"_NET_CLOSE_WINDOW",
+	"UTF8_STRING",
+	"_NET_SUPPORTED",
+	"WM_PROTOCOLS",
+	"WM_DELETE_WINDOW",
+	"WM_NAME",
+	"WM_STATE",
+	"WM_CHANGE_STATE",
+	"WM_TAKE_FOCUS",
+	"_MOTIF_WM_HINTS"
 };
 
 #define _NET_WM_STATE_REMOVE	0
@@ -62,23 +62,15 @@ const char *atomnames[NATOMS][1] = {
 #define _NET_WM_STATE_TOGGLE	2
 
 void
-initewmh(void) {
-	int i;
+initewmh(Window win) {
 	char name[] = "echinus";
-	XSetWindowAttributes wa;
-	Window win;
 	long data;
 
-	for (i = 0; i < NATOMS; i++)
-		atom[i] = XInternAtom(dpy, atomnames[i][0], False);
+	XInternAtoms(dpy, atomnames, NATOMS, False, atom);
 	XChangeProperty(dpy, root,
 	    atom[Supported], XA_ATOM, 32,
 	    PropModeReplace, (unsigned char *) atom, NATOMS);
 
-	wa.override_redirect = True;
-	win = XCreateWindow(dpy, root, -100, 0, 1, 1,
-			0, DefaultDepth(dpy, screen), CopyFromParent,
-			DefaultVisual(dpy, screen), CWOverrideRedirect, &wa);
 	XChangeProperty(dpy, win, atom[WindowName], atom[Utf8String], 8,
 		       	PropModeReplace, (unsigned char*)name, strlen(name));
 	data = getpid();

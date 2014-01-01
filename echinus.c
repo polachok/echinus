@@ -162,10 +162,12 @@ int (*xerrorxlib) (Display *, XErrorEvent *);
 void zoom(const char *arg);
 
 /* variables */
+int cargc;
 char **cargv;
 Display *dpy;
 int screen;
 Window root;
+Window selwin;
 XrmDatabase xrdb;
 Bool otherwm;
 Bool running = True;
@@ -225,6 +227,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[ReparentNotify] = reparentnotify,
 	[UnmapNotify] = unmapnotify,
 	[ClientMessage] = clientmessage,
+	[SelectionClear] = selectionclear,
 #ifdef XRANDR
 	[RRScreenChangeNotify] = initmonitors,
 #endif
@@ -468,8 +471,117 @@ buttonpress(XEvent * e) {
 	}
 }
 
+static Bool selectionreleased(Display *display, XEvent *event, XPointer arg) {
+	if (event->type == DestroyNotify) {
+		if (event->xdestroywindow.window == (Window)arg) {
+			return True;
+		}
+	}
+	return False;
+}
+
+void
+selectionclear(XEvent * e)
+{
+	char *name = XGetAtomName(dpy, e->xselectionclear.selection);
+
+	if (name != NULL && strncmp(name, "WM_S", 4) == 0)
+		/* lost WM selection - must exit */
+		quit(NULL);
+	if (name)
+		XFree(name);
+}
+
 void
 checkotherwm(void) {
+	Atom _XA_WM_SN, _XA_WM_PROTOCOLS, _XA_MANAGER;
+	Window wm_sn_owner;
+	XTextProperty hname;
+	XClassHint class_hint;
+	XClientMessageEvent manager_event;
+	char name[32], hostname[64] = { 0, };
+	char *names[25] = {
+		"WM_COMMAND",
+		"WM_HINTS",
+		"WM_CLIENT_MACHINE",
+		"WM_ICON_NAME",
+		"WM_NAME",
+		"WM_NORMAL_HINTS",
+		"WM_SIZE_HINTS",
+		"WM_ZOOM_HINTS",
+		"WM_CLASS",
+		"WM_TRANSIENT_FOR",
+		"WM_CLIENT_LEADER",
+		"WM_DELETE_WINDOW",
+		"WM_LOCALE_NAME",
+		"WM_PROTOCOLS",
+		"WM_TAKE_FOCUS",
+		"WM_WINDOW_ROLE",
+		"WM_STATE",
+		"WM_CHANGE_STATE",
+		"WM_SAVE_YOURSELF",
+		"SM_CLIENT_ID",
+		"_MOTIF_WM_HINTS",
+		"_MOTIF_WM_MESSAGES",
+		"_MOTIF_WM_OFFSET",
+		"_MOTIF_WM_INFO",
+		"__SWM_ROOT"
+	};
+	Atom atoms[25] = { None, };
+
+	snprintf(name, 32, "WM_S%d", screen);
+	_XA_WM_SN = XInternAtom(dpy, name, False);
+	_XA_WM_PROTOCOLS = XInternAtom(dpy, "WM_PROTOCOLS", False);
+	_XA_MANAGER = XInternAtom(dpy, "MANAGER", False);
+	selwin = XCreateSimpleWindow(dpy, root, DisplayWidth(dpy, screen),
+			DisplayHeight(dpy, screen), 1, 1, 0, 0L, 0L);
+	XGrabServer(dpy);
+	wm_sn_owner = XGetSelectionOwner(dpy, _XA_WM_SN);
+	if (wm_sn_owner != None) {
+		XSelectInput(dpy, wm_sn_owner, StructureNotifyMask);
+		XSync(dpy, False);
+	}
+	XUngrabServer(dpy);
+
+	XSetSelectionOwner(dpy, _XA_WM_SN, selwin, CurrentTime);
+
+	if (wm_sn_owner != None) {
+		XEvent event_return;
+		XIfEvent(dpy, &event_return, &selectionreleased,
+				(XPointer) wm_sn_owner);
+		wm_sn_owner = None;
+	}
+	gethostname(hostname, 64);
+	hname.value = (unsigned char *) hostname;
+	hname.encoding = XA_STRING;
+	hname.format = 8;
+	hname.nitems = strnlen(hostname, 64);
+
+	class_hint.res_name = NULL;
+	class_hint.res_class = "Echinus";
+
+	Xutf8SetWMProperties(dpy, selwin, "Echinus version: " VERSION,
+			"echinus " VERSION, cargv, cargc, NULL, NULL,
+			&class_hint);
+	XSetWMClientMachine(dpy, selwin, &hname);
+	XInternAtoms(dpy, names, 25, False, atoms);
+	XChangeProperty(dpy, selwin, _XA_WM_PROTOCOLS, XA_ATOM, 32,
+			PropModeReplace, (unsigned char *)atoms,
+			sizeof(atoms)/sizeof(atoms[0]));
+
+	manager_event.display = dpy;
+	manager_event.type = ClientMessage;
+	manager_event.window = root;
+	manager_event.message_type = _XA_MANAGER;
+	manager_event.format = 32;
+	manager_event.data.l[0] = CurrentTime; /* FIXME: timestamp */
+	manager_event.data.l[1] = _XA_WM_SN;
+	manager_event.data.l[2] = selwin;
+	manager_event.data.l[3] = 2;
+	manager_event.data.l[4] = 0;
+	XSendEvent(dpy, root, False, StructureNotifyMask, (XEvent *)&manager_event);
+	XSync(dpy, False);
+
 	otherwm = False;
 	XSetErrorHandler(xerrorstart);
 
@@ -1923,7 +2035,7 @@ setup(char *conf) {
 		fprintf(stderr, "echinus: no configuration file found, using defaults\n");
 
 	/* init EWMH atom */
-	initewmh();
+	initewmh(selwin);
 
 	/* init tags */
 	inittags();
@@ -2585,6 +2697,7 @@ main(int argc, char *argv[]) {
 	signal(SIGHUP, sighandler);
 	signal(SIGINT, sighandler);
 	signal(SIGQUIT, sighandler);
+	cargc = argc;
 	cargv = argv;
 	screen = DefaultScreen(dpy);
 	root = RootWindow(dpy, screen);
