@@ -318,7 +318,10 @@ clientmessage(XEvent *e) {
 			killclient(NULL);
 			sel = old_sel;
 		} else if (message_type == atom[ActiveWindow]) {
-			c->isicon = False;
+			if (c->isicon) {
+				c->isicon = False;
+				ewmh_update_state_atom(c);
+			}
 			focus(c);
 			arrange(curmonitor());
 		} else if (message_type == atom[WindowState]) {
