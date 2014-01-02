@@ -236,7 +236,7 @@ mwm_process_atom(Client *c) {
 	Atom real;
 	int format;
 	unsigned char *data = NULL;
-	CARD32 *hint;
+	long *hint;
 	unsigned long n, extra;
 #define MWM_HINTS_ELEMENTS 5
 #define MWM_DECOR_ALL(x) ((x) & (1L << 0))
@@ -246,18 +246,19 @@ mwm_process_atom(Client *c) {
 	if (XGetWindowProperty(dpy, c->win, atom[MWMHints], 0L, 20L, False,
 		atom[MWMHints], &real, &format, &n, &extra,
 		(unsigned char **) &data) == Success && n >= MWM_HINTS_ELEMENTS) {
-		hint = (CARD32 *) data;
+		hint = (long *) data;
 		if (MWM_HINTS_DECOR(hint[0]) && !(MWM_DECOR_ALL(hint[2]))) {
 			c->title = MWM_DECOR_TITLE(hint[2]) ? root : (Window) NULL;
 			c->border = MWM_DECOR_BORDER(hint[2]) ? style.border : 0;
 		}
 	}
-	XFree(data);
+	if (data)
+		XFree(data);
 }
 
 void
 ewmh_process_state_atom(Client *c, Atom state, int set) {
-	CARD32 data[2];
+	long data[2];
 
 	data[1] = None;
 	if (state == atom[WindowStateFs]) {
