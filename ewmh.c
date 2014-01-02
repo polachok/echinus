@@ -257,6 +257,21 @@ mwm_process_atom(Client *c) {
 }
 
 void
+ewmh_update_state_atom(Client *c)
+{
+	long winstate[2];
+	int states = 0;
+
+	if (c->isicon)
+		winstate[states++] = atom[WindowStateHidden];
+	if (c->isfloating && c->ismax)
+		winstate[states++] = atom[WindowStateFs];
+
+	XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
+		PropModeReplace, (unsigned char *) winstate, states);
+}
+
+void
 ewmh_process_state_atom(Client *c, Atom state, int set) {
 	long data[2];
 

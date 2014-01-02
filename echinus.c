@@ -888,7 +888,10 @@ focusicon(const char *arg) {
 	for (c = clients; c && (!c->isicon || !isvisible(c, curmonitor())); c = c->next);
 	if (!c)
 		return;
-	c->isicon = False;
+	if (c->isicon) {
+		c->isicon = False;
+		ewmh_update_state_atom(c);
+	}
 	focus(c);
 	arrange(curmonitor());
 }
@@ -939,7 +942,10 @@ iconify(const char *arg) {
 	c = sel;
 	focusnext(NULL);
 	ban(c);
-	c->isicon = True;
+	if (!c->isicon) {
+		c->isicon = True;
+		ewmh_update_state_atom(c);
+	}
 	arrange(curmonitor());
 }
 
@@ -1273,6 +1279,7 @@ manage(Window w, XWindowAttributes * wa) {
 	arrange(cm);
 	if (!checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
 		focus(NULL);
+	ewmh_update_state_atom(c);
 }
 
 void
@@ -1444,7 +1451,10 @@ mouseresize(Client * c) {
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 		GrabModeAsync, None, cursor[CurResize], CurrentTime) != GrabSuccess)
 		return;
-	c->ismax = False;
+	if (c->ismax) {
+		c->ismax = False;
+		ewmh_update_state_atom(c);
+	}
 	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->border - 1,
 	    c->h + c->border - 1);
 	for (;;) {
@@ -1546,8 +1556,10 @@ propertynotify(XEvent * e) {
 			XGetTransientForHint(dpy, c->win, &trans);
 			if (!c->isfloating
 			    && (c->isfloating =
-				(getclient(trans, clients, ClientWindow) != NULL)))
+				(getclient(trans, clients, ClientWindow) != NULL))) {
 				arrange(clientmonitor(c));
+				ewmh_update_state_atom(c);
+			}
 			return;
 		case XA_WM_NORMAL_HINTS:
 			updatesizehints(c);
@@ -1774,18 +1786,12 @@ scan(void) {
 void
 setclientstate(Client * c, long state) {
 	long data[] = { state, None };
-	long winstate[2];
 
 	XChangeProperty(dpy, c->win, atom[WMState], atom[WMState], 32,
 	    PropModeReplace, (unsigned char *) data, 2);
-	if (state == NormalState) {
+	if (state == NormalState && c->isicon) {
 		c->isicon = False;
-		XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
-		    PropModeReplace, (unsigned char *) winstate, 0);
-	} else {
-		winstate[0] = atom[WindowStateHidden];
-		XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
-		    PropModeReplace, (unsigned char *) winstate, 1);
+		ewmh_update_state_atom(c);
 	}
 }
 
@@ -2144,7 +2150,10 @@ bstack(Monitor * m) {
 	ny = m->way;
 	nh = 0;
 	for (i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
-		c->ismax = False;
+		if (c->ismax) {
+			c->ismax = False;
+			ewmh_update_state_atom(c);
+		}
 		if (i == 0) {
 			nh = mh - 2 * c->border;
 			nw = m->waw - 2 * c->border;
@@ -2187,7 +2196,10 @@ tile(Monitor * m) {
 	ny = m->way;
 	nw = 0;
 	for (i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
-		c->ismax = False;
+		if (c->ismax) {
+			c->ismax = False;
+			ewmh_update_state_atom(c);
+		}
 		if (i < views[m->curtag].nmaster) {	/* master */
 			ny = m->way + i * (mh - c->border);
 			nw = mw - 2 * c->border;
@@ -2241,6 +2253,7 @@ togglefloating(const char *arg) {
 		save(sel);
 	}
 	arrange(curmonitor());
+	ewmh_update_state_atom(sel);
 }
 
 void
@@ -2306,6 +2319,7 @@ togglemax(const char *arg) {
 	} else {
 		resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, True);
 	}
+	ewmh_update_state_atom(sel);
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
 

@@ -179,6 +179,7 @@ typedef struct {
 /* ewmh.c */
 Bool checkatom(Window win, Atom bigatom, Atom smallatom);
 void clientmessage(XEvent * e);
+void ewmh_update_state_atom(Client * c);
 void ewmh_process_state_atom(Client * c, Atom state, int set);
 void *getatom(Window win, Atom atom, unsigned long *nitems);
 void initewmh(Window w);
