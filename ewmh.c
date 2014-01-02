@@ -21,6 +21,7 @@ Atom atom[NATOMS];
 
 /* keep in sync with enum in echinus.h */
 char *atomnames[NATOMS] = {
+	"MANAGER",
 	"UTF8_STRING",
 	"WM_PROTOCOLS",
 	"WM_DELETE_WINDOW",
@@ -31,10 +32,22 @@ char *atomnames[NATOMS] = {
 	"_MOTIF_WM_HINTS",
 	"_ECHINUS_LAYOUT",
 	"_ECHINUS_SELTAGS",
+	"_NET_WM_FULLSCREEN_MONITORS",
+	"_NET_MOVERESIZE_WINDOW",
+	"_NET_WM_MOVERESIZE",
+	"_NET_DESKTOP_GEOMETRY",
+	"_NET_DESKTOP_VIEWPORT",
+	"_NET_SHOWING_DESKTOP",
+	"_NET_RESTART",
+	"_NET_SHUTDOWN",
+	"_NET_REQUEST_FRAME_EXTENTS",
+	"_NET_STARTUP_INFO_BEGIN",
+	"_NET_STARTUP_INFO",
 	/* _NET_SUPPORTED following */
 	"_NET_CLIENT_LIST",
 	"_NET_ACTIVE_WINDOW",
 	"_NET_WM_DESKTOP",
+	"_NET_WM_DESKTOP_MASK",
 	"_NET_NUMBER_OF_DESKTOPS",
 	"_NET_DESKTOP_NAMES",
 	"_NET_CURRENT_DESKTOP",
@@ -296,11 +309,43 @@ clientmessage(XEvent *e) {
 				focus(c);
 				iconify(NULL);
 			}
+		} else if (message_type == atom[WindowDesk]) {
+			/* TODO */
+		} else if (message_type == atom[WindowDeskMask]) {
+			/* TODO */
+		} else if (message_type == atom[WMProto]) {
+			/* TODO */
+		} else if (message_type == atom[WindowFsMonitors]) {
+			/* TODO */
+		} else if (message_type == atom[MoveResizeWindow]) {
+			/* TODO */
+		} else if (message_type == atom[WindowMoveResize]) {
+			/* TODO */
 		}
 	} else {
 		if (0) {
+		} else if (message_type == atom[NumberOfDesk]) {
+			/* TODO */
+		} else if (message_type == atom[DeskGeometry]) {
+			/* TODO */
+		} else if (message_type == atom[DeskViewport]) {
+			/* TODO */
 		} else if (message_type == atom[CurDesk]) {
 			view(tags[ev->data.l[0]]);
+		} else if (message_type == atom[ShowingDesktop]) {
+			/* TODO */
+		} else if (message_type == atom[WMRestart]) {
+			/* TODO */
+		} else if (message_type == atom[WMShutdown]) {
+			/* TODO */
+		} else if (message_type == atom[Manager]) {
+			/* TODO */
+		} else if (message_type == atom[RequestFrameExt]) {
+			/* TODO */
+		} else if (message_type == atom[StartupInfoBegin]) {
+			/* TODO */
+		} else if (message_type == atom[StartupInfo]) {
+			/* TODO */
 		}
 	}
 }

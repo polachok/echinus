@@ -1,11 +1,15 @@
 /* enums */
 
 enum {
+	Manager,
 	Utf8String, WMProto, WMDelete, WMName, WMState, WMChangeState,
-	WMTakeFocus, MWMHints, ELayout, ESelTags,
+	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors,
+	MoveResizeWindow, WindowMoveResize, DeskGeometry, DeskViewport,
+	ShowingDesktop, WMRestart, WMShutdown, RequestFrameExt,
+	StartupInfoBegin, StartupInfo,
 	/* _NET_SUPPORTED following */
-	ClientList, ActiveWindow, WindowDesk, NumberOfDesk, DeskNames,
-	CurDesk, WorkArea, ClientListStacking, WindowOpacity,
+	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk,
+	DeskNames, CurDesk, WorkArea, ClientListStacking, WindowOpacity,
 	WindowType, WindowTypeDesk, WindowTypeDock, WindowTypeDialog,
 	StrutPartial, Strut, WindowPid, WindowName,
 	WindowState, WindowStateFs, WindowStateModal, WindowStateHidden,
@@ -13,6 +17,7 @@ enum {
 	NATOMS
 }; /* keep in sync with atomnames[] in ewmh.c */
 
+#define _XA_MANAGER			atom[Manager]
 #define _XA_UTF8_STRING			atom[Utf8String]
 #define _XA_WM_PROTOCOLS		atom[WMProto]
 #define _XA_WM_DELETE_WINDOW		atom[WMDelete]
@@ -23,9 +28,22 @@ enum {
 #define _XA_MOTIF_WM_HINTS		atom[MWMHints]
 #define _XA_ECHINUS_LAYOUT		atom[ELayout]
 #define _XA_ECHINUS_SELTAGS		atom[ESelTags]
+#define _XA_NET_WM_FULLSCREEN_MONITORS	atom[WindowFsMonitors]
+#define _XA_NET_MOVERESIZE_WINDOW	atom[MoveResizeWindow]
+#define _XA_NET_WM_MOVERESIZE		atom[WindowMoveResize]
+#define _XA_NET_DESKTOP_GEOMETRY	atom[DeskGeometry]
+#define _XA_NET_DESKTOP_VIEWPORT	atom[DeskViewport]
+#define _XA_NET_SHOWING_DESKTOP		atom[ShowingDesktop]
+#define _XA_NET_RESTART			atom[WMRestart]
+#define _XA_NET_SHUTDOWN		atom[WMShutdown]
+#define _XA_NET_REQUEST_FRAME_EXTENTS	atom[RequestFrameExt]
+#define _XA_NET_STARTUP_INFO_BEGIN	atom[StartupInfoBegin]
+#define _XA_NET_STARTUP_INFO		atom[StartupInfo]
+
 #define _XA_NET_CLIENT_LIST		atom[ClientList]
 #define _XA_NET_ACTIVE_WINDOW		atom[ActiveWindow]
 #define _XA_NET_WM_DESKTOP		atom[WindowDesk]
+#define _XA_NET_WM_DESKTOP_MASK		atom[WindowDeskMask]
 #define _XA_NET_NUMBER_OF_DESKTOPS	atom[NumberOfDesk]
 #define _XA_NET_DESKTOP_NAMES		atom[DeskNames]
 #define _XA_NET_CURRENT_DESKTOP		atom[CurDesk]

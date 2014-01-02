@@ -494,7 +494,7 @@ selectionclear(XEvent * e)
 
 void
 checkotherwm(void) {
-	Atom _XA_WM_SN, _XA_WM_PROTOCOLS, _XA_MANAGER;
+	Atom wm_sn, wm_protocols, manager;
 	Window wm_sn_owner;
 	XTextProperty hname;
 	XClassHint class_hint;
@@ -530,20 +530,20 @@ checkotherwm(void) {
 	Atom atoms[25] = { None, };
 
 	snprintf(name, 32, "WM_S%d", screen);
-	_XA_WM_SN = XInternAtom(dpy, name, False);
-	_XA_WM_PROTOCOLS = XInternAtom(dpy, "WM_PROTOCOLS", False);
-	_XA_MANAGER = XInternAtom(dpy, "MANAGER", False);
+	wm_sn = XInternAtom(dpy, name, False);
+	wm_protocols = XInternAtom(dpy, "WM_PROTOCOLS", False);
+	manager = XInternAtom(dpy, "MANAGER", False);
 	selwin = XCreateSimpleWindow(dpy, root, DisplayWidth(dpy, screen),
 			DisplayHeight(dpy, screen), 1, 1, 0, 0L, 0L);
 	XGrabServer(dpy);
-	wm_sn_owner = XGetSelectionOwner(dpy, _XA_WM_SN);
+	wm_sn_owner = XGetSelectionOwner(dpy, wm_sn);
 	if (wm_sn_owner != None) {
 		XSelectInput(dpy, wm_sn_owner, StructureNotifyMask);
 		XSync(dpy, False);
 	}
 	XUngrabServer(dpy);
 
-	XSetSelectionOwner(dpy, _XA_WM_SN, selwin, CurrentTime);
+	XSetSelectionOwner(dpy, wm_sn, selwin, CurrentTime);
 
 	if (wm_sn_owner != None) {
 		XEvent event_return;
@@ -565,17 +565,17 @@ checkotherwm(void) {
 			&class_hint);
 	XSetWMClientMachine(dpy, selwin, &hname);
 	XInternAtoms(dpy, names, 25, False, atoms);
-	XChangeProperty(dpy, selwin, _XA_WM_PROTOCOLS, XA_ATOM, 32,
+	XChangeProperty(dpy, selwin, wm_protocols, XA_ATOM, 32,
 			PropModeReplace, (unsigned char *)atoms,
 			sizeof(atoms)/sizeof(atoms[0]));
 
 	manager_event.display = dpy;
 	manager_event.type = ClientMessage;
 	manager_event.window = root;
-	manager_event.message_type = _XA_MANAGER;
+	manager_event.message_type = manager;
 	manager_event.format = 32;
 	manager_event.data.l[0] = CurrentTime; /* FIXME: timestamp */
-	manager_event.data.l[1] = _XA_WM_SN;
+	manager_event.data.l[1] = wm_sn;
 	manager_event.data.l[2] = selwin;
 	manager_event.data.l[3] = 2;
 	manager_event.data.l[4] = 0;
