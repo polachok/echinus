@@ -270,36 +270,37 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 void
 clientmessage(XEvent *e) {
 	XClientMessageEvent *ev = &e->xclient;
-	Client *c, *old_sel;
+	Client *c;
+	Atom message_type = ev->message_type;
 
-	if (ev->message_type == atom[CloseWindow]) {
-		if ((c = getclient(ev->window, clients, ClientWindow))) {
-			old_sel = sel;
+	c = getclient(ev->window, clients, ClientWindow);
+
+	if (c) {
+		if (0) {
+		} else if (message_type == atom[CloseWindow]) {
+			Client *old_sel = sel;
+			sel = c;
 			killclient(NULL);
 			sel = old_sel;
-		}
-	}
-	else if (ev->message_type == atom[ActiveWindow]) {
-		if ((c = getclient(ev->window, clients, ClientWindow))) {
-				c->isicon = False;
-				focus(c);
-				arrange(curmonitor());
-		}
-	} else if (ev->message_type == atom[CurDesk]) {
-		view(tags[ev->data.l[0]]);
-	} else if (ev->message_type == atom[WindowState]) {
-		if ((c = getclient(ev->window, clients, ClientWindow))) {
+		} else if (message_type == atom[ActiveWindow]) {
+			c->isicon = False;
+			focus(c);
+			arrange(curmonitor());
+		} else if (message_type == atom[WindowState]) {
 			ewmh_process_state_atom(c, (Atom) ev->data.l[1], ev->data.l[0]);
 			if (ev->data.l[2])
 				ewmh_process_state_atom(c,
 				    (Atom) ev->data.l[2], ev->data.l[0]);
-		}
-	} else if (ev->message_type == atom[WMChangeState]) {
-		if ((c = getclient(ev->window, clients, ClientWindow))) {
+		} else if (message_type == atom[WMChangeState]) {
 			if (ev->data.l[0] == IconicState) {
 				focus(c);
 				iconify(NULL);
 			}
+		}
+	} else {
+		if (0) {
+		} else if (message_type == atom[CurDesk]) {
+			view(tags[ev->data.l[0]]);
 		}
 	}
 }
