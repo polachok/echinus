@@ -863,6 +863,8 @@ focus(Client * c) {
 	if (!selscreen)
 		return;
 	if (c) {
+		if (c->isattn)
+			c->isattn = False;
 		setclientstate(c, NormalState);
 		if (c->isfocusable) {
 			XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
@@ -1179,6 +1181,7 @@ manage(Window w, XWindowAttributes * wa) {
 
 	if ((wmh = XGetWMHints(dpy, c->win))) {
 		c->isfocusable = !(wmh->flags & InputHint) || wmh->input;
+		c->isattn = (wmh->flags & XUrgencyHint) ? True : False;
 		XFree(wmh);
 	}
 
@@ -1268,7 +1271,6 @@ manage(Window w, XWindowAttributes * wa) {
 	wc.border_width = 0;
 	XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
 	configure(c);	/* propagates border_width, if size doesn't change */
-	ewmh_process_net_window_state(c);
 	ban(c);
 	updateatom[ClientList] (NULL);
 	updateatom[WindowDesk] (c);
@@ -1281,6 +1283,7 @@ manage(Window w, XWindowAttributes * wa) {
 	arrange(cm);
 	if (!checkwintype(c->win, WindowTypeDesk))
 		focus(NULL);
+	ewmh_process_net_window_state(c);
 	updateatom[WindowState](c);
 	updateatom[WindowActions](c);
 }
@@ -2343,6 +2346,9 @@ toggletag(Client *c, int index) {
 	for (j = 0; j < ntags && !c->tags[j]; j++);
 	if (j == ntags)
 		c->tags[i] = True;	/* at least one tag must be enabled */
+	updateatom[WindowDesk] (c);
+	updateatom[WindowDeskMask] (c);
+	updateatom[WindowState] (c);
 	drawclient(c);
 	arrange(NULL);
 }

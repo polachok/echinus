@@ -4,7 +4,7 @@ enum {
 	Manager,
 	Utf8String, WMProto, WMDelete, WMName, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors,
-	MoveResizeWindow, WindowMoveResize, DeskGeometry, DeskViewport,
+	DeskGeometry, DeskViewport,
 	ShowingDesktop, WMRestart, WMShutdown, RequestFrameExt,
 	StartupInfoBegin, StartupInfo, DeskLayout, WindowUserTime,
 	UserTimeWindow, WindowCounter, HandledIcons, WindowTypeOverride,
@@ -13,7 +13,7 @@ enum {
 	DeskNames, CurDesk, WorkArea,
 	DeskModes, DeskModeFloating, DeskModeTiled, DeskModeBottomTiled,
 	DeskModeMonocle,
-	ClientListStacking, WindowOpacity,
+	ClientListStacking, WindowOpacity, MoveResizeWindow, WindowMoveResize,
 	WindowType, WindowTypeDesk, WindowTypeDock, WindowTypeToolbar,
 	WindowTypeMenu, WindowTypeUtil, WindowTypeSplash, WindowTypeDialog,
 	WindowTypeDrop, WindowTypePopup, WindowTypeTooltip, WindowTypeNotify,
@@ -46,8 +46,6 @@ enum {
 #define _XA_ECHINUS_LAYOUT			atom[ELayout]
 #define _XA_ECHINUS_SELTAGS			atom[ESelTags]
 #define _XA_NET_WM_FULLSCREEN_MONITORS		atom[WindowFsMonitors]
-#define _XA_NET_MOVERESIZE_WINDOW		atom[MoveResizeWindow]
-#define _XA_NET_WM_MOVERESIZE			atom[WindowMoveResize]
 #define _XA_NET_DESKTOP_GEOMETRY		atom[DeskGeometry]
 #define _XA_NET_DESKTOP_VIEWPORT		atom[DeskViewport]
 #define _XA_NET_SHOWING_DESKTOP			atom[ShowingDesktop]
@@ -78,6 +76,8 @@ enum {
 #define _XA_NET_DESKTOP_MODE_MONOCLE		atom[DeskModeMonocle]
 #define _XA_NET_CLIENT_LIST_STACKING		atom[ClientListStacking]
 #define _XA_NET_WM_WINDOW_OPACITY		atom[WindowOpacity]
+#define _XA_NET_MOVERESIZE_WINDOW		atom[MoveResizeWindow]
+#define _XA_NET_WM_MOVERESIZE			atom[WindowMoveResize]
 
 #define _XA_NET_WM_WINDOW_TYPE			atom[WindowType]
 #define _XA_NET_WM_WINDOW_TYPE_DESKTOP		atom[WindowTypeDesk]
@@ -182,8 +182,9 @@ struct Client {
 	long flags;
 	int border, oldborder;
 	Bool isbanned, ismax, isfloating, wasfloating;
-	Bool isicon, isfill;
+	Bool isicon, isfill, ismodal, isabove, isbelow, isattn;
 	Bool isfixed, isbastard, isfocusable, hasstruts;
+	Bool notaskbar, nopager, ismanaged;
 	Bool *tags;
 	Client *next;
 	Client *prev;
@@ -272,7 +273,10 @@ void focusnext(Client *c);
 void focusprev(Client *c);
 void focusview(int index);
 void killclient(Client *c);
+void configurerequest(XEvent * e);
 void moveresizekb(Client *c, int dx, int dy, int dw, int dh);
+void mousemove(Client *c);
+void mouseresize(Client *c);
 void quit(const char *arg);
 void restart(const char *arg);
 void setmwfact(const char *arg);

@@ -33,8 +33,6 @@ char *atomnames[NATOMS] = {
 	"_ECHINUS_LAYOUT",
 	"_ECHINUS_SELTAGS",
 	"_NET_WM_FULLSCREEN_MONITORS",
-	"_NET_MOVERESIZE_WINDOW",
-	"_NET_WM_MOVERESIZE",
 	"_NET_DESKTOP_GEOMETRY",
 	"_NET_DESKTOP_VIEWPORT",
 	"_NET_SHOWING_DESKTOP",
@@ -65,6 +63,8 @@ char *atomnames[NATOMS] = {
 	"_NET_DESKTOP_MODE_MONOCLE",
 	"_NET_CLIENT_LIST_STACKING",
 	"_NET_WM_WINDOW_OPACITY",
+	"_NET_MOVERESIZE_WINDOW",
+	"_NET_WM_MOVERESIZE",
 
 	"_NET_WM_WINDOW_TYPE",
 	"_NET_WM_WINDOW_TYPE_DESKTOP",
@@ -373,20 +373,36 @@ ewmh_update_net_window_state(Client *c)
 	long winstate[16];
 	int states = 0;
 
+	/* do not update until we have finished reading it */
+	if (!c->ismanaged)
+		return;
+
+	if (c->ismodal)
+		winstate[states++] = atom[WindowStateModal];
+	if (issticky(c))
+		winstate[states++] = atom[WindowStateSticky];
+	if (c->notaskbar)
+		winstate[states++] = atom[WindowStateNoTaskbar];
+	if (c->nopager)
+		winstate[states++] = atom[WindowStateNoPager];
 	if (c->isicon)
 		winstate[states++] = atom[WindowStateHidden];
 	if (c->ismax)
 		winstate[states++] = atom[WindowStateFs];
+	if (c->isabove)
+		winstate[states++] = atom[WindowStateAbove];
+	if (c->isbelow)
+		winstate[states++] = atom[WindowStateBelow];
+	if (c->isattn)
+		winstate[states++] = atom[WindowStateAttn];
+	if (c == sel)
+		winstate[states++] = atom[WindowStateFocused];
 	if (c->isfixed)
 		winstate[states++] = atom[WindowStateFixed];
 	if (c->isfloating)
 		winstate[states++] = atom[WindowStateFloating];
-	if (c == sel)
-		winstate[states++] = atom[WindowStateFocused];
 	if (c->isfill)
 		winstate[states++] = atom[WindowStateFilled];
-	if (issticky(c))
-		winstate[states++] = atom[WindowStateSticky];
 
 	XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
 		PropModeReplace, (unsigned char *) winstate, states);
@@ -399,24 +415,26 @@ ewmh_update_net_window_actions(Client *c)
 	int actions = 0;
 
 	if (!c->isbastard) {
-		// action[actions++] = atom[WindowActionAbove];
-		// action[actions++] = atom[WindowActionBelow];
+		action[actions++] = atom[WindowActionAbove];
+		action[actions++] = atom[WindowActionBelow];
 		action[actions++] = atom[WindowActionChangeDesk];
 	}
 	action[actions++] = atom[WindowActionClose];
 	if (!c->isbastard) {
-		if (c->isfloating) {
+		if (c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
 			action[actions++] = atom[WindowActionFs];
 			// action[actions++] = atom[WindowActionMaxH];
 			// action[actions++] = atom[WindowActionMaxV];
 		}
 		action[actions++] = atom[WindowActionMin];
-		action[actions++] = atom[WindowActionMove];
-		if (!c->isfixed)
-			action[actions++] = atom[WindowActionResize];
+		if (c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
+			action[actions++] = atom[WindowActionMove];
+			if (!c->isfixed)
+				action[actions++] = atom[WindowActionResize];
+		}
 		action[actions++] = atom[WindowActionStick];
 		action[actions++] = atom[WindowActionFloat];
-		if (c->isfloating) {
+		if (c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
 			// action[actions++] = atom[WindowActionShade];
 			action[actions++] = atom[WindowActionFill];
 		}
@@ -430,7 +448,13 @@ void
 ewmh_process_state_atom(Client *c, Atom state, int set) {
 	if (0) {
 	} else if (state == atom[WindowStateModal]) {
-		focus(c);
+		if ((set == _NET_WM_STATE_ADD && !c->ismodal) ||
+		    (set == _NET_WM_STATE_REMOVE && c->ismodal) ||
+		    (set == _NET_WM_STATE_TOGGLE)) {
+			c->ismodal = !c->ismodal;
+			if (c->ismodal)
+				focus(c);
+		}
 	} else if (state == atom[WindowStateSticky]) {
 		if ((set == _NET_WM_STATE_ADD || set == _NET_WM_STATE_TOGGLE)
 				&& !issticky(c)) {
@@ -468,11 +492,29 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 		}
 
 	} else if (state == atom[WindowStateMaxV]) {
+		/* TODO */
 	} else if (state == atom[WindowStateMaxH]) {
+		/* TODO */
 	} else if (state == atom[WindowStateShaded]) {
+		/* TODO */
 	} else if (state == atom[WindowStateNoTaskbar]) {
+		if ((set == _NET_WM_STATE_ADD && !c->notaskbar) ||
+		    (set == _NET_WM_STATE_REMOVE && c->notaskbar) ||
+		    (set == _NET_WM_STATE_TOGGLE)) {
+			c->notaskbar = !c->notaskbar;
+		}
 	} else if (state == atom[WindowStateNoPager]) {
+		if ((set == _NET_WM_STATE_ADD && !c->nopager) ||
+		    (set == _NET_WM_STATE_REMOVE && c->nopager) ||
+		    (set == _NET_WM_STATE_TOGGLE)) {
+			c->nopager = !c->nopager;
+		}
 	} else if (state == atom[WindowStateHidden]) {
+		/* Implementation note: if an Application asks to toggle
+		   _NET_WM_STATE_HIDDEN the Window Manager should probably just ignore
+		   the request, since _NET_WM_STATE_HIDDEN is a function of some other
+		   aspect of the window such as minimization, rather than an independent
+		   state. */
 	} else if (state == atom[WindowStateFs]) {
 		if ((set == _NET_WM_STATE_ADD || set == _NET_WM_STATE_TOGGLE)
 				&& !c->ismax) {
@@ -490,18 +532,42 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 		arrange(curmonitor());
 		DPRINTF("%s: x%d y%d w%d h%d\n", c->name, c->x, c->y, c->w, c->h);
 	} else if (state == atom[WindowStateAbove]) {
+		if ((set == _NET_WM_STATE_ADD && !c->isabove) ||
+		    (set == _NET_WM_STATE_REMOVE && c->isabove) ||
+		    (set == _NET_WM_STATE_TOGGLE)) {
+			c->isabove = !c->isabove;
+		}
 	} else if (state == atom[WindowStateBelow]) {
+		if ((set == _NET_WM_STATE_ADD && !c->isbelow) ||
+		    (set == _NET_WM_STATE_REMOVE && c->isbelow) ||
+		    (set == _NET_WM_STATE_TOGGLE)) {
+			c->isbelow = !c->isbelow;
+		}
 	} else if (state == atom[WindowStateAttn]) {
+		if ((set == _NET_WM_STATE_ADD && !c->isattn) ||
+		    (set == _NET_WM_STATE_REMOVE && c->isattn) ||
+		    (set == _NET_WM_STATE_TOGGLE)) {
+			c->isattn = !c->isattn;
+		}
 	} else if (state == atom[WindowStateFocused]) {
+		/* _NET_WM_STATE_FOCUSED indicates whether the window's decorations are
+		   drawn in an active state.  Clients MUST regard it as a read-only hint. 
+		   It cannot be set at map time or changed via a _NET_WM_STATE client
+		   message. */
 	} else if (state == atom[WindowStateFixed]) {
+		/* _NET_WM_STATE_FIXED is a read-only state. */
 	} else if (state == atom[WindowStateFloating]) {
-		if ((set == _NET_WM_STATE_ADD || set == _NET_WM_STATE_TOGGLE)
-				&& !c->isfloating) {
-		} else
-		if ((set == _NET_WM_STATE_REMOVE || set == _NET_WM_STATE_TOGGLE)
-				&& c->isfloating) {
+		if ((set == _NET_WM_STATE_ADD && !c->isfloating) ||
+		    (set == _NET_WM_STATE_REMOVE && c->isfloating) ||
+		    (set == _NET_WM_STATE_TOGGLE)) {
+			togglefloating(c);
 		}
 	} else if (state == atom[WindowStateFilled]) {
+		if ((set == _NET_WM_STATE_ADD && !c->isfill) ||
+		    (set == _NET_WM_STATE_REMOVE && c->isfill) ||
+		    (set == _NET_WM_STATE_TOGGLE)) {
+			togglefill(c);
+		}
 	}
 }
 
@@ -517,6 +583,7 @@ ewmh_process_net_window_state(Client *c) {
 		ewmh_process_state_atom(c, state[i], _NET_WM_STATE_ADD);
 	if (state)
 		XFree(state);
+	c->ismanaged = True;
 	ewmh_update_net_window_state(c);
 }
 
@@ -544,41 +611,36 @@ clientmessage(XEvent *e) {
 				    (Atom) ev->data.l[2], ev->data.l[0]);
 			ewmh_update_net_window_state(c);
 		} else if (message_type == atom[WMChangeState]) {
-			if (ev->data.l[0] == IconicState) {
+			if (ev->data.l[0] == IconicState)
 				iconify(c);
-			}
 		} else if (message_type == atom[WindowDesk]) {
 			int index = ev->data.l[0];
 
-			if (-1 <= index && index < ntags) {
+			if (-1 <= index && index < ntags)
 				tag(c, index);
-				ewmh_update_net_window_desktop(c);
-				ewmh_update_net_window_desktop_mask(c);
-				ewmh_update_net_window_state(c);
-			}
 		} else if (message_type == atom[WindowDeskMask]) {
 			unsigned index = ev->data.l[0];
 			unsigned mask = ev->data.l[1], oldmask = 0;
 			unsigned num = (ntags+31)>>5;
 			unsigned i, j;
 
-			if (0 <= index && index < num) {
-				for (i = 0, j = index<<5; j<ntags; i++, j++) {
-					if (c->tags[j])
-						oldmask |= (1<<i);
-					c->tags[j] = (mask & (1<<i)) ? True : False;
-				}
-				if (islost(c))
-					for (i = 0, j = index<<5; j<ntags; i++, j++)
-						c->tags[j] = (oldmask & (1<<i)) ? True : False;
-				else {
-					ewmh_update_net_window_desktop(c);
-					ewmh_update_net_window_desktop_mask(c);
-					ewmh_update_net_window_state(c);
-					/* what toggletag does */
-					drawclient(c);
-					arrange(NULL);
-				}
+			if (0 > index || index >= num)
+				return;
+			for (i = 0, j = index<<5; j<ntags; i++, j++) {
+				if (c->tags[j])
+					oldmask |= (1<<i);
+				c->tags[j] = (mask & (1<<i)) ? True : False;
+			}
+			if (islost(c))
+				for (i = 0, j = index<<5; j<ntags; i++, j++)
+					c->tags[j] = (oldmask & (1<<i)) ? True : False;
+			else {
+				/* what toggletag does */
+				updateatom[WindowDesk] (c);
+				updateatom[WindowDeskMask] (c);
+				updateatom[WindowState] (c);
+				drawclient(c);
+				arrange(NULL);
 			}
 			/* TODO */
 		} else if (message_type == atom[WMProto]) {
@@ -586,9 +648,81 @@ clientmessage(XEvent *e) {
 		} else if (message_type == atom[WindowFsMonitors]) {
 			/* TODO */
 		} else if (message_type == atom[MoveResizeWindow]) {
-			/* TODO */
+			XConfigureRequestEvent cre;
+			unsigned flags = (unsigned) ev->data.l[0];
+			unsigned source = ((flags >> 12) & 0x0f);
+
+			/* echinus is (unfortunately) ignoring gravity */
+			/* unsigned gravity = flags & 0xff; */
+
+			if (!(c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)))
+				return;
+			if (source != 0 && source != 2)
+				return;
+
+			cre.type = ConfigureRequest;
+			cre.send_event = False;
+			cre.display = dpy;
+			cre.parent = None;
+			cre.window = c->win;
+			cre.value_mask = 0;
+
+			if (flags & (1 << 8)) {
+				cre.value_mask |= CWX;
+				cre.x = ev->data.l[1];
+			}
+			if (flags & (1 << 9)) {
+				cre.value_mask |= CWY;
+				cre.y = ev->data.l[2];
+			}
+			if (flags & (1 << 10)) {
+				cre.value_mask |= CWWidth;
+				cre.width = ev->data.l[3];
+			}
+			if (flags & (1 << 11)) {
+				cre.value_mask |= CWHeight;
+				cre.height = ev->data.l[4];
+			}
+			configurerequest((XEvent *)&cre);
 		} else if (message_type == atom[WindowMoveResize]) {
-			/* TODO */
+			int x_root = (int) ev->data.l[0];
+			int y_root = (int) ev->data.l[1];
+			int direct = (int) ev->data.l[2];
+			int button = (int) ev->data.l[3];
+			int source = (int) ev->data.l[4];
+
+			(void) y_root;
+			(void) x_root;
+			(void) button;
+			if (source != 0 && source != 1 && source != 2)
+				return;
+			if (direct < 0 || direct > 11)
+				return;
+			switch (direct) {
+			case 0: /* _NET_WM_MOVERESIZE_SIZE_TOPLEFT */
+			case 1: /* _NET_WM_MOVERESIZE_SIZE_TOP */
+			case 2: /* _NET_WM_MOVERESIZE_SIZE_TOPRIGHT */
+			case 3: /* _NET_WM_MOVERESIZE_SIZE_RIGHT */
+			case 4: /* _NET_WM_MOVERESIZE_SIZE_BOTTOMRIGHT */
+			case 5: /* _NET_WM_MOVERESIZE_SIZE_BOTTOM */
+			case 6: /* _NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT */
+			case 7: /* _NET_WM_MOVERESIZE_SIZE_LEFT */
+				/* this just warps the pointer to the bottom
+				   right corner of the window */
+				mouseresize(c);
+				break;
+			case 8: /* _NET_WM_MOVERESIZE_MOVE */
+				mousemove(c);
+				break;
+			case 9: /* _NET_WM_MOVERESIZE_SIZE_KEYBOARD */
+				/* TODO */
+				break;
+			case 10: /* _NET_WM_MOVERESIZE_MOVE_KEYBOARD */
+				/* TODO */
+				break;
+			case 11: /* _NET_WM_MOVERESIZE_CANCEL */
+				break;
+			}
 		}
 	} else if (ev->window == root) {
 		if (0) {
