@@ -871,7 +871,7 @@ focus(Client * c) {
 		}
 		XSetWindowBorder(dpy, sel->frame, style.color.sel[ColBorder]);
 		drawclient(c);
-		ewmh_update_state_atom(c);
+		updateatom[WindowState](c);
 	} else {
 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
 	}
@@ -891,7 +891,7 @@ focusicon(const char *arg) {
 		return;
 	if (c->isicon) {
 		c->isicon = False;
-		ewmh_update_state_atom(c);
+		updateatom[WindowState](c);
 	}
 	focus(c);
 	arrange(curmonitor());
@@ -945,7 +945,7 @@ iconify(const char *arg) {
 	ban(c);
 	if (!c->isicon) {
 		c->isicon = True;
-		ewmh_update_state_atom(c);
+		updateatom[WindowState](c);
 	}
 	arrange(curmonitor());
 }
@@ -1280,7 +1280,7 @@ manage(Window w, XWindowAttributes * wa) {
 	arrange(cm);
 	if (!checkatom(c->win, atom[WindowType], atom[WindowTypeDesk]))
 		focus(NULL);
-	ewmh_update_state_atom(c);
+	updateatom[WindowState](c);
 }
 
 void
@@ -1454,7 +1454,7 @@ mouseresize(Client * c) {
 		return;
 	if (c->ismax) {
 		c->ismax = False;
-		ewmh_update_state_atom(c);
+		updateatom[WindowState](c);
 	}
 	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->border - 1,
 	    c->h + c->border - 1);
@@ -1559,7 +1559,7 @@ propertynotify(XEvent * e) {
 			    && (c->isfloating =
 				(getclient(trans, clients, ClientWindow) != NULL))) {
 				arrange(clientmonitor(c));
-				ewmh_update_state_atom(c);
+				updateatom[WindowState](c);
 			}
 			return;
 		case XA_WM_NORMAL_HINTS:
@@ -1792,7 +1792,7 @@ setclientstate(Client * c, long state) {
 	    PropModeReplace, (unsigned char *) data, 2);
 	if (state == NormalState && c->isicon) {
 		c->isicon = False;
-		ewmh_update_state_atom(c);
+		updateatom[WindowState](c);
 	}
 }
 
@@ -2155,7 +2155,7 @@ bstack(Monitor * m) {
 	for (i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
 			c->ismax = False;
-			ewmh_update_state_atom(c);
+			updateatom[WindowState](c);
 		}
 		if (i == 0) {
 			nh = mh - 2 * c->border;
@@ -2201,7 +2201,7 @@ tile(Monitor * m) {
 	for (i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
 			c->ismax = False;
-			ewmh_update_state_atom(c);
+			updateatom[WindowState](c);
 		}
 		if (i < views[m->curtag].nmaster) {	/* master */
 			ny = m->way + i * (mh - c->border);
@@ -2256,7 +2256,7 @@ togglefloating(const char *arg) {
 		save(sel);
 	}
 	arrange(curmonitor());
-	ewmh_update_state_atom(sel);
+	updateatom[WindowState](sel);
 }
 
 void
@@ -2322,7 +2322,7 @@ togglemax(const char *arg) {
 	} else {
 		resize(sel, sel->rx, sel->ry, sel->rw, sel->rh, True);
 	}
-	ewmh_update_state_atom(sel);
+	updateatom[WindowState](sel);
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
 
