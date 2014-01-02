@@ -1567,6 +1567,8 @@ propertynotify(XEvent * e) {
 			/* TODO */
 		} else if (ev->atom == atom[WindowUserTime]) {
 			/* TODO */
+		} else if (ev->atom == atom[WindowCounter]) {
+			/* TODO */
 		}
 	} else if (ev->window == root) {
 		if (0) {
