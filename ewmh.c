@@ -21,13 +21,23 @@ Atom atom[NATOMS];
 
 /* keep in sync with enum in echinus.h */
 char *atomnames[NATOMS] = {
+	"UTF8_STRING",
+	"WM_PROTOCOLS",
+	"WM_DELETE_WINDOW",
+	"WM_NAME",
+	"WM_STATE",
+	"WM_CHANGE_STATE",
+	"WM_TAKE_FOCUS",
+	"_MOTIF_WM_HINTS",
+	"_ECHINUS_LAYOUT",
+	"_ECHINUS_SELTAGS",
+	/* _NET_SUPPORTED following */
 	"_NET_CLIENT_LIST",
 	"_NET_ACTIVE_WINDOW",
 	"_NET_WM_DESKTOP",
 	"_NET_NUMBER_OF_DESKTOPS",
 	"_NET_DESKTOP_NAMES",
 	"_NET_CURRENT_DESKTOP",
-	"_ECHINUS_LAYOUT",
 	"_NET_WORKAREA",
 	"_NET_CLIENT_LIST_STACKING",
 	"_NET_WM_WINDOW_OPACITY",
@@ -37,7 +47,6 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_WINDOW_TYPE_DIALOG",
 	"_NET_WM_STRUT_PARTIAL",
 	"_NET_WM_STRUT",
-	"_ECHINUS_SELTAGS",
 	"_NET_WM_PID",
 	"_NET_WM_NAME",
 	"_NET_WM_STATE",
@@ -46,15 +55,7 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_STATE_HIDDEN",
 	"_NET_SUPPORTING_WM_CHECK",
 	"_NET_CLOSE_WINDOW",
-	"UTF8_STRING",
-	"_NET_SUPPORTED",
-	"WM_PROTOCOLS",
-	"WM_DELETE_WINDOW",
-	"WM_NAME",
-	"WM_STATE",
-	"WM_CHANGE_STATE",
-	"WM_TAKE_FOCUS",
-	"_MOTIF_WM_HINTS"
+	"_NET_SUPPORTED"
 };
 
 #define _NET_WM_STATE_REMOVE	0
@@ -67,9 +68,9 @@ initewmh(Window win) {
 	long data;
 
 	XInternAtoms(dpy, atomnames, NATOMS, False, atom);
-	XChangeProperty(dpy, root,
-	    atom[Supported], XA_ATOM, 32,
-	    PropModeReplace, (unsigned char *) atom, NATOMS);
+	XChangeProperty(dpy, root, atom[Supported], XA_ATOM, 32,
+	    PropModeReplace, (unsigned char *) &atom[ClientList],
+	    NATOMS - ClientList);
 
 	XChangeProperty(dpy, win, atom[WindowName], atom[Utf8String], 8,
 		       	PropModeReplace, (unsigned char*)name, strlen(name));
