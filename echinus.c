@@ -1780,7 +1780,8 @@ setclientstate(Client * c, long state) {
 	    PropModeReplace, (unsigned char *) data, 2);
 	if (state == NormalState) {
 		c->isicon = False;
-		XDeleteProperty(dpy, c->win, atom[WindowState]);
+		XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
+		    PropModeReplace, (unsigned char *) winstate, 0);
 	} else {
 		winstate[0] = atom[WindowStateHidden];
 		XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
