@@ -871,6 +871,7 @@ focus(Client * c) {
 		}
 		XSetWindowBorder(dpy, sel->frame, style.color.sel[ColBorder]);
 		drawclient(c);
+		ewmh_update_state_atom(c);
 	} else {
 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
 	}
@@ -1823,6 +1824,7 @@ setlayout(const char *arg) {
 		arrange(curmonitor());
 	}
 	updateatom[ELayout] (NULL);
+	updateatom[DeskModes] (NULL);
 }
 
 void
@@ -1876,6 +1878,7 @@ initlayouts() {
 		views[i].barpos = StrutsOn;
 	}
 	updateatom[ELayout] (NULL);
+	updateatom[DeskModes] (NULL);
 }
 
 void
@@ -2268,7 +2271,7 @@ togglefill(const char *arg) {
 	y1 = m->way;
 	y2 = m->sh;
 
-	if (!sel || sel->isfixed || !sel->isfloating || MFEATURES(m, OVERLAP))
+	if (!sel || sel->isfixed || !(sel->isfloating || MFEATURES(m, OVERLAP)))
 		return;
 	for (c = clients; c; c = c->next) {
 		if (isvisible(c, m) && (c != sel) && !c->isbastard
@@ -2308,7 +2311,7 @@ togglemax(const char *arg) {
 	XEvent ev;
 	Monitor *m = curmonitor();
 
-	if (!sel || sel->isfixed || !sel->isfloating || MFEATURES(m, OVERLAP))
+	if (!sel || sel->isfixed || !(sel->isfloating || MFEATURES(m, OVERLAP)))
 		return;
 	sel->ismax = !sel->ismax;
 	updateframe(sel);

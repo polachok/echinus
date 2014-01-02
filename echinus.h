@@ -8,12 +8,21 @@ enum {
 	ShowingDesktop, WMRestart, WMShutdown, RequestFrameExt,
 	StartupInfoBegin, StartupInfo, DeskLayout, WindowUserTime,
 	UserTimeWindow, WindowCounter, HandledIcons, WindowTypeOverride,
+	WindowActions, WindowActionAbove, WindowActionBelow,
+	WindowActionChangeDesk, WindowActionClose, WindowActionFs,
+	WindowActionMaxH, WindowActionMaxV, WindowActionMin,
+	WindowActionMove, WindowActionResize, WindowActionShade,
+	WindowActionStick,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk,
-	DeskNames, CurDesk, WorkArea, ClientListStacking, WindowOpacity,
+	DeskNames, CurDesk, WorkArea,
+	DeskModes, DeskModeFloating, DeskModeTiled, DeskModeBottomTiled,
+	DeskModeMonocle,
+	ClientListStacking, WindowOpacity,
 	WindowType, WindowTypeDesk, WindowTypeDock, WindowTypeDialog,
 	StrutPartial, Strut, WindowPid, WindowName,
 	WindowState, WindowStateFs, WindowStateModal, WindowStateHidden,
+	WindowStateFixed, WindowStateFloating, WindowStateFocused,
 	WMCheck, CloseWindow, Supported,
 	NATOMS
 }; /* keep in sync with atomnames[] in ewmh.c */
@@ -46,6 +55,19 @@ enum {
 #define _XA_NET_WM_SYNC_REQUEST_COUNTER		atom[WindowCounter]
 #define _XA_NET_WM_HANDLED_ICONS		atom[HandledIcons]
 #define _XA_KDE_NET_WM_WINDOW_TYPE_OVERRIDE	atom[WindowTypeOverride]
+#define _XA_NET_WM_ALLOWED_ACTIONS		atom[WindowActions]
+#define _XA_NET_WM_ACTION_ABOVE			atom[WindowActionAbove]
+#define _XA_NET_WM_ACTION_BELOW			atom[WindowActionBelow]
+#define _XA_NET_WM_ACTION_CHANGE_DESKTOP	atom[WindowActionChangeDesk]
+#define _XA_NET_WM_ACTION_CLOSE			atom[WindowActionClose]
+#define _XA_NET_WM_ACTION_FULLSCREEN		atom[WindowActionFs]
+#define _XA_NET_WM_ACTION_MAXIMIZE_HORZ		atom[WindowActionMaxH]
+#define _XA_NET_WM_ACTION_MAXIMIZE_VERT		atom[WindowActionMaxV]
+#define _XA_NET_WM_ACTION_MINIMIZE		atom[WindowActionMin]
+#define _XA_NET_WM_ACTION_MOVE			atom[WindowActionMove]
+#define _XA_NET_WM_ACTION_RESIZE		atom[WindowActionResize]
+#define _XA_NET_WM_ACTION_SHADE			atom[WindowActionShade]
+#define _XA_NET_WM_ACTION_STICK			atom[WindowActionStick]
 
 #define _XA_NET_CLIENT_LIST			atom[ClientList]
 #define _XA_NET_ACTIVE_WINDOW			atom[ActiveWindow]
@@ -55,6 +77,11 @@ enum {
 #define _XA_NET_DESKTOP_NAMES			atom[DeskNames]
 #define _XA_NET_CURRENT_DESKTOP			atom[CurDesk]
 #define _XA_NET_WORKAREA			atom[WorkArea]
+#define _XA_NET_DESKTOP_MODES			atom[DeskModes]
+#define _XA_NET_DESKTOP_MODE_FLOATING		atom[DeskModeFloating]
+#define _XA_NET_DESKTOP_MODE_TILED		atom[DeskModeTiled]
+#define _XA_NET_DESKTOP_MODE_BOTTOM_TILED	atom[DeskModeBottomTiled]
+#define _XA_NET_DESKTOP_MODE_MONOCLE		atom[DeskModeMonocle]
 #define _XA_NET_CLIENT_LIST_STACKING		atom[ClientListStacking]
 #define _XA_NET_WM_WINDOW_OPACITY		atom[WindowOpacity]
 #define _XA_NET_WM_WINDOW_TYPE			atom[WindowType]
@@ -69,6 +96,9 @@ enum {
 #define _XA_NET_WM_STATE_FULLSCREEN		atom[WindowStateFs]
 #define _XA_NET_WM_STATE_MODAL			atom[WindowStateModal]
 #define _XA_NET_WM_STATE_HIDDEN			atom[WindowStateHidden]
+#define _XA_NET_WM_STATE_FIXED			atom[WindowStateFixed]
+#define _XA_NET_WM_STATE_FLOATING		atom[WindowStateFloating]
+#define _XA_NET_WM_STATE_FOCUSED		atom[WindowStateFocused]
 #define _XA_NET_SUPPORTING_WM_CHECK		atom[WMCheck]
 #define _XA_NET_CLOSE_WINDOW			atom[CloseWindow]
 #define _XA_NET_SUPPORTED			atom[Supported]

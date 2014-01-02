@@ -49,6 +49,19 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_SYNC_REQUEST_COUNTER",
 	"_NET_WM_HANDLED_ICONS",
 	"_KDE_NET_WM_WINDOW_TYPE_OVERRIDE",
+	"_NET_WM_ALLOWED_ACTIONS",
+	"_NET_WM_ACTION_ABOVE",
+	"_NET_WM_ACTION_BELOW",
+	"_NET_WM_ACTION_CHANGE_DESKTOP",
+	"_NET_WM_ACTION_CLOSE",
+	"_NET_WM_ACTION_FULLSCREEN",
+	"_NET_WM_ACTION_MAXIMIZE_HORZ",
+	"_NET_WM_ACTION_MAXIMIZE_VERT",
+	"_NET_WM_ACTION_MINIMIZE",
+	"_NET_WM_ACTION_MOVE",
+	"_NET_WM_ACTION_RESIZE",
+	"_NET_WM_ACTION_SHADE",
+	"_NET_WM_ACTION_STICK",
 	/* _NET_SUPPORTED following */
 	"_NET_CLIENT_LIST",
 	"_NET_ACTIVE_WINDOW",
@@ -58,6 +71,11 @@ char *atomnames[NATOMS] = {
 	"_NET_DESKTOP_NAMES",
 	"_NET_CURRENT_DESKTOP",
 	"_NET_WORKAREA",
+	"_NET_DESKTOP_MODES",
+	"_NET_DESKTOP_MODE_FLOATING",
+	"_NET_DESKTOP_MODE_TILED",
+	"_NET_DESKTOP_MODE_BOTTOM_TILED",
+	"_NET_DESKTOP_MODE_MONOCLE",
 	"_NET_CLIENT_LIST_STACKING",
 	"_NET_WM_WINDOW_OPACITY",
 	"_NET_WM_WINDOW_TYPE",
@@ -72,6 +90,9 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_STATE_FULLSCREEN",
 	"_NET_WM_STATE_MODAL",
 	"_NET_WM_STATE_HIDDEN",
+	"_NET_WM_STATE_FIXED",
+	"_NET_WM_STATE_FLOATING",
+	"_NET_WM_STATE_FOCUSED",
 	"_NET_SUPPORTING_WM_CHECK",
 	"_NET_CLOSE_WINDOW",
 	"_NET_SUPPORTED"
@@ -232,6 +253,36 @@ ewmh_update_net_active_window(void *p) {
 }
 
 void
+ewmh_update_net_desktop_modes(void *p) {
+	long data[ntags];
+	int i;
+
+	for (i = 0; i < ntags; i++) {
+		switch (views[i].layout->symbol) {
+		case 'i':
+		case 'f':
+			data[i] = atom[DeskModeFloating];
+			break;
+		case 't':
+			data[i] = atom[DeskModeTiled];
+			break;
+		case 'b':
+			data[i] = atom[DeskModeBottomTiled];
+			break;
+		case 'm':
+			data[i] = atom[DeskModeMonocle];
+			break;
+		default:
+			data[i] = None;
+			break;
+		}
+	}
+	XChangeProperty(dpy, root,
+	    atom[DeskModes], XA_ATOM, 32, PropModeReplace,
+	    (unsigned char *)data, ntags);
+}
+
+void
 mwm_process_atom(Client *c) {
 	Atom real;
 	int format;
@@ -259,13 +310,19 @@ mwm_process_atom(Client *c) {
 void
 ewmh_update_state_atom(Client *c)
 {
-	long winstate[2];
+	long winstate[5];
 	int states = 0;
 
 	if (c->isicon)
 		winstate[states++] = atom[WindowStateHidden];
-	if (c->isfloating && c->ismax)
+	if (c->ismax)
 		winstate[states++] = atom[WindowStateFs];
+	if (c->isfixed)
+		winstate[states++] = atom[WindowStateFixed];
+	if (c->isfloating)
+		winstate[states++] = atom[WindowStateFloating];
+	if (c == sel)
+		winstate[states++] = atom[WindowStateFocused];
 
 	XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
 		PropModeReplace, (unsigned char *) winstate, states);
@@ -454,4 +511,5 @@ void (*updateatom[]) (void *) = {
 	[CurDesk] = ewmh_update_net_current_desktop,
 	[ELayout] = update_echinus_layout_name,
 	[WorkArea] = ewmh_update_net_work_area,
+	[DeskModes] = ewmh_update_net_desktop_modes,
 };
