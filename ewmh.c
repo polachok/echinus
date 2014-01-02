@@ -43,6 +43,12 @@ char *atomnames[NATOMS] = {
 	"_NET_REQUEST_FRAME_EXTENTS",
 	"_NET_STARTUP_INFO_BEGIN",
 	"_NET_STARTUP_INFO",
+	"_NET_DESKTOP_LAYOUT",
+	"_NET_WM_USER_TIME",
+	"_NET_WM_USER_TIME_WINDOW",
+	"_NET_WM_SYNC_REQUEST_COUNTER",
+	"_NET_WM_HANDLED_ICONS",
+	"_KDE_NET_WM_WINDOW_TYPE_OVERRIDE",
 	/* _NET_SUPPORTED following */
 	"_NET_CLIENT_LIST",
 	"_NET_ACTIVE_WINDOW",
@@ -322,7 +328,7 @@ clientmessage(XEvent *e) {
 		} else if (message_type == atom[WindowMoveResize]) {
 			/* TODO */
 		}
-	} else {
+	} else if (ev->window == root) {
 		if (0) {
 		} else if (message_type == atom[NumberOfDesk]) {
 			/* TODO */

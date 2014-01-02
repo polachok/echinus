@@ -1534,17 +1534,13 @@ propertynotify(XEvent * e) {
 	XPropertyEvent *ev = &e->xproperty;
 
 	if ((c = getclient(ev->window, clients, ClientWindow))) {
-		if (ev->atom == atom[StrutPartial]) {
+		if (ev->atom == atom[StrutPartial] || ev->atom == atom[Strut]) {
 			c->hasstruts = getstruts(c);
 			updategeom(clientmonitor(c));
 			arrange(clientmonitor(c));
 		}
 		if (ev->state == PropertyDelete) 
 			return;
-		if (ev->atom == atom[WindowName]) {
-			updatetitle(c);
-			drawclient(c);
-		}
 		switch (ev->atom) {
 		case XA_WM_TRANSIENT_FOR:
 			XGetTransientForHint(dpy, c->win, &trans);
@@ -1552,14 +1548,32 @@ propertynotify(XEvent * e) {
 			    && (c->isfloating =
 				(getclient(trans, clients, ClientWindow) != NULL)))
 				arrange(clientmonitor(c));
-			break;
+			return;
 		case XA_WM_NORMAL_HINTS:
 			updatesizehints(c);
-			break;
+			return;
 		case XA_WM_NAME:
 			updatetitle(c);
 			drawclient(c);
-			break;
+			return;
+		case XA_WM_ICON_NAME:
+			return;
+		}
+		if (0) {
+		} else if (ev->atom == atom[WindowName]) {
+			updatetitle(c);
+			drawclient(c);
+		} else if (ev->atom == atom[WindowType]) {
+			/* TODO */
+		} else if (ev->atom == atom[WindowUserTime]) {
+			/* TODO */
+		}
+	} else if (ev->window == root) {
+		if (0) {
+		} else if (ev->atom == atom[DeskNames]) {
+			/* TODO */
+		} else if (ev->atom == atom[DeskLayout]) {
+			/* TODO */
 		}
 	}
 }
