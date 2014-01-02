@@ -213,13 +213,47 @@ ewmh_update_net_current_desktop(Client *c) {
 	free(seltags);
 }
 
+static Bool
+issticky(Client *c) {
+	unsigned int i;
+
+	for (i = 0; i < ntags; i++)
+		if (!c->tags[i])
+			return False;
+	return True;
+}
+
+static Bool
+islost(Client *c) {
+	unsigned int i;
+	for (i = 0; i < ntags; i++)
+		if (c->tags[i])
+			return False;
+	return True;
+}
+
 void
 ewmh_update_net_window_desktop(Client *c) {
-	unsigned long i;
+	long i = -1;
 
-	for (i = 0; i < ntags && !c->tags[i]; i++);
-	XChangeProperty(dpy, c->win,
-	    atom[WindowDesk], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &i, 1);
+	if (!issticky(c))
+		for (i = 0; i < ntags && !c->tags[i]; i++);
+	XChangeProperty(dpy, c->win, atom[WindowDesk], XA_CARDINAL, 32,
+		PropModeReplace, (unsigned char *) &i, 1);
+}
+
+void
+ewmh_update_net_window_desktop_mask(Client *c) {
+	unsigned int longs = (ntags+31)>>5;
+	unsigned long data[longs];
+	unsigned int i, j, k, l;
+
+	for (j = 0, k = 0; j < longs; j++, k += 32)
+		for (i = 0, l = k, data[j] = 0; i < 32 && l < ntags; i++, l++)
+			if (c->tags[l])
+				data[j] |= (1<<i);
+	XChangeProperty(dpy, c->win, atom[WindowDeskMask], XA_CARDINAL, 32,
+		PropModeReplace, (unsigned char *)data, longs);
 }
 
 void
@@ -351,6 +385,8 @@ ewmh_update_net_window_state(Client *c)
 		winstate[states++] = atom[WindowStateFocused];
 	if (c->isfill)
 		winstate[states++] = atom[WindowStateFilled];
+	if (issticky(c))
+		winstate[states++] = atom[WindowStateSticky];
 
 	XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
 		PropModeReplace, (unsigned char *) winstate, states);
@@ -396,6 +432,41 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 	} else if (state == atom[WindowStateModal]) {
 		focus(c);
 	} else if (state == atom[WindowStateSticky]) {
+		if ((set == _NET_WM_STATE_ADD || set == _NET_WM_STATE_TOGGLE)
+				&& !issticky(c)) {
+			tag(c, -1);
+		} else
+		if ((set == _NET_WM_STATE_REMOVE || set == _NET_WM_STATE_TOGGLE)
+				&& issticky(c)) {
+			static char buf[512];
+			unsigned int i, j;
+			int matched = 0;
+			regmatch_t tmp;
+			XClassHint ch = { 0, };
+
+
+			/* reapply rules */
+			XGetClassHint(dpy, c->win, &ch);
+			snprintf(buf, sizeof(buf), "%s:%s:%s",
+			    ch.res_class ? ch.res_class : "", ch.res_name ? ch.res_name : "", c->name);
+			buf[LENGTH(buf)-1] = 0;
+			for (i = 0; i < nrules; i++) {
+				if (rules[i]->propregex && !regexec(rules[i]->propregex, buf, 1, &tmp, 0)) {
+					for (j = 0; rules[i]->tagregex && j < ntags; j++) {
+						if (!regexec(rules[i]->tagregex, tags[j], 1, &tmp, 0)) {
+							matched = j;
+							c->tags[j] = True;
+						}
+					}
+				}
+			}
+			if (ch.res_class)
+				XFree(ch.res_class);
+			if (ch.res_name)
+				XFree(ch.res_name);
+			tag(c, matched);
+		}
+
 	} else if (state == atom[WindowStateMaxV]) {
 	} else if (state == atom[WindowStateMaxH]) {
 	} else if (state == atom[WindowStateShaded]) {
@@ -477,8 +548,38 @@ clientmessage(XEvent *e) {
 				iconify(c);
 			}
 		} else if (message_type == atom[WindowDesk]) {
-			/* TODO */
+			int index = ev->data.l[0];
+
+			if (-1 <= index && index < ntags) {
+				tag(c, index);
+				ewmh_update_net_window_desktop(c);
+				ewmh_update_net_window_desktop_mask(c);
+				ewmh_update_net_window_state(c);
+			}
 		} else if (message_type == atom[WindowDeskMask]) {
+			unsigned index = ev->data.l[0];
+			unsigned mask = ev->data.l[1], oldmask = 0;
+			unsigned num = (ntags+31)>>5;
+			unsigned i, j;
+
+			if (0 <= index && index < num) {
+				for (i = 0, j = index<<5; j<ntags; i++, j++) {
+					if (c->tags[j])
+						oldmask |= (1<<i);
+					c->tags[j] = (mask & (1<<i)) ? True : False;
+				}
+				if (islost(c))
+					for (i = 0, j = index<<5; j<ntags; i++, j++)
+						c->tags[j] = (oldmask & (1<<i)) ? True : False;
+				else {
+					ewmh_update_net_window_desktop(c);
+					ewmh_update_net_window_desktop_mask(c);
+					ewmh_update_net_window_state(c);
+					/* what toggletag does */
+					drawclient(c);
+					arrange(NULL);
+				}
+			}
 			/* TODO */
 		} else if (message_type == atom[WMProto]) {
 			/* TODO */
@@ -635,6 +736,7 @@ void (*updateatom[]) (Client *) = {
 	[ClientList] = ewmh_update_net_client_list,
 	[ActiveWindow] = ewmh_update_net_active_window,
 	[WindowDesk] = ewmh_update_net_window_desktop,
+	[WindowDeskMask] = ewmh_update_net_window_desktop_mask,
 	[NumberOfDesk] = ewmh_update_net_number_of_desktops,
 	[DeskNames] = ewmh_update_net_desktop_names,
 	[CurDesk] = ewmh_update_net_current_desktop,

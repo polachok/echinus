@@ -1272,6 +1272,7 @@ manage(Window w, XWindowAttributes * wa) {
 	ban(c);
 	updateatom[ClientList] (NULL);
 	updateatom[WindowDesk] (c);
+	updateatom[WindowDeskMask] (c);
 	updateframe(c);
 	if (!cm)
 		return;
@@ -1425,6 +1426,8 @@ mousemove(Client * c) {
 				for (i = 0; i < ntags; i++)
 					c->tags[i] = nm->seltags[i];
 				updateatom[WindowDesk] (c);
+				updateatom[WindowDeskMask] (c);
+				updateatom[WindowState] (c);
 				drawclient(c);
 				arrange(NULL);
 				m = nm;
@@ -1942,6 +1945,7 @@ initmonitors(XEvent * e) {
 			monitors = m;
 			n++;
 		}
+		DPRINTF("There are %d monitors.\n", n);
 		XRRFreeCrtcInfo(ci);
 	}
 	XRRFreeScreenResources(sr);
@@ -2130,8 +2134,10 @@ tag(Client *c, int index) {
 	for (i = 0; i < ntags; i++)
 		c->tags[i] = (index == -1);
 	i = (index == -1) ? 0 : index;
-	c->tags[index] = True;
+	c->tags[i] = True;
 	updateatom[WindowDesk] (c);
+	updateatom[WindowDeskMask] (c);
+	updateatom[WindowState] (c);
 	updateframe(c);
 	arrange(NULL);
 	focus(NULL);
