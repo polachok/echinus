@@ -24,11 +24,12 @@ enum {
 	WindowStateNoPager, WindowStateHidden, WindowStateFs,
 	WindowStateAbove, WindowStateBelow, WindowStateAttn,
 	WindowStateFocused, WindowStateFixed, WindowStateFloating,
+	WindowStateFilled,
 	WindowActions, WindowActionAbove, WindowActionBelow,
 	WindowActionChangeDesk, WindowActionClose, WindowActionFs,
 	WindowActionMaxH, WindowActionMaxV, WindowActionMin,
 	WindowActionMove, WindowActionResize, WindowActionShade,
-	WindowActionStick, WindowActionFloat,
+	WindowActionStick, WindowActionFloat, WindowActionFill,
 	WMCheck, CloseWindow, Supported,
 	NATOMS
 }; /* keep in sync with atomnames[] in ewmh.c */
@@ -115,6 +116,7 @@ enum {
 #define _XA_NET_WM_STATE_FOCUSED		atom[WindowStateFocused]
 #define _XA_NET_WM_STATE_FIXED			atom[WindowStateFixed]
 #define _XA_NET_WM_STATE_FLOATING		atom[WindowStateFloating]
+#define _XA_NET_WM_STATE_FILLED			atom[WindowStateFilled]
 
 #define _XA_NET_WM_ALLOWED_ACTIONS		atom[WindowActions]
 #define _XA_NET_WM_ACTION_ABOVE			atom[WindowActionAbove]
@@ -130,6 +132,7 @@ enum {
 #define _XA_NET_WM_ACTION_SHADE			atom[WindowActionShade]
 #define _XA_NET_WM_ACTION_STICK			atom[WindowActionStick]
 #define _XA_NET_WM_ACTION_FLOAT			atom[WindowActionFloat]
+#define _XA_NET_WM_ACTION_FILL			atom[WindowActionFill]
 
 #define _XA_NET_SUPPORTING_WM_CHECK		atom[WMCheck]
 #define _XA_NET_CLOSE_WINDOW			atom[CloseWindow]
@@ -240,9 +243,11 @@ typedef struct {
 
 /* ewmh.c */
 Bool checkatom(Window win, Atom bigatom, Atom smallatom);
+Bool checkwintype(Window win, int wintype);
 void clientmessage(XEvent * e);
-void ewmh_process_state_atom(Client * c, Atom state, int set);
-void *getatom(Window win, Atom atom, unsigned long *nitems);
+void ewmh_process_net_window_state(Client *c);
+Atom *getatom(Window win, Atom atom, unsigned long *nitems);
+long *getcard(Window win, Atom atom, unsigned long *nitems);
 void initewmh(Window w);
 void mwm_process_atom(Client * c);
 void setopacity(Client * c, unsigned int opacity);
@@ -258,35 +263,35 @@ void eprint(const char *errstr, ...);
 const char *getresource(const char *resource, const char *defval);
 Client *getclient(Window w, Client * list, int part);
 Monitor *getmonitor(int x, int y);
-void iconify(const char *arg);
+void iconify(Client *c);
 void incnmaster(const char *arg);
 Bool isvisible(Client * c, Monitor * m);
 void focus(Client * c);
 void focusicon(const char *arg);
-void focusnext(const char *arg);
-void focusprev(const char *arg);
-void focusview(const char *arg);
-void killclient(const char *arg);
-void moveresizekb(const char *arg);
+void focusnext(Client *c);
+void focusprev(Client *c);
+void focusview(int index);
+void killclient(Client *c);
+void moveresizekb(Client *c, int dx, int dy, int dw, int dh);
 void quit(const char *arg);
 void restart(const char *arg);
 void setmwfact(const char *arg);
 void setlayout(const char *arg);
 void spawn(const char *arg);
-void tag(const char *arg);
+void tag(Client *c, int index);
 void togglestruts(const char *arg);
-void togglefloating(const char *arg);
-void togglefill(const char *arg);
-void togglemax(const char *arg);
+void togglefloating(Client *c);
+void togglefill(Client *c);
+void togglemax(Client *c);
 void togglemonitor(const char *arg);
-void toggletag(const char *arg);
-void toggleview(const char *arg);
+void toggletag(Client *c, int index);
+void toggleview(int index);
 void updateframe(Client *c);
-void view(const char *arg);
+void view(int index);
 void viewlefttag(const char *arg);
 void viewprevtag(const char *arg);
 void viewrighttag(const char *arg);
-void zoom(const char *arg);
+void zoom(Client *c);
 void selectionclear(XEvent *e);
 
 /* parse.c */

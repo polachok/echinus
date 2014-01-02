@@ -103,6 +103,7 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_STATE_FOCUSED",
 	"_NET_WM_STATE_FIXED",
 	"_NET_WM_STATE_FLOATING",
+	"_NET_WM_STATE_FILLED",
 
 	"_NET_WM_ALLOWED_ACTIONS",
 	"_NET_WM_ACTION_ABOVE",
@@ -118,6 +119,7 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_ACTION_SHADE",
 	"_NET_WM_ACTION_STICK",
 	"_NET_WM_ACTION_FLOAT",
+	"_NET_WM_ACTION_FILL",
 
 	"_NET_SUPPORTING_WM_CHECK",
 	"_NET_CLOSE_WINDOW",
@@ -334,7 +336,7 @@ mwm_process_atom(Client *c) {
 void
 ewmh_update_net_window_state(Client *c)
 {
-	long winstate[5];
+	long winstate[16];
 	int states = 0;
 
 	if (c->isicon)
@@ -347,40 +349,104 @@ ewmh_update_net_window_state(Client *c)
 		winstate[states++] = atom[WindowStateFloating];
 	if (c == sel)
 		winstate[states++] = atom[WindowStateFocused];
+	if (c->isfill)
+		winstate[states++] = atom[WindowStateFilled];
 
 	XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
 		PropModeReplace, (unsigned char *) winstate, states);
 }
 
 void
-ewmh_process_state_atom(Client *c, Atom state, int set) {
-	long data[2];
+ewmh_update_net_window_actions(Client *c)
+{
+	long action[32];
+	int actions = 0;
 
-	data[1] = None;
-	if (state == atom[WindowStateFs]) {
+	if (!c->isbastard) {
+		// action[actions++] = atom[WindowActionAbove];
+		// action[actions++] = atom[WindowActionBelow];
+		action[actions++] = atom[WindowActionChangeDesk];
+	}
+	action[actions++] = atom[WindowActionClose];
+	if (!c->isbastard) {
+		if (c->isfloating) {
+			action[actions++] = atom[WindowActionFs];
+			// action[actions++] = atom[WindowActionMaxH];
+			// action[actions++] = atom[WindowActionMaxV];
+		}
+		action[actions++] = atom[WindowActionMin];
+		action[actions++] = atom[WindowActionMove];
+		if (!c->isfixed)
+			action[actions++] = atom[WindowActionResize];
+		action[actions++] = atom[WindowActionStick];
+		action[actions++] = atom[WindowActionFloat];
+		if (c->isfloating) {
+			// action[actions++] = atom[WindowActionShade];
+			action[actions++] = atom[WindowActionFill];
+		}
+	}
+
+	XChangeProperty(dpy, c->win, atom[WindowActions], XA_ATOM, 32,
+		PropModeReplace, (unsigned char *) action, actions);
+}
+
+void
+ewmh_process_state_atom(Client *c, Atom state, int set) {
+	if (0) {
+	} else if (state == atom[WindowStateModal]) {
 		focus(c);
+	} else if (state == atom[WindowStateSticky]) {
+	} else if (state == atom[WindowStateMaxV]) {
+	} else if (state == atom[WindowStateMaxH]) {
+	} else if (state == atom[WindowStateShaded]) {
+	} else if (state == atom[WindowStateNoTaskbar]) {
+	} else if (state == atom[WindowStateNoPager]) {
+	} else if (state == atom[WindowStateHidden]) {
+	} else if (state == atom[WindowStateFs]) {
 		if ((set == _NET_WM_STATE_ADD || set == _NET_WM_STATE_TOGGLE)
 				&& !c->ismax) {
 			c->wasfloating = c->isfloating;
 			if (!c->isfloating)
-				togglefloating(NULL);
-			togglemax(NULL);
-			data[0] = state;
+				togglefloating(c);
+			togglemax(c);
 		} else if ((set == _NET_WM_STATE_REMOVE ||
 				set == _NET_WM_STATE_TOGGLE) && c->ismax) {
-			togglemax(NULL);
+			togglemax(c);
 			if (!c->wasfloating)
-				togglefloating(NULL);
-			data[0] = None;
+				togglefloating(c);
 		}
-		XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
-		    PropModeReplace, (unsigned char *) data, 2);
 		DPRINT;
 		arrange(curmonitor());
 		DPRINTF("%s: x%d y%d w%d h%d\n", c->name, c->x, c->y, c->w, c->h);
+	} else if (state == atom[WindowStateAbove]) {
+	} else if (state == atom[WindowStateBelow]) {
+	} else if (state == atom[WindowStateAttn]) {
+	} else if (state == atom[WindowStateFocused]) {
+	} else if (state == atom[WindowStateFixed]) {
+	} else if (state == atom[WindowStateFloating]) {
+		if ((set == _NET_WM_STATE_ADD || set == _NET_WM_STATE_TOGGLE)
+				&& !c->isfloating) {
+		} else
+		if ((set == _NET_WM_STATE_REMOVE || set == _NET_WM_STATE_TOGGLE)
+				&& c->isfloating) {
+		}
+	} else if (state == atom[WindowStateFilled]) {
 	}
-	if (state == atom[WindowStateModal])
-		focus(c);
+}
+
+Atom *getatom(Window win, Atom atom, unsigned long *nitems);
+
+void
+ewmh_process_net_window_state(Client *c) {
+	Atom *state;
+	unsigned long i, n = 0;
+
+	state = getatom(c->win, atom[WindowState], &n);
+	for (i = 0; i < n; i++)
+		ewmh_process_state_atom(c, state[i], _NET_WM_STATE_ADD);
+	if (state)
+		XFree(state);
+	ewmh_update_net_window_state(c);
 }
 
 void
@@ -394,10 +460,7 @@ clientmessage(XEvent *e) {
 	if (c) {
 		if (0) {
 		} else if (message_type == atom[CloseWindow]) {
-			Client *old_sel = sel;
-			sel = c;
-			killclient(NULL);
-			sel = old_sel;
+			killclient(c);
 		} else if (message_type == atom[ActiveWindow]) {
 			if (c->isicon)
 				c->isicon = False;
@@ -408,10 +471,10 @@ clientmessage(XEvent *e) {
 			if (ev->data.l[2])
 				ewmh_process_state_atom(c,
 				    (Atom) ev->data.l[2], ev->data.l[0]);
+			ewmh_update_net_window_state(c);
 		} else if (message_type == atom[WMChangeState]) {
 			if (ev->data.l[0] == IconicState) {
-				focus(c);
-				iconify(NULL);
+				iconify(c);
 			}
 		} else if (message_type == atom[WindowDesk]) {
 			/* TODO */
@@ -435,7 +498,9 @@ clientmessage(XEvent *e) {
 		} else if (message_type == atom[DeskViewport]) {
 			/* TODO */
 		} else if (message_type == atom[CurDesk]) {
-			view(tags[ev->data.l[0]]);
+			int tag = ev->data.l[0];
+			if (0 <= tag && tag < ntags)
+				view(tag);
 		} else if (message_type == atom[ShowingDesktop]) {
 			/* TODO */
 		} else if (message_type == atom[WMRestart]) {
@@ -468,20 +533,35 @@ setopacity(Client *c, unsigned int opacity) {
 	}
 }
 
-void *
+Atom *
 getatom(Window win, Atom atom, unsigned long *nitems) {
 	int format, status;
-	unsigned char *ret = NULL;
+	Atom *ret = NULL;
 	unsigned long extra;
 	Atom real;
 
-	status = XGetWindowProperty(dpy, win, atom, 0L, 64L, False, AnyPropertyType,
+	status = XGetWindowProperty(dpy, win, atom, 0L, 64L, False, XA_ATOM,
 			&real, &format, nitems, &extra, (unsigned char **)&ret);
 	if (status != Success) {
 		*nitems = 0;
 		return NULL;
 	}
+	return ret;
+}
 
+long *
+getcard(Window win, Atom atom, unsigned long *nitems) {
+	int format, status;
+	long *ret = NULL;
+	unsigned long extra;
+	Atom real;
+
+	status = XGetWindowProperty(dpy, win, atom, 0L, 64L, False, XA_CARDINAL,
+			&real, &format, nitems, &extra, (unsigned char **)&ret);
+	if (status != Success) {
+		*nitems = 0;
+		return NULL;
+	}
 	return ret;
 }
 
@@ -491,18 +571,44 @@ checkatom(Window win, Atom bigatom, Atom smallatom) {
 	unsigned long i, n;
 	Bool ret = False;
 
-	state = (Atom*)getatom(win, bigatom, &n);
+	state = getatom(win, bigatom, &n);
 	for (i = 0; i < n; i++) {
-		if (state[i] == smallatom)
+		if (state[i] == smallatom) {
 			ret = True;
+			break;
+		}
 	}
-	XFree(state);
+	if (state)
+		XFree(state);
+	return ret;
+}
+
+Bool
+checkwintype(Window win, int wintype) {
+	Atom *state;
+	unsigned long i, n = 0;
+	Bool ret = False;
+
+	state = getatom(win, atom[WindowType], &n);
+	if (n == 0) {
+		if (wintype == WindowTypeNormal)
+			ret = True;
+	} else {
+		for (i = 0; i < n; i++) {
+			if (state[i] == atom[wintype]) {
+				ret = True;
+				break;
+			}
+		}
+	}
+	if (state)
+		XFree(state);
 	return ret;
 }
 
 int
 getstrut(Client *c, Atom strut) {
-	unsigned long *state;
+	long *state;
 	int ret = 0;
 	Monitor *m;
 	unsigned long i, n;
@@ -510,13 +616,14 @@ getstrut(Client *c, Atom strut) {
 	if (!(m = clientmonitor(c)))
 		return ret;
 
-	state = (unsigned long*)getatom(c->win, strut, &n);
+	state = getcard(c->win, strut, &n);
 	if (n) {
 		for (i = LeftStrut; i < LastStrut; i++)
 			m->struts[i] = max(state[i], m->struts[i]);
 		ret = 1;
 	}
-	XFree(state);
+	if (state)
+		XFree(state);
 	return ret;
 }
 
@@ -535,4 +642,5 @@ void (*updateatom[]) (Client *) = {
 	[WorkArea] = ewmh_update_net_work_area,
 	[DeskModes] = ewmh_update_net_desktop_modes,
 	[WindowState] = ewmh_update_net_window_state,
+	[WindowActions] = ewmh_update_net_window_actions,
 };
