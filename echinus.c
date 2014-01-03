@@ -2546,6 +2546,7 @@ updateframe(Client * c) {
 		XUnmapWindow(dpy, c->title);
 	else
 		XMapRaised(dpy, c->title);
+	updateatom[WindowExtents](c);
 }
 
 void

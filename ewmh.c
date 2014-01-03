@@ -65,6 +65,7 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_WINDOW_OPACITY",
 	"_NET_MOVERESIZE_WINDOW",
 	"_NET_WM_MOVERESIZE",
+	"_NET_FRAME_EXTENTS",
 
 	"_NET_WM_WINDOW_TYPE",
 	"_NET_WM_WINDOW_TYPE_DESKTOP",
@@ -571,6 +572,19 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 	}
 }
 
+void
+ewmh_update_net_window_extents(Client *c)
+{
+	long data[4] = {
+		c->border, /* left */
+		c->border, /* right */
+		c->border + c->th, /* top */
+		c->border, /* bottom */
+	};
+	XChangeProperty(dpy, c->win, atom[WindowExtents], XA_CARDINAL, 32,
+		PropModeReplace, (unsigned char *) &data, 4L);
+}
+
 Atom *getatom(Window win, Atom atom, unsigned long *nitems);
 
 void
@@ -879,4 +893,5 @@ void (*updateatom[]) (Client *) = {
 	[DeskModes] = ewmh_update_net_desktop_modes,
 	[WindowState] = ewmh_update_net_window_state,
 	[WindowActions] = ewmh_update_net_window_actions,
+	[WindowExtents] = ewmh_update_net_window_extents,
 };

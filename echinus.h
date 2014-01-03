@@ -13,7 +13,8 @@ enum {
 	DeskNames, CurDesk, WorkArea,
 	DeskModes, DeskModeFloating, DeskModeTiled, DeskModeBottomTiled,
 	DeskModeMonocle,
-	ClientListStacking, WindowOpacity, MoveResizeWindow, WindowMoveResize,
+	ClientListStacking, WindowOpacity, MoveResizeWindow,
+	WindowMoveResize, WindowExtents,
 	WindowType, WindowTypeDesk, WindowTypeDock, WindowTypeToolbar,
 	WindowTypeMenu, WindowTypeUtil, WindowTypeSplash, WindowTypeDialog,
 	WindowTypeDrop, WindowTypePopup, WindowTypeTooltip, WindowTypeNotify,
@@ -78,6 +79,7 @@ enum {
 #define _XA_NET_WM_WINDOW_OPACITY		atom[WindowOpacity]
 #define _XA_NET_MOVERESIZE_WINDOW		atom[MoveResizeWindow]
 #define _XA_NET_WM_MOVERESIZE			atom[WindowMoveResize]
+#define _XA_NET_FRAME_EXTENTS			atom[WindowExtents]
 
 #define _XA_NET_WM_WINDOW_TYPE			atom[WindowType]
 #define _XA_NET_WM_WINDOW_TYPE_DESKTOP		atom[WindowTypeDesk]
