@@ -1679,47 +1679,112 @@ resize(Client * c, int x, int y, int w, int h, Bool sizehints) {
 
 void
 restack(Monitor * m) {
-	Client *c;
+	Client *c, **cl;
 	XEvent ev;
 	Window *wl;
-	int i, n;
+	int i, j, n;
 
 	if (!sel)
 		return;
-#if 0
-	if (MFEATURES(m, OVERLAP)) {
-		XRaiseWindow(dpy, stack->frame);
-		goto end;
-	}
-#endif
-	for (n = 0, c = stack; c; c = c->snext) {
-		if (isvisible(c, m) && !c->isicon) {
+	for (n = 0, c = stack; c; c = c->snext)
+		if (isvisible(c, m) && !c->isicon)
 			n++;
-		}
-	}
 	if (!n)
 		return;
-	wl = malloc(sizeof(Window) * n);
+	wl = calloc(n, sizeof(Window));
+	cl = calloc(n, sizeof(Client *));
 	i = 0;
+	/*
+	 * EWMH WM SPEC 1.5 Draft 2:
+	 *
+	 * Stacking order
+	 *
+	 * To obtain good interoperability betweeen different Desktop
+	 * Environments, the following layerd stacking order is
+	 * recommended, from the bottom:
+	 *
+	 * - windows of type _NET_WM_TYPE_DESKTOP
+	 * - windows having state _NET_WM_STATE_BELOW
+	 * - windows not belonging in any other layer
+	 * - windows of type _NET_WM_TYPE_DOCK (unless they have state
+	 *   _NET_WM_TYPE_BELOW) and windows having state
+	 *   _NET_WM_STATE_ABOVE
+	 * - focused windows having state _NET_WM_STATE_FULLSCREEN
+	 */
 	for (c = stack; c && i < n; c = c->snext)
 		if (isvisible(c, m) && !c->isicon)
-			if (!c->isbastard && c->isfloating)
-				wl[i++] = c->frame;
-	for (c = stack; c && i < n; c = c->snext)
-		if (isvisible(c, m) && !c->isicon && c->isbastard &&
-		    !WTCHECK(c, WindowTypeDesk))
+			cl[i++] = c;
+	i = 0;
+	/* focused windows having state _NET_WM_STATE_FULLSCREEN */
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if (sel == c && c->ismax) {
 			wl[i++] = c->frame;
-	for (c = stack; c && i < n; c = c->snext) 
-		if (isvisible(c, m) && !c->isicon)
-			if (!c->isfloating && !c->isbastard)
-				wl[i++] = c->frame;
-	for (c = stack; c && i < n; c = c->snext)
-		if (isvisible(c, m) && !c->isicon && c->isbastard && 
-			!WTCHECK(c, WindowTypeDesk))
-				wl[i++] = c->frame;
+			cl[j] = NULL;
+		}
+	}
+	/* windows of type _NET_WM_TYPE_DOCK (unless they have state
+	   _NET_WM_TYPE_BELOW) and windows having state _NET_WM_STATE_ABOVE. */
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if ((WTCHECK(c, WindowTypeDock) && !c->isbelow) || c->isabove) {
+			wl[i++] = c->frame;
+			cl[j] = NULL;
+		}
+	}
+	/* windows not belonging in any other layer (but we put
+	   floating above special above tiled) */
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if (!c->isbastard && c->isfloating &&
+		    !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
+			wl[i++] = c->frame;
+			cl[j] = NULL;
+		}
+	}
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if (c->isbastard &&
+		    !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
+			wl[i++] = c->frame;
+			cl[j] = NULL;
+		}
+	}
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if (!c->isbastard && !c->isfloating &&
+		    !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
+			wl[i++] = c->frame;
+			cl[j] = NULL;
+		}
+	}
+	/* windows having state _NET_WM_STATE_BELOW */
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if (c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
+			wl[i++] = c->frame;
+			cl[j] = NULL;
+		}
+	}
+	/* windows of type _NET_WM_TYPE_DESKTOP */
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if (WTCHECK(c, WindowTypeDesk)) {
+			wl[i++] = c->frame;
+			cl[j] = NULL;
+		}
+	}
 	assert(i == n);
 	XRestackWindows(dpy, wl, n);
 	free(wl);
+	free(cl);
 	XSync(dpy, False);
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }

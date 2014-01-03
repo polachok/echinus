@@ -120,8 +120,8 @@ _NET_WM_STATE:				supported
 	_NET_WM_STATE_SKIP_PAGER:	    supported (trivial)
 	_NET_WM_STATE_HIDDEN:		    supported
 	_NET_WM_STATE_FULLSCREEN:	    supported
-	_NET_WM_STATE_ABOVE:		    NOT supported (TODO)
-	_NET_WM_STATE_BELOW:		    NOT supported (TODO)
+	_NET_WM_STATE_ABOVE:		    supported
+	_NET_WM_STATE_BELOW:		    supported
 	_NET_WM_STATE_DEMANDS_ATTENTION:    supported
 	_NET_WM_STATE_FOCUSED:		    supported
 _NET_WM_ALLOWED_ACTIONS:		supported
@@ -135,8 +135,8 @@ _NET_WM_ALLOWED_ACTIONS:		supported
 	_NET_WM_ACTION_FULLSCREEN:	    supported
 	_NET_WM_ACTION_CHANGE_DESKTOP:	    supported
 	_NET_WM_ACTION_CLOSE:		    supported
-	_NET_WM_ACTION_ABOVE:		    supported (trivial)
-	_NET_WM_ACTION_BELOW:		    supported (trivial)
+	_NET_WM_ACTION_ABOVE:		    supported
+	_NET_WM_ACTION_BELOW:		    supported
 _NET_WM_STRUT:				supported
 _NET_WM_STRUT_PARTIAL:			supported (trivial)
 _NET_WM_ICON_GEOMETRY:			NOT supported (n/a)

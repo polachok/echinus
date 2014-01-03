@@ -421,9 +421,9 @@ ewmh_update_net_window_actions(Client *c)
 	long action[32];
 	int actions = 0;
 
+	action[actions++] = atom[WindowActionAbove];
+	action[actions++] = atom[WindowActionBelow];
 	if (!c->isbastard) {
-		action[actions++] = atom[WindowActionAbove];
-		action[actions++] = atom[WindowActionBelow];
 		action[actions++] = atom[WindowActionChangeDesk];
 	}
 	action[actions++] = atom[WindowActionClose];
