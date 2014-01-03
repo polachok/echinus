@@ -32,18 +32,22 @@ char *atomnames[NATOMS] = {
 	"_MOTIF_WM_HINTS",
 	"_ECHINUS_LAYOUT",
 	"_ECHINUS_SELTAGS",
-	"_NET_WM_FULLSCREEN_MONITORS",
-	"_NET_DESKTOP_GEOMETRY",
-	"_NET_DESKTOP_VIEWPORT",
-	"_NET_SHOWING_DESKTOP",
-	"_NET_RESTART",
-	"_NET_SHUTDOWN",
-	"_NET_REQUEST_FRAME_EXTENTS",
+	"_NET_WM_FULLSCREEN_MONITORS",		/* TODO */
+	"_NET_DESKTOP_GEOMETRY",		/* TODO */
+	"_NET_DESKTOP_VIEWPORT",		/* TODO */
+	"_NET_SHOWING_DESKTOP",			/* TODO */
+	"_NET_RESTART",				/* TODO */
+	"_NET_SHUTDOWN",			/* TODO */
+	"_NET_REQUEST_FRAME_EXTENTS",		/* TODO */
+	"_NET_RESTACK_WINDOW",			/* TODO */
 	"_NET_STARTUP_INFO_BEGIN",
 	"_NET_STARTUP_INFO",
-	"_NET_DESKTOP_LAYOUT",
-	"_NET_WM_USER_TIME",
-	"_NET_WM_USER_TIME_WINDOW",
+	"_NET_DESKTOP_LAYOUT",			/* TODO */
+	"_NET_WM_USER_TIME",			/* TODO */
+	"_NET_WM_USER_TIME_WINDOW",		/* TODO */
+	"_NET_WM_VISIBLE_NAME",			/* TODO */
+	"_NET_WM_ICON_NAME",			/* TODO */
+	"_NET_WM_VISIBLE_ICON_NAME",		/* TODO */
 	"_NET_WM_SYNC_REQUEST_COUNTER",
 	"_NET_WM_HANDLED_ICONS",
 	"_KDE_NET_WM_WINDOW_TYPE_OVERRIDE",
@@ -56,11 +60,13 @@ char *atomnames[NATOMS] = {
 	"_NET_DESKTOP_NAMES",
 	"_NET_CURRENT_DESKTOP",
 	"_NET_WORKAREA",
+
 	"_NET_DESKTOP_MODES",
 	"_NET_DESKTOP_MODE_FLOATING",
 	"_NET_DESKTOP_MODE_TILED",
 	"_NET_DESKTOP_MODE_BOTTOM_TILED",
 	"_NET_DESKTOP_MODE_MONOCLE",
+
 	"_NET_CLIENT_LIST_STACKING",
 	"_NET_WM_WINDOW_OPACITY",
 	"_NET_MOVERESIZE_WINDOW",
@@ -91,9 +97,9 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_STATE",
 	"_NET_WM_STATE_MODAL",
 	"_NET_WM_STATE_STICKY",
-	"_NET_WM_STATE_MAXIMIZED_VERT",
-	"_NET_WM_STATE_MAXIMIZED_HORZ",
-	"_NET_WM_STATE_SHADED",
+	"_NET_WM_STATE_MAXIMIZED_VERT",		/* TODO */
+	"_NET_WM_STATE_MAXIMIZED_HORZ",		/* TODO */
+	"_NET_WM_STATE_SHADED",			/* TODO */
 	"_NET_WM_STATE_SKIP_TASKBAR",
 	"_NET_WM_STATE_SKIP_PAGER",
 	"_NET_WM_STATE_HIDDEN",
@@ -112,12 +118,12 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_ACTION_CHANGE_DESKTOP",
 	"_NET_WM_ACTION_CLOSE",
 	"_NET_WM_ACTION_FULLSCREEN",
-	"_NET_WM_ACTION_MAXIMIZE_HORZ",
-	"_NET_WM_ACTION_MAXIMIZE_VERT",
+	"_NET_WM_ACTION_MAXIMIZE_HORZ",		/* TODO */
+	"_NET_WM_ACTION_MAXIMIZE_VERT",		/* TODO */
 	"_NET_WM_ACTION_MINIMIZE",
 	"_NET_WM_ACTION_MOVE",
 	"_NET_WM_ACTION_RESIZE",
-	"_NET_WM_ACTION_SHADE",
+	"_NET_WM_ACTION_SHADE",			/* TODO */
 	"_NET_WM_ACTION_STICK",
 	"_NET_WM_ACTION_FLOAT",
 	"_NET_WM_ACTION_FILL",
@@ -829,6 +835,22 @@ checkatom(Window win, Atom bigatom, Atom smallatom) {
 	}
 	if (state)
 		XFree(state);
+	return ret;
+}
+
+unsigned int
+getwintype(Window win) {
+	Atom *state;
+	unsigned long i, j, n = 0;
+	unsigned int ret = 0;
+
+	state = getatom(win, atom[WindowType], &n);
+	for (i = 0; i < n; i++)
+		for (j = WindowTypeDesk; j <= WindowTypeNormal; j++)
+			if (state[i] == atom[j])
+				ret |= (1<<(j-WindowTypeDesk));
+	if (ret == 0)
+		ret = WTFLAG(WindowTypeNormal);
 	return ret;
 }
 

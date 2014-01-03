@@ -1126,27 +1126,28 @@ manage(Window w, XWindowAttributes * wa) {
 
 	c = emallocz(sizeof(Client));
 	c->win = w;
-	if (!checkwintype(c->win, WindowTypeNormal)) {
-		if (checkwintype(c->win, WindowTypeDesk) ||
-		    checkwintype(c->win, WindowTypeDock) ||
-		    checkwintype(c->win, WindowTypeSplash) ||
-		    checkwintype(c->win, WindowTypeDrop) ||
-		    checkwintype(c->win, WindowTypePopup) ||
-		    checkwintype(c->win, WindowTypeTooltip) ||
-		    checkwintype(c->win, WindowTypeNotify) ||
-		    checkwintype(c->win, WindowTypeCombo) ||
-		    checkwintype(c->win, WindowTypeDnd)) {
+	c->wintype = getwintype(c->win);
+	if (!WTCHECK(c, WindowTypeNormal)) {
+		if (WTCHECK(c, WindowTypeDesk) ||
+		    WTCHECK(c, WindowTypeDock) ||
+		    WTCHECK(c, WindowTypeSplash) ||
+		    WTCHECK(c, WindowTypeDrop) ||
+		    WTCHECK(c, WindowTypePopup) ||
+		    WTCHECK(c, WindowTypeTooltip) ||
+		    WTCHECK(c, WindowTypeNotify) ||
+		    WTCHECK(c, WindowTypeCombo) ||
+		    WTCHECK(c, WindowTypeDnd)) {
 			c->isbastard = True;
 			c->isfloating = True;
 			c->isfixed = True;
 		}
-		if (checkwintype(c->win, WindowTypeDialog)) {
+		if (WTCHECK(c, WindowTypeDialog) ||
+		    WTCHECK(c, WindowTypeMenu)) {
 			c->isfloating = True;
 			c->isfixed = True;
 		}
-		if (checkwintype(c->win, WindowTypeToolbar) ||
-		    checkwintype(c->win, WindowTypeMenu) ||
-		    checkwintype(c->win, WindowTypeUtil)) {
+		if (WTCHECK(c, WindowTypeToolbar) ||
+		    WTCHECK(c, WindowTypeUtil)) {
 			c->isfloating = True;
 		}
 	}
@@ -1281,7 +1282,7 @@ manage(Window w, XWindowAttributes * wa) {
 	if (c->hasstruts)
 		updategeom(cm);
 	arrange(cm);
-	if (!checkwintype(c->win, WindowTypeDesk))
+	if (!WTCHECK(c, WindowTypeDesk))
 		focus(NULL);
 	ewmh_process_net_window_state(c);
 	updateatom[WindowState](c);
@@ -1706,7 +1707,7 @@ restack(Monitor * m) {
 				wl[i++] = c->frame;
 	for (c = stack; c && i < n; c = c->snext)
 		if (isvisible(c, m) && !c->isicon && c->isbastard &&
-		    !checkwintype(c->win, WindowTypeDesk))
+		    !WTCHECK(c, WindowTypeDesk))
 			wl[i++] = c->frame;
 	for (c = stack; c && i < n; c = c->snext) 
 		if (isvisible(c, m) && !c->isicon)
@@ -1714,7 +1715,7 @@ restack(Monitor * m) {
 				wl[i++] = c->frame;
 	for (c = stack; c && i < n; c = c->snext)
 		if (isvisible(c, m) && !c->isicon && c->isbastard && 
-			checkwintype(c->win, WindowTypeDesk))
+			!WTCHECK(c, WindowTypeDesk))
 				wl[i++] = c->frame;
 	assert(i == n);
 	XRestackWindows(dpy, wl, n);
@@ -2590,6 +2591,10 @@ updatesizehints(Client * c) {
 		c->maxay = size.max_aspect.y;
 	} else
 		c->minax = c->maxax = c->minay = c->maxay = 0;
+	if (c->flags & PWinGravity)
+		c->gravity = size.win_gravity;
+	else
+		c->gravity = NorthWestGravity;
 	c->isfixed = (c->maxw && c->minw && c->maxh && c->minh
 	    && c->maxw == c->minw && c->maxh == c->minh);
 }

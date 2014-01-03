@@ -5,9 +5,10 @@ enum {
 	Utf8String, WMProto, WMDelete, WMName, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors,
 	DeskGeometry, DeskViewport,
-	ShowingDesktop, WMRestart, WMShutdown, RequestFrameExt,
+	ShowingDesktop, WMRestart, WMShutdown, RequestFrameExt, RestackWindow,
 	StartupInfoBegin, StartupInfo, DeskLayout, WindowUserTime,
-	UserTimeWindow, WindowCounter, HandledIcons, WindowTypeOverride,
+	UserTimeWindow, WindowNameVisible, WindowIconName, WindowIconNameVisible,
+	WindowCounter, HandledIcons, WindowTypeOverride,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk,
 	DeskNames, CurDesk, WorkArea,
@@ -35,6 +36,9 @@ enum {
 	NATOMS
 }; /* keep in sync with atomnames[] in ewmh.c */
 
+#define WTFLAG(_type) (1<<((_type)-WindowTypeDesk))
+#define WTCHECK(_client, _type) ((((_client)->wintype) & WTFLAG(_type)) ? True : False)
+
 #define _XA_MANAGER				atom[Manager]
 #define _XA_UTF8_STRING				atom[Utf8String]
 #define _XA_WM_PROTOCOLS			atom[WMProto]
@@ -53,11 +57,15 @@ enum {
 #define _XA_NET_RESTART				atom[WMRestart]
 #define _XA_NET_SHUTDOWN			atom[WMShutdown]
 #define _XA_NET_REQUEST_FRAME_EXTENTS		atom[RequestFrameExt]
+#define _XA_NET_RESTACK_WINDOW			atom[RestackWindow]
 #define _XA_NET_STARTUP_INFO_BEGIN		atom[StartupInfoBegin]
 #define _XA_NET_STARTUP_INFO			atom[StartupInfo]
 #define _XA_NET_DESKTOP_LAYOUT			atom[DeskLayout]
 #define _XA_NET_WM_USER_TIME			atom[WindowUserTime]
 #define _XA_NET_WM_USER_TIME_WINDOW		atom[UserTimeWindow]
+#define _XA_NET_WM_VISIBLE_NAME			atom[WindowNameVisible]
+#define _XA_NET_WM_ICON_NAME			atom[WindowIconName]
+#define _XA_NET_WM_VISIBLE_ICON_NAME		atom[WindowIconNameVisible]
 #define _XA_NET_WM_SYNC_REQUEST_COUNTER		atom[WindowCounter]
 #define _XA_NET_WM_HANDLED_ICONS		atom[HandledIcons]
 #define _XA_KDE_NET_WM_WINDOW_TYPE_OVERRIDE	atom[WindowTypeOverride]
@@ -179,10 +187,11 @@ struct Client {
 	int rx, ry, rw, rh;	/* revert geometry */
 	int th;			/* title height */
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
-	int minax, maxax, minay, maxay;
+	int minax, maxax, minay, maxay, gravity;
 	int ignoreunmap;
 	long flags;
 	int border, oldborder;
+	int wintype;
 	Bool isbanned, ismax, isfloating, wasfloating;
 	Bool isicon, isfill, ismodal, isabove, isbelow, isattn;
 	Bool isfixed, isbastard, isfocusable, hasstruts;
@@ -246,6 +255,7 @@ typedef struct {
 
 /* ewmh.c */
 Bool checkatom(Window win, Atom bigatom, Atom smallatom);
+unsigned int getwintype(Window win);
 Bool checkwintype(Window win, int wintype);
 void clientmessage(XEvent * e);
 void ewmh_process_net_window_state(Client *c);
