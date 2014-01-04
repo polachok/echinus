@@ -372,28 +372,27 @@ ewmh_update_net_desktop_modes(Client * c) {
 }
 
 void
-mwm_process_atom(Client *c) {
+mwm_process_atom(Client * c) {
 	Atom real;
 	int format;
-	unsigned char *data = NULL;
-	long *hint;
+	long *hint = NULL;
 	unsigned long n, extra;
+
 #define MWM_HINTS_ELEMENTS 5
 #define MWM_DECOR_ALL(x) ((x) & (1L << 0))
 #define MWM_DECOR_TITLE(x) ((x) & (1L << 3))
 #define MWM_DECOR_BORDER(x) ((x) & (1L << 1))
 #define MWM_HINTS_DECOR(x) ((x) & (1L << 1))
 	if (XGetWindowProperty(dpy, c->win, atom[MWMHints], 0L, 20L, False,
-		atom[MWMHints], &real, &format, &n, &extra,
-		(unsigned char **) &data) == Success && n >= MWM_HINTS_ELEMENTS) {
-		hint = (long *) data;
+			       atom[MWMHints], &real, &format, &n, &extra,
+			       (unsigned char **) &hint) == Success && n >= MWM_HINTS_ELEMENTS) {
 		if (MWM_HINTS_DECOR(hint[0]) && !(MWM_DECOR_ALL(hint[2]))) {
 			c->title = MWM_DECOR_TITLE(hint[2]) ? root : (Window) NULL;
 			c->border = MWM_DECOR_BORDER(hint[2]) ? style.border : 0;
 		}
 	}
-	if (data)
-		XFree(data);
+	if (hint)
+		XFree(hint);
 }
 
 void
