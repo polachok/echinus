@@ -1,36 +1,31 @@
 /* enums */
 
 enum {
-	Manager,
-	Utf8String, WMProto, WMDelete, WMName, WMState, WMChangeState,
-	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors,
-	DeskGeometry, DeskViewport,
-	ShowingDesktop, WMRestart, WMShutdown, RequestFrameExt, RestackWindow,
-	StartupInfoBegin, StartupInfo, DeskLayout, WindowUserTime,
+	Manager, Utf8String, WMProto, WMDelete, WMName, WMState, WMChangeState,
+	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors, DeskGeometry,
+	DeskViewport, ShowingDesktop, WMRestart, WMShutdown, RequestFrameExt,
+	RestackWindow, StartupInfoBegin, StartupInfo, DeskLayout, WindowUserTime,
 	UserTimeWindow, WindowNameVisible, WindowIconName, WindowIconNameVisible,
 	WindowCounter, HandledIcons, WindowTypeOverride,
 	/* _NET_SUPPORTED following */
-	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk,
-	DeskNames, CurDesk, WorkArea,
-	DeskModes, DeskModeFloating, DeskModeTiled, DeskModeBottomTiled,
-	DeskModeMonocle,
-	ClientListStacking, WindowOpacity, MoveResizeWindow,
-	WindowMoveResize, WindowExtents,
-	WindowType, WindowTypeDesk, WindowTypeDock, WindowTypeToolbar,
-	WindowTypeMenu, WindowTypeUtil, WindowTypeSplash, WindowTypeDialog,
-	WindowTypeDrop, WindowTypePopup, WindowTypeTooltip, WindowTypeNotify,
-	WindowTypeCombo, WindowTypeDnd, WindowTypeNormal,
+	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
+	CurDesk, WorkArea,
+	DeskModes, DeskModeFloating, DeskModeTiled, DeskModeBottomTiled, DeskModeMonocle,
+	ClientListStacking, WindowOpacity, MoveResizeWindow, WindowMoveResize,
+	WindowExtents,
+	WindowType, WindowTypeDesk, WindowTypeDock, WindowTypeToolbar, WindowTypeMenu,
+	WindowTypeUtil, WindowTypeSplash, WindowTypeDialog, WindowTypeDrop,
+	WindowTypePopup, WindowTypeTooltip, WindowTypeNotify, WindowTypeCombo,
+	WindowTypeDnd, WindowTypeNormal,
 	StrutPartial, Strut, WindowPid, WindowName,
 	WindowState, WindowStateModal, WindowStateSticky, WindowStateMaxV,
-	WindowStateMaxH, WindowStateShaded, WindowStateNoTaskbar,
-	WindowStateNoPager, WindowStateHidden, WindowStateFs,
-	WindowStateAbove, WindowStateBelow, WindowStateAttn,
-	WindowStateFocused, WindowStateFixed, WindowStateFloating,
+	WindowStateMaxH, WindowStateShaded, WindowStateNoTaskbar, WindowStateNoPager,
+	WindowStateHidden, WindowStateFs, WindowStateAbove, WindowStateBelow,
+	WindowStateAttn, WindowStateFocused, WindowStateFixed, WindowStateFloating,
 	WindowStateFilled,
-	WindowActions, WindowActionAbove, WindowActionBelow,
-	WindowActionChangeDesk, WindowActionClose, WindowActionFs,
-	WindowActionMaxH, WindowActionMaxV, WindowActionMin,
-	WindowActionMove, WindowActionResize, WindowActionShade,
+	WindowActions, WindowActionAbove, WindowActionBelow, WindowActionChangeDesk,
+	WindowActionClose, WindowActionFs, WindowActionMaxH, WindowActionMaxV,
+	WindowActionMin, WindowActionMove, WindowActionResize, WindowActionShade,
 	WindowActionStick, WindowActionFloat, WindowActionFill,
 	WMCheck, CloseWindow, Supported,
 	NATOMS
@@ -69,7 +64,7 @@ enum {
 #define _XA_NET_WM_SYNC_REQUEST_COUNTER		atom[WindowCounter]
 #define _XA_NET_WM_HANDLED_ICONS		atom[HandledIcons]
 #define _XA_KDE_NET_WM_WINDOW_TYPE_OVERRIDE	atom[WindowTypeOverride]
-
+/* _NET_SUPPORTED following */
 #define _XA_NET_CLIENT_LIST			atom[ClientList]
 #define _XA_NET_ACTIVE_WINDOW			atom[ActiveWindow]
 #define _XA_NET_WM_DESKTOP			atom[WindowDesk]
@@ -78,11 +73,13 @@ enum {
 #define _XA_NET_DESKTOP_NAMES			atom[DeskNames]
 #define _XA_NET_CURRENT_DESKTOP			atom[CurDesk]
 #define _XA_NET_WORKAREA			atom[WorkArea]
+
 #define _XA_NET_DESKTOP_MODES			atom[DeskModes]
 #define _XA_NET_DESKTOP_MODE_FLOATING		atom[DeskModeFloating]
 #define _XA_NET_DESKTOP_MODE_TILED		atom[DeskModeTiled]
 #define _XA_NET_DESKTOP_MODE_BOTTOM_TILED	atom[DeskModeBottomTiled]
 #define _XA_NET_DESKTOP_MODE_MONOCLE		atom[DeskModeMonocle]
+
 #define _XA_NET_CLIENT_LIST_STACKING		atom[ClientListStacking]
 #define _XA_NET_WM_WINDOW_OPACITY		atom[WindowOpacity]
 #define _XA_NET_MOVERESIZE_WINDOW		atom[MoveResizeWindow]
@@ -271,7 +268,8 @@ int getstruts(Client * c);
 void arrange(Monitor * m);
 Monitor *clientmonitor(Client * c);
 Monitor *curmonitor();
-void *emallocz(unsigned int size);
+void *ecalloc(size_t nmemb, size_t size);
+void *emallocz(size_t size);
 void eprint(const char *errstr, ...);
 const char *getresource(const char *resource, const char *defval);
 Client *getclient(Window w, Client * list, int part);

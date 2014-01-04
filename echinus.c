@@ -85,7 +85,8 @@ void configurerequest(XEvent * e);
 void destroynotify(XEvent * e);
 void detach(Client * c);
 void detachstack(Client * c);
-void *emallocz(unsigned int size);
+void *ecalloc(size_t nmemb, size_t size);
+void *emallocz(size_t size);
 void enternotify(XEvent * e);
 void eprint(const char *errstr, ...);
 void expose(XEvent * e);
@@ -749,12 +750,17 @@ detachstack(Client * c) {
 }
 
 void *
-emallocz(unsigned int size) {
-	void *res = calloc(1, size);
+ecalloc(size_t nmemb, size_t size) {
+	void *res = calloc(nmemb, size);
 
 	if (!res)
-		eprint("fatal: could not malloc() %u bytes\n", size);
+		eprint("fatal: could not calloc() %z x %z bytes\n", nmemb, size);
 	return res;
+}
+
+void *
+emallocz(size_t size) {
+	return ecalloc(1, size);
 }
 
 void
@@ -1155,7 +1161,7 @@ manage(Window w, XWindowAttributes * wa) {
 	cm = curmonitor();
 	c->isicon = False;
 	c->title = c->isbastard ? (Window) NULL : 1;
-	c->tags = emallocz(ntags * sizeof(cm->seltags[0]));
+	c->tags = ecalloc(ntags, sizeof(cm->seltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
 	c->border = c->isbastard ? 0 : style.border;
 	c->oldborder = c->isbastard ? 0 : wa->border_width; /* XXX: why? */
@@ -1202,9 +1208,14 @@ manage(Window w, XWindowAttributes * wa) {
 	}
 	c->hasstruts = getstruts(c); 
 	if (c->isbastard) {
+#if 0
 		free(c->tags);
 		c->tags = cm->seltags;
+#else
+		memcpy(c->tags, cm->seltags, ntags * sizeof(cm->seltags[0]));
+#endif
 	}
+
 #if 0
 	if (c->w == cm->sw && c->h == cm->sh) {
 		c->x = 0;
@@ -1691,8 +1702,8 @@ restack(Monitor * m) {
 			n++;
 	if (!n)
 		return;
-	wl = calloc(n, sizeof(Window));
-	cl = calloc(n, sizeof(Client *));
+	wl = ecalloc(n, sizeof(Window));
+	cl = ecalloc(n, sizeof(Client *));
 	i = 0;
 	/*
 	 * EWMH WM SPEC 1.5 Draft 2:
@@ -2007,8 +2018,8 @@ initmonitors(XEvent * e) {
 			m->mx = m->sx + m->sw/2;
 			m->my = m->sy + m->sh/2;
 			m->curtag = n;
-			m->prevtags = emallocz(ntags * sizeof(Bool));
-			m->seltags = emallocz(ntags * sizeof(Bool));
+			m->prevtags = ecalloc(ntags, sizeof(Bool));
+			m->seltags = ecalloc(ntags, sizeof(Bool));
 			m->seltags[n] = True;
 			m->next = monitors;
 			monitors = m;
@@ -2030,8 +2041,8 @@ initmonitors(XEvent * e) {
 	m->mx = m->sx + m->sw/2;
 	m->my = m->sy + m->sh/2;
 	m->curtag = 0;
-	m->prevtags = emallocz(ntags * sizeof(Bool));
-	m->seltags = emallocz(ntags * sizeof(Bool));
+	m->prevtags = ecalloc(ntags, sizeof(Bool));
+	m->seltags = ecalloc(ntags, sizeof(Bool));
 	m->seltags[0] = True;
 	m->next = NULL;
 	monitors = m;
@@ -2044,8 +2055,8 @@ inittags() {
 	char tmp[25] = "\0";
 
 	ntags = atoi(getresource("tags.number", "5"));
-	views = emallocz(ntags * sizeof(View));
-	tags = emallocz(ntags * sizeof(char *));
+	views = ecalloc(ntags, sizeof(View));
+	tags = ecalloc(ntags, sizeof(char *));
 	for (i = 0; i < ntags; i++) {
 		tags[i] = emallocz(sizeof(tmp));
 		snprintf(tmp, sizeof(tmp), "tags.name%d", i);
@@ -2534,9 +2545,11 @@ unmanage(Client * c) {
 		focus(NULL);
 	setclientstate(c, WithdrawnState);
 	XDestroyWindow(dpy, c->frame);
+#if 0
 	/* c->tags points to monitor */
 	if (!c->isbastard)
 		free(c->tags);
+#endif
 	free(c);
 	XSync(dpy, False);
 	XSetErrorHandler(xerror);
@@ -2718,7 +2731,7 @@ view(int index) {
 	memcpy(cm->prevtags, cm->seltags, ntags * sizeof(cm->seltags[0]));
 
 	for (j = 0; j < ntags; j++)
-		cm->seltags[j] = (index == -1);
+		cm->seltags[j] = 0;
 	cm->seltags[i] = True;
 	prevtag = cm->curtag;
 	cm->curtag = i;
@@ -2762,8 +2775,8 @@ void
 viewlefttag(const char *arg) {
 	unsigned int i;
 
-	for (i = 0; i < ntags; i++) {
-		if (i && curseltags[i]) {
+	for (i = 1; i < ntags; i++) {
+		if (curseltags[i]) {
 			view(i - 1);
 			break;
 		}

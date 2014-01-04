@@ -159,63 +159,74 @@ initewmh(Window win) {
 }
 
 void
-update_echinus_layout_name(Client *c) {
-	XChangeProperty(dpy, root, atom[ELayout],
-	    XA_STRING, 8, PropModeReplace,
-	    (const unsigned char *) &views[curmontag].layout->symbol, 1L);
+update_echinus_layout_name(Client * c) {
+	XChangeProperty(dpy, root, atom[ELayout], XA_STRING, 8, PropModeReplace,
+			(const unsigned char *) &views[curmontag].layout->symbol, 1L);
 }
 
 void
-ewmh_update_net_client_list(Client *c) {
+ewmh_update_net_client_list(Client * c) {
 	Window *wins = NULL;
-	int i, n = 0;
+	int i, n;
 
-	for (c = stack; c; c = c->snext)
+	DPRINTF("%s\n", "Updating _NET_CLIENT_LIST_STACKING");
+	for (n = 0, c = stack; c; c = c->snext)
 		n++;
-	if (!n) {
-		XChangeProperty(dpy, root, atom[ClientList], XA_WINDOW, 32,
-			       	PropModeReplace, (unsigned char *) wins, n);
-		XChangeProperty(dpy, root, atom[ClientListStacking], XA_WINDOW,
-			       	32, PropModeReplace, (unsigned char *) wins, n);
-		return;
+	if (n && (wins = calloc(n, sizeof(Window))))
+		for (i = 0, c = stack; c; c = c->snext)
+			wins[i++] = c->win;
+	XChangeProperty(dpy, root, atom[ClientListStacking], XA_WINDOW, 32,
+			PropModeReplace, (unsigned char *) wins, n);
+	if (wins) {
+		free(wins);
+		wins = NULL;
 	}
-	wins = malloc(sizeof(Window) * n);
-	for (i = 0, c = stack; c; c = c->snext)
-		wins[i++] = c->win;
-	XChangeProperty(dpy, root,
-	    atom[ClientListStacking], XA_WINDOW, 32, PropModeReplace,
-	    (unsigned char *) wins, n);
-	for (i = 0, c = clients; c; c = c->next)
-		wins[i++] = c->win;
-	XChangeProperty(dpy, root,
-	    atom[ClientList], XA_WINDOW, 32, PropModeReplace, (unsigned char *) wins, n);
-	free(wins);
+
+	DPRINTF("%s\n", "Updating _NET_CLIENT_LIST");
+	for (n = 0, c = clients; c; c = c->next)
+		n++;
+	if (n && (wins = calloc(n, sizeof(Window))))
+		for (i = 0, c = clients; c; c = c->next)
+			wins[i++] = c->win;
+	XChangeProperty(dpy, root, atom[ClientList], XA_WINDOW, 32,
+			PropModeReplace, (unsigned char *) wins, n);
+	if (wins) {
+		free(wins);
+		wins = NULL;
+	}
+
 	XFlush(dpy);
 }
 
 void
-ewmh_update_net_number_of_desktops(Client *c) {
-	XChangeProperty(dpy, root,
-	    atom[NumberOfDesk], XA_CARDINAL, 32, PropModeReplace,
-	    (unsigned char *) &ntags, 1);
+ewmh_update_net_number_of_desktops(Client * c) {
+	long data = ntags;
+
+	DPRINTF("%s\n", "Updating _NET_NUMBER_OF_DESKTOPS");
+	XChangeProperty(dpy, root, atom[NumberOfDesk], XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *) &data, 1);
 }
 
 void
-ewmh_update_net_current_desktop(Client *c) {
+ewmh_update_net_current_desktop(Client * c) {
 	Monitor *m;
-	unsigned long *seltags;
+	long *seltags, data;
 	unsigned int i;
 
-	seltags = emallocz(ntags * sizeof(unsigned long));
-	for (m = monitors; m != NULL; m = m->next) {
+	DPRINTF("%s\n", "Updating _ECHINUS_SELTAGS");
+	seltags = ecalloc(ntags, sizeof(seltags[0]));
+	for (m = monitors; m != NULL; m = m->next)
 		for (i = 0; i < ntags; i++)
-			seltags[i] |= m->seltags[i];
-	}
-	XChangeProperty(dpy, root,
-	    atom[ESelTags], XA_CARDINAL, 32, PropModeReplace,
-	    (unsigned char *) seltags, ntags);
+			if (m->seltags[i])
+				seltags[i] = True;
+	XChangeProperty(dpy, root, atom[ESelTags], XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *) seltags, ntags);
+
+	DPRINTF("%s\n", "Updating _NET_CURRENT_DESKTOP");
+	data = curmontag;
 	XChangeProperty(dpy, root, atom[CurDesk], XA_CARDINAL, 32,
-	    PropModeReplace, (unsigned char *) &curmontag, 1);
+			PropModeReplace, (unsigned char *) &data, 1);
+
 	update_echinus_layout_name(NULL);
 	free(seltags);
 }
@@ -243,6 +254,7 @@ void
 ewmh_update_net_window_desktop(Client *c) {
 	long i = -1;
 
+	DPRINTF("Updating _NET_WM_DESKTOP for 0x%lx\n", c->win);
 	if (!issticky(c))
 		for (i = 0; i < ntags && !c->tags[i]; i++);
 	XChangeProperty(dpy, c->win, atom[WindowDesk], XA_CARDINAL, 32,
@@ -255,6 +267,7 @@ ewmh_update_net_window_desktop_mask(Client *c) {
 	unsigned long data[longs];
 	unsigned int i, j, k, l;
 
+	DPRINTF("Updating _NET_WM_DESKTOP_MASK for 0x%lx\n", c->win);
 	for (j = 0, k = 0; j < longs; j++, k += 32)
 		for (i = 0, l = k, data[j] = 0; i < 32 && l < ntags; i++, l++)
 			if (c->tags[l])
@@ -264,12 +277,13 @@ ewmh_update_net_window_desktop_mask(Client *c) {
 }
 
 void
-ewmh_update_net_work_area(Client *c) {
-	unsigned long *geoms;
+ewmh_update_net_work_area(Client * c) {
+	long *geoms, longs = ntags * 4;
 	Monitor *m = monitors;
-	int i, x, y, w, h;
+	int i, j, x, y, w, h;
 
-	geoms = malloc(sizeof(unsigned long)*4*ntags);
+	DPRINTF("%s\n", "Updating _NET_WORKAREA");
+	geoms = ecalloc(longs, sizeof(geoms[0]));
 	x = m->wax - m->sx;
 	y = m->way - m->sy;
 	w = m->waw;
@@ -280,50 +294,58 @@ ewmh_update_net_work_area(Client *c) {
 		w = min(w, m->waw);
 		h = min(h, m->wah);
 	}
-	for (i = 0; i < ntags; i++) {
-		geoms[i*4] = x;
-		geoms[i*4+1] = y;
-		geoms[i*4+2] = w;
-		geoms[i*4+3] = h;
+	for (i = 0, j = 0; i < ntags; i++) {
+		geoms[j++] = x;
+		geoms[j++] = y;
+		geoms[j++] = w;
+		geoms[j++] = h;
 	}
-	XChangeProperty(dpy, root,
-	    atom[WorkArea], XA_CARDINAL, 32, PropModeReplace, (unsigned char *) geoms, ntags*4);
+	XChangeProperty(dpy, root, atom[WorkArea], XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *) geoms, longs);
 	free(geoms);
 }
 
 void
-ewmh_update_net_desktop_names(Client *c) {
-	char buf[1024], *pos;
-	unsigned int i;
-	int len = 0;
+ewmh_update_net_desktop_names(Client * c) {
+	char *buf, *pos;
+	unsigned int i, len, slen;
 
-	pos = buf;
+	DPRINTF("%s\n", "Updating _NET_DESKTOP_NAMES");
+	for (len = 0, i = 0; i < ntags; i++)
+		if (tags[i])
+			len += strlen(tags[i]);
+	len += ntags;
+	pos = buf = ecalloc(len, 1);
 	for (i = 0; i < ntags; i++) {
-		snprintf(pos, strlen(tags[i]) + 1, "%s", tags[i]);
-		pos += (strlen(tags[i]) + 1);
+		if (tags[i]) {
+			slen = strlen(tags[i]);
+			memcpy(pos, tags[i], slen);
+			pos += slen;
+		}
+		*(pos++) = '\0';
 	}
-	len = pos - buf;
-
-	XChangeProperty(dpy, root,
-	    atom[DeskNames], atom[Utf8String], 8, PropModeReplace,
-	    (unsigned char *) buf, len);
+	XChangeProperty(dpy, root, atom[DeskNames], atom[Utf8String], 8,
+			PropModeReplace, (unsigned char *) buf, len);
+	free(buf);
 }
 
 void
-ewmh_update_net_active_window(Client *c) {
+ewmh_update_net_active_window(Client * c) {
 	Window win;
 
+	DPRINTF("%s\n", "Updating _NET_ACTIVE_WINDOW");
 	win = sel ? sel->win : None;
-	XChangeProperty(dpy, root,
-	    atom[ActiveWindow], XA_WINDOW, 32, PropModeReplace,
-	    (unsigned char *) &win, 1);
+	XChangeProperty(dpy, root, atom[ActiveWindow], XA_WINDOW, 32,
+			PropModeReplace, (unsigned char *) &win, 1);
 }
 
 void
-ewmh_update_net_desktop_modes(Client *c) {
-	long data[ntags];
-	int i;
+ewmh_update_net_desktop_modes(Client * c) {
+	long *data;
+	unsigned int i;
 
+	DPRINTF("%s\n", "Updating _NET_DESKTOP_MODES");
+	data = ecalloc(ntags, sizeof(data[0]));
 	for (i = 0; i < ntags; i++) {
 		switch (views[i].layout->symbol) {
 		case 'i':
@@ -344,9 +366,9 @@ ewmh_update_net_desktop_modes(Client *c) {
 			break;
 		}
 	}
-	XChangeProperty(dpy, root,
-	    atom[DeskModes], XA_ATOM, 32, PropModeReplace,
-	    (unsigned char *)data, ntags);
+	XChangeProperty(dpy, root, atom[DeskModes], XA_ATOM, 32,
+			PropModeReplace, (unsigned char *) data, ntags);
+	free(data);
 }
 
 void
@@ -375,8 +397,7 @@ mwm_process_atom(Client *c) {
 }
 
 void
-ewmh_update_net_window_state(Client *c)
-{
+ewmh_update_net_window_state(Client *c) {
 	long winstate[16];
 	int states = 0;
 
@@ -384,6 +405,7 @@ ewmh_update_net_window_state(Client *c)
 	if (!c->ismanaged)
 		return;
 
+	DPRINTF("Updating _NET_WM_STATE for 0x%lx\n", c->win);
 	if (c->ismodal)
 		winstate[states++] = atom[WindowStateModal];
 	if (issticky(c))
@@ -416,11 +438,11 @@ ewmh_update_net_window_state(Client *c)
 }
 
 void
-ewmh_update_net_window_actions(Client *c)
-{
+ewmh_update_net_window_actions(Client *c) {
 	long action[32];
 	int actions = 0;
 
+	DPRINTF("Updating _NET_WM_ALLOWED_ACTIONS for 0x%lx\n", c->win);
 	action[actions++] = atom[WindowActionAbove];
 	action[actions++] = atom[WindowActionBelow];
 	if (!c->isbastard) {
@@ -579,14 +601,15 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 }
 
 void
-ewmh_update_net_window_extents(Client *c)
-{
+ewmh_update_net_window_extents(Client *c) {
 	long data[4] = {
 		c->border, /* left */
 		c->border, /* right */
 		c->border + c->th, /* top */
 		c->border, /* bottom */
 	};
+
+	DPRINTF("Updating _NET_WM_FRAME_EXTENTS for 0x%lx\n", c->win);
 	XChangeProperty(dpy, c->win, atom[WindowExtents], XA_CARDINAL, 32,
 		PropModeReplace, (unsigned char *) &data, 4L);
 }
@@ -775,16 +798,20 @@ clientmessage(XEvent *e) {
 }
 
 void
-setopacity(Client *c, unsigned int opacity) {
+setopacity(Client * c, unsigned int opacity) {
+	/* TODO: This is not quite right: the client is responsible for setting 
+	   opacity on the client window, the WM should only propagate that
+	   opacity to the frame. */
 	if (opacity == OPAQUE) {
 		XDeleteProperty(dpy, c->win, atom[WindowOpacity]);
 		XDeleteProperty(dpy, c->frame, atom[WindowOpacity]);
 	} else {
-		XChangeProperty(dpy, c->win, atom[WindowOpacity],
-		    XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &opacity, 1L);
-		XChangeProperty(dpy, c->frame, atom[WindowOpacity],
-		    XA_CARDINAL, 32, PropModeReplace, (unsigned char *) &opacity, 1L);
+		long data = opacity;
 
+		XChangeProperty(dpy, c->win, atom[WindowOpacity], XA_CARDINAL, 32,
+				PropModeReplace, (unsigned char *) &data, 1L);
+		XChangeProperty(dpy, c->frame, atom[WindowOpacity], XA_CARDINAL, 32,
+				PropModeReplace, (unsigned char *) &data, 1L);
 	}
 }
 

@@ -306,7 +306,7 @@ initrules() {
 	int i;
 	char t[64];
 	const char *tmp;
-	rules = emallocz(64 * sizeof(Rule *));
+	rules = ecalloc(64, sizeof(Rule *));
 	for (i = 0; i < 64; i++) {
 		snprintf(t, sizeof(t), "rule%d", i);
 		tmp = getresource(t, NULL);
