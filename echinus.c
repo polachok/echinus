@@ -144,7 +144,7 @@ void toggleview(int index);
 void togglemonitor(const char *arg);
 void focusview(int index);
 void unban(Client * c);
-void unmanage(Client * c);
+void unmanage(Client * c, Bool reparented, Bool destroyed);
 void updategeom(Monitor * m);
 void updatestruts(Monitor * m);
 void unmapnotify(XEvent * e);
@@ -600,7 +600,7 @@ void
 cleanup(void) {
 	while (stack) {
 		unban(stack);
-		unmanage(stack);
+		unmanage(stack, False, False);
 	}
 	free(tags);
 	free(keys);
@@ -726,8 +726,8 @@ destroynotify(XEvent * e) {
 
 	if (!(c = getclient(ev->window, clients, ClientWindow)))
 		return;
-	unmanage(c);
-	updateatom[ClientList] (NULL);
+	DPRINTF("unmanage destroyed window (%s)\n", c->name);
+	unmanage(c, False, True);
 }
 
 void
@@ -863,6 +863,7 @@ focus(Client * c) {
 	if (c) {
 		detachstack(c);
 		attachstack(c);
+		updateatom[ClientListStacking] (NULL);
 		/* unban(c); */
 	}
 	sel = c;
@@ -885,7 +886,6 @@ focus(Client * c) {
 	if (o)
 		drawclient(o);
 	updateatom[ActiveWindow] (sel);
-	updateatom[ClientList] (NULL);
 	updateatom[CurDesk] (NULL);
 }
 
@@ -1269,7 +1269,9 @@ manage(Window w, XWindowAttributes * wa) {
 	}
 
 	attach(c, options.attachaside);
+	updateatom[ClientList] (NULL);
 	attachstack(c);
+	updateatom[ClientListStacking] (NULL);
 
 	twa.event_mask = CLIENTMASK;
 	twa.do_not_propagate_mask = CLIENTNOPROPAGATEMASK;
@@ -1284,7 +1286,6 @@ manage(Window w, XWindowAttributes * wa) {
 	XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
 	configure(c);	/* propagates border_width, if size doesn't change */
 	ban(c);
-	updateatom[ClientList] (NULL);
 	updateatom[WindowDesk] (c);
 	updateatom[WindowDeskMask] (c);
 	updateframe(c);
@@ -1520,8 +1521,10 @@ reparentnotify(XEvent * e) {
 	XReparentEvent *ev = &e->xreparent;
 
 	if ((c = getclient(ev->window, clients, ClientWindow)))
-		if (ev->parent != c->frame)
-			unmanage(c);
+		if (ev->parent != c->frame) {
+			DPRINTF("unmanage reparented window (%s)\n", c->name);
+			unmanage(c, True, False);
+		}
 }
 
 void
@@ -1736,7 +1739,7 @@ restack(Monitor * m) {
 		}
 	}
 	/* windows of type _NET_WM_TYPE_DOCK (unless they have state
-	   _NET_WM_TYPE_BELOW) and windows having state _NET_WM_STATE_ABOVE. */
+	   _NET_WM_STATE_BELOW) and windows having state _NET_WM_STATE_ABOVE. */
 	for (j = 0; j < n && i < n; j++) {
 		if (!(c = cl[j]))
 			continue;
@@ -2510,15 +2513,16 @@ unban(Client * c) {
 }
 
 void
-unmanage(Client * c) {
+unmanage(Client * c, Bool reparented, Bool destroyed) {
 	Monitor *m;
 	XWindowChanges wc;
 	Bool doarrange, dostruts;
-	Window trans;
+	Window trans = None;
 
 	m = clientmonitor(c);
-	doarrange = !(c->isfloating || c->isfixed
-	    || XGetTransientForHint(dpy, c->win, &trans)) || c->isbastard;
+	doarrange = !(c->isfloating || c->isfixed ||
+		(!destroyed && XGetTransientForHint(dpy, c->win, &trans))) ||
+		c->isbastard;
 	dostruts = c->hasstruts;
 	/* The server grab construct avoids race conditions. */
 	XGrabServer(dpy);
@@ -2531,19 +2535,26 @@ unmanage(Client * c) {
 		XDestroyWindow(dpy, c->title);
 		c->title = (Window) NULL;
 	}
-	XSelectInput(dpy, c->win, CLIENTMASK & ~(StructureNotifyMask | EnterWindowMask));
-	XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
-	XReparentWindow(dpy, c->win, root, c->x, c->y);
-	XMoveWindow(dpy, c->win, c->x, c->y);
-	if (!running)
-		XMapWindow(dpy, c->win);
-	wc.border_width = c->oldborder;
-	XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);	/* restore border */
+	if (!destroyed) {
+		XSelectInput(dpy, c->win, CLIENTMASK & ~(StructureNotifyMask | EnterWindowMask));
+		XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
+		if (!reparented) {
+			XReparentWindow(dpy, c->win, root, c->x, c->y);
+			XMoveWindow(dpy, c->win, c->x, c->y);
+			if (!running)
+				XMapWindow(dpy, c->win);
+			wc.border_width = c->oldborder;
+			XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);	/* restore border */
+		}
+	}
 	detach(c);
+	updateatom[ClientList] (NULL);
 	detachstack(c);
+	updateatom[ClientListStacking] (NULL);
 	if (sel == c)
 		focus(NULL);
-	setclientstate(c, WithdrawnState);
+	if (!destroyed)
+		setclientstate(c, WithdrawnState);
 	XDestroyWindow(dpy, c->frame);
 #if 0
 	/* c->tags points to monitor */
@@ -2560,7 +2571,6 @@ unmanage(Client * c) {
 	}
 	if (doarrange) 
 		arrange(m);
-	updateatom[ClientList] (NULL);
 }
 
 void
@@ -2603,8 +2613,8 @@ unmapnotify(XEvent * e) {
 	if ((c = getclient(ev->window, clients, ClientWindow)) /* && ev->send_event */) {
 		if (c->ignoreunmap--)
 			return;
-		DPRINTF("killing self-unmapped window (%s)\n", c->name);
-		unmanage(c);
+		DPRINTF("unmanage self-unmapped window (%s)\n", c->name);
+		unmanage(c, False, False);
 	}
 }
 
@@ -2775,10 +2785,15 @@ void
 viewlefttag(const char *arg) {
 	unsigned int i;
 
+	/* wrap around: TODO: do full _NET_DESKTOP_LAYOUT */
+	if (curseltags[0]) {
+		view(ntags - 1);
+		return;
+	}
 	for (i = 1; i < ntags; i++) {
 		if (curseltags[i]) {
 			view(i - 1);
-			break;
+			return;
 		}
 	}
 }
@@ -2790,8 +2805,13 @@ viewrighttag(const char *arg) {
 	for (i = 0; i < ntags - 1; i++) {
 		if (curseltags[i]) {
 			view(i + 1);
-			break;
+			return;
 		}
+	}
+	/* wrap around: TODO: do full _NET_DESKTOP_LAYOUT */
+	if (i == ntags - 1) {
+		view(0);
+		return;
 	}
 }
 
@@ -2803,7 +2823,8 @@ zoom(Client *c) {
 		if (!(c = nexttiled(c->next, curmonitor())))
 			return;
 	detach(c);
-	attach(c, 0);
+	attach(c, False);
+	updateatom[ClientList] (NULL);
 	arrange(curmonitor());
 	focus(c);
 }

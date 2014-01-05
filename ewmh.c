@@ -7,6 +7,7 @@
  *
  */
 
+#include <assert.h>
 #include <unistd.h>
 #include <regex.h>
 #include <X11/Xatom.h>
@@ -165,37 +166,118 @@ update_echinus_layout_name(Client * c) {
 }
 
 void
-ewmh_update_net_client_list(Client * c) {
-	Window *wins = NULL;
-	int i, n;
+ewmh_update_net_client_list_stacking(Client * c) {
+	Window *wl = NULL;
+	Client **cl = NULL;
+	int i, j, n;
 
 	DPRINTF("%s\n", "Updating _NET_CLIENT_LIST_STACKING");
 	for (n = 0, c = stack; c; c = c->snext)
 		n++;
-	if (n && (wins = calloc(n, sizeof(Window))))
-		for (i = 0, c = stack; c; c = c->snext)
-			wins[i++] = c->win;
-	XChangeProperty(dpy, root, atom[ClientListStacking], XA_WINDOW, 32,
-			PropModeReplace, (unsigned char *) wins, n);
-	if (wins) {
-		free(wins);
-		wins = NULL;
+	if (n) {
+		wl = ecalloc(n, sizeof(Window));
+		cl = ecalloc(n, sizeof(Client *));
 	}
+	for (i = 0, c = stack; c && i < n; c = c->snext)
+		cl[i++] = c;
+
+	i = 0;
+	/* focused windows having state _NET_WM_STATE_FULLSCREEN */
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if ((c = cl[j]) && sel == c && c->ismax) {
+			wl[i++] = c->win;
+			cl[j] = NULL;
+		}
+	}
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if ((WTCHECK(c, WindowTypeDock) && !c->isbelow) || c->isabove) {
+			wl[i++] = c->win;
+			cl[j] = NULL;
+		}
+	}
+	/* windows of type _NET_WM_TYPE_DOCK (unless they have state _NET_WM_STATE_BELOW) 
+	   and windows having state _NET_WM_STATE_ABOVE */
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if ((WTCHECK(c, WindowTypeDock) && !c->isbelow) || c->isabove) {
+			wl[i++] = c->win;
+			cl[j] = NULL;
+		}
+	}
+	/* windows not belonging in any other layer (but we put floating above special
+	   above tiled) */
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if (!c->isbastard && c->isfloating && !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
+			wl[i++] = c->win;
+			cl[j] = NULL;
+		}
+	}
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if (c->isbastard && !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
+			wl[i++] = c->win;
+			cl[j] = NULL;
+		}
+	}
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if (!c->isbastard && !c->isfloating && !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
+			wl[i++] = c->win;
+			cl[j] = NULL;
+		}
+	}
+	/* windows having state _NET_WM_STATE_BELOW */
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if (c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
+			wl[i++] = c->win;
+			cl[j] = NULL;
+		}
+	}
+	/* windows of type _NET_WM_TYPE_DESKTOP */
+	for (j = 0; j < n && i < n; j++) {
+		if (!(c = cl[j]))
+			continue;
+		if (WTCHECK(c, WindowTypeDesk)) {
+			wl[i++] = c->win;
+			cl[j] = NULL;
+		}
+	}
+	assert(i == n);
+	XChangeProperty(dpy, root, atom[ClientListStacking], XA_WINDOW, 32,
+			PropModeReplace, (unsigned char *) wl, n);
+	if (n) {
+		free(wl);
+		free(cl);
+	}
+	XFlush(dpy);		/* XXX: caller's responsibility */
+}
+
+void
+ewmh_update_net_client_list(Client * c) {
+	Window *wl = NULL;
+	int i, n;
 
 	DPRINTF("%s\n", "Updating _NET_CLIENT_LIST");
 	for (n = 0, c = clients; c; c = c->next)
 		n++;
-	if (n && (wins = calloc(n, sizeof(Window))))
+	if (n && (wl = calloc(n, sizeof(Window))))
 		for (i = 0, c = clients; c; c = c->next)
-			wins[i++] = c->win;
+			wl[i++] = c->win;
 	XChangeProperty(dpy, root, atom[ClientList], XA_WINDOW, 32,
-			PropModeReplace, (unsigned char *) wins, n);
-	if (wins) {
-		free(wins);
-		wins = NULL;
-	}
-
-	XFlush(dpy);
+			PropModeReplace, (unsigned char *) wl, n);
+	free(wl);
+	XFlush(dpy); /* XXX: caller's responsibility */
 }
 
 void
@@ -930,6 +1012,7 @@ int getstruts(Client *c) {
 
 void (*updateatom[]) (Client *) = {
 	[ClientList] = ewmh_update_net_client_list,
+	[ClientListStacking] = ewmh_update_net_client_list_stacking,
 	[ActiveWindow] = ewmh_update_net_active_window,
 	[WindowDesk] = ewmh_update_net_window_desktop,
 	[WindowDeskMask] = ewmh_update_net_window_desktop_mask,
