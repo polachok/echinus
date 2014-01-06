@@ -6,14 +6,14 @@ enum {
 	DeskViewport, ShowingDesktop, WMRestart, WMShutdown, RequestFrameExt,
 	RestackWindow, StartupInfoBegin, StartupInfo, DeskLayout, WindowUserTime,
 	UserTimeWindow, WindowNameVisible, WindowIconName, WindowIconNameVisible,
-	WindowCounter, HandledIcons, WindowTypeOverride,
+	WindowCounter, WindowTypeOverride,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
 	CurDesk, WorkArea,
 	DeskModes, DeskModeFloating, DeskModeTiled, DeskModeBottomTiled, DeskModeMonocle,
 	DeskModeTopTiled, DeskModeLeftTiled,
 	ClientListStacking, WindowOpacity, MoveResizeWindow, WindowMoveResize,
-	WindowExtents,
+	WindowExtents, HandledIcons,
 	WindowType, WindowTypeDesk, WindowTypeDock, WindowTypeToolbar, WindowTypeMenu,
 	WindowTypeUtil, WindowTypeSplash, WindowTypeDialog, WindowTypeDrop,
 	WindowTypePopup, WindowTypeTooltip, WindowTypeNotify, WindowTypeCombo,
@@ -63,7 +63,6 @@ enum {
 #define _XA_NET_WM_ICON_NAME			atom[WindowIconName]
 #define _XA_NET_WM_VISIBLE_ICON_NAME		atom[WindowIconNameVisible]
 #define _XA_NET_WM_SYNC_REQUEST_COUNTER		atom[WindowCounter]
-#define _XA_NET_WM_HANDLED_ICONS		atom[HandledIcons]
 #define _XA_KDE_NET_WM_WINDOW_TYPE_OVERRIDE	atom[WindowTypeOverride]
 /* _NET_SUPPORTED following */
 #define _XA_NET_CLIENT_LIST			atom[ClientList]
@@ -88,6 +87,7 @@ enum {
 #define _XA_NET_MOVERESIZE_WINDOW		atom[MoveResizeWindow]
 #define _XA_NET_WM_MOVERESIZE			atom[WindowMoveResize]
 #define _XA_NET_FRAME_EXTENTS			atom[WindowExtents]
+#define _XA_NET_WM_HANDLED_ICONS		atom[HandledIcons]
 
 #define _XA_NET_WM_WINDOW_TYPE			atom[WindowType]
 #define _XA_NET_WM_WINDOW_TYPE_DESKTOP		atom[WindowTypeDesk]
