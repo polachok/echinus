@@ -96,7 +96,7 @@ void incnmaster(const char *arg);
 void focus(Client * c);
 void focusnext(Client *c);
 void focusprev(Client *c);
-Client *getclient(Window w, Client * list, int part);
+Client *getclient(Window w, int part);
 const char *getresource(const char *resource, const char *defval);
 long getstate(Window w);
 Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
@@ -179,6 +179,7 @@ Monitor *monitors;
 Client *clients;
 Client *sel;
 Client *stack;
+XContext context[PartLast];
 Cursor cursor[CurLast];
 Style style;
 Button button[LastBtn];
@@ -420,7 +421,7 @@ buttonpress(XEvent * e) {
 		}
 		return;
 	}
-	if ((c = getclient(ev->window, clients, ClientTitle))) {
+	if ((c = getclient(ev->window, ClientTitle))) {
 		DPRINTF("TITLE %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
 		for (i = 0; i < LastBtn; i++) {
@@ -451,7 +452,7 @@ buttonpress(XEvent * e) {
 			mousemove(c);
 		else if (ev->button == Button3)
 			mouseresize(c);
-	} else if ((c = getclient(ev->window, clients, ClientWindow))) {
+	} else if ((c = getclient(ev->window, ClientWindow))) {
 		DPRINTF("WINDOW %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
 		restack(curmonitor());
@@ -477,7 +478,7 @@ buttonpress(XEvent * e) {
 				togglemax(c);
 			mouseresize(c);
 		}
-	} else if ((c = getclient(ev->window, clients, ClientFrame))) {
+	} else if ((c = getclient(ev->window, ClientFrame))) {
 		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
 		/* Not supposed to happen */
 	}
@@ -779,7 +780,7 @@ configurerequest(XEvent * e) {
 
 	/* Monitor *cm; */
 
-	if ((c = getclient(ev->window, clients, ClientWindow))) {
+	if ((c = getclient(ev->window, ClientWindow))) {
 		/* cm = clientmonitor(c); */
 		if (c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
 			int x = (ev->value_mask & CWX) ? ev->x : c->x;
@@ -817,7 +818,7 @@ destroynotify(XEvent * e) {
 	Client *c;
 	XDestroyWindowEvent *ev = &e->xdestroywindow;
 
-	if (!(c = getclient(ev->window, clients, ClientWindow)))
+	if (!(c = getclient(ev->window, ClientWindow)))
 		return;
 	DPRINTF("unmanage destroyed window (%s)\n", c->name);
 	unmanage(c, False, True);
@@ -865,7 +866,7 @@ enternotify(XEvent * e) {
 		return;
 	if (!curmonitor())
 		return;
-	if ((c = getclient(ev->window, clients, ClientFrame))) {
+	if ((c = getclient(ev->window, ClientFrame))) {
 		if (c->isbastard)
 			return;
 		/* focus when switching monitors */
@@ -907,7 +908,8 @@ focusin(XEvent * e) {
 	XFocusChangeEvent *ev = &e->xfocus;
 	Client *c;
 
-	if (sel && ((c = getclient(ev->window, clients, ClientWindow)) != sel))
+	c = getclient(ev->window, ClientWindow);
+	if (sel && c != sel)
 		XSetInputFocus(dpy, sel->win, RevertToPointerRoot, CurrentTime);
 	else if (!c)
 		fprintf(stderr, "Caught FOCUSIN for unknown window 0x%lx\n", ev->window);
@@ -920,7 +922,7 @@ expose(XEvent * e) {
 	Client *c;
 
 	while (XCheckWindowEvent(dpy, ev->window, ExposureMask, &tmp));
-	if ((c = getclient(ev->window, clients, ClientTitle)))
+	if ((c = getclient(ev->window, ClientTitle)))
 		drawclient(c);
 }
 
@@ -1064,15 +1066,10 @@ incnmaster(const char *arg) {
 }
 
 Client *
-getclient(Window w, Client * list, int part) {
-	Client *c;
+getclient(Window w, int part) {
+	Client *c = NULL;
 
-#define ClientPart(_c, _part) (((_part) == ClientWindow) ? (_c)->win : \
-			       ((_part) == ClientTitle) ? (_c)->title : \
-			       ((_part) == ClientFrame) ? (_c)->frame : 0)
-
-	for (c = list; c && (ClientPart(c, part)) != w; c = c->next);
-
+	XFindContext(dpy, w, context[part], (XPointer *) & c);
 	return c;
 }
 
@@ -1226,6 +1223,8 @@ manage(Window w, XWindowAttributes * wa) {
 
 	c = emallocz(sizeof(Client));
 	c->win = w;
+	XSaveContext(dpy, c->win, context[ClientWindow], (XPointer)c);
+	XSaveContext(dpy, c->win, context[ClientAny],    (XPointer)c);
 	c->wintype = getwintype(c->win);
 	if (!WTCHECK(c, WindowTypeNormal)) {
 		if (WTCHECK(c, WindowTypeDesk) ||
@@ -1254,7 +1253,7 @@ manage(Window w, XWindowAttributes * wa) {
 
 	cm = curmonitor();
 	c->isicon = False;
-	c->title = c->isbastard ? (Window) NULL : 1;
+	c->title = c->isbastard ? None : 1;
 	c->tags = ecalloc(ntags, sizeof(cm->seltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
 	c->rb = c->border = c->isbastard ? 0 : style.border;
@@ -1269,7 +1268,7 @@ manage(Window w, XWindowAttributes * wa) {
 	applyatoms(c);
 
 	if (XGetTransientForHint(dpy, w, &trans)) {
-		if ((t = getclient(trans, clients, ClientWindow))) {
+		if ((t = getclient(trans, ClientWindow))) {
 			memcpy(c->tags, t->tags, ntags * sizeof(cm->seltags[0]));
 			c->isfloating = True;
 		}
@@ -1350,6 +1349,8 @@ manage(Window w, XWindowAttributes * wa) {
 	    c->h, c->border, wa->depth == 32 ? 32 : DefaultDepth(dpy, screen),
 	    InputOutput, wa->depth == 32 ? wa->visual : DefaultVisual(dpy,
 		screen), mask, &twa);
+	XSaveContext(dpy, c->frame, context[ClientFrame], (XPointer)c);
+	XSaveContext(dpy, c->frame, context[ClientAny],   (XPointer)c);
 
 	wc.border_width = c->border;
 	XConfigureWindow(dpy, c->frame, CWBorderWidth, &wc);
@@ -1367,8 +1368,10 @@ manage(Window w, XWindowAttributes * wa) {
 		c->xftdraw =
 		    XftDrawCreate(dpy, c->drawable, DefaultVisual(dpy, screen),
 		    DefaultColormap(dpy, screen));
+		XSaveContext(dpy, c->title, context[ClientTitle], (XPointer) c);
+		XSaveContext(dpy, c->title, context[ClientAny], (XPointer) c);
 	} else {
-		c->title = (Window) NULL;
+		c->title = None;
 	}
 
 	attach(c, options.attachaside);
@@ -1422,7 +1425,7 @@ maprequest(XEvent * e) {
 		return;
 	if (wa.override_redirect)
 		return;
-	if (!(c = getclient(ev->window, clients, ClientWindow)))
+	if (!(c = getclient(ev->window, ClientWindow)))
 		manage(ev->window, &wa);
 }
 
@@ -1632,7 +1635,7 @@ reparentnotify(XEvent * e) {
 	Client *c;
 	XReparentEvent *ev = &e->xreparent;
 
-	if ((c = getclient(ev->window, clients, ClientWindow)))
+	if ((c = getclient(ev->window, ClientWindow)))
 		if (ev->parent != c->frame) {
 			DPRINTF("unmanage reparented window (%s)\n", c->name);
 			unmanage(c, True, False);
@@ -1674,7 +1677,7 @@ propertynotify(XEvent * e) {
 	Window trans;
 	XPropertyEvent *ev = &e->xproperty;
 
-	if ((c = getclient(ev->window, clients, ClientWindow))) {
+	if ((c = getclient(ev->window, ClientWindow))) {
 		Monitor *m = clientmonitor(c);
 
 		if (ev->atom == atom[StrutPartial] || ev->atom == atom[Strut]) {
@@ -1690,7 +1693,7 @@ propertynotify(XEvent * e) {
 			XGetTransientForHint(dpy, c->win, &trans);
 			if (!c->isfloating
 			    && (c->isfloating =
-				(getclient(trans, clients, ClientWindow) != NULL))) {
+				(getclient(trans, ClientWindow) != NULL))) {
 				arrange(m);
 				updateatom[WindowState](c);
 				updateatom[WindowActions](c);
@@ -2897,7 +2900,9 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 		XftDrawDestroy(c->xftdraw);
 		XFreePixmap(dpy, c->drawable);
 		XDestroyWindow(dpy, c->title);
-		c->title = (Window) NULL;
+		XDeleteContext(dpy, c->title, context[ClientTitle]);
+		XDeleteContext(dpy, c->title, context[ClientAny]);
+		c->title = None;
 	}
 	if (!destroyed) {
 		XSelectInput(dpy, c->win, CLIENTMASK & ~(StructureNotifyMask | EnterWindowMask));
@@ -2934,11 +2939,15 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 	if (!destroyed)
 		setclientstate(c, WithdrawnState);
 	XDestroyWindow(dpy, c->frame);
+	XDeleteContext(dpy, c->frame, context[ClientFrame]);
+	XDeleteContext(dpy, c->frame, context[ClientAny]);
 #if 0
 	/* c->tags points to monitor */
 	if (!c->isbastard)
 		free(c->tags);
 #endif
+	XDeleteContext(dpy, c->win, context[ClientWindow]);
+	XDeleteContext(dpy, c->win, context[ClientAny]);
 	free(c);
 	XSync(dpy, False);
 	XSetErrorHandler(xerror);
@@ -2988,7 +2997,7 @@ unmapnotify(XEvent * e) {
 	Client *c;
 	XUnmapEvent *ev = &e->xunmap;
 
-	if ((c = getclient(ev->window, clients, ClientWindow)) /* && ev->send_event */) {
+	if ((c = getclient(ev->window, ClientWindow)) /* && ev->send_event */) {
 		if (c->ignoreunmap--)
 			return;
 		DPRINTF("unmanage self-unmapped window (%s)\n", c->name);
@@ -3210,6 +3219,7 @@ zoom(Client *c) {
 int
 main(int argc, char *argv[]) {
 	char conf[256] = "\0";
+	int i;
 
 	if (argc == 3 && !strcmp("-f", argv[1]))
 		snprintf(conf, sizeof(conf), "%s", argv[2]);
@@ -3228,7 +3238,8 @@ main(int argc, char *argv[]) {
 	cargv = argv;
 	screen = DefaultScreen(dpy);
 	root = RootWindow(dpy, screen);
-
+	for (i = 0; i < PartLast; i++)
+		context[i] = XUniqueContext();
 	checkotherwm();
 	setup(conf);
 	scan();

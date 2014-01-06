@@ -735,9 +735,7 @@ clientmessage(XEvent *e) {
 	Client *c;
 	Atom message_type = ev->message_type;
 
-	c = getclient(ev->window, clients, ClientWindow);
-
-	if (c) {
+	if ((c = getclient(ev->window, ClientWindow))) {
 		if (0) {
 		} else if (message_type == atom[CloseWindow]) {
 			killclient(c);

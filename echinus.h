@@ -150,7 +150,7 @@ enum {
 
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut }; /* ewmh struts */
 enum { ColFG, ColBG, ColBorder, ColButton, ColLast };	/* colors */
-enum { ClientWindow, ClientTitle, ClientFrame };	/* client parts */
+enum { ClientWindow, ClientTitle, ClientFrame, ClientAny, PartLast };	/* client parts */
 enum { Iconify, Maximize, Close, LastBtn }; /* window buttons */
 
 /* typedefs */
@@ -277,7 +277,7 @@ void *ecalloc(size_t nmemb, size_t size);
 void *emallocz(size_t size);
 void eprint(const char *errstr, ...);
 const char *getresource(const char *resource, const char *defval);
-Client *getclient(Window w, Client * list, int part);
+Client *getclient(Window w, int part);
 Monitor *getmonitor(int x, int y);
 void iconify(Client *c);
 void incnmaster(const char *arg);
