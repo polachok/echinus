@@ -80,7 +80,7 @@ void tstack(Monitor * m);
 void checkotherwm(void);
 void cleanup(void);
 void compileregs(void);
-void configure(Client * c);
+void configure(Client * c, Window above);
 void configurenotify(XEvent * e);
 void configurerequest(XEvent * e);
 void destroynotify(XEvent * e);
@@ -124,7 +124,8 @@ void propertynotify(XEvent * e);
 void reparentnotify(XEvent * e);
 void quit(const char *arg);
 void restart(const char *arg);
-void resize(Client * c, int x, int y, int w, int h, Bool sizehints);
+Bool constrain(Client *c, int *wp, int *hp);
+void resize(Client * c, int x, int y, int w, int h, int b);
 void restack(Monitor * m);
 void run(void);
 void save(Client * c);
@@ -290,15 +291,15 @@ void
 arrangefloats(Monitor * m) {
 	Client *c;
 	Monitor *om;
-	int dx, dy;
+	int dx, dy, w, h;
 
 	for (c = stack; c; c = c->snext) {
 		if (isvisible(c, m) && !c->isbastard &&
-			       	(c->isfloating || MFEATURES(m, OVERLAP))
-			       	&& !c->ismax && !c->isicon) {
+				(c->isfloating || MFEATURES(m, OVERLAP))
+				&& !c->ismax && !c->isicon) {
 			DPRINTF("%d %d\n", c->rx, c->ry);
 			if (!(om = getmonitor(c->rx + c->rw/2,
-				       	c->ry + c->rh/2)))
+					c->ry + c->rh/2)))
 				continue;
 			dx = om->sx + om->sw - c->rx;
 			dy = om->sy + om->sh - c->ry;
@@ -306,7 +307,10 @@ arrangefloats(Monitor * m) {
 				dx = m->sw;
 			if (dy > m->sh) 
 				dy = m->sh;
-			resize(c, m->sx + m->sw - dx, m->sy + m->sh - dy, c->rw, c->rh, True);
+			w = c->rw;
+			h = c->rh;
+			constrain(c, &w, &h);
+			resize(c, m->sx + m->sw - dx, m->sy + m->sh - dy, w, h, c->rb);
 			save(c);
 		}
 	}
@@ -620,7 +624,7 @@ cleanup(void) {
 }
 
 void
-configure(Client * c) {
+configure(Client * c, Window above) {
 	XConfigureEvent ce;
 
 	ce.type = ConfigureNotify;
@@ -631,8 +635,8 @@ configure(Client * c) {
 	ce.y = c->y;
 	ce.width = c->w;
 	ce.height = c->h - c->th;
-	ce.border_width = 0;
-	ce.above = None;
+	ce.border_width = c->border; /* ICCCM 2.0 4.1.5 */
+	ce.above = above;
 	ce.override_redirect = False;
 	XSendEvent(dpy, c->win, False, StructureNotifyMask, (XEvent *) & ce);
 }
@@ -665,82 +669,131 @@ configurenotify(XEvent * e) {
 }
 
 void
+applygravity(Client * c, int *xp, int *yp, int *wp, int *hp, int bw, int gravity) {
+	int xr, yr;
+
+	switch (gravity) {
+	case UnmapGravity:
+	case NorthWestGravity:
+	default:
+		xr = *xp;
+		yr = *yp;
+		break;
+	case NorthGravity:
+		xr = *xp + bw + *wp / 2;
+		yr = *yp;
+		break;
+	case NorthEastGravity:
+		xr = *xp + 2 * bw + *wp;
+		yr = *yp;
+		break;
+	case WestGravity:
+		xr = *xp;
+		yr = *yp + bw + *hp / 2;
+		break;
+	case CenterGravity:
+		xr = *xp + bw + *wp / 2;
+		yr = *yp + bw + *hp / 2;
+		break;
+	case EastGravity:
+		xr = *xp + 2 * bw + *wp;
+		yr = *yp + bw + *hp / 2;
+		break;
+	case SouthWestGravity:
+		xr = *xp;
+		yr = *yp + 2 * bw + *hp;
+		break;
+	case SouthGravity:
+		xr = *xp + bw + *wp / 2;
+		yr = *yp + 2 * bw + *hp;
+		break;
+	case SouthEastGravity:
+		xr = *xp + 2 * bw + *wp;
+		yr = *yp + 2 * bw + *hp;
+		break;
+	case StaticGravity:
+		xr = c->sx + c->sb;
+		yr = c->sy + c->sb;
+		*wp = c->sw;
+		*hp = c->sh;
+		break;
+	}
+	*hp += c->th;
+	if (gravity != StaticGravity)
+		constrain(c, wp, hp);
+	switch (gravity) {
+	case UnmapGravity:
+	case NorthWestGravity:
+	default:
+		*xp = xr;
+		*yp = yr;
+		break;
+	case NorthGravity:
+		*xp = xr - bw - *wp / 2;
+		*yp = yr;
+		break;
+	case NorthEastGravity:
+		*xp = xr - 2 * bw - *wp;
+		*yp = yr;
+		break;
+	case WestGravity:
+		*xp = xr;
+		*yp = yr - bw - *hp / 2;
+		break;
+	case CenterGravity:
+		*xp = xr - bw - *wp / 2;
+		*yp = yr - bw - *hp / 2;
+		break;
+	case EastGravity:
+		*xp = xr - 2 * bw - *wp;
+		*yp = yr - bw - *hp / 2;
+		break;
+	case SouthWestGravity:
+		*xp = xr;
+		*yp = yr - 2 * bw - *hp;
+		break;
+	case SouthGravity:
+		*xp = xr - bw - *wp / 2;
+		*yp = yr - 2 * bw - *hp;
+		break;
+	case SouthEastGravity:
+		*xp = xr - 2 * bw - *wp;
+		*yp = yr - 2 * bw - *hp;
+		break;
+	case StaticGravity:
+		*xp = xr - bw;
+		*yp = yr - bw;
+		break;
+	}
+}
+
+void
 configurerequest(XEvent * e) {
 	Client *c;
 	XConfigureRequestEvent *ev = &e->xconfigurerequest;
 	XWindowChanges wc;
+
 	/* Monitor *cm; */
-	int x = 0, y = 0, w = 0, h = 0;
 
 	if ((c = getclient(ev->window, clients, ClientWindow))) {
 		/* cm = clientmonitor(c); */
-		if (ev->value_mask & CWBorderWidth)
-			c->border = ev->border_width;
 		if (c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
-			if (ev->value_mask & CWX)
-				x = ev->x;
-			if (ev->value_mask & CWY)
-				y = ev->y;
-			if (ev->value_mask & CWWidth)
-				w = ev->width;
-			if (ev->value_mask & CWHeight)
-				h = ev->height + c->th;
-			/* cm = getmonitor(x, y); */
-			if (!(ev->value_mask & (CWX | CWY)) /* resize request */
-			    && (ev->value_mask & (CWWidth | CWHeight))) {
-				DPRINTF("RESIZE %s (%d,%d)->(%d,%d)\n", c->name, c->w, c->h, w, h);
-				resize(c, c->x, c->y, w, h, True);
+			int x = (ev->value_mask & CWX) ? ev->x : c->x;
+			int y = (ev->value_mask & CWY) ? ev->y : c->y;
+			int w = (ev->value_mask & CWWidth) ? ev->width : c->w;
+			int h = (ev->value_mask & CWHeight) ? ev->height : c->h - c->th;
+			int b = (ev->value_mask & CWBorderWidth) ? ev->border_width : c->border;
+
+			applygravity(c, &x, &y, &w, &h, b, c->gravity);
+			resize(c, x, y, w, h, b);
+			if (ev->value_mask & (CWX | CWY | CWWidth | CWHeight | CWBorderWidth))
 				save(c);
-			} else if ((ev->value_mask & (CWX | CWY)) /* move request */
-			    && !(ev->value_mask & (CWWidth | CWHeight))) {
-				DPRINTF("MOVE %s (%d,%d)->(%d,%d)\n", c->name, c->x, c->y, x, y);
-				resize(c, x, y, c->w, c->h, True);
-				save(c);
-			} else if ((ev->value_mask & (CWX | CWY)) /* move and resize request */
-			    && (ev->value_mask & (CWWidth | CWHeight))) {
-				DPRINTF("MOVE&RESIZE(MOVE) %s (%d,%d)->(%d,%d)\n", c->name, c->x, c->y, ev->x, ev->y);
-				DPRINTF("MOVE&RESIZE(RESIZE) %s (%d,%d)->(%d,%d)\n", c->name, c->w, c->h, ev->width, ev->height);
-				resize(c, x, y, w, h, True);
-				save(c);
-			} else if ((ev->value_mask & CWStackMode)) {
-				DPRINTF("RESTACK %s ignoring\n", c->name);
-				configure(c);
-			}
-			/*
-			 * - not changing the size, location, border width, or stacking
-			 *   order of the window at all: a client will receive a synthetic
-			 *   ConfigureNotify event that describes the (unchanged) geometry
-			 *   of the window.  The (x,y) coordinates will be in the root
-			 *   coordinate system, adjusted for the border width the client
-			 *   requested, irrespective of any reparenting that has taken
-			 *   place.  The border width will be the border width the client
-			 *   requested.  The client will not receive a real ConfigureNotify
-			 *   event because no change has actually taken place.
-			 *
-			 * - moving or restacking the window without resizing it or
-			 *   changing its border width: a client will receive a synthetic
-			 *   ConfigureNotify event following the change that describes
-			 *   the new geometry of the window.  The event's (x,y) coordinates
-			 *   will be in the root coordinate system adjusted for the border
-			 *   width the client requested.  The border width will be the
-			 *   border width the client requested.  The client may no receive
-			 *   a real ConfigureNotify event that describes this change
-			 *   because the window manager may have reparented the top-level
-			 *   window.  If the client does receive a real event, the
-			 *   synthetic event will follow the real one.
-			 *
-			 * - resizing the window or changing its border width (regardless
-			 *   of whether the window was also moved or restacked): a client
-			 *   that has selected for StructureNotify events will receive a
-			 *   real ConfigureNotify event.  Note that the coordinates in
-			 *   this event are relative to the parent, whcih may not be the
-			 *   root if the window has been reparented.  The coordinates will
-			 *   reflect the actual border width of the window (which the
-			 *   window manager may have changed).  The TranslateCoordinates
-			 *   request can be used to convert the coordinates if required.
-			 */
 		} else {
-			configure(c);
+			int b = (ev->value_mask & CWBorderWidth) ? ev->border_width : c->border;
+
+			resize(c, c->x, c->y, c->w, c->h, b);
+			if (ev->value_mask & (CWBorderWidth))
+				c->rb = b;
 		}
 	} else {
 		wc.x = ev->x;
@@ -1160,11 +1213,12 @@ void
 manage(Window w, XWindowAttributes * wa) {
 	Client *c, *t = NULL;
 	Monitor *cm = NULL;
-	Window trans;
+	Window trans, dummy;
 	XWindowChanges wc;
 	XSetWindowAttributes twa;
 	XWMHints *wmh;
 	unsigned long mask = 0;
+	unsigned int depth;
 
 	c = emallocz(sizeof(Client));
 	c->win = w;
@@ -1199,7 +1253,7 @@ manage(Window w, XWindowAttributes * wa) {
 	c->title = c->isbastard ? (Window) NULL : 1;
 	c->tags = ecalloc(ntags, sizeof(cm->seltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
-	c->border = c->isbastard ? 0 : style.border;
+	c->rb = c->border = c->isbastard ? 0 : style.border;
 	c->oldborder = c->isbastard ? 0 : wa->border_width; /* XXX: why? */
 	/*  XReparentWindow() unmaps *mapped* windows */
 	c->ignoreunmap = wa->map_state == IsViewable ? 1 : 0;
@@ -1232,6 +1286,14 @@ manage(Window w, XWindowAttributes * wa) {
 	c->y = c->ry = wa->y;
 	c->w = c->rw = wa->width;
 	c->h = c->rh = wa->height + c->th;
+
+	c->sx = c->x;
+	c->sy = c->y;
+	c->sw = c->w;
+	c->sh = c->h;
+	c->sb = c->border;
+
+	XGetGeometry(dpy, c->win, &dummy, &c->sx, &c->sy, &c->sw, &c->sh, &c->sb, &depth);
 
 	if (!wa->x && !wa->y && !c->isbastard)
 		place(c);
@@ -1287,6 +1349,7 @@ manage(Window w, XWindowAttributes * wa) {
 
 	wc.border_width = c->border;
 	XConfigureWindow(dpy, c->frame, CWBorderWidth, &wc);
+	configure(c, None);
 	XSetWindowBorder(dpy, c->frame, style.color.norm[ColBorder]);
 
 	twa.event_mask = ExposureMask | MOUSEMASK;
@@ -1320,7 +1383,6 @@ manage(Window w, XWindowAttributes * wa) {
 	XMapWindow(dpy, c->win);
 	wc.border_width = 0;
 	XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
-	configure(c);	/* propagates border_width, if size doesn't change */
 	ban(c);
 	updateatom[WindowDesk] (c);
 	updateatom[WindowDeskMask] (c);
@@ -1361,21 +1423,25 @@ maprequest(XEvent * e) {
 }
 
 void
-monocle(Monitor * m) {
+monocle(Monitor * m)
+{
+	int wx, wy, wh, ww;
 	Client *c;
 
-	for (c = nexttiled(clients, m); c; c = nexttiled(c->next, m)) {
-		if (views[m->curtag].barpos != StrutsOn)
-			resize(c, m->wax - c->border, m->way - c->border,
-			       m->waw, m->wah, False);
-		else
-			resize(c, m->wax, m->way, m->waw - 2 * c->border,
-			       m->wah - 2 * c->border, False);
-	}
+	/* work area (minus 1 pixel at edge of screen) */
+	wx = (m->wax == m->sx) ? m->wax + 1 : m->wax;
+	wy = (m->way == m->sy) ? m->way + 1 : m->way;
+	ww = ((m->wax + m->waw == m->sx + m->sw) ? m->waw - 1 : m->waw) - (wx - m->wax);
+	wh = ((m->way + m->wah == m->sy + m->sh) ? m->wah - 1 : m->wah) - (wy - m->way);
+
+	for (c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
+		resize(c, wx, wy, ww - 2 * c->border, wh - 2 * c->border, c->border);
 }
 
 void
 moveresizekb(Client *c, int dx, int dy, int dw, int dh) {
+	int w, h;
+
 	if (!c)
 		return;
 	if (!c->isfloating)
@@ -1384,7 +1450,10 @@ moveresizekb(Client *c, int dx, int dy, int dw, int dh) {
 		dw = (dw / abs(dw)) * c->incw;
 	if (dh && (dh < c->inch))
 		dh = (dh / abs(dh)) * c->inch;
-	resize(c, c->x + dx, c->y + dy, c->w + dw, c->h + dh, True);
+	w = c->w + dw;
+	h = c->h + dh;
+	constrain(c, &w, &h);
+	resize(c, c->x + dx, c->y + dy, w, h, c->border);
 }
 
 void
@@ -1429,6 +1498,7 @@ curmonitor() {
 void
 mousemove(Client * c) {
 	int x1, y1, ocx, ocy, nx, ny;
+	int w, h;
 	unsigned int i;
 	XEvent ev;
 	Monitor *m, *nm;
@@ -1470,7 +1540,10 @@ mousemove(Client * c) {
 			else if (abs((nm->way + nm->wah) - (ny + c->h +
 				    2 * c->border)) < options.snap)
 				ny = nm->way + nm->wah - c->h - 2 * c->border;
-			resize(c, nx, ny, c->w, c->h, True);
+			w = c->w;
+			h = c->h;
+			constrain(c, &w, &h);
+			resize(c, nx, ny, w, h, c->border);
 			save(c);
 			if (m != nm) {
 				for (i = 0; i < ntags; i++)
@@ -1528,7 +1601,8 @@ mouseresize(Client * c) {
 				nw = MINWIDTH;
 			if ((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
 				nh = MINHEIGHT;
-			resize(c, c->x, c->y, nw, nh, True);
+			constrain(c, &nw, &nh);
+			resize(c, c->x, c->y, nw, nh, c->border);
 			save(c);
 			break;
 		}
@@ -1659,72 +1733,114 @@ quit(const char *arg) {
 	}
 }
 
-void
-resize(Client * c, int x, int y, int w, int h, Bool sizehints) {
-	if (sizehints) {
-		h -= c->th;
-		/* set minimum possible */
-		if (w < 1)
-			w = 1;
-		if (h < 1)
-			h = 1;
+Bool
+constrain(Client * c, int *wp, int *hp) {
+	int w = *wp, h = *hp;
+	Bool ret = False;
 
-		/* temporarily remove base dimensions */
-		w -= c->basew;
-		h -= c->baseh;
+	h -= c->th;
+	/* set minimum possible */
+	if (w < 1)
+		w = 1;
+	if (h < 1)
+		h = 1;
 
-		/* adjust for aspect limits */
-		if (c->minay > 0 && c->maxay > 0 && c->minax > 0 && c->maxax > 0) {
-			if (w * c->maxay > h * c->maxax)
-				w = h * c->maxax / c->maxay;
-			else if (w * c->minay < h * c->minax)
-				h = w * c->minay / c->minax;
-		}
+	/* temporarily remove base dimensions */
+	w -= c->basew;
+	h -= c->baseh;
 
-		/* adjust for increment value */
-		if (c->incw)
-			w -= w % c->incw;
-		if (c->inch)
-			h -= h % c->inch;
-
-		/* restore base dimensions */
-		w += c->basew;
-		h += c->baseh;
-
-		if (c->minw > 0 && w < c->minw)
-			w = c->minw;
-		if (c->minh > 0 && h - c->th < c->minh)
-			h = c->minh + c->th;
-		if (c->maxw > 0 && w > c->maxw)
-			w = c->maxw;
-		if (c->maxh > 0 && h - c->th > c->maxh)
-			h = c->maxh + c->th;
-		h += c->th;
+	/* adjust for aspect limits */
+	if (c->minay > 0 && c->maxay > 0 && c->minax > 0 && c->maxax > 0) {
+		if (w * c->maxay > h * c->maxax)
+			w = h * c->maxax / c->maxay;
+		else if (w * c->minay < h * c->minax)
+			h = w * c->minay / c->minax;
 	}
+
+	/* adjust for increment value */
+	if (c->incw)
+		w -= w % c->incw;
+	if (c->inch)
+		h -= h % c->inch;
+
+	/* restore base dimensions */
+	w += c->basew;
+	h += c->baseh;
+
+	if (c->minw > 0 && w < c->minw)
+		w = c->minw;
+	if (c->minh > 0 && h - c->th < c->minh)
+		h = c->minh + c->th;
+	if (c->maxw > 0 && w > c->maxw)
+		w = c->maxw;
+	if (c->maxh > 0 && h - c->th > c->maxh)
+		h = c->maxh + c->th;
+	h += c->th;
+	if (w <= 0 || h <= 0)
+		return ret;
+	if (w != *wp) {
+		*wp = w;
+		ret = True;
+	}
+	if (h != *hp) {
+		*hp = h;
+		ret = True;
+	}
+	return ret;
+}
+
+void
+resize(Client * c, int x, int y, int w, int h, int b) {
+	XWindowChanges wc;
+	unsigned mask;
+
 	if (w <= 0 || h <= 0)
 		return;
 	/* offscreen appearance fixes */
 	if (x > DisplayWidth(dpy, screen))
-		x = DisplayWidth(dpy, screen) - w - 2 * c->border;
+		x = DisplayWidth(dpy, screen) - w - 2 * b;
 	if (y > DisplayHeight(dpy, screen))
-		y = DisplayHeight(dpy, screen) - h - 2 * c->border;
+		y = DisplayHeight(dpy, screen) - h - 2 * b;
 	if (w != c->w && c->th) {
 		XMoveResizeWindow(dpy, c->title, 0, 0, w, c->th);
 		XFreePixmap(dpy, c->drawable);
 		c->drawable = XCreatePixmap(dpy, root, w, c->th, DefaultDepth(dpy, screen));
 		drawclient(c);
 	}
-	if (c->x != x || c->y != y || c->w != w || c->h != h /* || sizehints */ ) {
+	DPRINTF("x = %d y = %d w = %d h = %d b = %d\n", x, y, w, h, b);
+	mask = 0;
+	if (c->x != x) {
 		c->x = x;
-		c->y = y;
-		c->w = w;
-		c->h = h;
-		DPRINTF("x = %d y = %d w = %d h = %d\n", c->x, c->y, c->w, c->h);
-		XMoveResizeWindow(dpy, c->frame, c->x, c->y, c->w, c->h);
-		XMoveResizeWindow(dpy, c->win, 0, c->th, c->w, c->h - c->th);
-		configure(c);
-		XSync(dpy, False);
+		wc.x = x;
+		mask |= CWX;
 	}
+	if (c->y != y) {
+		c->y = y;
+		wc.y = y;
+		mask |= CWY;
+	}
+	if (c->w != w) {
+		c->w = w;
+		wc.width = w;
+		mask |= CWWidth;
+	}
+	if (c->h != h) {
+		c->h = h;
+		wc.height = h;
+		mask |= CWHeight;
+	}
+	if (c->border != b) {
+		c->border = b;
+		wc.border_width = b;
+		mask |= CWBorderWidth;
+	}
+	if (mask)
+		XConfigureWindow(dpy, c->frame, mask, &wc);
+	/* ICCCM 2.0 4.1.5 */
+	XMoveResizeWindow(dpy, c->win, 0, c->th, w, h - c->th);
+	/* if (!(mask & (CWWidth | CWHeight | CWBorderWidth))) configure(c, None); */
+	if (!(mask & (CWWidth | CWHeight))) configure(c, None);
+	XSync(dpy, False);
 }
 
 void
@@ -1870,6 +1986,7 @@ save(Client *c) {
 	c->ry = c->y;
 	c->rw = c->w;
 	c->rh = c->h;
+	c->rb = c->border;
 }
 
 void
@@ -2328,7 +2445,7 @@ bstack(Monitor * m) {
 		}
 	      nw -= 2 * c->border;
 	      nh -= 2 * c->border;
-		resize(c, nx, ny, nw, nh, False);
+	      resize(c, nx, ny, nw, nh, c->border);
 	}
 }
 
@@ -2398,7 +2515,7 @@ tstack(Monitor * m) {
 		}
 	      nw -= 2 * c->border;
 	      nh -= 2 * c->border;
-		resize(c, nx, ny, nw, nh, False);
+	      resize(c, nx, ny, nw, nh, c->border);
 	}
 }
 
@@ -2470,7 +2587,7 @@ rtile(Monitor * m) {
 		}
 		nw -= 2 * c->border;
 		nh -= 2 * c->border;
-		resize(c, nx, ny, nw, nh, False);
+		resize(c, nx, ny, nw, nh, c->border);
 	}
 }
 
@@ -2542,7 +2659,7 @@ ltile(Monitor * m) {
 		}
 		nw -= 2 * c->border;
 		nh -= 2 * c->border;
-		resize(c, nx, ny, nw, nh, False);
+		resize(c, nx, ny, nw, nh, c->border);
 	}
 }
 
@@ -2566,7 +2683,7 @@ togglefloating(Client *c) {
 	updateframe(c);
 	if (c->isfloating) {
 		/* restore last known float dimensions */
-		resize(c, c->rx, c->ry, c->rw, c->rh, False);
+		resize(c, c->rx, c->ry, c->rw, c->rh, c->rb);
 	} else {
 		/* save last known float dimensions */
 		save(c);
@@ -2616,9 +2733,13 @@ togglefill(Client *c) {
 
 	if ((c->isfill = !c->isfill)) {
 		save(c);
-		resize(c, x1, y1, w, h, True);
+		constrain(c, &w, &h);
+		resize(c, x1, y1, w, h, c->border);
 	} else {
-		resize(c, c->rx, c->ry, c->rw, c->rh, True);
+		w = c->rw;
+		h = c->rh;
+		constrain(c, &w, &h);
+		resize(c, c->rx, c->ry, w, h, c->rb);
 	}
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
@@ -2640,9 +2761,14 @@ togglemax(Client * c) {
 		w = m->sw;
 		h = m->sh + c->th;
 		save(c);
-		resize(c, x, y, w, h, False);
+		resize(c, x, y, w, h, c->border);
 	} else {
-		resize(c, c->rx, c->ry, c->rw, c->rh, True);
+		int w, h;
+
+		w = c->rw;
+		h = c->rh;
+		constrain(c, &w, &h);
+		resize(c, c->rx, c->ry, w, h, c->rb);
 	}
 	updateatom[WindowState] (c);
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
@@ -2772,12 +2898,26 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 		XSelectInput(dpy, c->win, CLIENTMASK & ~(StructureNotifyMask | EnterWindowMask));
 		XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 		if (!reparented) {
+			unsigned int mask = 0;
+
 			XReparentWindow(dpy, c->win, root, c->x, c->y);
 			XMoveWindow(dpy, c->win, c->x, c->y);
 			if (!running)
 				XMapWindow(dpy, c->win);
-			wc.border_width = c->oldborder;
-			XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);	/* restore border */
+			if (c->gravity == StaticGravity) {
+				/* restore static geometry */
+				wc.x = c->sx;
+				wc.y = c->sy;
+				wc.width = c->sw;
+				wc.height = c->sh;
+				wc.border_width = c->sb;
+				mask |= (CWX|CWY|CWWidth|CWHeight|CWBorderWidth);
+			} else {
+				/* restore border */
+				wc.border_width = c->oldborder;
+				mask |= CWBorderWidth;
+			}
+			XConfigureWindow(dpy, c->win, mask, &wc);
 		}
 	}
 	detach(c);

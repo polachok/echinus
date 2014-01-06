@@ -181,7 +181,9 @@ typedef struct Client Client;
 struct Client {
 	char name[256];
 	int x, y, w, h;
-	int rx, ry, rw, rh;	/* revert geometry */
+	int rx, ry, rw, rh, rb;	/* revert geometry */
+	int sx, sy; /* static geometry */
+	unsigned int sw, sh, sb;
 	int th;			/* title height */
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
 	int minax, maxax, minay, maxay, gravity;
