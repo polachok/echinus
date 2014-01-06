@@ -2267,6 +2267,7 @@ bstack(Monitor * m) {
 	int nx, ny, nw, nh;
 	int mx, my, mw, mh, mn;
 	int tx, ty, th, tw, tn;
+	int wx, wy, wh, ww;
 	unsigned int i, n;
 	Client *c, *mc;
 
@@ -2275,25 +2276,31 @@ bstack(Monitor * m) {
 
 	/* window geoms */
 
+	/* work area (minus 1 pixel at edge of screen) */
+	wx = (m->wax == m->sx) ? m->wax + 1 : m->wax;
+	wy = (m->way == m->sy) ? m->way + 1 : m->way;
+	ww = ((m->wax + m->waw == m->sx + m->sw) ? m->waw - 1 : m->waw) - (wx - m->wax);
+	wh = ((m->way + m->wah == m->sy + m->sh) ? m->wah - 1 : m->wah) - (wy - m->way);
+
 	/* master & tile number */
 	mn = (n > views[m->curtag].nmaster) ? views[m->curtag].nmaster : n;
 	tn = (mn < n) ? n - mn : 0;
 	/* master & tile width */
-	mw = (mn > 0) ? m->waw / mn : m->waw;
-	tw = (tn > 0) ? m->waw / tn : 0;
+	mw = (mn > 0) ? ww / mn : ww;
+	tw = (tn > 0) ? ww / tn : 0;
 	/* master & tile height */
-	mh = (tn > 0) ? views[m->curtag].mwfact * m->wah : m->wah;
-	th = (tn > 0) ? m->wah - mh : 0;
+	mh = (tn > 0) ? views[m->curtag].mwfact * wh : wh;
+	th = (tn > 0) ? wh - mh : 0;
 	if (tn > 0 && th < style.titleheight)
-		th = m->wah;
+		th = wh;
 
 	/* top left corner of master area */
-	mx = m->wax;
-	my = m->way;
+	mx = wx;
+	my = wy;
 
 	/* top left corner of tiled area */
-	tx = m->wax;
-	ty = m->way + mh;
+	tx = wx;
+	ty = wy + mh;
 
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
@@ -2307,7 +2314,7 @@ bstack(Monitor * m) {
 			nw = mw;
 			nh = mh;
 			if (i == (mn - 1))
-				nw = m->waw - mx + m->wax;
+				nw = ww - mx + wx;
 			mx += mw;
 		} else {
 			/* tile */
@@ -2316,7 +2323,7 @@ bstack(Monitor * m) {
 			nw = tw;
 			nh = th;
 			if (i == (n - 1))
-				nw = m->waw - tx + m->wax;
+				nw = ww - tx + wx;
 			tx += tw;
 		}
 	      nw -= 2 * c->border;
@@ -2330,6 +2337,7 @@ tstack(Monitor * m) {
 	int nx, ny, nw, nh;
 	int mx, my, mw, mh, mn;
 	int tx, ty, th, tw, tn;
+	int wx, wy, wh, ww;
 	unsigned int i, n;
 	Client *c, *mc;
 
@@ -2338,25 +2346,31 @@ tstack(Monitor * m) {
 
 	/* window geoms */
 
+	/* work area (minus 1 pixel at edge of screen) */
+	wx = (m->wax == m->sx) ? m->wax + 1 : m->wax;
+	wy = (m->way == m->sy) ? m->way + 1 : m->way;
+	ww = ((m->wax + m->waw == m->sx + m->sw) ? m->waw - 1 : m->waw) - (wx - m->wax);
+	wh = ((m->way + m->wah == m->sy + m->sh) ? m->wah - 1 : m->wah) - (wy - m->way);
+
 	/* master & tile number */
 	mn = (n > views[m->curtag].nmaster) ? views[m->curtag].nmaster : n;
 	tn = (mn < n) ? n - mn : 0;
 	/* master & tile width */
-	mw = (mn > 0) ? m->waw / mn : m->waw;
-	tw = (tn > 0) ? m->waw / tn : 0;
+	mw = (mn > 0) ? ww / mn : ww;
+	tw = (tn > 0) ? ww / tn : 0;
 	/* master & tile height */
-	mh = (tn > 0) ? views[m->curtag].mwfact * m->wah : m->wah;
-	th = (tn > 0) ? m->wah - mh : 0;
+	mh = (tn > 0) ? views[m->curtag].mwfact * wh : wh;
+	th = (tn > 0) ? wh - mh : 0;
 	if (tn > 0 && th < style.titleheight)
-		th = m->wah;
+		th = wh;
 
 	/* top left corner of master area */
-	mx = m->wax;
-	my = m->way + m->wah - mh;
+	mx = wx;
+	my = wy + wh - mh;
 
 	/* top left corner of tiled area */
-	tx = m->wax;
-	ty = m->way;
+	tx = wx;
+	ty = wy;
 
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
@@ -2370,7 +2384,7 @@ tstack(Monitor * m) {
 			nw = mw;
 			nh = mh;
 			if (i == (mn - 1))
-				nw = m->waw - mx + m->wax;
+				nw = ww - mx + wx;
 			mx += mw;
 		} else {
 			/* tile */
@@ -2379,7 +2393,7 @@ tstack(Monitor * m) {
 			nw = tw;
 			nh = th;
 			if (i == (n - 1))
-				nw = m->waw - tx + m->wax;
+				nw = ww - tx + wx;
 			tx += tw;
 		}
 	      nw -= 2 * c->border;
@@ -2395,6 +2409,7 @@ rtile(Monitor * m) {
 	int nx, ny, nw, nh;
 	int mx, my, mw, mh, mn;
 	int tx, ty, th, tw, tn;
+	int wx, wy, wh, ww;
 	unsigned int i, n;
 	Client *c, *mc;
 
@@ -2403,25 +2418,31 @@ rtile(Monitor * m) {
 
 	/* window geoms */
 
+	/* work area (minus 1 pixel at edge of screen) */
+	wx = (m->wax == m->sx) ? m->wax + 1 : m->wax;
+	wy = (m->way == m->sy) ? m->way + 1 : m->way;
+	ww = ((m->wax + m->waw == m->sx + m->sw) ? m->waw - 1 : m->waw) - (wx - m->wax);
+	wh = ((m->way + m->wah == m->sy + m->sh) ? m->wah - 1 : m->wah) - (wy - m->way);
+
 	/* master & tile number */
 	mn = (n > views[m->curtag].nmaster) ? views[m->curtag].nmaster : n;
 	tn = (mn < n) ? n - mn : 0;
 	/* master & tile height */
-	mh = (mn > 0) ? m->wah / mn : m->wah;
-	th = (tn > 0) ? m->wah / tn : 0;
+	mh = (mn > 0) ? wh / mn : wh;
+	th = (tn > 0) ? wh / tn : 0;
 	if (tn > 0 && th < style.titleheight)
-		th = m->wah;
+		th = wh;
 	/* master & tile width */
-	mw = (tn > 0) ? views[m->curtag].mwfact * m->waw : m->waw;
-	tw = (tn > 0) ? m->waw - mw : 0;
+	mw = (tn > 0) ? views[m->curtag].mwfact * ww : ww;
+	tw = (tn > 0) ? ww - mw : 0;
 
 	/* top left corner of master area */
-	mx = m->wax;
-	my = m->way;
+	mx = wx;
+	my = wy;
 
 	/* top left corner of tiled area */
-	tx = m->wax + m->waw - tw;
-	ty = m->way;
+	tx = wx + ww - tw;
+	ty = wy;
 
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
@@ -2435,7 +2456,7 @@ rtile(Monitor * m) {
 			nw = mw;
 			nh = mh;
 			if (i == (mn - 1))
-				nh = m->wah - my + m->way;
+				nh = wh - my + wy;
 			my += mh;
 		} else {
 			/* tile window */
@@ -2444,7 +2465,7 @@ rtile(Monitor * m) {
 			nw = tw;
 			nh = th;
 			if (i == (n - 1))
-				nh = m->wah - ty + m->way;
+				nh = wh - ty + wy;
 			ty += th;
 		}
 		nw -= 2 * c->border;
@@ -2460,6 +2481,7 @@ ltile(Monitor * m) {
 	int nx, ny, nw, nh;
 	int mx, my, mw, mh, mn;
 	int tx, ty, th, tw, tn;
+	int wx, wy, wh, ww;
 	unsigned int i, n;
 	Client *c, *mc;
 
@@ -2468,25 +2490,31 @@ ltile(Monitor * m) {
 
 	/* window geoms */
 
+	/* work area (minus 1 pixel at edge of screen) */
+	wx = (m->wax == m->sx) ? m->wax + 1 : m->wax;
+	wy = (m->way == m->sy) ? m->way + 1 : m->way;
+	ww = ((m->wax + m->waw == m->sx + m->sw) ? m->waw - 1 : m->waw) - (wx - m->wax);
+	wh = ((m->way + m->wah == m->sy + m->sh) ? m->wah - 1 : m->wah) - (wy - m->way);
+
 	/* master & tile number */
 	mn = (n > views[m->curtag].nmaster) ? views[m->curtag].nmaster : n;
 	tn = (mn < n) ? n - mn : 0;
 	/* master & tile height */
-	mh = (mn > 0) ? m->wah / mn : m->wah;
-	th = (tn > 0) ? m->wah / tn : 0;
+	mh = (mn > 0) ? wh / mn : wh;
+	th = (tn > 0) ? wh / tn : 0;
 	if (tn > 0 && th < style.titleheight)
-		th = m->wah;
+		th = wh;
 	/* master & tile width */
-	mw = (tn > 0) ? views[m->curtag].mwfact * m->waw : m->waw;
-	tw = (tn > 0) ? m->waw - mw : 0;
+	mw = (tn > 0) ? views[m->curtag].mwfact * ww : ww;
+	tw = (tn > 0) ? ww - mw : 0;
 
 	/* top left corner of master area */
-	mx = m->wax + m->waw - mw;
-	my = m->way;
+	mx = wx + ww - mw;
+	my = wy;
 
 	/* top left corner of tiled area */
-	tx = m->wax;
-	ty = m->way;
+	tx = wx;
+	ty = wy;
 
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
@@ -2500,7 +2528,7 @@ ltile(Monitor * m) {
 			nw = mw;
 			nh = mh;
 			if (i == (mn - 1))
-				nh = m->wah - my + m->way;
+				nh = wh - my + wy;
 			my += mh;
 		} else {
 			/* tile window */
@@ -2509,7 +2537,7 @@ ltile(Monitor * m) {
 			nw = tw;
 			nh = th;
 			if (i == (n - 1))
-				nh = m->wah - ty + m->way;
+				nh = wh - ty + wy;
 			ty += th;
 		}
 		nw -= 2 * c->border;
