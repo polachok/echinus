@@ -76,6 +76,7 @@ void attachstack(Client * c);
 void ban(Client * c);
 void buttonpress(XEvent * e);
 void bstack(Monitor * m);
+void tstack(Monitor * m);
 void checkotherwm(void);
 void cleanup(void);
 void compileregs(void);
@@ -134,7 +135,8 @@ void setmwfact(const char *arg);
 void setup(char *);
 void spawn(const char *arg);
 void tag(Client *c, int index);
-void tile(Monitor * m);
+void rtile(Monitor * m);
+void ltile(Monitor * m);
 void togglestruts(const char *arg);
 void togglefloating(Client *c);
 void togglemax(Client *c);
@@ -203,8 +205,10 @@ struct {
 Layout layouts[] = {
 	/* function	symbol	features */
 	{  NULL,	'i',	OVERLAP },
-	{  tile,	't',	MWFACT | NMASTER | ZOOM },
-	{  bstack,	'b',	MWFACT | ZOOM },
+	{  rtile,	't',	MWFACT | NMASTER | ZOOM },
+	{  bstack,	'b',	MWFACT | NMASTER | ZOOM },
+	{  tstack,	'u',	MWFACT | NMASTER | ZOOM },
+	{  ltile,	'l',	MWFACT | NMASTER | ZOOM },
 	{  monocle,	'm',	0 },
 	{  NULL,	'f',	OVERLAP },
 	{  NULL,	'\0',	0 },
@@ -481,8 +485,7 @@ static Bool selectionreleased(Display *display, XEvent *event, XPointer arg) {
 }
 
 void
-selectionclear(XEvent * e)
-{
+selectionclear(XEvent * e) {
 	char *name = XGetAtomName(dpy, e->xselectionclear.selection);
 
 	if (name != NULL && strncmp(name, "WM_S", 4) == 0)
@@ -703,6 +706,39 @@ configurerequest(XEvent * e) {
 				DPRINTF("RESTACK %s ignoring\n", c->name);
 				configure(c);
 			}
+			/*
+			 * - not changing the size, location, border width, or stacking
+			 *   order of the window at all: a client will receive a synthetic
+			 *   ConfigureNotify event that describes the (unchanged) geometry
+			 *   of the window.  The (x,y) coordinates will be in the root
+			 *   coordinate system, adjusted for the border width the client
+			 *   requested, irrespective of any reparenting that has taken
+			 *   place.  The border width will be the border width the client
+			 *   requested.  The client will not receive a real ConfigureNotify
+			 *   event because no change has actually taken place.
+			 *
+			 * - moving or restacking the window without resizing it or
+			 *   changing its border width: a client will receive a synthetic
+			 *   ConfigureNotify event following the change that describes
+			 *   the new geometry of the window.  The event's (x,y) coordinates
+			 *   will be in the root coordinate system adjusted for the border
+			 *   width the client requested.  The border width will be the
+			 *   border width the client requested.  The client may no receive
+			 *   a real ConfigureNotify event that describes this change
+			 *   because the window manager may have reparented the top-level
+			 *   window.  If the client does receive a real event, the
+			 *   synthetic event will follow the real one.
+			 *
+			 * - resizing the window or changing its border width (regardless
+			 *   of whether the window was also moved or restacked): a client
+			 *   that has selected for StructureNotify events will receive a
+			 *   real ConfigureNotify event.  Note that the coordinates in
+			 *   this event are relative to the parent, whcih may not be the
+			 *   root if the window has been reparented.  The coordinates will
+			 *   reflect the actual border width of the window (which the
+			 *   window manager may have changed).  The TranslateCoordinates
+			 *   request can be used to convert the coordinates if required.
+			 */
 		} else {
 			configure(c);
 		}
@@ -1329,13 +1365,12 @@ monocle(Monitor * m) {
 	Client *c;
 
 	for (c = nexttiled(clients, m); c; c = nexttiled(c->next, m)) {
-			if (views[m->curtag].barpos != StrutsOn)
-				resize(c, m->wax - c->border,
-						m->way - c->border, m->waw, m->wah, False);
-			else
-				resize(c, m->wax, m->way,
-						m->waw - 2 * c->border,
-						m->wah - 2 * c->border, False);
+		if (views[m->curtag].barpos != StrutsOn)
+			resize(c, m->wax - c->border, m->way - c->border,
+			       m->waw, m->wah, False);
+		else
+			resize(c, m->wax, m->way, m->waw - 2 * c->border,
+			       m->wah - 2 * c->border, False);
 	}
 }
 
@@ -1349,8 +1384,7 @@ moveresizekb(Client *c, int dx, int dy, int dw, int dh) {
 		dw = (dw / abs(dw)) * c->incw;
 	if (dh && (dh < c->inch))
 		dh = (dh / abs(dh)) * c->inch;
-	resize(c, c->x + dx, c->y + dy, c->w + dw,
-	    c->h + dh, True);
+	resize(c, c->x + dx, c->y + dy, c->w + dw, c->h + dh, True);
 }
 
 void
@@ -1563,10 +1597,13 @@ propertynotify(XEvent * e) {
 	XPropertyEvent *ev = &e->xproperty;
 
 	if ((c = getclient(ev->window, clients, ClientWindow))) {
+		Monitor *m = clientmonitor(c);
+
 		if (ev->atom == atom[StrutPartial] || ev->atom == atom[Strut]) {
 			c->hasstruts = getstruts(c);
-			updategeom(clientmonitor(c));
-			arrange(clientmonitor(c));
+			updatestruts(m);
+			updategeom(m);
+			arrange(m);
 		}
 		if (ev->state == PropertyDelete) 
 			return;
@@ -1576,7 +1613,7 @@ propertynotify(XEvent * e) {
 			if (!c->isfloating
 			    && (c->isfloating =
 				(getclient(trans, clients, ClientWindow) != NULL))) {
-				arrange(clientmonitor(c));
+				arrange(m);
 				updateatom[WindowState](c);
 				updateatom[WindowActions](c);
 			}
@@ -1674,11 +1711,10 @@ resize(Client * c, int x, int y, int w, int h, Bool sizehints) {
 	if (w != c->w && c->th) {
 		XMoveResizeWindow(dpy, c->title, 0, 0, w, c->th);
 		XFreePixmap(dpy, c->drawable);
-		c->drawable =
-			XCreatePixmap(dpy, root, w, c->th, DefaultDepth(dpy, screen));
+		c->drawable = XCreatePixmap(dpy, root, w, c->th, DefaultDepth(dpy, screen));
 		drawclient(c);
 	}
-	if (c->x != x || c->y != y || c->w != w || c->h != h /* || sizehints */) {
+	if (c->x != x || c->y != y || c->w != w || c->h != h /* || sizehints */ ) {
 		c->x = x;
 		c->y = y;
 		c->w = w;
@@ -2228,100 +2264,264 @@ tag(Client *c, int index) {
 
 void
 bstack(Monitor * m) {
-	int i, n, nx, ny, nw, nh, mh, tw;
-	Client *c, *mc;
-
-	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
-		n++;
-
-	mh = (n == 1) ? m->wah : views[m->curtag].mwfact * m->wah;
-	tw = (n > 1) ? m->waw / (n - 1) : 0;
-
-	nx = m->wax;
-	ny = m->way;
-	nh = 0;
-	for (i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
-		if (c->ismax) {
-			c->ismax = False;
-			updateatom[WindowState](c);
-		}
-		if (i == 0) {
-			nh = mh - 2 * c->border;
-			nw = m->waw - 2 * c->border;
-			nx = m->wax;
-		} else {
-			if (i == 1) {
-				nx = m->wax;
-				ny += mc->h + c->border;
-				nh = (m->way + m->wah) - ny - 2 * c->border;
-			}
-			if (i + 1 == n)
-				nw = (m->wax + m->waw) - nx - 2 * c->border;
-			else
-				nw = tw - c->border;
-		}
-		resize(c, nx, ny, nw, nh, False);
-		if (n > 1 && tw != curwaw)
-			nx = c->x + c->w + c->border;
-	}
-}
-
-void
-tile(Monitor * m) {
-	int nx, ny, nw, nh, mw, mh;
-	unsigned int i, n, th;
+	int nx, ny, nw, nh;
+	int mx, my, mw, mh, mn;
+	int tx, ty, th, tw, tn;
+	unsigned int i, n;
 	Client *c, *mc;
 
 	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
 		n++;
 
 	/* window geoms */
-	mh = (n <= views[m->curtag].nmaster) ? m->wah / (n >
-	    0 ? n : 1) : m->wah / (views[m->curtag].nmaster ? views[m->curtag].nmaster : 1);
-	mw = (n <= views[m->curtag].nmaster) ? m->waw : views[m->curtag].mwfact * m->waw;
-	th = (n > views[m->curtag].nmaster) ? m->wah / (n - views[m->curtag].nmaster) : 0;
-	if (n > views[m->curtag].nmaster && th < style.titleheight)
+
+	/* master & tile number */
+	mn = (n > views[m->curtag].nmaster) ? views[m->curtag].nmaster : n;
+	tn = (mn < n) ? n - mn : 0;
+	/* master & tile width */
+	mw = (mn > 0) ? m->waw / mn : m->waw;
+	tw = (tn > 0) ? m->waw / tn : 0;
+	/* master & tile height */
+	mh = (tn > 0) ? views[m->curtag].mwfact * m->wah : m->wah;
+	th = (tn > 0) ? m->wah - mh : 0;
+	if (tn > 0 && th < style.titleheight)
 		th = m->wah;
 
-	nx = m->wax;
-	ny = m->way;
-	nw = 0;
-	for (i = 0, c = mc = nexttiled(clients, m); c; c = nexttiled(c->next, m), i++) {
+	/* top left corner of master area */
+	mx = m->wax;
+	my = m->way;
+
+	/* top left corner of tiled area */
+	tx = m->wax;
+	ty = m->way + mh;
+
+	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
 			c->ismax = False;
-			updateatom[WindowState](c);
+			updateatom[WindowState] (c);
 		}
-		if (i < views[m->curtag].nmaster) {	/* master */
-			ny = m->way + i * (mh - c->border);
-			nw = mw - 2 * c->border;
+		if (i < mn) {
+			/* master */
+			nx = mx;
+			ny = my;
+			nw = mw;
 			nh = mh;
-			if (i + 1 == (n < views[m->curtag].nmaster ? n : views[m->curtag].nmaster))	/* remainder */
-				nh = m->way + m->wah - ny;
-			nh -= 2 * c->border;
-		} else {	/* tile window */
-			if (i == views[m->curtag].nmaster) {
-				ny = m->way;
-				nx += mc->w + mc->border;
-				nw = m->waw - nx - 2 * c->border + m->wax;
-			} else
-				ny -= c->border;
-			if (i + 1 == n)	/* remainder */
-				nh = (m->way + m->wah) - ny - 2 * c->border;
-			else
-				nh = th - 2 * c->border;
+			if (i == (mn - 1))
+				nw = m->waw - mx + m->wax;
+			mx += mw;
+		} else {
+			/* tile */
+			nx = tx;
+			ny = ty;
+			nw = tw;
+			nh = th;
+			if (i == (n - 1))
+				nw = m->waw - tx + m->wax;
+			tx += tw;
 		}
+	      nw -= 2 * c->border;
+	      nh -= 2 * c->border;
 		resize(c, nx, ny, nw, nh, False);
-		if (n > views[m->curtag].nmaster && th != (unsigned int)m->wah) {
-			ny = c->y + c->h + 2 * c->border;
+	}
+}
+
+void
+tstack(Monitor * m) {
+	int nx, ny, nw, nh;
+	int mx, my, mw, mh, mn;
+	int tx, ty, th, tw, tn;
+	unsigned int i, n;
+	Client *c, *mc;
+
+	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
+		n++;
+
+	/* window geoms */
+
+	/* master & tile number */
+	mn = (n > views[m->curtag].nmaster) ? views[m->curtag].nmaster : n;
+	tn = (mn < n) ? n - mn : 0;
+	/* master & tile width */
+	mw = (mn > 0) ? m->waw / mn : m->waw;
+	tw = (tn > 0) ? m->waw / tn : 0;
+	/* master & tile height */
+	mh = (tn > 0) ? views[m->curtag].mwfact * m->wah : m->wah;
+	th = (tn > 0) ? m->wah - mh : 0;
+	if (tn > 0 && th < style.titleheight)
+		th = m->wah;
+
+	/* top left corner of master area */
+	mx = m->wax;
+	my = m->way + m->wah - mh;
+
+	/* top left corner of tiled area */
+	tx = m->wax;
+	ty = m->way;
+
+	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
+		if (c->ismax) {
+			c->ismax = False;
+			updateatom[WindowState] (c);
 		}
+		if (i < mn) {
+			/* master */
+			nx = mx;
+			ny = my;
+			nw = mw;
+			nh = mh;
+			if (i == (mn - 1))
+				nw = m->waw - mx + m->wax;
+			mx += mw;
+		} else {
+			/* tile */
+			nx = tx;
+			ny = ty;
+			nw = tw;
+			nh = th;
+			if (i == (n - 1))
+				nw = m->waw - tx + m->wax;
+			tx += tw;
+		}
+	      nw -= 2 * c->border;
+	      nh -= 2 * c->border;
+		resize(c, nx, ny, nw, nh, False);
+	}
+}
+
+/* tiles to right, master to left, variable number of masters */
+
+void
+rtile(Monitor * m) {
+	int nx, ny, nw, nh;
+	int mx, my, mw, mh, mn;
+	int tx, ty, th, tw, tn;
+	unsigned int i, n;
+	Client *c, *mc;
+
+	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
+		n++;
+
+	/* window geoms */
+
+	/* master & tile number */
+	mn = (n > views[m->curtag].nmaster) ? views[m->curtag].nmaster : n;
+	tn = (mn < n) ? n - mn : 0;
+	/* master & tile height */
+	mh = (mn > 0) ? m->wah / mn : m->wah;
+	th = (tn > 0) ? m->wah / tn : 0;
+	if (tn > 0 && th < style.titleheight)
+		th = m->wah;
+	/* master & tile width */
+	mw = (tn > 0) ? views[m->curtag].mwfact * m->waw : m->waw;
+	tw = (tn > 0) ? m->waw - mw : 0;
+
+	/* top left corner of master area */
+	mx = m->wax;
+	my = m->way;
+
+	/* top left corner of tiled area */
+	tx = m->wax + m->waw - tw;
+	ty = m->way;
+
+	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
+		if (c->ismax) {
+			c->ismax = False;
+			updateatom[WindowState] (c);
+		}
+		if (i < mn) {
+			/* master */
+			nx = mx;
+			ny = my;
+			nw = mw;
+			nh = mh;
+			if (i == (mn - 1))
+				nh = m->wah - my + m->way;
+			my += mh;
+		} else {
+			/* tile window */
+			nx = tx;
+			ny = ty;
+			nw = tw;
+			nh = th;
+			if (i == (n - 1))
+				nh = m->wah - ty + m->way;
+			ty += th;
+		}
+		nw -= 2 * c->border;
+		nh -= 2 * c->border;
+		resize(c, nx, ny, nw, nh, False);
+	}
+}
+
+/* tiles to left, master to right, variable number of masters */
+
+void
+ltile(Monitor * m) {
+	int nx, ny, nw, nh;
+	int mx, my, mw, mh, mn;
+	int tx, ty, th, tw, tn;
+	unsigned int i, n;
+	Client *c, *mc;
+
+	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
+		n++;
+
+	/* window geoms */
+
+	/* master & tile number */
+	mn = (n > views[m->curtag].nmaster) ? views[m->curtag].nmaster : n;
+	tn = (mn < n) ? n - mn : 0;
+	/* master & tile height */
+	mh = (mn > 0) ? m->wah / mn : m->wah;
+	th = (tn > 0) ? m->wah / tn : 0;
+	if (tn > 0 && th < style.titleheight)
+		th = m->wah;
+	/* master & tile width */
+	mw = (tn > 0) ? views[m->curtag].mwfact * m->waw : m->waw;
+	tw = (tn > 0) ? m->waw - mw : 0;
+
+	/* top left corner of master area */
+	mx = m->wax + m->waw - mw;
+	my = m->way;
+
+	/* top left corner of tiled area */
+	tx = m->wax;
+	ty = m->way;
+
+	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
+		if (c->ismax) {
+			c->ismax = False;
+			updateatom[WindowState] (c);
+		}
+		if (i < mn) {
+			/* master */
+			nx = mx;
+			ny = my;
+			nw = mw;
+			nh = mh;
+			if (i == (mn - 1))
+				nh = m->wah - my + m->way;
+			my += mh;
+		} else {
+			/* tile window */
+			nx = tx;
+			ny = ty;
+			nw = tw;
+			nh = th;
+			if (i == (n - 1))
+				nh = m->wah - ty + m->way;
+			ty += th;
+		}
+		nw -= 2 * c->border;
+		nh -= 2 * c->border;
+		resize(c, nx, ny, nw, nh, False);
 	}
 }
 
 void
 togglestruts(const char *arg) {
-	views[curmontag].barpos =
-	    (views[curmontag].barpos ==
-	    StrutsOn) ? (options.hidebastards ? StrutsHide : StrutsOff) : StrutsOn;
+	views[curmontag].barpos = (views[curmontag].barpos == StrutsOn)
+	    ? (options.hidebastards ? StrutsHide : StrutsOff) : StrutsOn;
 	updategeom(curmonitor());
 	arrange(curmonitor());
 }
@@ -2396,7 +2596,7 @@ togglefill(Client *c) {
 }
 
 void
-togglemax(Client *c) {
+togglemax(Client * c) {
 	XEvent ev;
 	Monitor *m = curmonitor();
 
@@ -2405,14 +2605,19 @@ togglemax(Client *c) {
 	c->ismax = !c->ismax;
 	updateframe(c);
 	if (c->ismax) {
+		int x, y, w, h;
+
+		x = m->sx - c->border;
+		y = m->sy - c->border - c->th;
+		w = m->sw;
+		h = m->sh + c->th;
 		save(c);
-		resize(c, m->sx - c->border,
-		    m->sy - c->border - c->th, m->sw, m->sh + c->th, False);
+		resize(c, x, y, w, h, False);
 	} else {
 		resize(c, c->rx, c->ry, c->rw, c->rh, True);
 	}
-	updateatom[WindowState](c);
-	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+	updateatom[WindowState] (c);
+	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
 }
 
 void

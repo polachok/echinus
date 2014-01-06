@@ -990,13 +990,13 @@ getstrut(Client *c, Atom strut) {
 	long *state;
 	int ret = 0;
 	Monitor *m;
-	unsigned long i, n;
+	unsigned long i, n = 0;
 
 	if (!(m = clientmonitor(c)))
 		return ret;
 
 	state = getcard(c->win, strut, &n);
-	if (n) {
+	if (n >= LastStrut) {
 		for (i = LeftStrut; i < LastStrut; i++)
 			m->struts[i] = max(state[i], m->struts[i]);
 		ret = 1;
