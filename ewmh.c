@@ -35,7 +35,6 @@ char *atomnames[NATOMS] = {
 	"_ECHINUS_SELTAGS",
 	"_NET_WM_FULLSCREEN_MONITORS",		/* TODO */
 	"_NET_DESKTOP_GEOMETRY",		/* TODO */
-	"_NET_DESKTOP_VIEWPORT",		/* TODO */
 	"_NET_SHOWING_DESKTOP",			/* TODO */
 	"_NET_RESTART",				/* TODO */
 	"_NET_SHUTDOWN",			/* TODO */
@@ -60,6 +59,7 @@ char *atomnames[NATOMS] = {
 	"_NET_DESKTOP_NAMES",
 	"_NET_CURRENT_DESKTOP",
 	"_NET_WORKAREA",
+	"_NET_DESKTOP_VIEWPORT",
 
 	"_NET_DESKTOP_MODES",
 	"_NET_DESKTOP_MODE_FLOATING",
@@ -289,6 +289,15 @@ ewmh_update_net_number_of_desktops(Client * c) {
 	DPRINTF("%s\n", "Updating _NET_NUMBER_OF_DESKTOPS");
 	XChangeProperty(dpy, root, atom[NumberOfDesk], XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) &data, 1);
+}
+
+void
+ewmh_update_net_desktop_viewport(Client *c) {
+	long *data;
+
+	data = ecalloc(ntags * 2, sizeof(data[0]));
+	XChangeProperty(dpy, root, atom[DeskViewport], XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *)data, ntags * 2);
 }
 
 void
@@ -1015,6 +1024,7 @@ void (*updateatom[]) (Client *) = {
 	[WindowDesk] = ewmh_update_net_window_desktop,
 	[WindowDeskMask] = ewmh_update_net_window_desktop_mask,
 	[NumberOfDesk] = ewmh_update_net_number_of_desktops,
+	[DeskViewport] = ewmh_update_net_desktop_viewport,
 	[DeskNames] = ewmh_update_net_desktop_names,
 	[CurDesk] = ewmh_update_net_current_desktop,
 	[ELayout] = update_echinus_layout_name,

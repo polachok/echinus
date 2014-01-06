@@ -2318,6 +2318,7 @@ setup(char *conf) {
 	initkeys();
 	initlayouts();
 	updateatom[NumberOfDesk] (NULL);
+	updateatom[DeskViewport] (NULL);
 	updateatom[DeskNames] (NULL);
 	updateatom[CurDesk] (NULL);
 
