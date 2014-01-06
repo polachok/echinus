@@ -1845,7 +1845,6 @@ resize(Client * c, int x, int y, int w, int h, int b) {
 		XConfigureWindow(dpy, c->frame, mask, &wc);
 	/* ICCCM 2.0 4.1.5 */
 	XMoveResizeWindow(dpy, c->win, 0, c->th, w, h - c->th);
-	/* if (!(mask & (CWWidth | CWHeight | CWBorderWidth))) configure(c, None); */
 	if (!(mask & (CWWidth | CWHeight))) configure(c, None);
 	XSync(dpy, False);
 }
@@ -2389,9 +2388,9 @@ tag(Client *c, int index) {
 
 void
 bstack(Monitor * m) {
-	int nx, ny, nw, nh;
-	int mx, my, mw, mh, mn;
-	int tx, ty, th, tw, tn;
+	int nx, ny, nw, nh, nb;
+	int mx, my, mw, mh, mb, mn;
+	int tx, ty, th, tw, tb, tn;
 	int wx, wy, wh, ww;
 	unsigned int i, n;
 	Client *c, *mc;
@@ -2427,29 +2426,41 @@ bstack(Monitor * m) {
 	tx = wx;
 	ty = wy + mh;
 
+	mb = wh;
+	nb = 0;
+
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
 			c->ismax = False;
 			updateatom[WindowState] (c);
 		}
+		nb = min(nb, c->border);
 		if (i < mn) {
 			/* master */
-			nx = mx;
+			nx = mx - nb;
 			ny = my;
-			nw = mw;
+			nw = mw + nb;
 			nh = mh;
-			if (i == (mn - 1))
-				nw = ww - mx + wx;
-			mx += mw;
+			if (i == (mn - 1)) {
+				nw = ww - nx + wx;
+				nb = 0;
+			} else
+				nb = c->border;
+			mx = nx + nw;
+			mb = min(mb, c->border);
 		} else {
 			/* tile */
-			nx = tx;
-			ny = ty;
-			nw = tw;
-			nh = th;
-			if (i == (n - 1))
-				nw = ww - tx + wx;
-			tx += tw;
+			tb = min(mb, c->border);
+			nx = tx - nb;
+			ny = ty - tb;
+			nw = tw + nb;
+			nh = th + tb;
+			if (i == (n - 1)) {
+				nw = ww - nx + wx;
+				nb = 0;
+			} else
+				nb = c->border;
+			tx = nx + nw;
 		}
 	      nw -= 2 * c->border;
 	      nh -= 2 * c->border;
@@ -2459,9 +2470,9 @@ bstack(Monitor * m) {
 
 void
 tstack(Monitor * m) {
-	int nx, ny, nw, nh;
-	int mx, my, mw, mh, mn;
-	int tx, ty, th, tw, tn;
+	int nx, ny, nw, nh, nb;
+	int mx, my, mw, mh, mb, mn;
+	int tx, ty, th, tw, tb, tn;
 	int wx, wy, wh, ww;
 	unsigned int i, n;
 	Client *c, *mc;
@@ -2497,29 +2508,41 @@ tstack(Monitor * m) {
 	tx = wx;
 	ty = wy;
 
+	mb = wh;
+	nb = 0;
+
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
 			c->ismax = False;
 			updateatom[WindowState] (c);
 		}
+		nb = min(nb, c->border);
 		if (i < mn) {
 			/* master */
-			nx = mx;
+			nx = mx - nb;
 			ny = my;
-			nw = mw;
+			nw = mw + nb;
 			nh = mh;
-			if (i == (mn - 1))
-				nw = ww - mx + wx;
-			mx += mw;
+			if (i == (mn - 1)) {
+				nw = ww - nx + wx;
+				nb = 0;
+			} else
+				nb = c->border;
+			mx = nx + nw;
+			mb = min(mb, c->border);
 		} else {
 			/* tile */
-			nx = tx;
+			tb = min(mb, c->border);
+			nx = tx - nb;
 			ny = ty;
-			nw = tw;
-			nh = th;
-			if (i == (n - 1))
-				nw = ww - tx + wx;
-			tx += tw;
+			nw = tw + nb;
+			nh = th + tb;
+			if (i == (n - 1)) {
+				nw = ww - nx + wx;
+				nb = 0;
+			} else
+				nb = c->border;
+			tx = nx + nw;
 		}
 	      nw -= 2 * c->border;
 	      nh -= 2 * c->border;
@@ -2531,9 +2554,9 @@ tstack(Monitor * m) {
 
 void
 rtile(Monitor * m) {
-	int nx, ny, nw, nh;
-	int mx, my, mw, mh, mn;
-	int tx, ty, th, tw, tn;
+	int nx, ny, nw, nh, nb;
+	int mx, my, mw, mh, mb, mn;
+	int tx, ty, th, tw, tb, tn;
 	int wx, wy, wh, ww;
 	unsigned int i, n;
 	Client *c, *mc;
@@ -2569,29 +2592,41 @@ rtile(Monitor * m) {
 	tx = wx + ww - tw;
 	ty = wy;
 
+	mb = ww;
+	nb = 0;
+
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
 			c->ismax = False;
 			updateatom[WindowState] (c);
 		}
+		nb = min(nb, c->border);
 		if (i < mn) {
 			/* master */
 			nx = mx;
-			ny = my;
+			ny = my - nb;
 			nw = mw;
-			nh = mh;
-			if (i == (mn - 1))
-				nh = wh - my + wy;
-			my += mh;
+			nh = mh + nb;
+			if (i == (mn - 1)) {
+				nh = wh - ny + wy;
+				nb = 0;
+			} else
+				nb = c->border;
+			my = ny + nh;
+			mb = min(mb, c->border);
 		} else {
 			/* tile window */
-			nx = tx;
-			ny = ty;
-			nw = tw;
-			nh = th;
-			if (i == (n - 1))
-				nh = wh - ty + wy;
-			ty += th;
+			tb = min(mb, c->border);
+			nx = tx - tb;
+			ny = ty - nb;
+			nw = tw + tb;
+			nh = th + nb;
+			if (i == (n - 1)) {
+				nh = wh - ny + wy;
+				nb = 0;
+			} else
+				nb = c->border;
+			ty = ny + nh;
 		}
 		nw -= 2 * c->border;
 		nh -= 2 * c->border;
@@ -2603,9 +2638,9 @@ rtile(Monitor * m) {
 
 void
 ltile(Monitor * m) {
-	int nx, ny, nw, nh;
-	int mx, my, mw, mh, mn;
-	int tx, ty, th, tw, tn;
+	int nx, ny, nw, nh, nb;
+	int mx, my, mw, mh, mb, mn;
+	int tx, ty, th, tw, tb, tn;
 	int wx, wy, wh, ww;
 	unsigned int i, n;
 	Client *c, *mc;
@@ -2641,29 +2676,41 @@ ltile(Monitor * m) {
 	tx = wx;
 	ty = wy;
 
+	mb = ww;
+	nb = 0;
+
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
 			c->ismax = False;
 			updateatom[WindowState] (c);
 		}
+		nb = min(nb, c->border);
 		if (i < mn) {
 			/* master */
 			nx = mx;
-			ny = my;
+			ny = my - nb;
 			nw = mw;
-			nh = mh;
-			if (i == (mn - 1))
-				nh = wh - my + wy;
-			my += mh;
+			nh = mh + nb;
+			if (i == (mn - 1)) {
+				nh = wh - ny + wy;
+				nb = 0;
+			} else
+				nb = c->border;
+			my = ny + nh;
+			mb = min(mb, c->border);
 		} else {
 			/* tile window */
+			tb = min(mb, c->border);
 			nx = tx;
-			ny = ty;
-			nw = tw;
-			nh = th;
-			if (i == (n - 1))
-				nh = wh - ty + wy;
-			ty += th;
+			ny = ty - nb;
+			nw = tw + tb;
+			nh = th + nb;
+			if (i == (n - 1)) {
+				nh = wh - ny + wy;
+				nb = 0;
+			} else
+				nb = c->border;
+			ty = ny + nh;
 		}
 		nw -= 2 * c->border;
 		nh -= 2 * c->border;
