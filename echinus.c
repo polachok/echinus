@@ -337,6 +337,10 @@ arrangemon(Monitor * m) {
 			ban(c);
 		}
 	}
+	for (c = stack; c; c = c->snext) {
+		updateatom[WindowState] (c); /* XXX: really necessary? */
+		updateatom[WindowActions](c);
+	}
 }
 
 void
@@ -2030,6 +2034,7 @@ setclientstate(Client * c, long state) {
 	if (state == NormalState && c->isicon) {
 		c->isicon = False;
 		updateatom[WindowState](c);
+		updateatom[WindowActions](c);
 	}
 }
 

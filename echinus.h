@@ -11,6 +11,7 @@ enum {
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
 	CurDesk, WorkArea,
 	DeskModes, DeskModeFloating, DeskModeTiled, DeskModeBottomTiled, DeskModeMonocle,
+	DeskModeTopTiled, DeskModeLeftTiled,
 	ClientListStacking, WindowOpacity, MoveResizeWindow, WindowMoveResize,
 	WindowExtents,
 	WindowType, WindowTypeDesk, WindowTypeDock, WindowTypeToolbar, WindowTypeMenu,
@@ -79,6 +80,8 @@ enum {
 #define _XA_NET_DESKTOP_MODE_TILED		atom[DeskModeTiled]
 #define _XA_NET_DESKTOP_MODE_BOTTOM_TILED	atom[DeskModeBottomTiled]
 #define _XA_NET_DESKTOP_MODE_MONOCLE		atom[DeskModeMonocle]
+#define _XA_NET_DESKTOP_MODE_TOP_TILED		atom[DeskModeTopTiled]
+#define _XA_NET_DESKTOP_MODE_LEFT_TILED		atom[DeskModeLeftTiled]
 
 #define _XA_NET_CLIENT_LIST_STACKING		atom[ClientListStacking]
 #define _XA_NET_WM_WINDOW_OPACITY		atom[WindowOpacity]
@@ -285,6 +288,8 @@ void focusnext(Client *c);
 void focusprev(Client *c);
 void focusview(int index);
 void killclient(Client *c);
+void applygravity(Client *c, int *xp, int *yp, int *wp, int *hp, int bw, int gravity);
+void resize(Client * c, int x, int y, int w, int h, int b);
 void configurerequest(XEvent * e);
 void moveresizekb(Client *c, int dx, int dy, int dw, int dh);
 void mousemove(Client *c);

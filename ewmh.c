@@ -67,6 +67,8 @@ char *atomnames[NATOMS] = {
 	"_NET_DESKTOP_MODE_TILED",
 	"_NET_DESKTOP_MODE_BOTTOM_TILED",
 	"_NET_DESKTOP_MODE_MONOCLE",
+	"_NET_DESKTOP_MODE_TOP_TILED",
+	"_NET_DESKTOP_MODE_LEFT_TILED",
 
 	"_NET_CLIENT_LIST_STACKING",
 	"_NET_WM_WINDOW_OPACITY",
@@ -443,6 +445,12 @@ ewmh_update_net_desktop_modes(Client * c) {
 		case 'm':
 			data[i] = atom[DeskModeMonocle];
 			break;
+		case 'u':
+			data[i] = atom[DeskModeTopTiled];
+			break;
+		case 'l':
+			data[i] = atom[DeskModeLeftTiled];
+			break;
 		default:
 			data[i] = None;
 			break;
@@ -541,6 +549,16 @@ ewmh_update_net_window_actions(Client *c) {
 			action[actions++] = atom[WindowActionMove];
 			if (!c->isfixed)
 				action[actions++] = atom[WindowActionResize];
+		} else {
+			if (!c->isfixed) {
+				DPRINTF("Cannot moveresize 0x%lx: %s\n", c->win, "not fixed");
+			}
+			if (!c->isfloating) {
+				DPRINTF("Cannot moveresize 0x%lx: %s\n", c->win, "not floating");
+			}
+			if (!MFEATURES(clientmonitor(c), OVERLAP)) {
+				DPRINTF("Cannot moveresize 0x%lx: %s\n", c->win, "not in overlap mode");
+			}
 		}
 		action[actions++] = atom[WindowActionStick];
 		action[actions++] = atom[WindowActionFloat];
@@ -772,42 +790,24 @@ clientmessage(XEvent *e) {
 		} else if (message_type == atom[WindowFsMonitors]) {
 			/* TODO */
 		} else if (message_type == atom[MoveResizeWindow]) {
-			XConfigureRequestEvent cre;
 			unsigned flags = (unsigned) ev->data.l[0];
 			unsigned source = ((flags >> 12) & 0x0f);
-
-			/* echinus is (unfortunately) ignoring gravity */
-			/* unsigned gravity = flags & 0xff; */
+			unsigned gravity = flags & 0xff;
+			int x, y, w, h;
 
 			if (!(c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)))
 				return;
 			if (source != 0 && source != 2)
 				return;
 
-			cre.type = ConfigureRequest;
-			cre.send_event = False;
-			cre.display = dpy;
-			cre.parent = None;
-			cre.window = c->win;
-			cre.value_mask = 0;
-
-			if (flags & (1 << 8)) {
-				cre.value_mask |= CWX;
-				cre.x = ev->data.l[1];
-			}
-			if (flags & (1 << 9)) {
-				cre.value_mask |= CWY;
-				cre.y = ev->data.l[2];
-			}
-			if (flags & (1 << 10)) {
-				cre.value_mask |= CWWidth;
-				cre.width = ev->data.l[3];
-			}
-			if (flags & (1 << 11)) {
-				cre.value_mask |= CWHeight;
-				cre.height = ev->data.l[4];
-			}
-			configurerequest((XEvent *)&cre);
+			x = (flags & (1 << 8)) ? ev->data.l[1] : c->x;
+			y = (flags & (1 << 9)) ? ev->data.l[2] : c->y;
+			w = (flags & (1 << 10)) ? ev->data.l[3] : c->w;
+			h = (flags & (1 << 11)) ? ev->data.l[4] : c->h;
+			if (gravity == 0)
+				gravity = c->gravity;
+			applygravity(c, &x, &y, &w, &h, c->border, gravity);
+			resize(c, x, y, w, h, c->border);
 		} else if (message_type == atom[WindowMoveResize]) {
 			int x_root = (int) ev->data.l[0];
 			int y_root = (int) ev->data.l[1];

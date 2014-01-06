@@ -78,8 +78,7 @@ _NET_SHOWING_DESKTOP:			NOT supported
 Section 4: Other Root Window Messages
 
 _NET_CLOSE_WINDOW:			supported
-_NET_MOVERESIZE_WINDOW:			parital
-	Gravity is ignored (always treated as NorthWest).
+_NET_MOVERESIZE_WINDOW:			supported
 _NET_WM_MOVERESIZE:			partial
 	No keyboard move or resize.  Mouse resize is always
 	from the bottom left.
