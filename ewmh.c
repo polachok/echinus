@@ -862,7 +862,8 @@ clientmessage(XEvent *e) {
 		} else if (message_type == atom[DeskGeometry]) {
 			/* TODO */
 		} else if (message_type == atom[DeskViewport]) {
-			/* TODO */
+			/* Ignore viewport changes but change the property in response. */
+			updateatom[DeskViewport] (NULL);
 		} else if (message_type == atom[CurDesk]) {
 			int tag = ev->data.l[0];
 			if (0 <= tag && tag < ntags)
