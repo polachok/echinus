@@ -1767,7 +1767,9 @@ constrain(Client * c, int *wp, int *hp) {
 	int w = *wp, h = *hp;
 	Bool ret = False;
 
+	/* remove decoration */
 	h -= c->th;
+
 	/* set minimum possible */
 	if (w < 1)
 		w = 1;
@@ -1798,13 +1800,16 @@ constrain(Client * c, int *wp, int *hp) {
 
 	if (c->minw > 0 && w < c->minw)
 		w = c->minw;
-	if (c->minh > 0 && h - c->th < c->minh)
-		h = c->minh + c->th;
+	if (c->minh > 0 && h < c->minh)
+		h = c->minh;
 	if (c->maxw > 0 && w > c->maxw)
 		w = c->maxw;
-	if (c->maxh > 0 && h - c->th > c->maxh)
-		h = c->maxh + c->th;
+	if (c->maxh > 0 && h > c->maxh)
+		h = c->maxh;
+
+	/* restore decoration */
 	h += c->th;
+
 	if (w <= 0 || h <= 0)
 		return ret;
 	if (w != *wp) {
