@@ -5,7 +5,7 @@ enum {
 	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors, DeskGeometry,
 	ShowingDesktop, WMRestart, WMShutdown,
 	RestackWindow, StartupInfoBegin, StartupInfo, DeskLayout, WindowUserTime,
-	UserTimeWindow, WindowNameVisible, WindowIconName, WindowIconNameVisible,
+	UserTimeWindow, WindowIconName, WindowIconNameVisible,
 	WindowCounter, WindowTypeOverride,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
@@ -18,7 +18,7 @@ enum {
 	WindowTypeUtil, WindowTypeSplash, WindowTypeDialog, WindowTypeDrop,
 	WindowTypePopup, WindowTypeTooltip, WindowTypeNotify, WindowTypeCombo,
 	WindowTypeDnd, WindowTypeNormal,
-	StrutPartial, Strut, WindowPid, WindowName,
+	StrutPartial, Strut, WindowPid, WindowName, WindowNameVisible,
 	WindowState, WindowStateModal, WindowStateSticky, WindowStateMaxV,
 	WindowStateMaxH, WindowStateShaded, WindowStateNoTaskbar, WindowStateNoPager,
 	WindowStateHidden, WindowStateFs, WindowStateAbove, WindowStateBelow,
@@ -58,7 +58,6 @@ enum {
 #define _XA_NET_DESKTOP_LAYOUT			atom[DeskLayout]
 #define _XA_NET_WM_USER_TIME			atom[WindowUserTime]
 #define _XA_NET_WM_USER_TIME_WINDOW		atom[UserTimeWindow]
-#define _XA_NET_WM_VISIBLE_NAME			atom[WindowNameVisible]
 #define _XA_NET_WM_ICON_NAME			atom[WindowIconName]
 #define _XA_NET_WM_VISIBLE_ICON_NAME		atom[WindowIconNameVisible]
 #define _XA_NET_WM_SYNC_REQUEST_COUNTER		atom[WindowCounter]
@@ -111,6 +110,7 @@ enum {
 #define _XA_NET_WM_STRUT			atom[Strut]
 #define _XA_NET_WM_PID				atom[WindowPid]
 #define _XA_NET_WM_NAME				atom[WindowName]
+#define _XA_NET_WM_VISIBLE_NAME			atom[WindowNameVisible]
 
 #define _XA_NET_WM_STATE			atom[WindowState]
 #define _XA_NET_WM_STATE_MODAL			atom[WindowStateModal]

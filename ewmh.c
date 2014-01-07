@@ -44,7 +44,6 @@ char *atomnames[NATOMS] = {
 	"_NET_DESKTOP_LAYOUT",			/* TODO */
 	"_NET_WM_USER_TIME",			/* TODO */
 	"_NET_WM_USER_TIME_WINDOW",		/* TODO */
-	"_NET_WM_VISIBLE_NAME",			/* TODO */
 	"_NET_WM_ICON_NAME",			/* TODO */
 	"_NET_WM_VISIBLE_ICON_NAME",		/* TODO */
 	"_NET_WM_SYNC_REQUEST_COUNTER",
@@ -97,6 +96,7 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_STRUT",
 	"_NET_WM_PID",
 	"_NET_WM_NAME",
+	"_NET_WM_VISIBLE_NAME",
 
 	"_NET_WM_STATE",
 	"_NET_WM_STATE_MODAL",
@@ -801,6 +801,18 @@ ewmh_update_net_window_extents(Client *c) {
 		PropModeReplace, (unsigned char *) &data, 4L);
 }
 
+void
+ewmh_update_net_window_visible_name(Client *c) {
+	XTextProperty prop;
+
+	if (c->name) {
+		if (XmbTextListToTextProperty(dpy, (char **)&c->name, 1, XUTF8StringStyle, &prop) == Success)
+			XSetTextProperty(dpy, c->win, &prop, atom[WindowNameVisible]);
+	} else {
+		XDeleteProperty(dpy, c->win, atom[WindowNameVisible]);
+	}
+}
+
 Atom *getatom(Window win, Atom atom, unsigned long *nitems);
 
 void
@@ -1187,4 +1199,5 @@ void (*updateatom[]) (Client *) = {
 	[WindowState] = ewmh_update_net_window_state,
 	[WindowActions] = ewmh_update_net_window_actions,
 	[WindowExtents] = ewmh_update_net_window_extents,
+	[WindowNameVisible] = ewmh_update_net_window_visible_name,
 };

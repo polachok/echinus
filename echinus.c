@@ -3405,6 +3405,7 @@ void
 updatetitle(Client * c) {
 	if (!gettextprop(c->win, atom[WindowName], c->name, sizeof(c->name)))
 		gettextprop(c->win, atom[WMName], c->name, sizeof(c->name));
+	updateatom[WindowNameVisible] (c);
 }
 
 /* There's no way to check accesses to destroyed windows, thus those cases are
