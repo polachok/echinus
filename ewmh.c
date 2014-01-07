@@ -38,7 +38,6 @@ char *atomnames[NATOMS] = {
 	"_NET_SHOWING_DESKTOP",			/* TODO */
 	"_NET_RESTART",				/* TODO */
 	"_NET_SHUTDOWN",			/* TODO */
-	"_NET_REQUEST_FRAME_EXTENTS",		/* TODO */
 	"_NET_RESTACK_WINDOW",			/* TODO */
 	"_NET_STARTUP_INFO_BEGIN",
 	"_NET_STARTUP_INFO",
@@ -75,6 +74,7 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_MOVERESIZE",
 	"_NET_FRAME_EXTENTS",
 	"_NET_WM_HANDLED_ICONS",
+	"_NET_REQUEST_FRAME_EXTENTS",
 
 	"_NET_WM_WINDOW_TYPE",
 	"_NET_WM_WINDOW_TYPE_DESKTOP",
@@ -545,7 +545,8 @@ ewmh_update_net_desktop_modes(Client * c) {
 }
 
 void
-mwm_process_atom(Client * c) {
+getmwmhints(Window win, Window *title, int *border)
+{
 	Atom real;
 	int format;
 	long *hint = NULL;
@@ -556,16 +557,22 @@ mwm_process_atom(Client * c) {
 #define MWM_DECOR_TITLE(x) ((x) & (1L << 3))
 #define MWM_DECOR_BORDER(x) ((x) & (1L << 1))
 #define MWM_HINTS_DECOR(x) ((x) & (1L << 1))
-	if (XGetWindowProperty(dpy, c->win, atom[MWMHints], 0L, 20L, False,
+	if (XGetWindowProperty(dpy, win, atom[MWMHints], 0L, 20L, False,
 			       atom[MWMHints], &real, &format, &n, &extra,
 			       (unsigned char **) &hint) == Success && n >= MWM_HINTS_ELEMENTS) {
 		if (MWM_HINTS_DECOR(hint[0]) && !(MWM_DECOR_ALL(hint[2]))) {
-			c->title = MWM_DECOR_TITLE(hint[2]) ? root : (Window) NULL;
-			c->border = MWM_DECOR_BORDER(hint[2]) ? style.border : 0;
+			*title = MWM_DECOR_TITLE(hint[2]) ? 1 : None;
+			*border = MWM_DECOR_BORDER(hint[2]) ? style.border : 0;
 		}
 	}
 	if (hint)
 		XFree(hint);
+}
+
+
+void
+mwm_process_atom(Client * c) {
+	getmwmhints(c->win, &c->title, &c->border);
 }
 
 void
@@ -920,6 +927,8 @@ clientmessage(XEvent *e) {
 			case 11: /* _NET_WM_MOVERESIZE_CANCEL */
 				break;
 			}
+		} else if (message_type == atom[RequestFrameExt]) {
+			ewmh_update_net_window_extents(c);
 		}
 	} else if (ev->window == root) {
 		if (0) {
@@ -942,12 +951,43 @@ clientmessage(XEvent *e) {
 			/* TODO */
 		} else if (message_type == atom[Manager]) {
 			/* TODO */
-		} else if (message_type == atom[RequestFrameExt]) {
-			/* TODO */
 		} else if (message_type == atom[StartupInfoBegin]) {
 			/* TODO */
 		} else if (message_type == atom[StartupInfo]) {
 			/* TODO */
+		}
+	} else {
+		if (0) {
+		} else if (message_type == atom[RequestFrameExt]) {
+			Window win = ev->window;
+			unsigned int wintype;
+			Window title = 1;
+			int th, border = style.border;
+			long data[4];
+
+			if (win == None)
+				return;
+			wintype = getwintype(win);
+			if (!(WTTEST(wintype, WindowTypeNormal)))
+				if (WTTEST(wintype, WindowTypeDesk) ||
+				    WTTEST(wintype, WindowTypeDock) ||
+				    WTTEST(wintype, WindowTypeDrop) ||
+				    WTTEST(wintype, WindowTypePopup) ||
+				    WTTEST(wintype, WindowTypeTooltip) ||
+				    WTTEST(wintype, WindowTypeNotify) ||
+				    WTTEST(wintype, WindowTypeCombo) ||
+				    WTTEST(wintype, WindowTypeDnd)) {
+					title = None;
+					border = 0;
+				}
+			getmwmhints(win, &title, &border);
+			th = title ? style.titleheight : 0;
+			data[0] = border;
+			data[1] = border;
+			data[2] = border + th;
+			data[3] = border;
+			XChangeProperty(dpy, win, atom[WindowExtents], XA_CARDINAL, 32,
+					PropModeReplace, (unsigned char *) &data, 4L);
 		}
 	}
 }

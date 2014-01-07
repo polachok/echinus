@@ -3,7 +3,7 @@
 enum {
 	Manager, Utf8String, WMProto, WMDelete, WMName, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors, DeskGeometry,
-	ShowingDesktop, WMRestart, WMShutdown, RequestFrameExt,
+	ShowingDesktop, WMRestart, WMShutdown,
 	RestackWindow, StartupInfoBegin, StartupInfo, DeskLayout, WindowUserTime,
 	UserTimeWindow, WindowNameVisible, WindowIconName, WindowIconNameVisible,
 	WindowCounter, WindowTypeOverride,
@@ -13,7 +13,7 @@ enum {
 	DeskModes, DeskModeFloating, DeskModeTiled, DeskModeBottomTiled, DeskModeMonocle,
 	DeskModeTopTiled, DeskModeLeftTiled,
 	ClientListStacking, WindowOpacity, MoveResizeWindow, WindowMoveResize,
-	WindowExtents, HandledIcons,
+	WindowExtents, HandledIcons, RequestFrameExt,
 	WindowType, WindowTypeDesk, WindowTypeDock, WindowTypeToolbar, WindowTypeMenu,
 	WindowTypeUtil, WindowTypeSplash, WindowTypeDialog, WindowTypeDrop,
 	WindowTypePopup, WindowTypeTooltip, WindowTypeNotify, WindowTypeCombo,
@@ -33,7 +33,8 @@ enum {
 }; /* keep in sync with atomnames[] in ewmh.c */
 
 #define WTFLAG(_type) (1<<((_type)-WindowTypeDesk))
-#define WTCHECK(_client, _type) ((((_client)->wintype) & WTFLAG(_type)) ? True : False)
+#define WTTEST(_wintype, _type) (((_wintype) & WTFLAG(_type)) ? True : False)
+#define WTCHECK(_client, _type) WTTEST((_client)->wintype, (_type))
 
 #define _XA_MANAGER				atom[Manager]
 #define _XA_UTF8_STRING				atom[Utf8String]
@@ -51,7 +52,6 @@ enum {
 #define _XA_NET_SHOWING_DESKTOP			atom[ShowingDesktop]
 #define _XA_NET_RESTART				atom[WMRestart]
 #define _XA_NET_SHUTDOWN			atom[WMShutdown]
-#define _XA_NET_REQUEST_FRAME_EXTENTS		atom[RequestFrameExt]
 #define _XA_NET_RESTACK_WINDOW			atom[RestackWindow]
 #define _XA_NET_STARTUP_INFO_BEGIN		atom[StartupInfoBegin]
 #define _XA_NET_STARTUP_INFO			atom[StartupInfo]
@@ -88,6 +88,7 @@ enum {
 #define _XA_NET_WM_MOVERESIZE			atom[WindowMoveResize]
 #define _XA_NET_FRAME_EXTENTS			atom[WindowExtents]
 #define _XA_NET_WM_HANDLED_ICONS		atom[HandledIcons]
+#define _XA_NET_REQUEST_FRAME_EXTENTS		atom[RequestFrameExt]
 
 #define _XA_NET_WM_WINDOW_TYPE			atom[WindowType]
 #define _XA_NET_WM_WINDOW_TYPE_DESKTOP		atom[WindowTypeDesk]

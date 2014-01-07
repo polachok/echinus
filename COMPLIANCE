@@ -84,7 +84,7 @@ _NET_WM_MOVERESIZE:			partial
 	from the bottom left.
 
 _NET_RESTACK_WINDOW:			NOT supported
-_NET_REQUEST_FRAME_EXTENTS:		NOT supported
+_NET_REQUEST_FRAME_EXTENTS:		supported
 
 
 Section 5: Application Window Properties
