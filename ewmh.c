@@ -75,6 +75,7 @@ char *atomnames[NATOMS] = {
 	"_NET_FRAME_EXTENTS",
 	"_NET_WM_HANDLED_ICONS",
 	"_NET_REQUEST_FRAME_EXTENTS",
+	"_NET_VIRTUAL_ROOTS",
 
 	"_NET_WM_WINDOW_TYPE",
 	"_NET_WM_WINDOW_TYPE_DESKTOP",
@@ -312,6 +313,11 @@ ewmh_update_net_desktop_viewport(Client *c) {
 	data = ecalloc(ntags * 2, sizeof(data[0]));
 	XChangeProperty(dpy, root, atom[DeskViewport], XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *)data, ntags * 2);
+}
+
+void
+ewmh_update_net_virtual_roots(Client *c) {
+	XDeleteProperty(dpy, root, atom[VirtualRoots]);
 }
 
 void
@@ -1171,6 +1177,7 @@ void (*updateatom[]) (Client *) = {
 	[WindowDeskMask] = ewmh_update_net_window_desktop_mask,
 	[NumberOfDesk] = ewmh_update_net_number_of_desktops,
 	[DeskViewport] = ewmh_update_net_desktop_viewport,
+	[VirtualRoots] = ewmh_update_net_virtual_roots,
 	[DeskNames] = ewmh_update_net_desktop_names,
 	[CurDesk] = ewmh_update_net_current_desktop,
 	[ELayout] = update_echinus_layout_name,

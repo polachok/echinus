@@ -70,7 +70,7 @@ _NET_DESKTOP_NAMES:			supported
 _NET_ACTIVE_WINDOW:			supported
 _NET_WORKAREA:				supported
 _NET_SUPPORTING_WM_CHECK:		supported
-_NET_VIRTUAL_ROOTS:			NOT supported (n/a)
+_NET_VIRTUAL_ROOTS:			supported (trivial)
 _NET_DESKTOP_LAYOUT:			NOT supported
 _NET_SHOWING_DESKTOP:			NOT supported
 

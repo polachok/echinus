@@ -2514,6 +2514,7 @@ setup(char *conf) {
 	updateatom[CurDesk] (NULL);
 	updateatom[ELayout] (NULL);
 	updateatom[ESelTags] (NULL);
+	updateatom[VirtualRoots] (NULL);
 
 	grabkeys();
 
