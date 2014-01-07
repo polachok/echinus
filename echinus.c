@@ -1461,7 +1461,7 @@ monocle(Monitor * m) {
 
 	getworkarea(m, &wx, &wy, &ww, &wh);
 	for (c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
-		resize(c, wx, wy, ww, wh, 0);
+		resize(c, wx, wy, ww - 2 * c->border, wh - 2 * c->border, c->border);
 }
 
 void
