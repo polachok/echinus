@@ -90,6 +90,8 @@ static KeyItem KeyItems[] = {
 	{ "resizeincy", 	_moveresizekb	},
 	{ "togglemonitor", 	togglemonitor	},
 	{ "togglefill", 	_togglefill	},
+	{ "appendtag",		appendtag	},
+	{ "rmlasttag",		rmlasttag	},
 };
 
 static int

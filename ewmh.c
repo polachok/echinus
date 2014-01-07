@@ -291,6 +291,20 @@ ewmh_update_net_number_of_desktops(Client * c) {
 			PropModeReplace, (unsigned char *) &data, 1);
 }
 
+unsigned int
+ewmh_process_net_number_of_desktops() {
+	long *card;
+	unsigned long n = 0;
+	long numb = 0;
+
+	card = getcard(root, atom[NumberOfDesk], &n);
+	if (n > 0)
+		numb = card[0];
+	if (1 > numb || numb > 64)
+		numb = atoi(getresource("tags.number", "5"));
+	return (unsigned int) numb;
+}
+
 void
 ewmh_update_net_desktop_viewport(Client *c) {
 	long *data;
@@ -301,9 +315,9 @@ ewmh_update_net_desktop_viewport(Client *c) {
 }
 
 void
-ewmh_update_net_current_desktop(Client * c) {
+ewmh_update_echinus_seltags(Client *c) {
 	Monitor *m;
-	long *seltags, data;
+	long *seltags;
 	unsigned int i;
 
 	DPRINTF("%s\n", "Updating _ECHINUS_SELTAGS");
@@ -314,23 +328,26 @@ ewmh_update_net_current_desktop(Client * c) {
 				seltags[i] = True;
 	XChangeProperty(dpy, root, atom[ESelTags], XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) seltags, ntags);
-
-	DPRINTF("%s\n", "Updating _NET_CURRENT_DESKTOP");
-	data = curmontag;
-	XChangeProperty(dpy, root, atom[CurDesk], XA_CARDINAL, 32,
-			PropModeReplace, (unsigned char *) &data, 1);
-
-	update_echinus_layout_name(NULL);
 	free(seltags);
 }
 
+void
+ewmh_update_net_current_desktop(Client * c) {
+	long data = curmontag;
+
+	DPRINTF("%s\n", "Updating _NET_CURRENT_DESKTOP");
+	XChangeProperty(dpy, root, atom[CurDesk], XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *) &data, 1);
+}
+
 static Bool
-issticky(Client *c) {
+isomni(Client *c) {
 	unsigned int i;
 
-	for (i = 0; i < ntags; i++)
-		if (!c->tags[i])
-			return False;
+	if (!c->issticky)
+		for (i = 0; i < ntags; i++)
+			if (!c->tags[i])
+				return False;
 	return True;
 }
 
@@ -348,7 +365,7 @@ ewmh_update_net_window_desktop(Client *c) {
 	long i = -1;
 
 	DPRINTF("Updating _NET_WM_DESKTOP for 0x%lx\n", c->win);
-	if (!issticky(c))
+	if (!isomni(c))
 		for (i = 0; i < ntags && !c->tags[i]; i++);
 	XChangeProperty(dpy, c->win, atom[WindowDesk], XA_CARDINAL, 32,
 		PropModeReplace, (unsigned char *) &i, 1);
@@ -398,11 +415,17 @@ ewmh_update_net_work_area(Client * c) {
 	free(geoms);
 }
 
+Bool names_synced = False;
+
 void
 ewmh_update_net_desktop_names(Client * c) {
 	char *buf, *pos;
 	unsigned int i, len, slen;
 
+	if (names_synced) {
+		DPRINTF("%s\n", "Updating _NET_DESKTOP_NAMES: NOT!");
+		return;
+	}
 	DPRINTF("%s\n", "Updating _NET_DESKTOP_NAMES");
 	for (len = 0, i = 0; i < ntags; i++)
 		if (tags[i])
@@ -420,6 +443,56 @@ ewmh_update_net_desktop_names(Client * c) {
 	XChangeProperty(dpy, root, atom[DeskNames], atom[Utf8String], 8,
 			PropModeReplace, (unsigned char *) buf, len);
 	free(buf);
+	names_synced = True;
+}
+
+void
+ewmh_process_net_desktop_names() {
+	int format, status;
+	Atom real;
+	unsigned long nitems = 0, extra = 0, bytes = 1;
+	char *ret = NULL, *pos, *str;
+	unsigned int i, len;
+
+	names_synced = True;
+	do {
+		if (ret)
+			XFree((unsigned char *) ret);
+		bytes += 4 * extra;
+		status = XGetWindowProperty(dpy, root, atom[DeskNames], 0L, bytes, False,
+				       atom[Utf8String], &real, &format, &nitems, &extra,
+				       (unsigned char **) &ret);
+		if (status != Success) {
+			names_synced = False;
+			break;
+		}
+	} while (extra && bytes == 1);
+
+	for (pos = ret, i = 0; nitems && i < ntags; i++) {
+		if ((len = strnlen(pos, nitems))) {
+			if ((str = strndup(pos, nitems))) {
+				DPRINTF("Assigning name '%s' to tag %u\n", str, i);
+				free(tags[i]);
+				tags[i] = str;
+			}
+		} else {
+			free(tags[i]);
+			inittag(i);
+		}
+		nitems -= len;
+		pos += len;
+		if (nitems) {
+			--nitems;
+			++pos;
+		}
+	}
+	for (; i < ntags; i++) {
+		free(tags[i]);
+		inittag(i);
+		names_synced = False;
+	}
+	if (ret)
+		XFree(ret);
 }
 
 void
@@ -506,7 +579,7 @@ ewmh_update_net_window_state(Client *c) {
 	DPRINTF("Updating _NET_WM_STATE for 0x%lx\n", c->win);
 	if (c->ismodal)
 		winstate[states++] = atom[WindowStateModal];
-	if (issticky(c))
+	if (c->issticky)
 		winstate[states++] = atom[WindowStateSticky];
 	if (c->notaskbar)
 		winstate[states++] = atom[WindowStateNoTaskbar];
@@ -593,41 +666,15 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 				focus(c);
 		}
 	} else if (state == atom[WindowStateSticky]) {
-		if ((set == _NET_WM_STATE_ADD || set == _NET_WM_STATE_TOGGLE)
-				&& !issticky(c)) {
-			tag(c, -1);
-		} else
-		if ((set == _NET_WM_STATE_REMOVE || set == _NET_WM_STATE_TOGGLE)
-				&& issticky(c)) {
-			static char buf[512];
-			unsigned int i, j;
-			int matched = 0;
-			regmatch_t tmp;
-			XClassHint ch = { 0, };
-
-
-			/* reapply rules */
-			XGetClassHint(dpy, c->win, &ch);
-			snprintf(buf, sizeof(buf), "%s:%s:%s",
-			    ch.res_class ? ch.res_class : "", ch.res_name ? ch.res_name : "", c->name);
-			buf[LENGTH(buf)-1] = 0;
-			for (i = 0; i < nrules; i++) {
-				if (rules[i]->propregex && !regexec(rules[i]->propregex, buf, 1, &tmp, 0)) {
-					for (j = 0; rules[i]->tagregex && j < ntags; j++) {
-						if (!regexec(rules[i]->tagregex, tags[j], 1, &tmp, 0)) {
-							matched = j;
-							c->tags[j] = True;
-						}
-					}
-				}
-			}
-			if (ch.res_class)
-				XFree(ch.res_class);
-			if (ch.res_name)
-				XFree(ch.res_name);
-			tag(c, matched);
+		if ((set == _NET_WM_STATE_ADD && !c->issticky) ||
+		    (set == _NET_WM_STATE_REMOVE && c->issticky) ||
+		    (set == _NET_WM_STATE_TOGGLE)) {
+			c->issticky = !c->issticky;
+			if (c->issticky)
+				tag(c, -1);
+			else
+				tag(c, curmontag);
 		}
-
 	} else if (state == atom[WindowStateMaxV]) {
 		/* TODO */
 	} else if (state == atom[WindowStateMaxH]) {
@@ -858,7 +905,7 @@ clientmessage(XEvent *e) {
 	} else if (ev->window == root) {
 		if (0) {
 		} else if (message_type == atom[NumberOfDesk]) {
-			/* TODO */
+			settags(ev->data.l[0]);
 		} else if (message_type == atom[DeskGeometry]) {
 			/* TODO */
 		} else if (message_type == atom[DeskViewport]) {
@@ -1029,6 +1076,7 @@ void (*updateatom[]) (Client *) = {
 	[DeskNames] = ewmh_update_net_desktop_names,
 	[CurDesk] = ewmh_update_net_current_desktop,
 	[ELayout] = update_echinus_layout_name,
+	[ESelTags] = ewmh_update_echinus_seltags,
 	[WorkArea] = ewmh_update_net_work_area,
 	[DeskModes] = ewmh_update_net_desktop_modes,
 	[WindowState] = ewmh_update_net_window_state,

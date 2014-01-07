@@ -195,7 +195,7 @@ struct Client {
 	int border, oldborder;
 	int wintype;
 	Bool isbanned, ismax, isfloating, wasfloating;
-	Bool isicon, isfill, ismodal, isabove, isbelow, isattn;
+	Bool isicon, isfill, ismodal, isabove, isbelow, isattn, issticky;
 	Bool isfixed, isbastard, isfocusable, hasstruts;
 	Bool notaskbar, nopager, ismanaged;
 	Bool *tags;
@@ -261,6 +261,8 @@ unsigned int getwintype(Window win);
 Bool checkwintype(Window win, int wintype);
 void clientmessage(XEvent * e);
 void ewmh_process_net_window_state(Client *c);
+void ewmh_process_net_desktop_names(void);
+unsigned int ewmh_process_net_number_of_desktops(void);
 Atom *getatom(Window win, Atom atom, unsigned long *nitems);
 long *getcard(Window win, Atom atom, unsigned long *nitems);
 void initewmh(Window w);
@@ -270,6 +272,7 @@ extern void (*updateatom[]) (Client *);
 int getstruts(Client * c);
 
 /* main */
+void inittag(unsigned int i);
 void arrange(Monitor * m);
 Monitor *clientmonitor(Client * c);
 Monitor *curmonitor();
@@ -314,6 +317,9 @@ void viewprevtag(const char *arg);
 void viewrighttag(const char *arg);
 void zoom(Client *c);
 void selectionclear(XEvent *e);
+void appendtag(const char *arg);
+void rmlasttag(const char *arg);
+void settags(unsigned int numtags);
 
 /* parse.c */
 void initrules();

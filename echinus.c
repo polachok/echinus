@@ -88,6 +88,7 @@ void detach(Client * c);
 void detachstack(Client * c);
 void *ecalloc(size_t nmemb, size_t size);
 void *emallocz(size_t size);
+void *erealloc(void *ptr, size_t size);
 void enternotify(XEvent * e);
 void eprint(const char *errstr, ...);
 void expose(XEvent * e);
@@ -163,6 +164,12 @@ int xerrordummy(Display * dsply, XErrorEvent * ee);
 int xerrorstart(Display * dsply, XErrorEvent * ee);
 int (*xerrorxlib) (Display *, XErrorEvent *);
 void zoom(Client *c);
+
+void addtag(void);
+void appendtag(const char *arg);
+void deltag(void);
+void rmlasttag(const char *arg);
+void settags(unsigned int numtags);
 
 /* variables */
 int cargc;
@@ -857,6 +864,15 @@ emallocz(size_t size) {
 	return ecalloc(1, size);
 }
 
+void *
+erealloc(void *ptr, size_t size) {
+	void *res = realloc(ptr, size);
+
+	if (!res)
+		eprint("fatal: could not realloc() %z bytes\n", size);
+	return res;
+}
+
 void
 enternotify(XEvent * e) {
 	XCrossingEvent *ev = &e->xcrossing;
@@ -982,6 +998,8 @@ focus(Client * c) {
 		drawclient(o);
 	updateatom[ActiveWindow] (sel);
 	updateatom[CurDesk] (NULL);
+	updateatom[ELayout] (NULL);
+	updateatom[ESelTags] (NULL);
 }
 
 void
@@ -1723,7 +1741,8 @@ propertynotify(XEvent * e) {
 	} else if (ev->window == root) {
 		if (0) {
 		} else if (ev->atom == atom[DeskNames]) {
-			/* TODO */
+			ewmh_process_net_desktop_names();
+			updateatom[DeskNames] (NULL);
 		} else if (ev->atom == atom[DeskLayout]) {
 			/* TODO */
 		}
@@ -2094,9 +2113,42 @@ setmwfact(const char *arg) {
 }
 
 void
-initlayouts() {
-	unsigned int i, j;
+initview(unsigned int i, float mwfact, int nmaster, const char *deflayout) {
+	unsigned int j;
 	char conf[32], ltname;
+
+	views[i].layout = &layouts[0];
+	snprintf(conf, sizeof(conf), "tags.layout%d", i);
+	strncpy(&ltname, getresource(conf, deflayout), 1);
+	for (j = 0; j < LENGTH(layouts); j++) {
+		if (layouts[j].symbol == ltname) {
+			views[i].layout = &layouts[j];
+			break;
+		}
+	}
+	views[i].mwfact = mwfact;
+	views[i].nmaster = nmaster;
+	views[i].barpos = StrutsOn;
+}
+
+void
+newview(unsigned int i)
+{
+	float mwfact;
+	int nmaster;
+	const char *deflayout;
+
+	mwfact = atof(getresource("mwfact", STR(DEFMWFACT)));
+	nmaster = atoi(getresource("nmaster", STR(DEFNMASTER)));
+	deflayout = getresource("deflayout", "i");
+	if (!nmaster)
+		nmaster = 1;
+	initview(i, mwfact, nmaster, deflayout);
+}
+
+void
+initlayouts() {
+	unsigned int i;
 	float mwfact;
 	int nmaster;
 	const char *deflayout;
@@ -2107,20 +2159,8 @@ initlayouts() {
 	deflayout = getresource("deflayout", "i");
 	if (!nmaster)
 		nmaster = 1;
-	for (i = 0; i < ntags; i++) {
-		views[i].layout = &layouts[0];
-		snprintf(conf, sizeof(conf), "tags.layout%d", i);
-		strncpy(&ltname, getresource(conf, deflayout), 1);
-		for (j = 0; j < LENGTH(layouts); j++) {
-			if (layouts[j].symbol == ltname) {
-				views[i].layout = &layouts[j];
-				break;
-			}
-		}
-		views[i].mwfact = mwfact;
-		views[i].nmaster = nmaster;
-		views[i].barpos = StrutsOn;
-	}
+	for (i = 0; i < ntags; i++)
+		initview(i, mwfact, nmaster, deflayout);
 	updateatom[ELayout] (NULL);
 	updateatom[DeskModes] (NULL);
 }
@@ -2213,19 +2253,156 @@ initmonitors(XEvent * e) {
 }
 
 void
-inittags() {
-	unsigned int i;
-	char tmp[25] = "\0";
+inittag(unsigned int i)
+{
+	char tmp[25] = "", def[8] = "";
 
-	ntags = atoi(getresource("tags.number", "5"));
+	tags[i] = emallocz(sizeof(tmp));
+	snprintf(tmp, sizeof(tmp), "tags.name%d", i);
+	snprintf(def, sizeof(def), "%u", i);
+	snprintf(tags[i], sizeof(tmp), "%s", getresource(tmp, def));
+	DPRINTF("Assigned name '%s' to tag %u\n", tags[i], i);
+}
+
+void
+newtag(unsigned int i)
+{
+	inittag(i);
+}
+
+void
+inittags() {
+	ntags = ewmh_process_net_number_of_desktops();
 	views = ecalloc(ntags, sizeof(View));
 	tags = ecalloc(ntags, sizeof(char *));
-	for (i = 0; i < ntags; i++) {
-		tags[i] = emallocz(sizeof(tmp));
-		snprintf(tmp, sizeof(tmp), "tags.name%d", i);
-		snprintf(tags[i], sizeof(tmp), "%s", getresource(tmp,
-		    "null"));
+	ewmh_process_net_desktop_names();
+}
+
+static Bool
+isomni(Client *c) {
+	unsigned int i;
+
+	if (!c->issticky)
+		for (i = 0; i < ntags; i++)
+			if (!c->tags[i])
+				return False;
+	return True;
+}
+
+void
+deltag() {
+	Client *c;
+	unsigned int i, last;
+
+	if (ntags < 2)
+		return;
+	last = ntags - 1;
+
+	/* move off the desktop being deleted */
+	if (curmontag == last)
+		view(last - 1);
+
+	/* move windows off the desktop being deleted */
+	for (c = clients; c; c = c->next) {
+		if (isomni(c)) {
+			c->tags[last] = False;
+			continue;
+		}
+		for (i = 0; i < last; i++)
+			if (c->tags[i])
+				break;
+		if (i == last)
+			tag(c, last - 1);
+		else if (c->tags[last])
+			c->tags[last] = False;
 	}
+
+	free(tags[last]);
+	tags[last] = NULL;
+
+	--ntags;
+#if 0
+	/* caller's responsibility */
+	updateatom[NumberOfDesk] (NULL);
+	updateatom[DeskModes] (NULL);
+	updateatom[DeskViewport] (NULL);
+	updateatom[ESelTags] (NULL);
+#endif
+
+}
+
+void
+rmlasttag(const char *arg) {
+	deltag();
+	ewmh_process_net_desktop_names();
+	updateatom[NumberOfDesk] (NULL);
+	updateatom[DeskModes] (NULL);
+	updateatom[DeskViewport] (NULL);
+	updateatom[ESelTags] (NULL);
+}
+
+void
+addtag() {
+	Client *c;
+	Monitor *m;
+	unsigned int i, n;
+
+	if (ntags >= 64)
+		return; /* stop the insanity, go organic */
+
+	n = ntags + 1;
+	views = erealloc(views, n * sizeof(views[ntags]));
+	newview(ntags);
+	tags = erealloc(tags, n * sizeof(tags[ntags]));
+	newtag(ntags);
+
+	for (c = clients; c; c = c->next) {
+		c->tags = erealloc(c->tags, n * sizeof(c->tags[ntags]));
+		for (i = 0; i < ntags && c->tags[i]; i++);
+		c->tags[ntags] = (i == ntags || c->issticky) ? True : False;
+	}
+
+	for (m = monitors; m; m = m->next) {
+		m->prevtags = erealloc(m->prevtags, n * sizeof(m->prevtags[0]));
+		m->prevtags[ntags] = False;
+		m->seltags  = erealloc(m->seltags,  n * sizeof(m->seltags [0]));
+		m->seltags [ntags] = False;
+	}
+
+	ntags++;
+#if 0
+	/* caller's responsibility */
+	updateatom[NumberOfDesk] (NULL);
+	updateatom[DeskModes] (NULL);
+	updateatom[DeskViewport] (NULL);
+	updateatom[ESelTags] (NULL);
+	updateatom[DeskNames] (NULL);
+#endif
+}
+
+void
+appendtag(const char *arg) {
+	addtag();
+	ewmh_process_net_desktop_names();
+	updateatom[NumberOfDesk] (NULL);
+	updateatom[DeskModes] (NULL);
+	updateatom[DeskViewport] (NULL);
+	updateatom[ESelTags] (NULL);
+	updateatom[DeskNames] (NULL);
+}
+
+void
+settags(unsigned int numtags) {
+	if (1 > numtags || numtags > 64)
+		return;
+	while (ntags < numtags) { addtag(); }
+	while (ntags > numtags) { deltag(); }
+	ewmh_process_net_desktop_names();
+	updateatom[NumberOfDesk] (NULL);
+	updateatom[DeskModes] (NULL);
+	updateatom[DeskViewport] (NULL);
+	updateatom[ESelTags] (NULL);
+	updateatom[DeskNames] (NULL);
 }
 
 void
@@ -2321,6 +2498,8 @@ setup(char *conf) {
 	updateatom[DeskViewport] (NULL);
 	updateatom[DeskNames] (NULL);
 	updateatom[CurDesk] (NULL);
+	updateatom[ELayout] (NULL);
+	updateatom[ESelTags] (NULL);
 
 	grabkeys();
 
@@ -2893,6 +3072,8 @@ toggleview(int index) {
 	arrange(cm);
 	focus(NULL);
 	updateatom[CurDesk] (NULL);
+	updateatom[ELayout] (NULL);
+	updateatom[ESelTags] (NULL);
 }
 
 void
@@ -3193,6 +3374,8 @@ view(int index) {
 	arrange(cm);
 	focus(NULL);
 	updateatom[CurDesk] (NULL);
+	updateatom[ELayout] (NULL);
+	updateatom[ESelTags] (NULL);
 }
 
 void
@@ -3214,6 +3397,8 @@ viewprevtag(const char *arg) {
 	arrange(NULL);
 	focus(NULL);
 	updateatom[CurDesk] (NULL);
+	updateatom[ELayout] (NULL);
+	updateatom[ESelTags] (NULL);
 }
 
 void
@@ -3266,7 +3451,7 @@ zoom(Client *c) {
 
 int
 main(int argc, char *argv[]) {
-	char conf[256] = "\0";
+	char conf[256] = "";
 	int i;
 
 	if (argc == 3 && !strcmp("-f", argv[1]))
