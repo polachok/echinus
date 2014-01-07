@@ -142,6 +142,8 @@ void ltile(Monitor * m);
 void togglestruts(const char *arg);
 void togglefloating(Client *c);
 void togglemax(Client *c);
+void togglemaxv(Client *c);
+void togglemaxh(Client *c);
 void togglefill(Client *c);
 void toggletag(Client *c, int index);
 void toggleview(int index);
@@ -150,7 +152,7 @@ void focusview(int index);
 void unban(Client * c);
 void unmanage(Client * c, Bool reparented, Bool destroyed);
 void updategeom(Monitor * m);
-void updatestruts(Monitor * m);
+void updatestruts(void);
 void unmapnotify(XEvent * e);
 void updatesizehints(Client * c);
 void updateframe(Client * c);
@@ -667,13 +669,10 @@ configurenotify(XEvent * e) {
 			for (c = clients; c; c = c->next) {
 				if (c->isbastard) {
 					m = getmonitor(c->x + c->w/2, c->y);
-					c->tags = m->seltags;
-					updatestruts(m);
+					memcpy(c->tags, m->seltags, ntags * sizeof(c->tags[0]));
 				}
 			}
-			for (m = monitors; m; m = m->next)
-				updategeom(m);
-			arrange(NULL);
+			updatestruts();
 #ifdef XRANDR
 		}
 #endif
@@ -1448,19 +1447,21 @@ maprequest(XEvent * e) {
 }
 
 void
-monocle(Monitor * m)
-{
-	int wx, wy, wh, ww;
+getworkarea(Monitor * m, int *wx, int *wy, int *ww, int *wh) {
+	*wx = max(m->wax, 1);
+	*wy = max(m->way, 1);
+	*ww = min(m->wax + m->waw, DisplayWidth(dpy, screen) - 1) - *wx;
+	*wh = min(m->way + m->wah, DisplayHeight(dpy, screen) - 1) - *wy;
+}
+
+void
+monocle(Monitor * m) {
 	Client *c;
+	int wx, wy, ww, wh;
 
-	/* work area (minus 1 pixel at edge of screen) */
-	wx = (m->wax == m->sx) ? m->wax + 1 : m->wax;
-	wy = (m->way == m->sy) ? m->way + 1 : m->way;
-	ww = ((m->wax + m->waw == m->sx + m->sw) ? m->waw - 1 : m->waw) - (wx - m->wax);
-	wh = ((m->way + m->wah == m->sy + m->sh) ? m->wah - 1 : m->wah) - (wy - m->way);
-
+	getworkarea(m, &wx, &wy, &ww, &wh);
 	for (c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
-		resize(c, wx, wy, ww - 2 * c->border, wh - 2 * c->border, c->border);
+		resize(c, wx, wy, ww, wh, 0);
 }
 
 void
@@ -1538,6 +1539,8 @@ mousemove(Client * c) {
 		return;
 	getpointer(&x1, &y1);
 	for (;;) {
+		int wx, wy, ww, wh;
+
 		XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
 		switch (ev.type) {
 		case ButtonRelease:
@@ -1553,18 +1556,19 @@ mousemove(Client * c) {
 			/* we are probably moving to a different monitor */
 			if (!(nm = curmonitor()))
 				break;
+			getworkarea(m, &wx, &wy, &ww, &wh);
 			nx = ocx + (ev.xmotion.x_root - x1);
 			ny = ocy + (ev.xmotion.y_root - y1);
-			if (abs(nx - nm->wax) < options.snap)
-				nx = nm->wax;
-			else if (abs((nm->wax + nm->waw) - (nx + c->w +
+			if (abs(nx - wx) < options.snap)
+				nx = wx;
+			else if (abs((wx + ww) - (nx + c->w +
 				    2 * c->border)) < options.snap)
-				nx = nm->wax + nm->waw - c->w - 2 * c->border;
-			if (abs(ny - nm->way) < options.snap)
-				ny = nm->way;
-			else if (abs((nm->way + nm->wah) - (ny + c->h +
+				nx = wx + ww - c->w - 2 * c->border;
+			if (abs(ny - wy) < options.snap)
+				ny = wy;
+			else if (abs((wy + wh) - (ny + c->h +
 				    2 * c->border)) < options.snap)
-				ny = nm->way + nm->wah - c->h - 2 * c->border;
+				ny = wy + wh - c->h - 2 * c->border;
 			w = c->w;
 			h = c->h;
 			constrain(c, &w, &h);
@@ -1665,24 +1669,27 @@ place(Client *c) {
 	int x, y;
 	Monitor *m;
 	int d = style.titleheight;
+	int wx, wy, ww, wh;
+
 
 	/* XXX: do something better */
 	getpointer(&x, &y);
 	DPRINTF("%d %d\n", x, y);
 	m = getmonitor(x, y);
+	getworkarea(m, &wx, &wy, &ww, &wh);
 	x = x + rand()%d - c->w/2;
 	y = y + rand()%d - c->h/2;
-	if (x < m->wax)
-		x = m->wax;
+	if (x < wx)
+		x = wx;
 	DPRINTF("%d %d\n", x, y);
-	if (y < m->way)
-		y = m->way;
-	DPRINTF("%d+%d > %d+%d\n", x, c->w, m->wax, m->waw);
-	if (x + c->w > m->wax + m->waw)
-		x = m->wax + m->waw - c->w - rand()%d;
+	if (y < wy)
+		y = wy;
+	DPRINTF("%d+%d > %d+%d\n", x, c->w, wx, ww);
+	if (x + c->w > wx + ww)
+		x = wx + ww - c->w - rand()%d;
 	DPRINTF("%d %d\n", x, y);
-	if (y + c->h > m->way + m->wah)
-		y = m->way + m->wah - c->h - rand()%d;
+	if (y + c->h > wy + wh)
+		y = wy + wh - c->h - rand()%d;
 	DPRINTF("%d %d\n", x, y);
 
 	c->rx = c->x = x;
@@ -1696,13 +1703,9 @@ propertynotify(XEvent * e) {
 	XPropertyEvent *ev = &e->xproperty;
 
 	if ((c = getclient(ev->window, ClientWindow))) {
-		Monitor *m = clientmonitor(c);
-
 		if (ev->atom == atom[StrutPartial] || ev->atom == atom[Strut]) {
 			c->hasstruts = getstruts(c);
-			updatestruts(m);
-			updategeom(m);
-			arrange(m);
+			updatestruts();
 		}
 		if (ev->state == PropertyDelete) 
 			return;
@@ -1712,7 +1715,7 @@ propertynotify(XEvent * e) {
 			if (!c->isfloating
 			    && (c->isfloating =
 				(getclient(trans, ClientWindow) != NULL))) {
-				arrange(m);
+				arrange(NULL);
 				updateatom[WindowState](c);
 				updateatom[WindowActions](c);
 			}
@@ -1859,6 +1862,7 @@ resize(Client * c, int x, int y, int w, int h, int b) {
 		c->border = b;
 		wc.border_width = b;
 		mask |= CWBorderWidth;
+		updateatom[WindowExtents] (c);
 	}
 	if (mask)
 		XConfigureWindow(dpy, c->frame, mask, &wc);
@@ -2015,6 +2019,16 @@ save(Client *c) {
 }
 
 void
+restore(Client *c) {
+	int w, h;
+
+	w = c->rw;
+	h = c->rh;
+	constrain(c, &w, &h);
+	resize(c, c->rx, c->ry, w, h, c->rb);
+}
+
+void
 scan(void) {
 	unsigned int i, num;
 	Window *wins, d1, d2;
@@ -2132,8 +2146,7 @@ initview(unsigned int i, float mwfact, int nmaster, const char *deflayout) {
 }
 
 void
-newview(unsigned int i)
-{
+newview(unsigned int i) {
 	float mwfact;
 	int nmaster;
 	const char *deflayout;
@@ -2232,7 +2245,6 @@ initmonitors(XEvent * e) {
 		XRRFreeCrtcInfo(ci);
 	}
 	XRRFreeScreenResources(sr);
-	updateatom[WorkArea] (NULL);
 	return;
       no_xrandr:
 #endif
@@ -2249,12 +2261,10 @@ initmonitors(XEvent * e) {
 	m->seltags[0] = True;
 	m->next = NULL;
 	monitors = m;
-	updateatom[WorkArea] (NULL);
 }
 
 void
-inittag(unsigned int i)
-{
+inittag(unsigned int i) {
 	char tmp[25] = "", def[8] = "";
 
 	tags[i] = emallocz(sizeof(tmp));
@@ -2265,8 +2275,7 @@ inittag(unsigned int i)
 }
 
 void
-newtag(unsigned int i)
-{
+newtag(unsigned int i) {
 	inittag(i);
 }
 
@@ -2518,6 +2527,7 @@ setup(char *conf) {
 		    m->struts[TopStrut] = m->struts[BotStrut] = 0;
 		updategeom(m);
 	}
+	updateatom[WorkArea] (NULL);
 
 	if (chdir(oldcwd) != 0)
 		fprintf(stderr, "echinus: cannot change directory\n");
@@ -2570,21 +2580,17 @@ void
 bstack(Monitor * m) {
 	int nx, ny, nw, nh, nb;
 	int mx, my, mw, mh, mb, mn;
-	int tx, ty, th, tw, tb, tn;
-	int wx, wy, wh, ww;
+	int tx, ty, tw, th, tb, tn;
 	unsigned int i, n;
 	Client *c, *mc;
+	int wx, wy, ww, wh;
+
+	getworkarea(m, &wx, &wy, &ww, &wh);
 
 	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
 		n++;
 
 	/* window geoms */
-
-	/* work area (minus 1 pixel at edge of screen) */
-	wx = (m->wax == m->sx) ? m->wax + 1 : m->wax;
-	wy = (m->way == m->sy) ? m->way + 1 : m->way;
-	ww = ((m->wax + m->waw == m->sx + m->sw) ? m->waw - 1 : m->waw) - (wx - m->wax);
-	wh = ((m->way + m->wah == m->sy + m->sh) ? m->wah - 1 : m->wah) - (wy - m->way);
 
 	/* master & tile number */
 	mn = (n > views[m->curtag].nmaster) ? views[m->curtag].nmaster : n;
@@ -2652,21 +2658,17 @@ void
 tstack(Monitor * m) {
 	int nx, ny, nw, nh, nb;
 	int mx, my, mw, mh, mb, mn;
-	int tx, ty, th, tw, tb, tn;
-	int wx, wy, wh, ww;
+	int tx, ty, tw, th, tb, tn;
 	unsigned int i, n;
 	Client *c, *mc;
+	int wx, wy, ww, wh;
+
+	getworkarea(m, &wx, &wy, &ww, &wh);
 
 	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
 		n++;
 
 	/* window geoms */
-
-	/* work area (minus 1 pixel at edge of screen) */
-	wx = (m->wax == m->sx) ? m->wax + 1 : m->wax;
-	wy = (m->way == m->sy) ? m->way + 1 : m->way;
-	ww = ((m->wax + m->waw == m->sx + m->sw) ? m->waw - 1 : m->waw) - (wx - m->wax);
-	wh = ((m->way + m->wah == m->sy + m->sh) ? m->wah - 1 : m->wah) - (wy - m->way);
 
 	/* master & tile number */
 	mn = (n > views[m->curtag].nmaster) ? views[m->curtag].nmaster : n;
@@ -2736,21 +2738,17 @@ void
 rtile(Monitor * m) {
 	int nx, ny, nw, nh, nb;
 	int mx, my, mw, mh, mb, mn;
-	int tx, ty, th, tw, tb, tn;
-	int wx, wy, wh, ww;
+	int tx, ty, tw, th, tb, tn;
 	unsigned int i, n;
 	Client *c, *mc;
+	int wx, wy, ww, wh;
+
+	getworkarea(m, &wx, &wy, &ww, &wh);
 
 	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
 		n++;
 
 	/* window geoms */
-
-	/* work area (minus 1 pixel at edge of screen) */
-	wx = (m->wax == m->sx) ? m->wax + 1 : m->wax;
-	wy = (m->way == m->sy) ? m->way + 1 : m->way;
-	ww = ((m->wax + m->waw == m->sx + m->sw) ? m->waw - 1 : m->waw) - (wx - m->wax);
-	wh = ((m->way + m->wah == m->sy + m->sh) ? m->wah - 1 : m->wah) - (wy - m->way);
 
 	/* master & tile number */
 	mn = (n > views[m->curtag].nmaster) ? views[m->curtag].nmaster : n;
@@ -2820,21 +2818,17 @@ void
 ltile(Monitor * m) {
 	int nx, ny, nw, nh, nb;
 	int mx, my, mw, mh, mb, mn;
-	int tx, ty, th, tw, tb, tn;
-	int wx, wy, wh, ww;
+	int tx, ty, tw, th, tb, tn;
 	unsigned int i, n;
 	Client *c, *mc;
+	int wx, wy, ww, wh;
+
+	getworkarea(m, &wx, &wy, &ww, &wh);
 
 	for (n = 0, c = nexttiled(clients, m); c; c = nexttiled(c->next, m))
 		n++;
 
 	/* window geoms */
-
-	/* work area (minus 1 pixel at edge of screen) */
-	wx = (m->wax == m->sx) ? m->wax + 1 : m->wax;
-	wy = (m->way == m->sy) ? m->way + 1 : m->way;
-	ww = ((m->wax + m->waw == m->sx + m->sw) ? m->waw - 1 : m->waw) - (wx - m->wax);
-	wh = ((m->way + m->wah == m->sy + m->sh) ? m->wah - 1 : m->wah) - (wy - m->way);
 
 	/* master & tile number */
 	mn = (n > views[m->curtag].nmaster) ? views[m->curtag].nmaster : n;
@@ -2928,23 +2922,44 @@ togglefloating(Client *c) {
 	updateatom[WindowActions](c);
 }
 
+Monitor *
+canresize(Client *c) {
+	Monitor *m;
+
+	if (!c)
+		return NULL;
+	if (!(m = clientmonitor(c)))
+		m = curmonitor();
+	if (c->isfixed || !(c->isfloating || MFEATURES(m, OVERLAP)))
+		return NULL;
+	return m;
+}
+
+
 void
-togglefill(Client *c) {
+togglefill(Client * c) {
 	XEvent ev;
-	Monitor *m = curmonitor();
+	Monitor *m;
 	Client *o;
-	int x1, x2, y1, y2, w, h;
 
-	x1 = m->wax;
-	x2 = m->sw;
-	y1 = m->way;
-	y2 = m->sh;
-
-	if (!c || c->isfixed || !(c->isfloating || MFEATURES(m, OVERLAP)))
+	if (!(m = canresize(c)))
 		return;
-	for (o = clients; o; o = o->next) {
-		if (isvisible(o, m) && (o != c) && !o->isbastard
-			       	&& (o->isfloating || MFEATURES(m, OVERLAP))) {
+
+	if ((c->isfill = !c->isfill)) {
+		int x1, x2, y1, y2, w, h, b;
+		int wx, wy, ww, wh;
+
+		getworkarea(m, &wx, &wy, &ww, &wh);
+
+		x1 = wx;
+		x2 = wx + ww;
+		y1 = wy;
+		y2 = wy + wh;
+
+		for (o = clients; o; o = o->next) {
+			if (!isvisible(o, m) || (o == c) || o->isbastard
+			    || !(o->isfloating || MFEATURES(m, OVERLAP)))
+				continue;
 			if (o->y + o->h > c->y && o->y < c->y + c->h) {
 				if (o->x < c->x)
 					x1 = max(x1, o->x + o->w + style.border);
@@ -2957,56 +2972,131 @@ togglefill(Client *c) {
 				else
 					y2 = max(y2, o->y - style.border);
 			}
+			DPRINTF("x1 = %d x2 = %d y1 = %d y2 = %d\n", x1, x2, y1, y2);
 		}
-		DPRINTF("x1 = %d x2 = %d y1 = %d y2 = %d\n", x1, x2, y1, y2);
-	}
-	w = x2 - x1;
-	h = y2 - y1;
-	DPRINTF("x1 = %d w = %d y1 = %d h = %d\n", x1, w, y1, h);
-	if ((w < c->w) || (h < c->h))
-		return;
-
-	if ((c->isfill = !c->isfill)) {
-		save(c);
+		w = x2 - x1;
+		h = y2 - y1;
+		DPRINTF("x1 = %d w = %d y1 = %d h = %d\n", x1, w, y1, h);
+		if ((w < c->w) || (h < c->h)) {
+			c->isfill = False;
+			return;
+		}
+		if (!c->ismax && !c->ismaxv && !c->ismaxh)
+			save(c);
+		b = c->border;
+		if (c->ismax) {
+			c->ismax = False;
+			updateframe(c);
+			b = c->rb;
+		}
+		c->ismax = c->ismaxv = c->ismaxh = False;
 		constrain(c, &w, &h);
-		resize(c, x1, y1, w, h, c->border);
-	} else {
-		w = c->rw;
-		h = c->rh;
-		constrain(c, &w, &h);
-		resize(c, c->rx, c->ry, w, h, c->rb);
-	}
-	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+		resize(c, x1, y1, w, h, b);
+	} else
+		restore(c);
+	updateatom[WindowState] (c);
+	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;	/* XXX */
 }
 
 void
 togglemax(Client * c) {
 	XEvent ev;
-	Monitor *m = curmonitor();
+	Monitor *m;
 
-	if (!c || c->isfixed || !(c->isfloating || MFEATURES(m, OVERLAP)))
+	if (!(m = canresize(c)))
 		return;
+
 	c->ismax = !c->ismax;
 	updateframe(c);
 	if (c->ismax) {
-		int x, y, w, h;
+		int wx, wy, ww, wh;
 
-		x = m->sx - c->border;
-		y = m->sy - c->border - c->th;
-		w = m->sw;
-		h = m->sh + c->th;
-		save(c);
-		resize(c, x, y, w, h, c->border);
-	} else {
-		int w, h;
+		if (!c->ismaxh && !c->ismaxv && !c->isfill)
+			save(c);
+		c->isfill  = c->ismaxh = c->ismaxv = False;
+		getworkarea(m, &wx, &wy, &ww, &wh);
+		resize(c, wx, wy, ww, wh, 0);
+	} else
+		restore(c);
+	updateatom[WindowState] (c);
+	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ; /* XXX */
+}
 
-		w = c->rw;
-		h = c->rh;
+void
+togglemaxv(Client * c) {
+	Monitor *m;
+
+	if (!(m = canresize(c)))
+		return;
+
+	if ((c->ismaxv = !c->ismaxv)) {
+		/* maximize vertical */
+		int wx, wy, ww, wh;
+		int x, y, w, h, b;
+
+		getworkarea(m, &wx, &wy, &ww, &wh);
+		b = c->ismax ? c->rb : c->border;
+		x = (c->isfill || c->ismax) ? c->rx : c->x;
+		y = wy;
+		w = (c->isfill || c->ismax) ? c->rw : c->w;
+		h = wh - 2 * b;
+
+		if (!c->ismaxh && !c->isfill && !c->ismax)
+			save(c);
+		if (c->ismax) {
+			c->ismax = False;
+			updateframe(c);
+		}
+		c->isfill = False;
 		constrain(c, &w, &h);
-		resize(c, c->rx, c->ry, w, h, c->rb);
+		resize(c, x, y, w, h, b);
+	} else {
+		if (c->ismaxh)
+			/* demaximized vertical, leave maximize horizontal */
+			resize(c, c->x, c->ry, c->w, c->rh, c->border);
+		else
+			restore(c);
 	}
 	updateatom[WindowState] (c);
-	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
+}
+
+void
+togglemaxh(Client *c) {
+	Monitor *m;
+
+	if (!(m = canresize(c)))
+		return;
+
+	if ((c->ismaxh = !c->ismaxh)) {
+		/* maximize horizontal */
+		int wx, wy, ww, wh;
+		int x, y, w, h, b;
+
+		getworkarea(m, &wx, &wy, &ww, &wh);
+		b = c->ismax ? c->rb : c->border;
+		x = wx;
+		y = (c->isfill || c->ismax) ? c->ry : c->y;
+		w = ww - 2 * b;
+		h = (c->isfill || c->ismax) ? c->rh : c->h;
+
+		if (!c->ismaxv && !c->isfill && !c->ismax)
+			save(c);
+		if (c->ismax) {
+			c->ismax = False;
+			updateframe(c);
+		}
+		c->isfill = False;
+		constrain(c, &w, &h);
+		resize(c, x, y, w, h, b);
+	} else {
+		if (c->ismaxv)
+			/* demaximize horizontal, leave maximize vertical */
+			resize(c, c->rx, c->y, c->rw, c->h, c->border);
+		else
+			/* demaximize */
+			restore(c);
+	}
+	updateatom[WindowState] (c);
 }
 
 void
@@ -3110,12 +3200,10 @@ unban(Client * c) {
 
 void
 unmanage(Client * c, Bool reparented, Bool destroyed) {
-	Monitor *m;
 	XWindowChanges wc;
 	Bool doarrange, dostruts;
 	Window trans = None;
 
-	m = clientmonitor(c);
 	doarrange = !(c->isfloating || c->isfixed ||
 		(!destroyed && XGetTransientForHint(dpy, c->win, &trans))) ||
 		c->isbastard;
@@ -3181,12 +3269,10 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 	XSync(dpy, False);
 	XSetErrorHandler(xerror);
 	XUngrabServer(dpy);
-	if (dostruts) {
-		updatestruts(m);
-		updategeom(m);
-	}
-	if (doarrange) 
-		arrange(m);
+	if (dostruts)
+		updatestruts();
+	else if (doarrange) 
+		arrange(NULL);
 }
 
 void
@@ -3199,26 +3285,32 @@ updategeom(Monitor * m) {
 	default:
 		m->wax += m->struts[LeftStrut];
 		m->way += m->struts[TopStrut];
-		m->waw -= (m->struts[RightStrut] + m->struts[LeftStrut]);
-		m->wah = min(m->wah - m->struts[TopStrut],
-			(DisplayHeight(dpy, screen) - (m->struts[BotStrut] + m->struts[TopStrut])));
+		m->waw -= m->struts[LeftStrut] + m->struts[RightStrut];
+		m->wah -= m->struts[TopStrut] + m->struts[BotStrut];
 		break;
 	case StrutsHide:
 	case StrutsOff:
 		break;
 	}
-	updateatom[WorkArea] (NULL);
 }
 
 void
-updatestruts(Monitor *m) {
+updatestruts() {
 	Client *c;
+	Monitor *m;
 
-	m->struts[RightStrut] = m->struts[LeftStrut] = m->struts[TopStrut] =
-		m->struts[BotStrut] = 0;
+	for (m = monitors; m; m = m->next)
+		m->struts[RightStrut]
+			= m->struts[LeftStrut]
+			= m->struts[TopStrut]
+			= m->struts[BotStrut] = 0;
 	for (c = clients; c; c = c->next)
 		if (c->hasstruts)
 			getstruts(c);
+	updateatom[WorkArea] (NULL);
+	for (m = monitors; m; m = m->next)
+		updategeom(m);
+	arrange(NULL);
 }
 
 void
@@ -3236,7 +3328,7 @@ unmapnotify(XEvent * e) {
 
 void
 updateframe(Client * c) {
-	int i, f = 0;
+	int i, f = 0, th;
 
 	if (!c->title)
 		return;
@@ -3245,13 +3337,17 @@ updateframe(Client * c) {
 		if (c->tags[i])
 			f += FEATURES(views[i].layout, OVERLAP);
 	}
+	th = c->th;
 	c->th = !c->ismax && (c->isfloating || options.dectiled || f) ?
 				style.titleheight : 0;
-	if (!c->th)
-		XUnmapWindow(dpy, c->title);
-	else
-		XMapRaised(dpy, c->title);
-	updateatom[WindowExtents](c);
+	if (!th != !c->th) {
+		if (!c->th)
+			XUnmapWindow(dpy, c->title);
+		else
+			XMapRaised(dpy, c->title);
+	}
+	if (th != c->th)
+		updateatom[WindowExtents](c);
 }
 
 void

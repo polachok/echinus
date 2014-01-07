@@ -389,21 +389,22 @@ ewmh_update_net_window_desktop_mask(Client *c) {
 void
 ewmh_update_net_work_area(Client * c) {
 	long *geoms, longs = ntags * 4;
-	Monitor *m = monitors;
-	int i, j, x, y, w, h;
+	int i, j, x, y, w, h, l = 0, r = 0, t = 0, b = 0;
+	Monitor *m;
 
 	DPRINTF("%s\n", "Updating _NET_WORKAREA");
 	geoms = ecalloc(longs, sizeof(geoms[0]));
-	x = m->wax - m->sx;
-	y = m->way - m->sy;
-	w = m->waw;
-	h = m->wah;
-	for (m = m->next; m != NULL; m = m->next) {
-		x = max(x, m->wax - m->sx);
-		y = max(y, m->way - m->sy);
-		w = min(w, m->waw);
-		h = min(h, m->wah);
+
+	for (m = monitors; m; m = m->next) {
+		l = max(l, m->struts[LeftStrut]);
+		r = max(r, m->struts[RightStrut]);
+		t = max(t, m->struts[TopStrut]);
+		b = max(b, m->struts[BotStrut]);
 	}
+	x = l;
+	y = t;
+	w = DisplayWidth(dpy, screen) - (l + r);
+	h = DisplayHeight(dpy, screen) - (t + b);
 	for (i = 0, j = 0; i < ntags; i++) {
 		geoms[j++] = x;
 		geoms[j++] = y;
@@ -603,6 +604,10 @@ ewmh_update_net_window_state(Client *c) {
 		winstate[states++] = atom[WindowStateFloating];
 	if (c->isfill)
 		winstate[states++] = atom[WindowStateFilled];
+	if (c->ismaxv)
+		winstate[states++] = atom[WindowStateMaxV];
+	if (c->ismaxh)
+		winstate[states++] = atom[WindowStateMaxH];
 
 	XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
 		PropModeReplace, (unsigned char *) winstate, states);
@@ -623,8 +628,8 @@ ewmh_update_net_window_actions(Client *c) {
 	if (!c->isbastard) {
 		if (c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
 			action[actions++] = atom[WindowActionFs];
-			// action[actions++] = atom[WindowActionMaxH];
-			// action[actions++] = atom[WindowActionMaxV];
+			action[actions++] = atom[WindowActionMaxH];
+			action[actions++] = atom[WindowActionMaxV];
 		}
 		action[actions++] = atom[WindowActionMin];
 		if (c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
@@ -676,9 +681,15 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 				tag(c, curmontag);
 		}
 	} else if (state == atom[WindowStateMaxV]) {
-		/* TODO */
+		if ((set == _NET_WM_STATE_ADD && !c->ismaxv) ||
+		    (set == _NET_WM_STATE_REMOVE && c->ismaxv) ||
+		    (set == _NET_WM_STATE_TOGGLE))
+			togglemaxv(c);
 	} else if (state == atom[WindowStateMaxH]) {
-		/* TODO */
+		if ((set == _NET_WM_STATE_ADD && !c->ismaxh) ||
+		    (set == _NET_WM_STATE_REMOVE && c->ismaxh) ||
+		    (set == _NET_WM_STATE_TOGGLE))
+			togglemaxh(c);
 	} else if (state == atom[WindowStateShaded]) {
 		/* TODO */
 	} else if (state == atom[WindowStateNoTaskbar]) {
@@ -719,13 +730,21 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 		if ((set == _NET_WM_STATE_ADD && !c->isabove) ||
 		    (set == _NET_WM_STATE_REMOVE && c->isabove) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
+			Monitor *cm = clientmonitor(c);
+
 			c->isabove = !c->isabove;
+			if (cm && cm == curmonitor())
+				restack(cm);
 		}
 	} else if (state == atom[WindowStateBelow]) {
 		if ((set == _NET_WM_STATE_ADD && !c->isbelow) ||
 		    (set == _NET_WM_STATE_REMOVE && c->isbelow) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
+			Monitor *cm = clientmonitor(c);
+
 			c->isbelow = !c->isbelow;
+			if (cm && cm == curmonitor())
+				restack(cm);
 		}
 	} else if (state == atom[WindowStateAttn]) {
 		if ((set == _NET_WM_STATE_ADD && !c->isattn) ||
@@ -1040,25 +1059,64 @@ checkwintype(Window win, int wintype) {
 	return ret;
 }
 
+static Bool
+strut_overlap(long min1, long max1, long min2, long max2) {
+	long tmp;
+
+	if (min1 > max1) { tmp = min1; min1 = max1; max1 = tmp; }
+	if (min2 > max2) { tmp = min2; min2 = max2; max2 = tmp; }
+	if (min1 <= min2 && max1 >= min2)
+		return True;
+	if (min1 <= max2 && max1 >= max2)
+		return True;
+	if (min2 <= min1 && max2 >= min1)
+		return True;
+	if (min2 <= max1 && max2 >= max1)
+		return True;
+	return False;
+}
+
 int
-getstrut(Client *c, Atom strut) {
-	long *state;
-	int ret = 0;
+getstrut(Client * c, Atom atom)
+{
+	long *prop, dw, dh, strut;
 	Monitor *m;
-	unsigned long i, n = 0;
+	unsigned long n = 0;
+	struct {
+		long l, r, t, b, ly1, ly2, ry1, ry2, tx1, tx2, bx1, bx2;
+	} s;
 
-	if (!(m = clientmonitor(c)))
-		return ret;
+	dw = DisplayWidth(dpy, screen);
+	dh = DisplayHeight(dpy, screen);
 
-	state = getcard(c->win, strut, &n);
-	if (n >= LastStrut) {
-		for (i = LeftStrut; i < LastStrut; i++)
-			m->struts[i] = max(state[i], m->struts[i]);
-		ret = 1;
+	s.l = s.r = s.t = s.b = 0;
+	s.ly1 = s.ry1 = 0;
+	s.ly2 = s.ry2 = dh;
+	s.tx1 = s.bx1 = 0;
+	s.tx2 = s.bx2 = dw;
+
+	prop = getcard(c->win, atom, &n);
+	if (n == 0)
+		return n;
+
+	memcpy(&s, prop, n * sizeof(long));
+	XFree(prop);
+
+	for (m = monitors; m; m = m->next) {
+		if ((strut = s.l - m->sx) > 0)
+			if (strut_overlap(m->sy, m->sy + m->sh, s.ly1, s.ly2))
+				m->struts[LeftStrut] = max(strut, m->struts[LeftStrut]);
+		if ((strut = m->sx + m->sw - dw + s.r) > 0)
+			if (strut_overlap(m->sy, m->sy + m->sh, s.ry1, s.ry2))
+				m->struts[RightStrut] = max(strut, m->struts[RightStrut]);
+		if ((strut = s.t - m->sy) > 0)
+			if (strut_overlap(m->sx, m->sx + m->sw, s.tx1, s.tx2))
+				m->struts[TopStrut] = max(strut, m->struts[TopStrut]);
+		if ((strut = m->sy + m->sh - dh + s.b) > 0)
+			if (strut_overlap(m->sx, m->sx + m->sw, s.bx1, s.bx2))
+				m->struts[BotStrut] = max(strut, m->struts[BotStrut]);
 	}
-	if (state)
-		XFree(state);
-	return ret;
+	return n;
 }
 
 int getstruts(Client *c) {

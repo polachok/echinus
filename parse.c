@@ -23,6 +23,16 @@ _togglefill(const char *arg) {
 }
 
 static void
+_togglemaxv(const char *arg) {
+	if (sel) togglemaxv(sel);
+}
+
+static void
+_togglemaxh(const char *arg) {
+	if (sel) togglemaxh(sel);
+}
+
+static void
 _zoom(const char *arg) {
 	if (sel) zoom(sel);
 }
@@ -90,6 +100,8 @@ static KeyItem KeyItems[] = {
 	{ "resizeincy", 	_moveresizekb	},
 	{ "togglemonitor", 	togglemonitor	},
 	{ "togglefill", 	_togglefill	},
+	{ "togglemaxv", 	_togglemaxv	},
+	{ "togglemaxh", 	_togglemaxh	},
 	{ "appendtag",		appendtag	},
 	{ "rmlasttag",		rmlasttag	},
 };
