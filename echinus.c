@@ -3328,26 +3328,22 @@ unmapnotify(XEvent * e) {
 
 void
 updateframe(Client * c) {
-	int i, f = 0, th;
+	int i, f = 0;
 
 	if (!c->title)
 		return;
 
-	for (i = 0; i < ntags; i++) {
+	for (i = 0; i < ntags; i++)
 		if (c->tags[i])
 			f += FEATURES(views[i].layout, OVERLAP);
-	}
-	th = c->th;
+
 	c->th = !c->ismax && (c->isfloating || options.dectiled || f) ?
 				style.titleheight : 0;
-	if (!th != !c->th) {
-		if (!c->th)
-			XUnmapWindow(dpy, c->title);
-		else
-			XMapRaised(dpy, c->title);
-	}
-	if (th != c->th)
-		updateatom[WindowExtents](c);
+	if (!c->th)
+		XUnmapWindow(dpy, c->title);
+	else
+		XMapRaised(dpy, c->title);
+	updateatom[WindowExtents](c);
 }
 
 void
