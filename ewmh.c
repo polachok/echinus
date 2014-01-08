@@ -34,7 +34,6 @@ char *atomnames[NATOMS] = {
 	"_ECHINUS_SELTAGS",
 	"_NET_WM_FULLSCREEN_MONITORS",		/* TODO */
 	"_NET_DESKTOP_GEOMETRY",		/* TODO */
-	"_NET_SHOWING_DESKTOP",			/* TODO */
 	"_NET_RESTART",				/* TODO */
 	"_NET_SHUTDOWN",			/* TODO */
 	"_NET_RESTACK_WINDOW",			/* TODO */
@@ -55,6 +54,7 @@ char *atomnames[NATOMS] = {
 	"_NET_CURRENT_DESKTOP",
 	"_NET_WORKAREA",
 	"_NET_DESKTOP_VIEWPORT",
+	"_NET_SHOWING_DESKTOP",
 
 	"_NET_DESKTOP_MODES",
 	"_NET_DESKTOP_MODE_FLOATING",
@@ -188,15 +188,7 @@ ewmh_update_net_client_list_stacking(Client * c) {
 	for (j = 0; j < n && i < n; j++) {
 		if (!(c = cl[j]))
 			continue;
-		if ((c = cl[j]) && sel == c && c->ismax) {
-			wl[i++] = c->win;
-			cl[j] = NULL;
-		}
-	}
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
-			continue;
-		if ((WTCHECK(c, WindowTypeDock) && !c->isbelow) || c->isabove) {
+		if (sel == c && c->ismax) {
 			wl[i++] = c->win;
 			cl[j] = NULL;
 		}
@@ -312,6 +304,31 @@ ewmh_update_net_desktop_viewport(Client *c) {
 	data = ecalloc(ntags * 2, sizeof(data[0]));
 	XChangeProperty(dpy, root, atom[DeskViewport], XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *)data, ntags * 2);
+}
+
+void
+ewmh_process_net_showing_desktop() {
+	long *card;
+	unsigned long n = 0;
+
+	DPRINTF("%s\n", "Processing _NET_SHOWING_DESKTOP");
+	card = getcard(root, atom[ShowingDesktop], &n);
+	if (n > 0) {
+		Bool show = card[0];
+
+		if (!show != !showing_desktop)
+			toggleshowing();
+	}
+}
+
+
+void
+ewmh_update_net_showing_desktop(Client *c) {
+	long data = showing_desktop ? 1 : 0;
+
+	DPRINTF("%s\n", "Updating _NET_SHOWING_DESKTOP");
+	XChangeProperty(dpy, root, atom[ShowingDesktop], XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *)&data, 1);
 }
 
 void
@@ -598,7 +615,7 @@ ewmh_update_net_window_state(Client *c) {
 		winstate[states++] = atom[WindowStateNoTaskbar];
 	if (c->nopager)
 		winstate[states++] = atom[WindowStateNoPager];
-	if (c->isicon)
+	if (c->isicon || c->ishidden)
 		winstate[states++] = atom[WindowStateHidden];
 	if (c->ismax)
 		winstate[states++] = atom[WindowStateFs];
@@ -726,6 +743,10 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 		   the request, since _NET_WM_STATE_HIDDEN is a function of some other
 		   aspect of the window such as minimization, rather than an independent
 		   state. */
+		if ((set == _NET_WM_STATE_ADD && !c->ishidden) ||
+		    (set == _NET_WM_STATE_REMOVE && c->ishidden) ||
+		    (set == _NET_WM_STATE_TOGGLE))
+			togglehidden(c);
 	} else if (state == atom[WindowStateFs]) {
 		if ((set == _NET_WM_STATE_ADD || set == _NET_WM_STATE_TOGGLE)
 				&& !c->ismax) {
@@ -741,7 +762,7 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 		}
 		DPRINT;
 		arrange(curmonitor());
-		DPRINTF("%s: x%d y%d w%d h%d\n", c->name ? c->name : "", c->x, c->y, c->w, c->h);
+		DPRINTF("%s: x%d y%d w%d h%d\n", c->name, c->x, c->y, c->w, c->h);
 	} else if (state == atom[WindowStateAbove]) {
 		if ((set == _NET_WM_STATE_ADD && !c->isabove) ||
 		    (set == _NET_WM_STATE_REMOVE && c->isabove) ||
@@ -855,10 +876,13 @@ clientmessage(XEvent *e) {
 		} else if (message_type == atom[CloseWindow]) {
 			killclient(c);
 		} else if (message_type == atom[ActiveWindow]) {
-			if (c->isicon)
+			if (c->isicon || c->ishidden) {
 				c->isicon = False;
+				c->ishidden = False;
+				ewmh_update_net_window_state(c);
+			}
 			focus(c);
-			arrange(curmonitor());
+			arrange(clientmonitor(c));
 		} else if (message_type == atom[WindowState]) {
 			ewmh_process_state_atom(c, (Atom) ev->data.l[1], ev->data.l[0]);
 			if (ev->data.l[2])
@@ -977,7 +1001,8 @@ clientmessage(XEvent *e) {
 			if (0 <= tag && tag < ntags)
 				view(tag);
 		} else if (message_type == atom[ShowingDesktop]) {
-			/* TODO */
+			if (!ev->data.l[0] != !showing_desktop)
+				toggleshowing();
 		} else if (message_type == atom[WMRestart]) {
 			/* TODO */
 		} else if (message_type == atom[WMShutdown]) {
@@ -1204,6 +1229,7 @@ void (*updateatom[]) (Client *) = {
 	[WindowDeskMask] = ewmh_update_net_window_desktop_mask,
 	[NumberOfDesk] = ewmh_update_net_number_of_desktops,
 	[DeskViewport] = ewmh_update_net_desktop_viewport,
+	[ShowingDesktop] = ewmh_update_net_showing_desktop,
 	[VirtualRoots] = ewmh_update_net_virtual_roots,
 	[DeskNames] = ewmh_update_net_desktop_names,
 	[CurDesk] = ewmh_update_net_current_desktop,

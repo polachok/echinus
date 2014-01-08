@@ -38,6 +38,11 @@ _toggleshade(const char *arg) {
 }
 
 static void
+_togglehidden(const char *arg) {
+	if (sel) togglehidden(sel);
+}
+
+static void
 _zoom(const char *arg) {
 	if (sel) zoom(sel);
 }
@@ -108,6 +113,7 @@ static KeyItem KeyItems[] = {
 	{ "togglemaxv", 	_togglemaxv	},
 	{ "togglemaxh", 	_togglemaxh	},
 	{ "toggleshade", 	_toggleshade	},
+	{ "togglehidden", 	_togglehidden	},
 	{ "appendtag",		appendtag	},
 	{ "rmlasttag",		rmlasttag	},
 };

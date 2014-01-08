@@ -3,13 +3,13 @@
 enum {
 	Manager, Utf8String, WMProto, WMDelete, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors, DeskGeometry,
-	ShowingDesktop, WMRestart, WMShutdown,
+	WMRestart, WMShutdown,
 	RestackWindow, StartupInfoBegin, StartupInfo, DeskLayout, WindowUserTime,
 	UserTimeWindow,
 	WindowCounter, WindowTypeOverride,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
-	CurDesk, WorkArea, DeskViewport,
+	CurDesk, WorkArea, DeskViewport, ShowingDesktop,
 	DeskModes, DeskModeFloating, DeskModeTiled, DeskModeBottomTiled, DeskModeMonocle,
 	DeskModeTopTiled, DeskModeLeftTiled,
 	ClientListStacking, WindowOpacity, MoveResizeWindow, WindowMoveResize,
@@ -49,7 +49,6 @@ enum {
 #define _XA_ECHINUS_SELTAGS			atom[ESelTags]
 #define _XA_NET_WM_FULLSCREEN_MONITORS		atom[WindowFsMonitors]
 #define _XA_NET_DESKTOP_GEOMETRY		atom[DeskGeometry]
-#define _XA_NET_SHOWING_DESKTOP			atom[ShowingDesktop]
 #define _XA_NET_RESTART				atom[WMRestart]
 #define _XA_NET_SHUTDOWN			atom[WMShutdown]
 #define _XA_NET_RESTACK_WINDOW			atom[RestackWindow]
@@ -70,6 +69,7 @@ enum {
 #define _XA_NET_CURRENT_DESKTOP			atom[CurDesk]
 #define _XA_NET_WORKAREA			atom[WorkArea]
 #define _XA_NET_DESKTOP_VIEWPORT		atom[DeskViewport]
+#define _XA_NET_SHOWING_DESKTOP			atom[ShowingDesktop]
 
 #define _XA_NET_DESKTOP_MODES			atom[DeskModes]
 #define _XA_NET_DESKTOP_MODE_FLOATING		atom[DeskModeFloating]
@@ -197,7 +197,7 @@ struct Client {
 	long flags;
 	int wintype;
 	Bool isbanned, ismax, isfloating, wasfloating, ismaxv, ismaxh, isshade;
-	Bool isicon, isfill, ismodal, isabove, isbelow, isattn, issticky;
+	Bool isicon, isfill, ismodal, isabove, isbelow, isattn, issticky, ishidden;
 	Bool isfixed, isbastard, isfocusable, hasstruts;
 	Bool notaskbar, nopager, ismanaged;
 	Bool *tags;
@@ -264,6 +264,7 @@ Bool checkwintype(Window win, int wintype);
 void clientmessage(XEvent * e);
 void ewmh_process_net_window_state(Client *c);
 void ewmh_process_net_desktop_names(void);
+void ewmh_process_net_showing_desktop(void);
 unsigned int ewmh_process_net_number_of_desktops(void);
 Atom *getatom(Window win, Atom atom, unsigned long *nitems);
 long *getcard(Window win, Atom atom, unsigned long *nitems);
@@ -316,6 +317,8 @@ void toggleshade(Client *c);
 void togglemonitor(const char *arg);
 void toggletag(Client *c, int index);
 void toggleview(int index);
+void toggleshowing(void);
+void togglehidden(Client *c);
 void updateframe(Client *c);
 void view(int index);
 void viewlefttag(const char *arg);
@@ -360,7 +363,7 @@ void initstyle();
 #define DPRINTF(format, ...)
 #endif
 #define DPRINTCLIENT(c) DPRINTF("%s: x: %d y: %d w: %d h: %d th: %d f: %d b: %d m: %d\n", \
-				    c->name ? c->name : "", c->x, c->y, c->w, c->h, c->th, c->isfloating, c->isbastard, c->ismax)
+				    c->name, c->x, c->y, c->w, c->h, c->th, c->isfloating, c->isbastard, c->ismax)
 
 #define OPAQUE			0xffffffff
 #define RESNAME		       "echinus"
@@ -381,6 +384,7 @@ extern Client *stack;
 extern unsigned int ntags;
 extern unsigned int nkeys;
 extern unsigned int nrules;
+extern Bool showing_desktop;
 extern int screen;
 extern Style style;
 extern Button button[LastBtn];

@@ -152,6 +152,8 @@ void toggleshade(Client *c);
 void toggletag(Client *c, int index);
 void toggleview(int index);
 void togglemonitor(const char *arg);
+void toggleshowing(void);
+void togglehidden(Client *c);
 void focusview(int index);
 void unban(Client * c);
 void unmanage(Client * c, Bool reparented, Bool destroyed);
@@ -206,6 +208,7 @@ unsigned int nkeys;
 unsigned int nrules;
 unsigned int modkey;
 unsigned int numlockmask;
+Bool showing_desktop = False;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -281,7 +284,7 @@ applyrules(Client * c) {
 	/* rule matching */
 	XGetClassHint(dpy, c->win, &ch);
 	snprintf(buf, sizeof(buf), "%s:%s:%s",
-	    ch.res_class ? ch.res_class : "", ch.res_name ? ch.res_name : "", c->name ? c->name : "");
+	    ch.res_class ? ch.res_class : "", ch.res_name ? ch.res_name : "", c->name);
 	buf[LENGTH(buf)-1] = 0;
 	for (i = 0; i < nrules; i++)
 		if (rules[i]->propregex && !regexec(rules[i]->propregex, buf, 1, &tmp, 0)) {
@@ -311,7 +314,7 @@ arrangefloats(Monitor * m) {
 	for (c = stack; c; c = c->snext) {
 		if (isvisible(c, m) && !c->isbastard &&
 				(c->isfloating || MFEATURES(m, OVERLAP))
-				&& !c->ismax && !c->isicon) {
+				&& !c->ismax && !(c->isicon || c->ishidden)) {
 			DPRINTF("%d %d\n", c->fx, c->fy);
 			if (!(om = getmonitor(c->fx + c->fw/2,
 					c->fy + c->fh/2)))
@@ -340,14 +343,14 @@ arrangemon(Monitor * m) {
 	arrangefloats(m);
 	restack(m);
 	for (c = stack; c; c = c->snext) {
-		if ((clientmonitor(c) == m) && ((!c->isbastard && !c->isicon) ||
+		if ((clientmonitor(c) == m) && ((!c->isbastard && !(c->isicon || c->ishidden)) ||
 			(c->isbastard && views[m->curtag].barpos == StrutsOn))) {
 			unban(c);
 		}
 	}
 
 	for (c = stack; c; c = c->snext) {
-		if ((clientmonitor(c) == NULL) || (!c->isbastard && c->isicon) ||
+		if ((clientmonitor(c) == NULL) || (!c->isbastard && (c->isicon || c->ishidden)) ||
 			(c->isbastard && views[m->curtag].barpos == StrutsHide)) {
 			ban(c);
 		}
@@ -436,7 +439,7 @@ buttonpress(XEvent * e) {
 		return;
 	}
 	if ((c = getclient(ev->window, ClientTitle))) {
-		DPRINTF("TITLE %s: 0x%x\n", c->name ? c->name : "", (int) ev->window);
+		DPRINTF("TITLE %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
 		for (i = 0; i < LastBtn; i++) {
 			if (button[i].action == NULL)
@@ -467,7 +470,7 @@ buttonpress(XEvent * e) {
 		else if (ev->button == Button3)
 			mouseresize(c);
 	} else if ((c = getclient(ev->window, ClientWindow))) {
-		DPRINTF("WINDOW %s: 0x%x\n", c->name ? c->name : "", (int) ev->window);
+		DPRINTF("WINDOW %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
 		restack(curmonitor());
 		if (CLEANMASK(ev->state) != modkey) {
@@ -493,7 +496,7 @@ buttonpress(XEvent * e) {
 			mouseresize(c);
 		}
 	} else if ((c = getclient(ev->window, ClientFrame))) {
-		DPRINTF("FRAME %s: 0x%x\n", c->name ? c->name : "", (int) ev->window);
+		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
 		/* Not supposed to happen */
 	}
 }
@@ -831,7 +834,7 @@ destroynotify(XEvent * e) {
 
 	if (!(c = getclient(ev->window, ClientWindow)))
 		return;
-	DPRINTF("unmanage destroyed window (%s)\n", c->name ? c->name : "");
+	DPRINTF("unmanage destroyed window (%s)\n", c->name);
 	unmanage(c, False, True);
 }
 
@@ -971,7 +974,7 @@ focus(Client * c) {
 	o = sel;
 	if ((!c && selscreen) || (c && (c->isbastard || !isvisible(c, curmonitor()))))
 		for (c = stack;
-		    c && (c->isbastard || c->isicon || !isvisible(c, curmonitor())); c = c->snext);
+		    c && (c->isbastard || (c->isicon || c->ishidden) || !isvisible(c, curmonitor())); c = c->snext);
 	if (sel && sel != c) {
 		XSetWindowBorder(dpy, sel->frame, style.color.norm[ColBorder]);
 	}
@@ -1010,11 +1013,12 @@ void
 focusicon(const char *arg) {
 	Client *c;
 
-	for (c = clients; c && (!c->isicon || !isvisible(c, curmonitor())); c = c->next);
+	for (c = clients; c && (!(c->isicon || c->ishidden) || !isvisible(c, curmonitor())); c = c->next);
 	if (!c)
 		return;
-	if (c->isicon) {
+	if (c->isicon || c->ishidden) {
 		c->isicon = False;
+		c->ishidden = False;
 		updateatom[WindowState](c);
 	}
 	focus(c);
@@ -1026,10 +1030,10 @@ focusnext(Client *c) {
 	if (!c)
 		return;
 	for (c = c->next;
-	    c && (c->isbastard || c->isicon || !isvisible(c, curmonitor())); c = c->next);
+	    c && (c->isbastard || (c->isicon || c->ishidden) || !isvisible(c, curmonitor())); c = c->next);
 	if (!c)
 		for (c = clients;
-		    c && (c->isbastard || c->isicon
+		    c && (c->isbastard || (c->isicon || c->ishidden)
 			|| !isvisible(c, curmonitor())); c = c->next);
 	if (c) {
 		focus(c);
@@ -1042,11 +1046,11 @@ focusprev(Client *c) {
 	if (!c)
 		return;
 	for (c = c->prev;
-	    c && (c->isbastard || c->isicon || !isvisible(c, curmonitor())); c = c->prev);
+	    c && (c->isbastard || (c->isicon || c->ishidden) || !isvisible(c, curmonitor())); c = c->prev);
 	if (!c) {
 		for (c = clients; c && c->next; c = c->next);
 		for (;
-		    c && (c->isbastard || c->isicon
+		    c && (c->isbastard || (c->isicon || c->ishidden)
 			|| !isvisible(c, curmonitor())); c = c->prev);
 	}
 	if (c) {
@@ -1057,6 +1061,7 @@ focusprev(Client *c) {
 
 void
 iconify(Client *c) {
+#if 1
 	if (!c)
 		return;
 	focusnext(c);
@@ -1066,6 +1071,81 @@ iconify(Client *c) {
 		updateatom[WindowState](c);
 	}
 	arrange(curmonitor());
+#else
+	if (!c || c->isicon)
+		return;
+	if (c == sel)
+		focusnext(c);
+	c->isicon = True;
+	if (!c->isbanned) {
+		ban(c);
+		arrange(clientmonitor(c));
+	}
+	updateatom[WindowState](c);
+#endif
+}
+
+void
+hide(Client *c) {
+	if (!c || c->ishidden || c->isbastard || WTCHECK(c, WindowTypeDock)
+			|| WTCHECK(c, WindowTypeDesk))
+		return;
+	if (c == sel)
+		focusnext(c);
+	c->ishidden = True;
+	save_float(c);
+#if 0
+	if (!c->isbanned)
+		ban(c);
+#endif
+	updateatom[WindowState](c);
+}
+
+void
+show(Client *c) {
+	if (!c || !c->ishidden)
+		return;
+	c->ishidden = False;
+	if (!c->isicon)
+		unban(c);
+	updateatom[WindowState](c);
+}
+
+void
+togglehidden(Client *c)
+{
+	if (c->ishidden)
+		show(c);
+	else
+		hide(c);
+	arrange(clientmonitor(c));
+}
+
+void
+hideall() {
+	Client *c;
+
+	for (c = clients; c; c = c->next)
+		hide(c);
+	arrange(NULL);
+}
+
+void
+showall() {
+	Client *c;
+
+	for (c = clients; c; c = c->next)
+		show(c);
+	arrange(NULL);
+}
+
+void
+toggleshowing() {
+	if ((showing_desktop = showing_desktop ? False : True))
+		hideall();
+	else
+		showall();
+	updateatom[ShowingDesktop] (NULL);
 }
 
 void
@@ -1246,6 +1326,8 @@ manage(Window w, XWindowAttributes * wa) {
 
 	c = emallocz(sizeof(Client));
 	c->win = w;
+	c->name = ecalloc(1, 1);
+	c->icon_name = ecalloc(1, 1);
 	XSaveContext(dpy, c->win, context[ClientWindow], (XPointer)c);
 	XSaveContext(dpy, c->win, context[ClientAny],    (XPointer)c);
 	c->wintype = getwintype(c->win);
@@ -1276,6 +1358,7 @@ manage(Window w, XWindowAttributes * wa) {
 
 	cm = curmonitor();
 	c->isicon = False;
+	c->ishidden = False;
 	c->title = c->isbastard ? None : 1;
 	c->tags = ecalloc(ntags, sizeof(cm->seltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
@@ -1724,14 +1807,14 @@ mouseresize(Client * c) {
 Client *
 nexttiled(Client * c, Monitor * m) {
 	for (; c && (c->isfloating || !isvisible(c, m) || c->isbastard
-		|| c->isicon); c = c->next);
+		|| (c->isicon || c->ishidden)); c = c->next);
 	return c;
 }
 
 Client *
 prevtiled(Client * c, Monitor * m) {
 	for (; c && (c->isfloating || !isvisible(c, m) || c->isbastard
-		|| c->isicon); c = c->prev);
+		|| (c->isicon || c->ishidden)); c = c->prev);
 	return c;
 }
 
@@ -1742,7 +1825,7 @@ reparentnotify(XEvent * e) {
 
 	if ((c = getclient(ev->window, ClientWindow)))
 		if (ev->parent != c->frame) {
-			DPRINTF("unmanage reparented window (%s)\n", c->name ? c->name : "");
+			DPRINTF("unmanage reparented window (%s)\n", c->name);
 			unmanage(c, True, False);
 		}
 }
@@ -1978,7 +2061,7 @@ restack(Monitor * m) {
 	if (!sel)
 		return;
 	for (n = 0, c = stack; c; c = c->snext)
-		if (isvisible(c, m) && !c->isicon)
+		if (isvisible(c, m) && !(c->isicon || c->ishidden))
 			n++;
 	if (!n)
 		return;
@@ -2003,7 +2086,7 @@ restack(Monitor * m) {
 	 * - focused windows having state _NET_WM_STATE_FULLSCREEN
 	 */
 	for (c = stack; c && i < n; c = c->snext)
-		if (isvisible(c, m) && !c->isicon)
+		if (isvisible(c, m) && !(c->isicon || c->ishidden))
 			cl[i++] = c;
 	i = 0;
 	/* focused windows having state _NET_WM_STATE_FULLSCREEN */
@@ -2030,8 +2113,7 @@ restack(Monitor * m) {
 	for (j = 0; j < n && i < n; j++) {
 		if (!(c = cl[j]))
 			continue;
-		if (!c->isbastard && c->isfloating &&
-		    !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
+		if (!c->isbastard && c->isfloating && !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
 			wl[i++] = c->frame;
 			cl[j] = NULL;
 		}
@@ -2039,8 +2121,7 @@ restack(Monitor * m) {
 	for (j = 0; j < n && i < n; j++) {
 		if (!(c = cl[j]))
 			continue;
-		if (c->isbastard &&
-		    !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
+		if (c->isbastard && !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
 			wl[i++] = c->frame;
 			cl[j] = NULL;
 		}
@@ -2048,8 +2129,7 @@ restack(Monitor * m) {
 	for (j = 0; j < n && i < n; j++) {
 		if (!(c = cl[j]))
 			continue;
-		if (!c->isbastard && !c->isfloating &&
-		    !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
+		if (!c->isbastard && !c->isfloating && !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
 			wl[i++] = c->frame;
 			cl[j] = NULL;
 		}
@@ -2168,8 +2248,9 @@ setclientstate(Client * c, long state) {
 
 	XChangeProperty(dpy, c->win, atom[WMState], atom[WMState], 32,
 	    PropModeReplace, (unsigned char *) data, 2);
-	if (state == NormalState && c->isicon) {
+	if (state == NormalState && (c->isicon || c->ishidden)) {
 		c->isicon = False;
+		c->ishidden = False;
 		updateatom[WindowState](c);
 		updateatom[WindowActions](c);
 	}
@@ -2640,6 +2721,8 @@ setup(char *conf) {
 		updategeom(m);
 	}
 	updateatom[WorkArea] (NULL);
+	ewmh_process_net_showing_desktop();
+	updateatom[ShowingDesktop] (NULL);
 
 	if (chdir(oldcwd) != 0)
 		fprintf(stderr, "echinus: cannot change directory\n");
@@ -3458,7 +3541,7 @@ unmapnotify(XEvent * e) {
 	if ((c = getclient(ev->window, ClientWindow)) /* && ev->send_event */) {
 		if (c->ignoreunmap--)
 			return;
-		DPRINTF("unmanage self-unmapped window (%s)\n", c->name ? c->name : "");
+		DPRINTF("unmanage self-unmapped window (%s)\n", c->name);
 		unmanage(c, False, False);
 	}
 }

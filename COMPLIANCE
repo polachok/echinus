@@ -72,7 +72,7 @@ _NET_WORKAREA:				supported
 _NET_SUPPORTING_WM_CHECK:		supported
 _NET_VIRTUAL_ROOTS:			supported (trivial)
 _NET_DESKTOP_LAYOUT:			NOT supported
-_NET_SHOWING_DESKTOP:			NOT supported
+_NET_SHOWING_DESKTOP:			supported
 
 
 Section 4: Other Root Window Messages
