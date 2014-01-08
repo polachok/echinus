@@ -2437,6 +2437,7 @@ initmonitors(XEvent * e) {
 		XRRFreeCrtcInfo(ci);
 	}
 	XRRFreeScreenResources(sr);
+	updateatom[DeskGeometry] (NULL);
 	return;
       no_xrandr:
 #endif
@@ -2453,6 +2454,7 @@ initmonitors(XEvent * e) {
 	m->seltags[0] = True;
 	m->next = NULL;
 	monitors = m;
+	updateatom[DeskGeometry] (NULL);
 }
 
 void

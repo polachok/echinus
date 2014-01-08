@@ -2,14 +2,14 @@
 
 enum {
 	Manager, Utf8String, WMProto, WMDelete, WMState, WMChangeState,
-	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors, DeskGeometry,
+	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors,
 	WMRestart, WMShutdown,
 	RestackWindow, StartupInfoBegin, StartupInfo, DeskLayout, WindowUserTime,
 	UserTimeWindow,
 	WindowCounter, WindowTypeOverride,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
-	CurDesk, WorkArea, DeskViewport, ShowingDesktop,
+	CurDesk, WorkArea, DeskViewport, ShowingDesktop, DeskGeometry,
 	DeskModes, DeskModeFloating, DeskModeTiled, DeskModeBottomTiled, DeskModeMonocle,
 	DeskModeTopTiled, DeskModeLeftTiled,
 	ClientListStacking, WindowOpacity, MoveResizeWindow, WindowMoveResize,
@@ -48,7 +48,6 @@ enum {
 #define _XA_ECHINUS_LAYOUT			atom[ELayout]
 #define _XA_ECHINUS_SELTAGS			atom[ESelTags]
 #define _XA_NET_WM_FULLSCREEN_MONITORS		atom[WindowFsMonitors]
-#define _XA_NET_DESKTOP_GEOMETRY		atom[DeskGeometry]
 #define _XA_NET_RESTART				atom[WMRestart]
 #define _XA_NET_SHUTDOWN			atom[WMShutdown]
 #define _XA_NET_RESTACK_WINDOW			atom[RestackWindow]
@@ -70,6 +69,7 @@ enum {
 #define _XA_NET_WORKAREA			atom[WorkArea]
 #define _XA_NET_DESKTOP_VIEWPORT		atom[DeskViewport]
 #define _XA_NET_SHOWING_DESKTOP			atom[ShowingDesktop]
+#define _XA_NET_DESKTOP_GEOMETRY		atom[DeskGeometry]
 
 #define _XA_NET_DESKTOP_MODES			atom[DeskModes]
 #define _XA_NET_DESKTOP_MODE_FLOATING		atom[DeskModeFloating]

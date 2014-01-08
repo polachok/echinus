@@ -33,7 +33,6 @@ char *atomnames[NATOMS] = {
 	"_ECHINUS_LAYOUT",
 	"_ECHINUS_SELTAGS",
 	"_NET_WM_FULLSCREEN_MONITORS",		/* TODO */
-	"_NET_DESKTOP_GEOMETRY",		/* TODO */
 	"_NET_RESTART",				/* TODO */
 	"_NET_SHUTDOWN",			/* TODO */
 	"_NET_RESTACK_WINDOW",			/* TODO */
@@ -55,6 +54,7 @@ char *atomnames[NATOMS] = {
 	"_NET_WORKAREA",
 	"_NET_DESKTOP_VIEWPORT",
 	"_NET_SHOWING_DESKTOP",
+	"_NET_DESKTOP_GEOMETRY",
 
 	"_NET_DESKTOP_MODES",
 	"_NET_DESKTOP_MODE_FLOATING",
@@ -329,6 +329,20 @@ ewmh_update_net_showing_desktop(Client *c) {
 	DPRINTF("%s\n", "Updating _NET_SHOWING_DESKTOP");
 	XChangeProperty(dpy, root, atom[ShowingDesktop], XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *)&data, 1);
+}
+
+void
+ewmh_update_net_desktop_geometry(Client *c) {
+	Monitor *m;
+	long data[2] = { 0, 0 };
+
+	DPRINTF("%s\n", "Updating _NET_DESKTOP_GEOMETRY");
+	for (m = monitors; m; m = m->next) {
+		data[0] = max(data[0], m->sx + m->sw);
+		data[1] = max(data[1], m->sy + m->sh);
+	}
+	XChangeProperty(dpy, root, atom[DeskGeometry], XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *)data, 2);
 }
 
 void
@@ -992,7 +1006,8 @@ clientmessage(XEvent *e) {
 		} else if (message_type == atom[NumberOfDesk]) {
 			settags(ev->data.l[0]);
 		} else if (message_type == atom[DeskGeometry]) {
-			/* TODO */
+			/* Ignore desktop geometry changes but change the property in response */
+			updateatom[DeskGeometry] (NULL);
 		} else if (message_type == atom[DeskViewport]) {
 			/* Ignore viewport changes but change the property in response. */
 			updateatom[DeskViewport] (NULL);
@@ -1230,6 +1245,7 @@ void (*updateatom[]) (Client *) = {
 	[NumberOfDesk] = ewmh_update_net_number_of_desktops,
 	[DeskViewport] = ewmh_update_net_desktop_viewport,
 	[ShowingDesktop] = ewmh_update_net_showing_desktop,
+	[DeskGeometry] = ewmh_update_net_desktop_geometry,
 	[VirtualRoots] = ewmh_update_net_virtual_roots,
 	[DeskNames] = ewmh_update_net_desktop_names,
 	[CurDesk] = ewmh_update_net_current_desktop,

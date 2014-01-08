@@ -63,7 +63,7 @@ _NET_SUPPORTED:				supported
 _NET_CLIENT_LIST:			supported
 _NET_CLIENT_LIST_STACKING:		supported
 _NET_NUMBER_OF_DESKTOPS:		supported
-_NET_DESKTOP_GEOMETRY:			NOT supported
+_NET_DESKTOP_GEOMETRY:			supported
 _NET_DESKTOP_VIEWPORT:			supported (trivial)
 _NET_CURRENT_DESKTOP:			supported
 _NET_DESKTOP_NAMES:			supported
