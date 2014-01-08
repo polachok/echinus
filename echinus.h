@@ -186,18 +186,17 @@ typedef struct Client Client;
 struct Client {
 	char *name;
 	char *icon_name;
-	int x, y, w, h;
-	int rx, ry, rw, rh, rb;	/* revert geometry */
-	int sx, sy; /* static geometry */
-	unsigned int sw, sh, sb;
+	int x, y, w, h, border;
+	int rx, ry, rw, rh, rb;	/* restore geometry */
+	int sx, sy, sw, sh, sb; /* static geometry */
+	int fx, fy, fw, fh, fb; /* floating geometry */
 	int th;			/* title height */
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
 	int minax, maxax, minay, maxay, gravity;
 	int ignoreunmap;
 	long flags;
-	int border, oldborder;
 	int wintype;
-	Bool isbanned, ismax, isfloating, wasfloating, ismaxv, ismaxh;
+	Bool isbanned, ismax, isfloating, wasfloating, ismaxv, ismaxh, isshade;
 	Bool isicon, isfill, ismodal, isabove, isbelow, isattn, issticky;
 	Bool isfixed, isbastard, isfocusable, hasstruts;
 	Bool notaskbar, nopager, ismanaged;
@@ -313,6 +312,7 @@ void togglefill(Client *c);
 void togglemax(Client *c);
 void togglemaxv(Client *c);
 void togglemaxh(Client *c);
+void toggleshade(Client *c);
 void togglemonitor(const char *arg);
 void toggletag(Client *c, int index);
 void toggleview(int index);

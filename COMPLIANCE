@@ -114,7 +114,7 @@ _NET_WM_STATE:				supported
 	_NET_WM_STATE_STICKY:		    supported
 	_NET_WM_STATE_MAXIMIZED_VERT:	    supported
 	_NET_WM_STATE_MAXIMIZED_HORZ:	    supported
-	_NET_WM_STATE_SHADED:		    NOT supported (TODO)
+	_NET_WM_STATE_SHADED:		    supported
 	_NET_WM_STATE_SKIP_TASKBAR:	    supported (trivial)
 	_NET_WM_STATE_SKIP_PAGER:	    supported (trivial)
 	_NET_WM_STATE_HIDDEN:		    supported
@@ -127,7 +127,7 @@ _NET_WM_ALLOWED_ACTIONS:		supported
 	_NET_WM_ACTION_MOVE:		    supported
 	_NET_WM_ACTION_RESIZE:		    supported
 	_NET_WM_ACTION_MINIMIZE:	    supported
-	_NET_WM_ACTION_SHADE:		    supported (trivial)
+	_NET_WM_ACTION_SHADE:		    supported
  	_NET_WM_ACTION_STICK:		    supported
 	_NET_WM_ACTION_MAXIMIZE_HORZ:	    supported
 	_NET_WM_ACTION_MAXIMIZE_VERT:	    supported

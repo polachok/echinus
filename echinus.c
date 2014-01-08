@@ -130,6 +130,9 @@ void resize(Client * c, int x, int y, int w, int h, int b);
 void restack(Monitor * m);
 void run(void);
 void save(Client * c);
+void save_float(Client *c);
+void restore(Client *c);
+void restore_float(Client *c);
 void scan(void);
 void setclientstate(Client * c, long state);
 void setlayout(const char *arg);
@@ -145,6 +148,7 @@ void togglemax(Client *c);
 void togglemaxv(Client *c);
 void togglemaxh(Client *c);
 void togglefill(Client *c);
+void toggleshade(Client *c);
 void toggletag(Client *c, int index);
 void toggleview(int index);
 void togglemonitor(const char *arg);
@@ -308,20 +312,20 @@ arrangefloats(Monitor * m) {
 		if (isvisible(c, m) && !c->isbastard &&
 				(c->isfloating || MFEATURES(m, OVERLAP))
 				&& !c->ismax && !c->isicon) {
-			DPRINTF("%d %d\n", c->rx, c->ry);
-			if (!(om = getmonitor(c->rx + c->rw/2,
-					c->ry + c->rh/2)))
+			DPRINTF("%d %d\n", c->fx, c->fy);
+			if (!(om = getmonitor(c->fx + c->fw/2,
+					c->fy + c->fh/2)))
 				continue;
-			dx = om->sx + om->sw - c->rx;
-			dy = om->sy + om->sh - c->ry;
+			dx = om->sx + om->sw - c->fx;
+			dy = om->sy + om->sh - c->fy;
 			if (dx > m->sw) 
 				dx = m->sw;
 			if (dy > m->sh) 
 				dy = m->sh;
-			w = c->rw;
-			h = c->rh;
+			w = c->fw;
+			h = c->fh;
 			constrain(c, &w, &h);
-			resize(c, m->sx + m->sw - dx, m->sy + m->sh - dy, w, h, c->rb);
+			resize(c, m->sx + m->sw - dx, m->sy + m->sh - dy, w, h, c->fb);
 			save(c);
 		}
 	}
@@ -805,7 +809,7 @@ configurerequest(XEvent * e) {
 
 			resize(c, c->x, c->y, c->w, c->h, b);
 			if (ev->value_mask & (CWBorderWidth))
-				c->rb = b;
+				c->sb = b;
 		}
 	} else {
 		wc.x = ev->x;
@@ -1234,12 +1238,11 @@ void
 manage(Window w, XWindowAttributes * wa) {
 	Client *c, *t = NULL;
 	Monitor *cm = NULL;
-	Window trans, dummy;
+	Window trans;
 	XWindowChanges wc;
 	XSetWindowAttributes twa;
 	XWMHints *wmh;
 	unsigned long mask = 0;
-	unsigned int depth;
 
 	c = emallocz(sizeof(Client));
 	c->win = w;
@@ -1276,8 +1279,7 @@ manage(Window w, XWindowAttributes * wa) {
 	c->title = c->isbastard ? None : 1;
 	c->tags = ecalloc(ntags, sizeof(cm->seltags[0]));
 	c->isfocusable = c->isbastard ? False : True;
-	c->rb = c->border = c->isbastard ? 0 : style.border;
-	c->oldborder = c->isbastard ? 0 : wa->border_width; /* XXX: why? */
+	c->rb = c->fb = c->border = c->isbastard ? 0 : style.border;
 	/*  XReparentWindow() unmaps *mapped* windows */
 	c->ignoreunmap = wa->map_state == IsViewable ? 1 : 0;
 	mwm_process_atom(c);
@@ -1306,18 +1308,16 @@ manage(Window w, XWindowAttributes * wa) {
 		XFree(wmh);
 	}
 
-	c->x = c->rx = wa->x;
-	c->y = c->ry = wa->y;
-	c->w = c->rw = wa->width;
-	c->h = c->rh = wa->height + c->th;
+	c->x = c->rx = c->fx = wa->x;
+	c->y = c->ry = c->fy = wa->y;
+	c->w = c->rw = c->fw = wa->width;
+	c->h = c->rh = c->fh = wa->height + c->th;
 
-	c->sx = c->x;
-	c->sy = c->y;
-	c->sw = c->w;
-	c->sh = c->h;
-	c->sb = c->border;
-
-	XGetGeometry(dpy, c->win, &dummy, &c->sx, &c->sy, &c->sw, &c->sh, &c->sb, &depth);
+	c->sx = wa->x;
+	c->sy = wa->y;
+	c->sw = wa->width;
+	c->sh = wa->height;
+	c->sb = wa->border_width;
 
 	if (!wa->x && !wa->y && !c->isbastard)
 		place(c);
@@ -1470,20 +1470,55 @@ monocle(Monitor * m) {
 
 void
 moveresizekb(Client *c, int dx, int dy, int dw, int dh) {
-	int w, h;
+	int wasmax, wasmaxv, wasmaxh, wasfill, wasshade;
 
-	if (!c)
+	if (!c || !c->isfloating || !(dx || dy || dw || dh))
 		return;
-	if (!c->isfloating)
-		return;
-	if (dw && (dw < c->incw))
-		dw = (dw / abs(dw)) * c->incw;
-	if (dh && (dh < c->inch))
-		dh = (dh / abs(dh)) * c->inch;
-	w = c->w + dw;
-	h = c->h + dh;
-	constrain(c, &w, &h);
-	resize(c, c->x + dx, c->y + dy, w, h, c->border);
+	if ((wasmax = c->ismax)) {
+		c->ismax = False;
+		updateframe(c);
+	}
+	if ((wasmaxv = c->ismaxv))
+		c->ismaxv = False;
+	if ((wasmaxh = c->ismaxh))
+		c->ismaxh = False;
+	if ((wasfill = c->isfill))
+		c->isfill = False;
+	if ((wasshade = c->isshade)) {
+		c->isshade = False;
+		resize(c, c->x, c->y, c->w, c->h, c->border);
+	}
+	if (dw || dh) {
+		int w, h;
+
+		if (dw && (dw < c->incw))
+			dw = (dw / abs(dw)) * c->incw;
+		if (dh && (dh < c->inch))
+			dh = (dh / abs(dh)) * c->inch;
+		w = c->w + dw;
+		h = c->h + dh;
+		constrain(c, &w, &h);
+		resize(c, c->x + dx, c->y + dy, w, h, c->border);
+		save(c);
+
+	} else {
+		if (wasmax || wasmaxv || wasmaxh || wasfill)
+			restore(c);
+
+		resize(c, c->x + dx, c->y + dy, c->w, c->h, c->border);
+
+		if (wasmax)
+			togglemax(c);
+		if (wasmaxv)
+			togglemaxv(c);
+		if (wasmaxh)
+			togglemaxh(c);
+		if (wasfill)
+			togglefill(c);
+	}
+	if (wasshade)
+		toggleshade(c);
+	updateatom[WindowState] (c);
 }
 
 void
@@ -1528,7 +1563,7 @@ curmonitor() {
 void
 mousemove(Client * c) {
 	int x1, y1, ocx, ocy, nx, ny;
-	int w, h;
+	int wasmax, wasmaxv, wasmaxh, wasfill, wasshade;
 	unsigned int i;
 	XEvent ev;
 	Monitor *m, *nm;
@@ -1542,6 +1577,22 @@ mousemove(Client * c) {
 		GrabModeAsync, None, cursor[CurMove], CurrentTime) != GrabSuccess)
 		return;
 	getpointer(&x1, &y1);
+	if ((wasmax = c->ismax)) {
+		c->ismax = False;
+		updateframe(c);
+	}
+	if ((wasmaxv = c->ismaxv))
+		c->ismaxv = False;
+	if ((wasmaxh = c->ismaxh))
+		c->ismaxh = False;
+	if ((wasfill = c->isfill))
+		c->isfill = False;
+	if ((wasshade = c->isshade)) {
+		c->isshade = False;
+		resize(c, c->x, c->y, c->w, c->h, c->border);
+	}
+	if (wasmax || wasmaxv || wasmaxh || wasfill)
+		restore(c);
 	for (;;) {
 		int wx, wy, ww, wh;
 
@@ -1549,17 +1600,17 @@ mousemove(Client * c) {
 		switch (ev.type) {
 		case ButtonRelease:
 			XUngrabPointer(dpy, CurrentTime);
-			return;
+			break;
 		case ConfigureRequest:
 		case Expose:
 		case MapRequest:
 			handler[ev.type] (&ev);
-			break;
+			continue;
 		case MotionNotify:
 			XSync(dpy, False);
 			/* we are probably moving to a different monitor */
 			if (!(nm = curmonitor()))
-				break;
+				continue;
 			getworkarea(m, &wx, &wy, &ww, &wh);
 			nx = ocx + (ev.xmotion.x_root - x1);
 			ny = ocy + (ev.xmotion.y_root - y1);
@@ -1573,10 +1624,7 @@ mousemove(Client * c) {
 			else if (abs((wy + wh) - (ny + c->h +
 				    2 * c->border)) < options.snap)
 				ny = wy + wh - c->h - 2 * c->border;
-			w = c->w;
-			h = c->h;
-			constrain(c, &w, &h);
-			resize(c, nx, ny, w, h, c->border);
+			resize(c, nx, ny, c->w, c->h, c->border);
 			save(c);
 			if (m != nm) {
 				for (i = 0; i < ntags; i++)
@@ -1588,14 +1636,29 @@ mousemove(Client * c) {
 				arrange(NULL);
 				m = nm;
 			}
-			break;
+			continue;
+		default:
+			continue;
 		}
+		break;
 	}
+	if (wasmax)
+		togglemax(c);
+	if (wasmaxv)
+		togglemaxv(c);
+	if (wasmaxh)
+		togglemaxh(c);
+	if (wasfill)
+		togglefill(c);
+	if (wasshade)
+		toggleshade(c);
+	updateatom[WindowState] (c);
 }
 
 void
 mouseresize(Client * c) {
 	int ocx, ocy, nw, nh;
+	int wasmax, wasmaxv, wasmaxh, wasshade, wasfill;
 	/* Monitor *cm; */
 	XEvent ev;
 
@@ -1608,9 +1671,19 @@ mouseresize(Client * c) {
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 		GrabModeAsync, None, cursor[CurResize], CurrentTime) != GrabSuccess)
 		return;
-	if (c->ismax) {
+	if ((wasmax = c->ismax)) {
 		c->ismax = False;
-		updateatom[WindowState](c);
+		updateframe(c);
+	}
+	if ((wasmaxv = c->ismaxv))
+		c->ismaxv = False;
+	if ((wasmaxh = c->ismaxh))
+		c->ismaxh = False;
+	if ((wasfill = c->isfill))
+		c->isfill = False;
+	if ((wasshade = c->isshade)) {
+		c->isshade = False;
+		resize(c, c->x, c->y, c->w, c->h, c->border);
 	}
 	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->border - 1,
 	    c->h + c->border - 1);
@@ -1622,12 +1695,12 @@ mouseresize(Client * c) {
 			    c->w + c->border - 1, c->h + c->border - 1);
 			XUngrabPointer(dpy, CurrentTime);
 			while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
-			return;
+			break;
 		case ConfigureRequest:
 		case Expose:
 		case MapRequest:
 			handler[ev.type] (&ev);
-			break;
+			continue;
 		case MotionNotify:
 			XSync(dpy, False);
 			if ((nw = ev.xmotion.x - ocx - 2 * c->border + 1) <= 0)
@@ -1637,9 +1710,15 @@ mouseresize(Client * c) {
 			constrain(c, &nw, &nh);
 			resize(c, c->x, c->y, nw, nh, c->border);
 			save(c);
-			break;
+			continue;
+		default:
+			continue;
 		}
+		break;
 	}
+	if (wasshade)
+		toggleshade(c);
+	updateatom[WindowState] (c);
 }
 
 Client *
@@ -1696,8 +1775,8 @@ place(Client *c) {
 		y = wy + wh - c->h - rand()%d;
 	DPRINTF("%d %d\n", x, y);
 
-	c->rx = c->x = x;
-	c->ry = c->y = y;
+	c->rx = c->fx = c->x = x;
+	c->ry = c->fy = c->y = y;
 }
 
 void
@@ -2028,11 +2107,12 @@ run(void) {
 
 void
 save(Client *c) {
-	c->rx = c->x;
-	c->ry = c->y;
-	c->rw = c->w;
-	c->rh = c->h;
-	c->rb = c->border;
+	memcpy(&c->rx, &c->x, 5 * sizeof(int));
+}
+
+void
+save_float(Client *c) {
+	memcpy(&c->fx, &c->x, 5 * sizeof(int));
 }
 
 void
@@ -2043,6 +2123,11 @@ restore(Client *c) {
 	h = c->rh;
 	constrain(c, &w, &h);
 	resize(c, c->rx, c->ry, w, h, c->rb);
+}
+
+void
+restore_float(Client *c) {
+	resize(c, c->fx, c->fy, c->fw, c->fh, c->fb);
 }
 
 void
@@ -2094,7 +2179,7 @@ void
 setlayout(const char *arg) {
 	unsigned int i;
 	Client *c;
-	Bool wasfloat;
+	Bool wasfloat, nowfloat;
 
 	wasfloat = FEATURES(curlayout, OVERLAP);
 
@@ -2106,13 +2191,22 @@ setlayout(const char *arg) {
 			return;
 		views[curmontag].layout = &layouts[i];
 	}
+
+	nowfloat = FEATURES(curlayout, OVERLAP);
+
 	if (sel) {
 		for (c = clients; c; c = c->next) {
 			if (isvisible(c, curmonitor())) {
 				if (wasfloat)
-					save(c);
-				if (wasfloat != FEATURES(curlayout, OVERLAP))
+					save_float(c);
+				if (wasfloat != nowfloat)
 					updateframe(c);
+#if 0
+				/* why not this? */
+				if (nowfloat)
+					restore_float(c);
+				/* arrange floats below does it? */
+#endif
 			}
 		}
 		arrange(curmonitor());
@@ -2930,10 +3024,10 @@ togglefloating(Client *c) {
 	updateframe(c);
 	if (c->isfloating) {
 		/* restore last known float dimensions */
-		resize(c, c->rx, c->ry, c->rw, c->rh, c->rb);
+		restore_float(c);
 	} else {
 		/* save last known float dimensions */
-		save(c);
+		save_float(c);
 	}
 	arrange(curmonitor());
 	updateatom[WindowState](c);
@@ -3075,6 +3169,29 @@ togglemaxv(Client * c) {
 		else
 			restore(c);
 	}
+	updateatom[WindowState] (c);
+}
+
+void
+toggleshade(Client * c) {
+	Monitor *m;
+	XWindowChanges wc;
+
+	if (!c->title || !(m = canresize(c)))
+		return;
+	if (c->ismax)
+		togglemax(c);
+	if ((c->isshade = !c->isshade)) {
+		wc.width = c->w;
+		wc.height = c->th;
+		wc.border_width = c->border;
+	} else {
+		wc.width = c->w;
+		wc.height = c->h;
+		wc.border_width = c->border;
+	}
+	XConfigureWindow(dpy, c->frame, CWWidth | CWHeight | CWBorderWidth, &wc);
+	XSync(dpy, False);
 	updateatom[WindowState] (c);
 }
 
@@ -3243,26 +3360,26 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 		XSelectInput(dpy, c->win, CLIENTMASK & ~(StructureNotifyMask | EnterWindowMask));
 		XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
 		if (!reparented) {
-			unsigned int mask = 0;
-
-			XReparentWindow(dpy, c->win, root, c->x, c->y);
-			XMoveWindow(dpy, c->win, c->x, c->y);
-			if (!running)
-				XMapWindow(dpy, c->win);
 			if (c->gravity == StaticGravity) {
 				/* restore static geometry */
 				wc.x = c->sx;
 				wc.y = c->sy;
 				wc.width = c->sw;
 				wc.height = c->sh;
-				wc.border_width = c->sb;
-				mask |= (CWX|CWY|CWWidth|CWHeight|CWBorderWidth);
 			} else {
-				/* restore border */
-				wc.border_width = c->oldborder;
-				mask |= CWBorderWidth;
+				/* restore geometry */
+				wc.x = c->rx;
+				wc.y = c->ry;
+				wc.width = c->rw;
+				wc.height = c->rh;
 			}
-			XConfigureWindow(dpy, c->win, mask, &wc);
+			wc.border_width = c->sb;
+			XReparentWindow(dpy, c->win, root, wc.x, wc.y);
+			XMoveWindow(dpy, c->win, wc.x, wc.y);
+			XConfigureWindow(dpy, c->win,
+				(CWX|CWY|CWWidth|CWHeight|CWBorderWidth), &wc);
+			if (!running)
+				XMapWindow(dpy, c->win);
 		}
 	}
 	detach(c);

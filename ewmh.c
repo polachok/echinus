@@ -100,9 +100,9 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_STATE",
 	"_NET_WM_STATE_MODAL",
 	"_NET_WM_STATE_STICKY",
-	"_NET_WM_STATE_MAXIMIZED_VERT",		/* TODO */
-	"_NET_WM_STATE_MAXIMIZED_HORZ",		/* TODO */
-	"_NET_WM_STATE_SHADED",			/* TODO */
+	"_NET_WM_STATE_MAXIMIZED_VERT",
+	"_NET_WM_STATE_MAXIMIZED_HORZ",
+	"_NET_WM_STATE_SHADED",
 	"_NET_WM_STATE_SKIP_TASKBAR",
 	"_NET_WM_STATE_SKIP_PAGER",
 	"_NET_WM_STATE_HIDDEN",
@@ -121,12 +121,12 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_ACTION_CHANGE_DESKTOP",
 	"_NET_WM_ACTION_CLOSE",
 	"_NET_WM_ACTION_FULLSCREEN",
-	"_NET_WM_ACTION_MAXIMIZE_HORZ",		/* TODO */
-	"_NET_WM_ACTION_MAXIMIZE_VERT",		/* TODO */
+	"_NET_WM_ACTION_MAXIMIZE_HORZ",
+	"_NET_WM_ACTION_MAXIMIZE_VERT",
 	"_NET_WM_ACTION_MINIMIZE",
 	"_NET_WM_ACTION_MOVE",
 	"_NET_WM_ACTION_RESIZE",
-	"_NET_WM_ACTION_SHADE",			/* TODO */
+	"_NET_WM_ACTION_SHADE",
 	"_NET_WM_ACTION_STICK",
 	"_NET_WM_ACTION_FLOAT",
 	"_NET_WM_ACTION_FILL",
@@ -662,7 +662,8 @@ ewmh_update_net_window_actions(Client *c) {
 		action[actions++] = atom[WindowActionStick];
 		action[actions++] = atom[WindowActionFloat];
 		if (c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
-			// action[actions++] = atom[WindowActionShade];
+			if (c->title)
+				action[actions++] = atom[WindowActionShade];
 			action[actions++] = atom[WindowActionFill];
 		}
 	}
@@ -703,7 +704,10 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 		    (set == _NET_WM_STATE_TOGGLE))
 			togglemaxh(c);
 	} else if (state == atom[WindowStateShaded]) {
-		/* TODO */
+		if ((set == _NET_WM_STATE_ADD && !c->isshade) ||
+		    (set == _NET_WM_STATE_REMOVE && c->isshade) ||
+		    (set == _NET_WM_STATE_TOGGLE))
+			toggleshade(c);
 	} else if (state == atom[WindowStateNoTaskbar]) {
 		if ((set == _NET_WM_STATE_ADD && !c->notaskbar) ||
 		    (set == _NET_WM_STATE_REMOVE && c->notaskbar) ||
