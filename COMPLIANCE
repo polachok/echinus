@@ -175,6 +175,16 @@ Composite Manager Specification:
 
 _NET_WM_WINDOW_OPACITY:			supported (trivial)
 
+------------------------------------------------------------------------
+
+KDE Specific:
+
+_KDE_NET_SYSTEM_TRAY_WINDOWS:		supported
+_KDE_NET_WM_FRAME_STRUT:		supported
+_KDE_NET_WM_SYSTEM_TRAY_WINDOW_FOR:	supported
+_KDE_NET_WM_WINDOW_TYPE_OVERRIDE:	supported
+_KDE_SPLASH_PROGRESS:			supported
+_KDE_WM_CHANGE_STATE:			supported
 
 ------------------------------------------------------------------------
 

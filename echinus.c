@@ -183,6 +183,10 @@ void deltag(void);
 void rmlasttag(const char *arg);
 void settags(unsigned int numtags);
 
+Bool isdockapp(Window win);
+Bool issystray(Window win);
+void delsystray(Window win);
+
 /* variables */
 int cargc;
 char **cargv;
@@ -213,6 +217,7 @@ unsigned int modkey;
 unsigned int numlockmask;
 Bool showing_desktop = False;
 Time user_time = CurrentTime;
+Group systray = { NULL, 0 };
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -838,10 +843,16 @@ destroynotify(XEvent * e) {
 	Client *c;
 	XDestroyWindowEvent *ev = &e->xdestroywindow;
 
-	if (!(c = getclient(ev->window, ClientWindow)))
+	if ((c = getclient(ev->window, ClientWindow))) {
+		DPRINTF("unmanage destroyed window (%s)\n", c->name);
+		unmanage(c, False, True);
 		return;
-	DPRINTF("unmanage destroyed window (%s)\n", c->name);
-	unmanage(c, False, True);
+	}
+	if (XFindContext(dpy, ev->window, context[SysTrayWindows],
+				(XPointer *)&c) == Success) {
+		XDeleteContext(dpy, ev->window, context[SysTrayWindows]);
+		delsystray(ev->window);
+	}
 }
 
 void
@@ -1150,8 +1161,7 @@ show(Client *c) {
 }
 
 void
-togglehidden(Client *c)
-{
+togglehidden(Client *c) {
 	if (c->ishidden)
 		show(c);
 	else
@@ -1395,6 +1405,7 @@ manage(Window w, XWindowAttributes * wa) {
 			c->isfloating = True;
 		}
 	}
+	updateatom[WindowTypeOverride] (c);
 
 	cm = curmonitor();
 	c->isicon = False;
@@ -1603,6 +1614,10 @@ maprequest(XEvent * e) {
 	if (!XGetWindowAttributes(dpy, ev->window, &wa))
 		return;
 	if (wa.override_redirect)
+		return;
+	if (issystray(ev->window))
+		return;
+	if (isdockapp(ev->window))
 		return;
 	if (!(c = getclient(ev->window, ClientWindow)))
 		manage(ev->window, &wa);
@@ -2300,6 +2315,90 @@ restore_float(Client *c) {
 }
 
 void
+delsystray(Window win) {
+	unsigned int i, j;
+
+	for (i = 0, j = 0; i < systray.count; i++) {
+		if (systray.members[i] == win)
+			continue;
+		systray.members[i] = systray.members[j++];
+	}
+	if (j < systray.count) {
+		systray.count = j;
+		XChangeProperty(dpy, root, atom[SystemTrayWindows], XA_WINDOW, 32,
+				PropModeReplace, (unsigned char *) systray.members,
+				systray.count);
+	}
+}
+
+void
+setwmstate(Window win, long state) {
+	long data[] = { state, None };
+	XEvent ev;
+
+	ev.xclient.display = dpy;
+	ev.xclient.type = ClientMessage;
+	ev.xclient.window = win;
+	ev.xclient.message_type = atom[WindowChangeState];
+	ev.xclient.format = 32;
+	ev.xclient.data.l[0] = state;
+	ev.xclient.data.l[1] = ev.xclient.data.l[2] = 0;
+	ev.xclient.data.l[3] = ev.xclient.data.l[4] = 0;
+
+	XSendEvent(dpy, root, False,
+		SubstructureRedirectMask | SubstructureNotifyMask, &ev);
+
+	XChangeProperty(dpy, win, atom[WMState], atom[WMState], 32,
+	    PropModeReplace, (unsigned char *) data, 2);
+}
+
+Bool
+isdockapp(Window win) {
+	XWMHints *wmh;
+	Bool ret;
+
+	if ((ret = ((wmh = XGetWMHints(dpy, win)) &&
+		(wmh->flags & StateHint) && (wmh->initial_state == WithdrawnState))))
+		setwmstate(win, WithdrawnState);
+	return ret;
+}
+
+Bool
+issystray(Window win) {
+	int format, status;
+	long *data = NULL;
+	unsigned long extra, nitems = 0;
+	Atom real;
+	Bool ret;
+	unsigned int i;
+
+	status =
+	    XGetWindowProperty(dpy, win, atom[WindowForSysTray], 0L, 1L, False,
+			       AnyPropertyType, &real, &format, &nitems, &extra,
+			       (unsigned char **) &data);
+	if ((ret = (status == Success && real != None))) {
+		for (i = 0; i < systray.count && systray.members[i] != win; i++) ;
+		if (i == systray.count) {
+			XSelectInput(dpy, win, StructureNotifyMask);
+			XSaveContext(dpy, win, context[SysTrayWindows], (XPointer)&systray);
+
+			systray.members =
+			    erealloc(systray.members, (i + 1) * sizeof(Window));
+			systray.members[i] = win;
+			systray.count++;
+			XChangeProperty(dpy, root, atom[SysTrayWindows], XA_WINDOW,
+					32, PropModeReplace,
+					(unsigned char *) systray.members,
+					systray.count);
+		}
+	} else
+		delsystray(win);
+	if (data)
+		XFree(data);
+	return ret;
+}
+
+void
 scan(void) {
 	unsigned int i, num;
 	Window *wins, d1, d2;
@@ -2310,7 +2409,8 @@ scan(void) {
 	if (XQueryTree(dpy, root, &d1, &d2, &wins, &num)) {
 		for (i = 0; i < num; i++) {
 			if (!XGetWindowAttributes(dpy, wins[i], &wa) ||
-			    wa.override_redirect
+			    wa.override_redirect || issystray(wins[i] ||
+			    isdockapp(wins[i]))
 			    || XGetTransientForHint(dpy, wins[i], &d1) ||
 			    ((wmh = XGetWMHints(dpy, wins[i])) &&
 			     (wmh->flags & WindowGroupHint) &&
@@ -2324,7 +2424,8 @@ scan(void) {
 		for (i = 0; i < num; i++) {
 			/* now the transients and group members */
 			if (!XGetWindowAttributes(dpy, wins[i], &wa) ||
-			    wa.override_redirect)
+			    wa.override_redirect || issystray(wins[i]) ||
+			    isdockapp(wins[i]))
 				continue;
 			if ((XGetTransientForHint(dpy, wins[i], &d1) ||
 			     ((wmh = XGetWMHints(dpy, wins[i])) &&
@@ -2342,10 +2443,9 @@ scan(void) {
 
 void
 setclientstate(Client * c, long state) {
-	long data[] = { state, None };
 
-	XChangeProperty(dpy, c->win, atom[WMState], atom[WMState], 32,
-	    PropModeReplace, (unsigned char *) data, 2);
+	setwmstate(c->win, state);
+
 	if (state == NormalState && (c->isicon || c->ishidden)) {
 		c->isicon = False;
 		c->ishidden = False;
@@ -3584,8 +3684,11 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 	updateatom[ClientListStacking] (NULL);
 	if (sel == c)
 		focus(NULL);
-	if (!destroyed)
+	if (!destroyed) {
 		setclientstate(c, WithdrawnState);
+		/* sm-proxy thinks it needs to be restarted unless removed */
+		XDeleteProperty(dpy, c->win, atom[WMState]);
+	}
 	XDestroyWindow(dpy, c->frame);
 	XDeleteContext(dpy, c->frame, context[ClientFrame]);
 	XDeleteContext(dpy, c->frame, context[ClientAny]);
@@ -3975,6 +4078,7 @@ main(int argc, char *argv[]) {
 		context[i] = XUniqueContext();
 	checkotherwm();
 	setup(conf);
+	updateatom[KdeSplashProgress] (NULL);
 	scan();
 	run();
 	cleanup();

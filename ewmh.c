@@ -40,7 +40,6 @@ char *atomnames[NATOMS] = {
 	"_NET_STARTUP_INFO",
 	"_NET_DESKTOP_LAYOUT",			/* TODO */
 	"_NET_WM_SYNC_REQUEST_COUNTER",
-	"_KDE_NET_WM_WINDOW_TYPE_OVERRIDE",
 	/* _NET_SUPPORTED following */
 	"_NET_CLIENT_LIST",
 	"_NET_ACTIVE_WINDOW",
@@ -134,7 +133,14 @@ char *atomnames[NATOMS] = {
 
 	"_NET_SUPPORTING_WM_CHECK",
 	"_NET_CLOSE_WINDOW",
-	"_NET_SUPPORTED"
+	"_NET_SUPPORTED",
+
+	"_KDE_NET_SYSTEM_TRAY_WINDOWS",
+	"_KDE_NET_WM_FRAME_STRUT",
+	"_KDE_NET_WM_SYSTEM_TRAY_WINDOW_FOR",
+	"_KDE_NET_WM_WINDOW_TYPE_OVERRIDE",
+	"_KDE_SPLASH_PROGRESS",
+	"_KDE_WM_CHANGE_STATE"
 };
 
 #define _NET_WM_STATE_REMOVE	0
@@ -585,8 +591,7 @@ ewmh_update_net_desktop_modes(Client * c) {
 }
 
 void
-getmwmhints(Window win, Window *title, int *border)
-{
+getmwmhints(Window win, Window *title, int *border) {
 	Atom real;
 	int format;
 	long *hint = NULL;
@@ -841,6 +846,9 @@ ewmh_update_net_window_extents(Client *c) {
 	DPRINTF("Updating _NET_WM_FRAME_EXTENTS for 0x%lx\n", c->win);
 	XChangeProperty(dpy, c->win, atom[WindowExtents], XA_CARDINAL, 32,
 		PropModeReplace, (unsigned char *) &data, 4L);
+	DPRINTF("Updating _KDE_NET_WM_FRAME_STRUT for 0x%lx\n", c->win);
+	XChangeProperty(dpy, c->win, atom[WindowFrameStrut], XA_CARDINAL, 32,
+		PropModeReplace, (unsigned char *) &data, 4L);
 }
 
 void
@@ -981,6 +989,39 @@ ewmh_process_net_window_state(Client *c) {
 		ewmh_process_state_atom(c, state[i], _NET_WM_STATE_ADD);
 	if (state)
 		XFree(state);
+}
+
+void
+ewmh_update_kde_net_window_type_override(Client *c) {
+	int format, status;
+	long *data = NULL;
+	unsigned long extra, nitems = 0;
+	Atom real;
+
+	status = XGetWindowProperty(dpy, c->win, atom[WindowTypeOverride], 0L, 1L,
+			False, AnyPropertyType, &real, &format, &nitems, &extra,
+			(unsigned char **)&data);
+	if (status == Success && real != None) {
+		/* no decorations or functionality */
+		c->isbastard = True;
+		c->isfloating = True;
+		c->isfixed = True;
+	}
+	if (data)
+		XFree(data);
+}
+
+void
+ewmh_update_kde_splash_progress(Client *c) {
+	XEvent ev;
+
+	ev.xclient.display = dpy;
+	ev.xclient.type = ClientMessage;
+	ev.xclient.window = root;
+	ev.xclient.message_type = atom[KdeSplashProgress];
+	ev.xclient.format = 8;
+	strcpy(ev.xclient.data.b, "wm started");
+	XSendEvent(dpy, root, False, SubstructureNotifyMask, &ev);
 }
 
 void
@@ -1312,8 +1353,7 @@ strut_overlap(long min1, long max1, long min2, long max2) {
 }
 
 int
-getstrut(Client * c, Atom atom)
-{
+getstrut(Client * c, Atom atom) {
 	long *prop, dw, dh, strut;
 	Monitor *m;
 	unsigned long n = 0;
@@ -1383,4 +1423,6 @@ void (*updateatom[]) (Client *) = {
 	[WindowUserTime] = ewmh_update_net_window_user_time,
 	[UserTimeWindow] = ewmh_update_net_window_user_time_window,
 	[NetStartupId] = ewmh_update_net_startup_id,
+	[WindowTypeOverride] = ewmh_update_kde_net_window_type_override,
+	[KdeSplashProgress] = ewmh_update_kde_splash_progress,
 };

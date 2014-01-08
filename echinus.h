@@ -5,7 +5,7 @@ enum {
 	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors,
 	WMRestart, WMShutdown,
 	RestackWindow, StartupInfoBegin, StartupInfo, DeskLayout,
-	WindowCounter, WindowTypeOverride,
+	WindowCounter,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
 	CurDesk, WorkArea, DeskViewport, ShowingDesktop, DeskGeometry,
@@ -29,6 +29,8 @@ enum {
 	WindowActionMin, WindowActionMove, WindowActionResize, WindowActionShade,
 	WindowActionStick, WindowActionFloat, WindowActionFill,
 	WMCheck, CloseWindow, Supported,
+	SystemTrayWindows, WindowFrameStrut, WindowForSysTray, WindowTypeOverride,
+	KdeSplashProgress, WindowChangeState,
 	NATOMS
 }; /* keep in sync with atomnames[] in ewmh.c */
 
@@ -54,7 +56,6 @@ enum {
 #define _XA_NET_STARTUP_INFO			atom[StartupInfo]
 #define _XA_NET_DESKTOP_LAYOUT			atom[DeskLayout]
 #define _XA_NET_WM_SYNC_REQUEST_COUNTER		atom[WindowCounter]
-#define _XA_KDE_NET_WM_WINDOW_TYPE_OVERRIDE	atom[WindowTypeOverride]
 /* _NET_SUPPORTED following */
 #define _XA_NET_CLIENT_LIST			atom[ClientList]
 #define _XA_NET_ACTIVE_WINDOW			atom[ActiveWindow]
@@ -150,10 +151,17 @@ enum {
 #define _XA_NET_CLOSE_WINDOW			atom[CloseWindow]
 #define _XA_NET_SUPPORTED			atom[Supported]
 
+#define _XA_KDE_NET_SYSTEM_TRAY_WINDOWS		atom[SystemTrayWindows]
+#define _XA_KDE_NET_WM_FRAME_STRUT		atom[WindowFrameStrut]
+#define _XA_KDE_NET_WM_SYSTEM_TRAY_WINDOW_FOR	atom[WindowForSysTray]
+#define _XA_KDE_NET_WM_WINDOW_TYPE_OVERRIDE	atom[WindowTypeOverride]
+#define _XA_KDE_SPLASH_PROGRESS			atom[KdeSplashProgress]
+#define _XA_KDE_WM_CHANGE_STATE			atom[WindowChangeState]
+
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut }; /* ewmh struts */
 enum { ColFG, ColBG, ColBorder, ColButton, ColLast };	/* colors */
 enum { ClientWindow, ClientTitle, ClientFrame, ClientTimeWindow, ClientGroup,
-       ClientTransFor, ClientLeader, ClientAny, PartLast };	/* client parts */
+       ClientTransFor, ClientLeader, ClientAny, SysTrayWindows, PartLast };	/* client parts */
 enum { Iconify, Maximize, Close, LastBtn }; /* window buttons */
 
 /* typedefs */
@@ -294,6 +302,7 @@ Monitor *clientmonitor(Client * c);
 Monitor *curmonitor();
 void *ecalloc(size_t nmemb, size_t size);
 void *emallocz(size_t size);
+void *erealloc(void *ptr, size_t size);
 void eprint(const char *errstr, ...);
 const char *getresource(const char *resource, const char *defval);
 Client *getclient(Window w, int part);
