@@ -6,7 +6,7 @@ Section 4: Client to Window Manager Communication
 
 4.1.2 Client Properties:
 	WM_NAME:			supported
-	WM_ICON_NAME:			unused
+	WM_ICON_NAME:			supported
 	WM_NORMAL_HINTS:		supported
 	WM_HINTS:			supported
 	WM_CLASS:			supported
@@ -26,7 +26,7 @@ Section 4: Client to Window Manager Communication
 4.1.6 Changing Window Attributes:	supported
 4.1.7 Input Focus:			supported
 4.1.8 Colormaps:			NOT supported
-4.1.9 Icons:				NOT supported
+4.1.9 Icons:				NOT supported (n/a)
 
 	The icon_pixmap field of the WM_HINTS property is ignored.
 	The icon_window field of the WM_HINTS property is also
@@ -160,7 +160,7 @@ Other specifications:
 
 Startup Notification:
 
-_NET_STARTUP_ID:			NOT supported
+_NET_STARTUP_ID:			supported
 _NET_STARTUP_INFO:			NOT supported
 _NET_STARTUP_INFO_BEGIN:		NOT supported
 

@@ -163,6 +163,9 @@ void unmapnotify(XEvent * e);
 void updatesizehints(Client * c);
 void updateframe(Client * c);
 void updatetitle(Client * c);
+void updategroup(Client * c, Window leader, int group);
+Window *getgroup(Client *c, Window leader, int group, unsigned int *count);
+void removegroup(Client *c, Window leader, int group);
 void updateiconname(Client * c);
 void view(int index);
 void viewprevtag(const char *arg);	/* views previous selected tags */
@@ -209,6 +212,7 @@ unsigned int nrules;
 unsigned int modkey;
 unsigned int numlockmask;
 Bool showing_desktop = False;
+Time user_time = CurrentTime;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
@@ -261,15 +265,17 @@ void
 applyatoms(Client * c) {
 	long *t;
 	unsigned long n;
-	int i;
+	unsigned int i, tag;
 
 	/* restore tag number from atom */
 	t = getcard(c->win, atom[WindowDesk], &n);
-	if (n != 0) {
-		if (*t >= ntags)
+	if (n > 0) {
+		tag = *t;
+		XFree(t);
+		if (tag >= ntags)
 			return;
 		for (i = 0; i < ntags; i++)
-			c->tags[i] = (i == *t) ? 1 : 0;
+			c->tags[i] = (i == tag) ? 1 : 0;
 	}
 }
 
@@ -1013,10 +1019,10 @@ void
 focusicon(const char *arg) {
 	Client *c;
 
-	for (c = clients; c && (!(c->isicon || c->ishidden) || !isvisible(c, curmonitor())); c = c->next);
+	for (c = clients; c && (!c->isicon || !isvisible(c, curmonitor())); c = c->next);
 	if (!c)
 		return;
-	if (c->isicon || c->ishidden) {
+	if (c->isicon) {
 		c->isicon = False;
 		c->ishidden = False;
 		updateatom[WindowState](c);
@@ -1059,35 +1065,36 @@ focusprev(Client *c) {
 	}
 }
 
-void
-iconify(Client *c) {
-#if 1
-	if (!c)
-		return;
-	focusnext(c);
+static void
+_iconify(Client *c) {
+	if (c == sel)
+		focusnext(c);
 	ban(c);
 	if (!c->isicon) {
 		c->isicon = True;
 		updateatom[WindowState](c);
 	}
-	arrange(curmonitor());
-#else
-	if (!c || c->isicon)
-		return;
-	if (c == sel)
-		focusnext(c);
-	c->isicon = True;
-	if (!c->isbanned) {
-		ban(c);
-		arrange(clientmonitor(c));
-	}
-	updateatom[WindowState](c);
-#endif
+	arrange(clientmonitor(c));
 }
 
 void
-hide(Client *c) {
-	if (!c || c->ishidden || c->isbastard || WTCHECK(c, WindowTypeDock)
+iconify(Client *c) {
+	Client *t;
+	Window *g;
+	unsigned int i, m = 0;
+
+	if (!c)
+		return;
+	if ((g = getgroup(c, c->win, ClientTransFor, &m)))
+		for (i = 0; i < m; i++)
+			if ((t = getclient(g[i], ClientWindow)) && t != c)
+				_iconify(t);
+	_iconify(c);
+}
+
+static void
+_hide(Client *c) {
+	if (c->ishidden || c->isbastard || WTCHECK(c, WindowTypeDock)
 			|| WTCHECK(c, WindowTypeDesk))
 		return;
 	if (c == sel)
@@ -1102,13 +1109,44 @@ hide(Client *c) {
 }
 
 void
-show(Client *c) {
-	if (!c || !c->ishidden)
+hide(Client *c) {
+	Client *t;
+	Window *g;
+	unsigned int i, m = 0;
+
+	if (!c)
+		return;
+	if ((g = getgroup(c, c->win, ClientTransFor, &m)))
+		for (i = 0; i < m; i++)
+			if ((t = getclient(g[i], ClientWindow)) && t != c)
+				_hide(t);
+	_hide(c);
+}
+
+
+static void
+_show(Client *c) {
+	if (!c->ishidden)
 		return;
 	c->ishidden = False;
 	if (!c->isicon)
 		unban(c);
 	updateatom[WindowState](c);
+}
+
+void
+show(Client *c) {
+	Client *t;
+	Window *g;
+	unsigned int i, m = 0;
+
+	if (!c)
+		return;
+	if ((g = getgroup(c, c->win, ClientTransFor, &m)))
+		for (i = 0; i < m; i++)
+			if ((t = getclient(g[i], ClientWindow)) && t != c)
+				_show(t);
+	_show(c);
 }
 
 void
@@ -1126,7 +1164,7 @@ hideall() {
 	Client *c;
 
 	for (c = clients; c; c = c->next)
-		hide(c);
+		_hide(c);
 	arrange(NULL);
 }
 
@@ -1135,7 +1173,7 @@ showall() {
 	Client *c;
 
 	for (c = clients; c; c = c->next)
-		show(c);
+		_show(c);
 	arrange(NULL);
 }
 
@@ -1323,9 +1361,11 @@ manage(Window w, XWindowAttributes * wa) {
 	XSetWindowAttributes twa;
 	XWMHints *wmh;
 	unsigned long mask = 0;
+	Bool focusnew = True;
 
 	c = emallocz(sizeof(Client));
 	c->win = w;
+	c->ismanaged = False;
 	c->name = ecalloc(1, 1);
 	c->icon_name = ecalloc(1, 1);
 	XSaveContext(dpy, c->win, context[ClientWindow], (XPointer)c);
@@ -1373,23 +1413,57 @@ manage(Window w, XWindowAttributes * wa) {
 	applyrules(c);
 	applyatoms(c);
 
-	if (XGetTransientForHint(dpy, w, &trans)) {
-		if ((t = getclient(trans, ClientWindow))) {
-			memcpy(c->tags, t->tags, ntags * sizeof(cm->seltags[0]));
-			c->isfloating = True;
-		}
-	}
+	updateatom[UserTimeWindow] (c);
+	updateatom[WindowUserTime] (c);
+	updateatom[NetStartupId] (c);
+
+	if ((c->hastime) &&
+	    (c->user_time == CurrentTime ||
+	     (int)((int)c->user_time - (int)user_time) < 0))
+		focusnew = False;
 
 	c->th = c->title ? style.titleheight : 0;
-
-	if (!c->isfloating)
-		c->isfloating = c->isfixed;
 
 	if ((wmh = XGetWMHints(dpy, c->win))) {
 		c->isfocusable = !(wmh->flags & InputHint) || wmh->input;
 		c->isattn = (wmh->flags & XUrgencyHint) ? True : False;
+		if ((wmh->flags & WindowGroupHint) &&
+		    (c->leader = wmh->window_group) != None) {
+			updategroup(c, c->leader, ClientGroup);
+		}
 		XFree(wmh);
 	}
+
+	if (c->isattn)
+		focusnew = True;
+	if (!c->isfocusable)
+		focusnew = False;
+
+	if (XGetTransientForHint(dpy, w, &trans)) {
+		if (trans == None || trans == root)
+			trans = c->leader;
+		if ((c->transfor = trans) != None) {
+			updategroup(c, c->transfor, ClientTransFor);
+			if (!(t = getclient(trans, ClientWindow)) && trans == c->leader) {
+				Window *group;
+				unsigned int i, m = 0;
+
+				if ((group = getgroup(c, c->leader, ClientGroup, &m))) {
+					for (i = 0; i < m; i++) {
+						trans = group[i];
+						if ((t = getclient(trans, ClientWindow)))
+							break;
+					}
+				}
+			}
+			if (t)
+				memcpy(c->tags, t->tags, ntags * sizeof(cm->seltags[0]));
+		}
+		c->isfloating = True;
+	}
+
+	if (!c->isfloating)
+		c->isfloating = c->isfixed;
 
 	c->x = c->rx = c->fx = wa->x;
 	c->y = c->ry = c->fy = wa->y;
@@ -1503,9 +1577,10 @@ manage(Window w, XWindowAttributes * wa) {
 	if (c->hasstruts)
 		updategeom(cm);
 	arrange(cm);
-	if (!WTCHECK(c, WindowTypeDesk))
+	if (!WTCHECK(c, WindowTypeDesk) && focusnew)
 		focus(NULL);
 	ewmh_process_net_window_state(c);
+	c->ismanaged = True;
 	updateatom[WindowState](c);
 	updateatom[WindowActions](c);
 }
@@ -1865,7 +1940,7 @@ place(Client *c) {
 void
 propertynotify(XEvent * e) {
 	Client *c;
-	Window trans;
+	Window trans = None;
 	XPropertyEvent *ev = &e->xproperty;
 
 	if ((c = getclient(ev->window, ClientWindow))) {
@@ -1878,13 +1953,14 @@ propertynotify(XEvent * e) {
 		if (ev->atom <= XA_LAST_PREDEFINED) {
 			switch (ev->atom) {
 			case XA_WM_TRANSIENT_FOR:
-				XGetTransientForHint(dpy, c->win, &trans);
-				if (!c->isfloating
-				    && (c->isfloating =
-					(getclient(trans, ClientWindow) != NULL))) {
+				if (XGetTransientForHint(dpy, c->win, &trans) &&
+				    trans == None)
+					trans = root;
+				if (!c->isfloating &&
+				    (c->isfloating = (trans != None))) {
 					arrange(NULL);
-					updateatom[WindowState](c);
-					updateatom[WindowActions](c);
+					updateatom[WindowState] (c);
+					updateatom[WindowActions] (c);
 				}
 				return;
 			case XA_WM_NORMAL_HINTS:
@@ -1908,9 +1984,22 @@ propertynotify(XEvent * e) {
 			} else if (ev->atom == atom[WindowType]) {
 				/* TODO */
 			} else if (ev->atom == atom[WindowUserTime]) {
-				/* TODO */
+				updateatom[WindowUserTime] (c);
+			} else if (ev->atom == atom[UserTimeWindow]) {
+				updateatom[UserTimeWindow] (c);
+				updateatom[WindowUserTime] (c);
 			} else if (ev->atom == atom[WindowCounter]) {
 				/* TODO */
+			}
+		}
+	} else if ((c = getclient(ev->window, ClientTimeWindow))) {
+		if (ev->atom > XA_LAST_PREDEFINED) {
+			if (0) {
+			} else if (ev->atom == atom[WindowUserTime]) {
+				updateatom[WindowUserTime] (c);
+			} else if (ev->atom == atom[UserTimeWindow]) {
+				updateatom[UserTimeWindow] (c);
+				updateatom[WindowUserTime] (c);
 			}
 		}
 	} else if (ev->window == root) {
@@ -2215,23 +2304,32 @@ scan(void) {
 	unsigned int i, num;
 	Window *wins, d1, d2;
 	XWindowAttributes wa;
+	XWMHints *wmh;
 
 	wins = NULL;
 	if (XQueryTree(dpy, root, &d1, &d2, &wins, &num)) {
 		for (i = 0; i < num; i++) {
 			if (!XGetWindowAttributes(dpy, wins[i], &wa) ||
 			    wa.override_redirect
-			    || XGetTransientForHint(dpy, wins[i], &d1))
+			    || XGetTransientForHint(dpy, wins[i], &d1) ||
+			    ((wmh = XGetWMHints(dpy, wins[i])) &&
+			     (wmh->flags & WindowGroupHint) &&
+			     (wmh->window_group != wins[i])))
 				continue;
 			if (wa.map_state == IsViewable
 			    || getstate(wins[i]) == IconicState
 			    || getstate(wins[i]) == NormalState)
 				manage(wins[i], &wa);
 		}
-		for (i = 0; i < num; i++) {	/* now the transients */
-			if (!XGetWindowAttributes(dpy, wins[i], &wa))
+		for (i = 0; i < num; i++) {
+			/* now the transients and group members */
+			if (!XGetWindowAttributes(dpy, wins[i], &wa) ||
+			    wa.override_redirect)
 				continue;
-			if (XGetTransientForHint(dpy, wins[i], &d1)
+			if ((XGetTransientForHint(dpy, wins[i], &d1) ||
+			     ((wmh = XGetWMHints(dpy, wins[i])) &&
+			      (wmh->flags & WindowGroupHint) &&
+			      (wmh->window_group != wins[i])))
 			    && (wa.map_state == IsViewable
 				|| getstate(wins[i]) == IconicState
 				|| getstate(wins[i]) == NormalState))
@@ -2755,12 +2853,10 @@ spawn(const char *arg) {
 	wait(0);
 }
 
-void
-tag(Client *c, int index) {
+static void
+_tag(Client *c, int index) {
 	unsigned int i;
 
-	if (!c)
-		return;
 	for (i = 0; i < ntags; i++)
 		c->tags[i] = (index == -1);
 	i = (index == -1) ? 0 : index;
@@ -2771,6 +2867,21 @@ tag(Client *c, int index) {
 	updateframe(c);
 	arrange(NULL);
 	focus(NULL);
+}
+
+void
+tag(Client *c, int index) {
+	Client *t;
+	Window *g;
+	unsigned int i, m = 0;
+
+	if (!c)
+		return;
+	if ((g = getgroup(c, c->win, ClientTransFor, &m)))
+		for (i = 0; i < m; i++)
+			if ((t = getclient(g[i], ClientWindow)) && t != c)
+				_tag(t, index);
+	_tag(c, index);
 }
 
 void
@@ -3485,8 +3596,12 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 #endif
 	XDeleteContext(dpy, c->win, context[ClientWindow]);
 	XDeleteContext(dpy, c->win, context[ClientAny]);
+	ewmh_release_user_time_window(c);
+	removegroup(c, c->leader, ClientGroup);
+	removegroup(c, c->transfor, ClientTransFor);
 	free(c->name);
 	free(c->icon_name);
+	free(c->startup_id);
 	free(c);
 	XSync(dpy, False);
 	XSetErrorHandler(xerror);
@@ -3629,6 +3744,69 @@ updateiconname(Client *c) {
 	if (!gettextprop(c->win, atom[WindowIconName], &c->icon_name))
 		gettextprop(c->win, XA_WM_ICON_NAME, &c->icon_name);
 	updateatom[WindowIconNameVisible] (c);
+}
+
+void
+updategroup(Client *c, Window leader, int group) {
+	Group *g = NULL;
+
+	if (leader == None || leader == c->win)
+		return;
+	XFindContext(dpy, leader, context[group], (XPointer *)&g);
+	if (!g) {
+		g = emallocz(sizeof(*g));
+		g->members = ecalloc(8, sizeof(g->members[0]));
+		g->count = 0;
+		XSaveContext(dpy, leader, context[group], (XPointer)g);
+	} else
+		g->members = erealloc(g->members, (g->count + 1) * sizeof(g->members[0]));
+	g->members[g->count] = c->win;
+	g->count++;
+}
+
+Window *
+getgroup(Client *c, Window leader, int group, unsigned int *count) {
+	Group *g = NULL;
+
+	if (leader == None) {
+		*count = 0;
+		return NULL;
+	}
+	XFindContext(dpy, leader, context[group], (XPointer *)&g);
+	if (!g) {
+		*count = 0;
+		return NULL;
+	}
+	*count = g->count;
+	return g->members;
+}
+
+void
+removegroup(Client *c, Window leader, int group) {
+	Group *g = NULL;
+
+	if (leader == None || leader == c->win)
+		return;
+	XFindContext(dpy, leader, context[group], (XPointer *)&g);
+	if (g) {
+		Window *list;
+		unsigned int i, j;
+
+		list = ecalloc(g->count, sizeof(*list));
+		for (i = 0, j = 0; i < g->count; i++)
+			if (g->members[i] != c->win)
+				list[j++] = g->members[i];
+		if (j == 0) {
+			free(list);
+			free(g->members);
+			free(g);
+			XDeleteContext(dpy, leader, context[group]);
+		} else {
+			free(g->members);
+			g->members = list;
+			g->count = j;
+		}
+	}
 }
 
 /* There's no way to check accesses to destroyed windows, thus those cases are

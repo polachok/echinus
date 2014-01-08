@@ -4,8 +4,7 @@ enum {
 	Manager, Utf8String, WMProto, WMDelete, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors,
 	WMRestart, WMShutdown,
-	RestackWindow, StartupInfoBegin, StartupInfo, DeskLayout, WindowUserTime,
-	UserTimeWindow,
+	RestackWindow, StartupInfoBegin, StartupInfo, DeskLayout,
 	WindowCounter, WindowTypeOverride,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
@@ -19,7 +18,7 @@ enum {
 	WindowTypePopup, WindowTypeTooltip, WindowTypeNotify, WindowTypeCombo,
 	WindowTypeDnd, WindowTypeNormal,
 	StrutPartial, Strut, WindowPid, WindowName, WindowNameVisible, WindowIconName,
-	WindowIconNameVisible,
+	WindowIconNameVisible, WindowUserTime, UserTimeWindow, NetStartupId,
 	WindowState, WindowStateModal, WindowStateSticky, WindowStateMaxV,
 	WindowStateMaxH, WindowStateShaded, WindowStateNoTaskbar, WindowStateNoPager,
 	WindowStateHidden, WindowStateFs, WindowStateAbove, WindowStateBelow,
@@ -54,8 +53,6 @@ enum {
 #define _XA_NET_STARTUP_INFO_BEGIN		atom[StartupInfoBegin]
 #define _XA_NET_STARTUP_INFO			atom[StartupInfo]
 #define _XA_NET_DESKTOP_LAYOUT			atom[DeskLayout]
-#define _XA_NET_WM_USER_TIME			atom[WindowUserTime]
-#define _XA_NET_WM_USER_TIME_WINDOW		atom[UserTimeWindow]
 #define _XA_NET_WM_SYNC_REQUEST_COUNTER		atom[WindowCounter]
 #define _XA_KDE_NET_WM_WINDOW_TYPE_OVERRIDE	atom[WindowTypeOverride]
 /* _NET_SUPPORTED following */
@@ -111,6 +108,9 @@ enum {
 #define _XA_NET_WM_VISIBLE_NAME			atom[WindowNameVisible]
 #define _XA_NET_WM_ICON_NAME			atom[WindowIconName]
 #define _XA_NET_WM_VISIBLE_ICON_NAME		atom[WindowIconNameVisible]
+#define _XA_NET_WM_USER_TIME			atom[WindowUserTime]
+#define _XA_NET_WM_USER_TIME_WINDOW		atom[UserTimeWindow]
+#define _XA_NET_STARTUP_ID			atom[NetStartupId]
 
 #define _XA_NET_WM_STATE			atom[WindowState]
 #define _XA_NET_WM_STATE_MODAL			atom[WindowStateModal]
@@ -152,7 +152,8 @@ enum {
 
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut }; /* ewmh struts */
 enum { ColFG, ColBG, ColBorder, ColButton, ColLast };	/* colors */
-enum { ClientWindow, ClientTitle, ClientFrame, ClientAny, PartLast };	/* client parts */
+enum { ClientWindow, ClientTitle, ClientFrame, ClientTimeWindow, ClientGroup,
+       ClientTransFor, ClientLeader, ClientAny, PartLast };	/* client parts */
 enum { Iconify, Maximize, Close, LastBtn }; /* window buttons */
 
 /* typedefs */
@@ -186,6 +187,7 @@ typedef struct Client Client;
 struct Client {
 	char *name;
 	char *icon_name;
+	char *startup_id;
 	int x, y, w, h, border;
 	int rx, ry, rw, rh, rb;	/* restore geometry */
 	int sx, sy, sw, sh, sb; /* static geometry */
@@ -198,7 +200,7 @@ struct Client {
 	int wintype;
 	Bool isbanned, ismax, isfloating, wasfloating, ismaxv, ismaxh, isshade;
 	Bool isicon, isfill, ismodal, isabove, isbelow, isattn, issticky, ishidden;
-	Bool isfixed, isbastard, isfocusable, hasstruts;
+	Bool isfixed, isbastard, isfocusable, hasstruts, hastime;
 	Bool notaskbar, nopager, ismanaged;
 	Bool *tags;
 	Client *next;
@@ -207,8 +209,18 @@ struct Client {
 	Window win;
 	Window title;
 	Window frame;
+	Window time_window;
+	Window leader;
+	Window transfor;
+	Time user_time;
 	Pixmap drawable;
 	XftDraw *xftdraw;
+};
+
+typedef struct Group Group;
+struct Group {
+	Window *members;
+	unsigned int count;
 };
 
 typedef struct View {
@@ -266,6 +278,7 @@ void ewmh_process_net_window_state(Client *c);
 void ewmh_process_net_desktop_names(void);
 void ewmh_process_net_showing_desktop(void);
 unsigned int ewmh_process_net_number_of_desktops(void);
+void ewmh_release_user_time_window(Client *c);
 Atom *getatom(Window win, Atom atom, unsigned long *nitems);
 long *getcard(Window win, Atom atom, unsigned long *nitems);
 void initewmh(Window w);
@@ -285,6 +298,7 @@ void eprint(const char *errstr, ...);
 const char *getresource(const char *resource, const char *defval);
 Client *getclient(Window w, int part);
 Monitor *getmonitor(int x, int y);
+Bool gettextprop(Window w, Atom atom, char **text);
 void iconify(Client *c);
 void incnmaster(const char *arg);
 Bool isvisible(Client * c, Monitor * m);
@@ -394,3 +408,5 @@ extern Rule **rules;
 extern Layout layouts[];
 extern unsigned int modkey;
 extern View *views;
+extern XContext context[];
+extern Time user_time;

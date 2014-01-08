@@ -39,8 +39,6 @@ char *atomnames[NATOMS] = {
 	"_NET_STARTUP_INFO_BEGIN",
 	"_NET_STARTUP_INFO",
 	"_NET_DESKTOP_LAYOUT",			/* TODO */
-	"_NET_WM_USER_TIME",			/* TODO */
-	"_NET_WM_USER_TIME_WINDOW",		/* TODO */
 	"_NET_WM_SYNC_REQUEST_COUNTER",
 	"_KDE_NET_WM_WINDOW_TYPE_OVERRIDE",
 	/* _NET_SUPPORTED following */
@@ -96,6 +94,9 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_VISIBLE_NAME",
 	"_NET_WM_ICON_NAME",
 	"_NET_WM_VISIBLE_ICON_NAME",
+	"_NET_WM_USER_TIME",
+	"_NET_WM_USER_TIME_WINDOW",
+	"_NET_STARTUP_ID",
 
 	"_NET_WM_STATE",
 	"_NET_WM_STATE_MODAL",
@@ -290,8 +291,10 @@ ewmh_process_net_number_of_desktops() {
 	long numb = 0;
 
 	card = getcard(root, atom[NumberOfDesk], &n);
-	if (n > 0)
+	if (n > 0) {
 		numb = card[0];
+		XFree(card);
+	}
 	if (1 > numb || numb > 64)
 		numb = atoi(getresource("tags.number", "5"));
 	return (unsigned int) numb;
@@ -316,6 +319,7 @@ ewmh_process_net_showing_desktop() {
 	if (n > 0) {
 		Bool show = card[0];
 
+		XFree(card);
 		if (!show != !showing_desktop)
 			toggleshowing();
 	}
@@ -863,6 +867,108 @@ ewmh_update_net_window_visible_icon_name(Client *c) {
 	}
 }
 
+void
+ewmh_update_net_startup_id(Client * c) {
+	if (c->startup_id)
+		return;
+	if (!gettextprop(c->win, atom[NetStartupId], &c->startup_id))
+		if (c->leader != None && c->leader != c->win)
+			gettextprop(c->leader, atom[NetStartupId], &c->startup_id);
+	if (c->startup_id) {
+		char *pos;
+
+		if ((pos = strstr(c->startup_id, "_TIME"))) {
+			Time time;
+
+			if ((time = atol(pos + 5)) != CurrentTime) {
+				if (c->hastime) {
+					if ((c->user_time != CurrentTime) &&
+					    (int) ((int) time - (int) c->user_time) > 0)
+						c->user_time = time;
+				} else {
+					c->user_time = time;
+					c->hastime = True;
+				}
+				if ((user_time == CurrentTime) ||
+				    ((int) ((int) time - (int) user_time) > 0))
+					user_time = time;
+			}
+		}
+	}
+}
+
+void
+ewmh_update_net_window_user_time(Client *c) {
+	long *time = NULL;
+	unsigned long n = 0;
+	Window win;
+
+	if ((win = c->time_window) == None)
+		win = c->win;
+
+	time = getcard(win, atom[WindowUserTime], &n);
+	if (n > 0) {
+		c->hastime = True;
+		c->user_time = time[0];
+		if (user_time == CurrentTime) {
+			user_time = c->user_time;
+		} else if (c->user_time != CurrentTime) {
+			if ((int)((int)c->user_time - (int)user_time) > 0)
+				user_time = c->user_time;
+		}
+		XFree(time);
+	} else {
+		c->hastime = False;
+		c->user_time = CurrentTime;
+	}
+}
+
+void
+ewmh_release_user_time_window(Client *c) {
+	Window win;
+	
+	if ((win = c->time_window) == None)
+		return;
+
+	c->time_window = None;
+	XSelectInput(dpy, win, NoEventMask);
+	XDeleteContext(dpy, win, context[ClientTimeWindow]);
+	XDeleteContext(dpy, win, context[ClientAny]);
+}
+
+Window *getwind(Window win, Atom atom, unsigned long *nitems);
+
+void
+ewmh_update_net_window_user_time_window(Client * c) {
+	Window *wins = NULL, win = None;
+	unsigned long n = 0;
+
+	wins = getwind(c->win, atom[UserTimeWindow], &n);
+	if (n > 0) {
+		Window other = wins[0];
+
+		XFree(wins);
+		/* check recursive */
+		wins = getwind(other, atom[UserTimeWindow], &n);
+		if (n > 0) {
+			Window again = wins[0];
+
+			XFree(wins);
+			win = (other == again) ? again : None;
+		}
+	}
+	if (win == c->time_window)
+		return;
+	ewmh_release_user_time_window(c);
+	if (win == None)
+		return;
+
+	c->time_window = win;
+	XSelectInput(dpy, win, PropertyChangeMask);
+	XSaveContext(dpy, win, context[ClientTimeWindow], (XPointer)c);
+	XSaveContext(dpy, win, context[ClientAny], (XPointer)c);
+}
+
 Atom *getatom(Window win, Atom atom, unsigned long *nitems);
 
 void
@@ -875,8 +981,6 @@ ewmh_process_net_window_state(Client *c) {
 		ewmh_process_state_atom(c, state[i], _NET_WM_STATE_ADD);
 	if (state)
 		XFree(state);
-	c->ismanaged = True;
-	ewmh_update_net_window_state(c);
 }
 
 void
@@ -1115,6 +1219,22 @@ getcard(Window win, Atom atom, unsigned long *nitems) {
 	return ret;
 }
 
+Window *
+getwind(Window win, Atom atom, unsigned long *nitems) {
+	int format, status;
+	Window *ret = NULL;
+	unsigned long extra;
+	Atom real;
+
+	status = XGetWindowProperty(dpy, win, atom, 0L, 64L, False, XA_WINDOW,
+			&real, &format, nitems, &extra, (unsigned char **)&ret);
+	if (status != Success) {
+		*nitems = 0;
+		return NULL;
+	}
+	return ret;
+}
+
 Bool
 checkatom(Window win, Atom bigatom, Atom smallatom) {
 	Atom *state;
@@ -1146,6 +1266,8 @@ getwintype(Window win) {
 				ret |= (1<<(j-WindowTypeDesk));
 	if (ret == 0)
 		ret = WTFLAG(WindowTypeNormal);
+	if (state)
+		XFree(state);
 	return ret;
 }
 
@@ -1258,4 +1380,7 @@ void (*updateatom[]) (Client *) = {
 	[WindowExtents] = ewmh_update_net_window_extents,
 	[WindowNameVisible] = ewmh_update_net_window_visible_name,
 	[WindowIconNameVisible] = ewmh_update_net_window_visible_icon_name,
+	[WindowUserTime] = ewmh_update_net_window_user_time,
+	[UserTimeWindow] = ewmh_update_net_window_user_time_window,
+	[NetStartupId] = ewmh_update_net_startup_id,
 };
