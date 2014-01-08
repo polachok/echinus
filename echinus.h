@@ -1,11 +1,11 @@
 /* enums */
 
 enum {
-	Manager, Utf8String, WMProto, WMDelete, WMName, WMState, WMChangeState,
+	Manager, Utf8String, WMProto, WMDelete, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors, DeskGeometry,
 	ShowingDesktop, WMRestart, WMShutdown,
 	RestackWindow, StartupInfoBegin, StartupInfo, DeskLayout, WindowUserTime,
-	UserTimeWindow, WindowIconName, WindowIconNameVisible,
+	UserTimeWindow,
 	WindowCounter, WindowTypeOverride,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
@@ -18,7 +18,8 @@ enum {
 	WindowTypeUtil, WindowTypeSplash, WindowTypeDialog, WindowTypeDrop,
 	WindowTypePopup, WindowTypeTooltip, WindowTypeNotify, WindowTypeCombo,
 	WindowTypeDnd, WindowTypeNormal,
-	StrutPartial, Strut, WindowPid, WindowName, WindowNameVisible,
+	StrutPartial, Strut, WindowPid, WindowName, WindowNameVisible, WindowIconName,
+	WindowIconNameVisible,
 	WindowState, WindowStateModal, WindowStateSticky, WindowStateMaxV,
 	WindowStateMaxH, WindowStateShaded, WindowStateNoTaskbar, WindowStateNoPager,
 	WindowStateHidden, WindowStateFs, WindowStateAbove, WindowStateBelow,
@@ -40,7 +41,6 @@ enum {
 #define _XA_UTF8_STRING				atom[Utf8String]
 #define _XA_WM_PROTOCOLS			atom[WMProto]
 #define _XA_WM_DELETE_WINDOW			atom[WMDelete]
-#define _XA_WM_NAME				atom[WMName]
 #define _XA_WM_STATE				atom[WMState]
 #define _XA_WM_CHANGE_STATE			atom[WMChangeState]
 #define _XA_WM_TAKE_FOCUS			atom[WMTakeFocus]
@@ -58,8 +58,6 @@ enum {
 #define _XA_NET_DESKTOP_LAYOUT			atom[DeskLayout]
 #define _XA_NET_WM_USER_TIME			atom[WindowUserTime]
 #define _XA_NET_WM_USER_TIME_WINDOW		atom[UserTimeWindow]
-#define _XA_NET_WM_ICON_NAME			atom[WindowIconName]
-#define _XA_NET_WM_VISIBLE_ICON_NAME		atom[WindowIconNameVisible]
 #define _XA_NET_WM_SYNC_REQUEST_COUNTER		atom[WindowCounter]
 #define _XA_KDE_NET_WM_WINDOW_TYPE_OVERRIDE	atom[WindowTypeOverride]
 /* _NET_SUPPORTED following */
@@ -111,6 +109,8 @@ enum {
 #define _XA_NET_WM_PID				atom[WindowPid]
 #define _XA_NET_WM_NAME				atom[WindowName]
 #define _XA_NET_WM_VISIBLE_NAME			atom[WindowNameVisible]
+#define _XA_NET_WM_ICON_NAME			atom[WindowIconName]
+#define _XA_NET_WM_VISIBLE_ICON_NAME		atom[WindowIconNameVisible]
 
 #define _XA_NET_WM_STATE			atom[WindowState]
 #define _XA_NET_WM_STATE_MODAL			atom[WindowStateModal]
@@ -184,7 +184,8 @@ typedef struct {
 
 typedef struct Client Client;
 struct Client {
-	char name[256];
+	char *name;
+	char *icon_name;
 	int x, y, w, h;
 	int rx, ry, rw, rh, rb;	/* revert geometry */
 	int sx, sy; /* static geometry */
@@ -359,7 +360,7 @@ void initstyle();
 #define DPRINTF(format, ...)
 #endif
 #define DPRINTCLIENT(c) DPRINTF("%s: x: %d y: %d w: %d h: %d th: %d f: %d b: %d m: %d\n", \
-				    c->name, c->x, c->y, c->w, c->h, c->th, c->isfloating, c->isbastard, c->ismax)
+				    c->name ? c->name : "", c->x, c->y, c->w, c->h, c->th, c->isfloating, c->isbastard, c->ismax)
 
 #define OPAQUE			0xffffffff
 #define RESNAME		       "echinus"

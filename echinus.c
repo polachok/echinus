@@ -100,7 +100,7 @@ void focusprev(Client *c);
 Client *getclient(Window w, int part);
 const char *getresource(const char *resource, const char *defval);
 long getstate(Window w);
-Bool gettextprop(Window w, Atom atom, char *text, unsigned int size);
+Bool gettextprop(Window w, Atom atom, char **text);
 void getpointer(int *x, int *y);
 Monitor *getmonitor(int x, int y);
 Monitor *curmonitor();
@@ -157,6 +157,7 @@ void unmapnotify(XEvent * e);
 void updatesizehints(Client * c);
 void updateframe(Client * c);
 void updatetitle(Client * c);
+void updateiconname(Client * c);
 void view(int index);
 void viewprevtag(const char *arg);	/* views previous selected tags */
 void viewlefttag(const char *arg);
@@ -276,7 +277,7 @@ applyrules(Client * c) {
 	/* rule matching */
 	XGetClassHint(dpy, c->win, &ch);
 	snprintf(buf, sizeof(buf), "%s:%s:%s",
-	    ch.res_class ? ch.res_class : "", ch.res_name ? ch.res_name : "", c->name);
+	    ch.res_class ? ch.res_class : "", ch.res_name ? ch.res_name : "", c->name ? c->name : "");
 	buf[LENGTH(buf)-1] = 0;
 	for (i = 0; i < nrules; i++)
 		if (rules[i]->propregex && !regexec(rules[i]->propregex, buf, 1, &tmp, 0)) {
@@ -431,7 +432,7 @@ buttonpress(XEvent * e) {
 		return;
 	}
 	if ((c = getclient(ev->window, ClientTitle))) {
-		DPRINTF("TITLE %s: 0x%x\n", c->name, (int) ev->window);
+		DPRINTF("TITLE %s: 0x%x\n", c->name ? c->name : "", (int) ev->window);
 		focus(c);
 		for (i = 0; i < LastBtn; i++) {
 			if (button[i].action == NULL)
@@ -462,7 +463,7 @@ buttonpress(XEvent * e) {
 		else if (ev->button == Button3)
 			mouseresize(c);
 	} else if ((c = getclient(ev->window, ClientWindow))) {
-		DPRINTF("WINDOW %s: 0x%x\n", c->name, (int) ev->window);
+		DPRINTF("WINDOW %s: 0x%x\n", c->name ? c->name : "", (int) ev->window);
 		focus(c);
 		restack(curmonitor());
 		if (CLEANMASK(ev->state) != modkey) {
@@ -488,7 +489,7 @@ buttonpress(XEvent * e) {
 			mouseresize(c);
 		}
 	} else if ((c = getclient(ev->window, ClientFrame))) {
-		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
+		DPRINTF("FRAME %s: 0x%x\n", c->name ? c->name : "", (int) ev->window);
 		/* Not supposed to happen */
 	}
 }
@@ -826,7 +827,7 @@ destroynotify(XEvent * e) {
 
 	if (!(c = getclient(ev->window, ClientWindow)))
 		return;
-	DPRINTF("unmanage destroyed window (%s)\n", c->name);
+	DPRINTF("unmanage destroyed window (%s)\n", c->name ? c->name : "");
 	unmanage(c, False, True);
 }
 
@@ -1118,27 +1119,29 @@ getresource(const char *resource, const char *defval) {
 }
 
 Bool
-gettextprop(Window w, Atom atom, char *text, unsigned int size) {
-	char **list = NULL;
+gettextprop(Window w, Atom atom, char **text) {
+	char **list = NULL, *str;
 	int n;
 	XTextProperty name;
 
-	if (!text || size == 0)
-		return False;
-	text[0] = '\0';
 	XGetTextProperty(dpy, w, &name, atom);
 	if (!name.nitems)
 		return False;
 	if (name.encoding == XA_STRING) {
-		strncpy(text, (char *) name.value, size - 1);
+		if ((str = strdup((char *)name.value))) {
+			free(*text);
+			*text = str;
+		}
 	} else {
 		if (XmbTextPropertyToTextList(dpy, &name, &list, &n) >= Success
 		    && n > 0 && *list) {
-			strncpy(text, *list, size - 1);
+			if ((str = strdup(*list))) {
+				free(*text);
+				*text = str;
+			}
 			XFreeStringList(list);
 		}
 	}
-	text[size - 1] = '\0';
 	if (name.value)
 		XFree(name.value);
 	return True;
@@ -1281,6 +1284,7 @@ manage(Window w, XWindowAttributes * wa) {
 	updatesizehints(c);
 
 	updatetitle(c);
+	updateiconname(c);
 	applyrules(c);
 	applyatoms(c);
 
@@ -1659,7 +1663,7 @@ reparentnotify(XEvent * e) {
 
 	if ((c = getclient(ev->window, ClientWindow)))
 		if (ev->parent != c->frame) {
-			DPRINTF("unmanage reparented window (%s)\n", c->name);
+			DPRINTF("unmanage reparented window (%s)\n", c->name ? c->name : "");
 			unmanage(c, True, False);
 		}
 }
@@ -1709,45 +1713,53 @@ propertynotify(XEvent * e) {
 		}
 		if (ev->state == PropertyDelete) 
 			return;
-		switch (ev->atom) {
-		case XA_WM_TRANSIENT_FOR:
-			XGetTransientForHint(dpy, c->win, &trans);
-			if (!c->isfloating
-			    && (c->isfloating =
-				(getclient(trans, ClientWindow) != NULL))) {
-				arrange(NULL);
-				updateatom[WindowState](c);
-				updateatom[WindowActions](c);
+		if (ev->atom <= XA_LAST_PREDEFINED) {
+			switch (ev->atom) {
+			case XA_WM_TRANSIENT_FOR:
+				XGetTransientForHint(dpy, c->win, &trans);
+				if (!c->isfloating
+				    && (c->isfloating =
+					(getclient(trans, ClientWindow) != NULL))) {
+					arrange(NULL);
+					updateatom[WindowState](c);
+					updateatom[WindowActions](c);
+				}
+				return;
+			case XA_WM_NORMAL_HINTS:
+				updatesizehints(c);
+				return;
+			case XA_WM_NAME:
+				updatetitle(c);
+				drawclient(c);
+				return;
+			case XA_WM_ICON_NAME:
+				updateiconname(c);
+				return;
 			}
-			return;
-		case XA_WM_NORMAL_HINTS:
-			updatesizehints(c);
-			return;
-		case XA_WM_NAME:
-			updatetitle(c);
-			drawclient(c);
-			return;
-		case XA_WM_ICON_NAME:
-			return;
-		}
-		if (0) {
-		} else if (ev->atom == atom[WindowName]) {
-			updatetitle(c);
-			drawclient(c);
-		} else if (ev->atom == atom[WindowType]) {
-			/* TODO */
-		} else if (ev->atom == atom[WindowUserTime]) {
-			/* TODO */
-		} else if (ev->atom == atom[WindowCounter]) {
-			/* TODO */
+		} else {
+			if (0) {
+			} else if (ev->atom == atom[WindowName]) {
+				updatetitle(c);
+				drawclient(c);
+			} else if (ev->atom == atom[WindowIconName]) {
+				updateiconname(c);
+			} else if (ev->atom == atom[WindowType]) {
+				/* TODO */
+			} else if (ev->atom == atom[WindowUserTime]) {
+				/* TODO */
+			} else if (ev->atom == atom[WindowCounter]) {
+				/* TODO */
+			}
 		}
 	} else if (ev->window == root) {
-		if (0) {
-		} else if (ev->atom == atom[DeskNames]) {
-			ewmh_process_net_desktop_names();
-			updateatom[DeskNames] (NULL);
-		} else if (ev->atom == atom[DeskLayout]) {
-			/* TODO */
+		if (ev->atom > XA_LAST_PREDEFINED) {
+			if (0) {
+			} else if (ev->atom == atom[DeskNames]) {
+				ewmh_process_net_desktop_names();
+				updateatom[DeskNames] (NULL);
+			} else if (ev->atom == atom[DeskLayout]) {
+				/* TODO */
+			}
 		}
 	}
 }
@@ -3271,6 +3283,8 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 #endif
 	XDeleteContext(dpy, c->win, context[ClientWindow]);
 	XDeleteContext(dpy, c->win, context[ClientAny]);
+	free(c->name);
+	free(c->icon_name);
 	free(c);
 	XSync(dpy, False);
 	XSetErrorHandler(xerror);
@@ -3327,7 +3341,7 @@ unmapnotify(XEvent * e) {
 	if ((c = getclient(ev->window, ClientWindow)) /* && ev->send_event */) {
 		if (c->ignoreunmap--)
 			return;
-		DPRINTF("unmanage self-unmapped window (%s)\n", c->name);
+		DPRINTF("unmanage self-unmapped window (%s)\n", c->name ? c->name : "");
 		unmanage(c, False, False);
 	}
 }
@@ -3403,9 +3417,16 @@ updatesizehints(Client * c) {
 
 void
 updatetitle(Client * c) {
-	if (!gettextprop(c->win, atom[WindowName], c->name, sizeof(c->name)))
-		gettextprop(c->win, atom[WMName], c->name, sizeof(c->name));
+	if (!gettextprop(c->win, atom[WindowName], &c->name))
+		gettextprop(c->win, XA_WM_NAME, &c->name);
 	updateatom[WindowNameVisible] (c);
+}
+
+void
+updateiconname(Client *c) {
+	if (!gettextprop(c->win, atom[WindowIconName], &c->icon_name))
+		gettextprop(c->win, XA_WM_ICON_NAME, &c->icon_name);
+	updateatom[WindowIconNameVisible] (c);
 }
 
 /* There's no way to check accesses to destroyed windows, thus those cases are

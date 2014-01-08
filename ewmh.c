@@ -26,7 +26,6 @@ char *atomnames[NATOMS] = {
 	"UTF8_STRING",
 	"WM_PROTOCOLS",
 	"WM_DELETE_WINDOW",
-	"WM_NAME",
 	"WM_STATE",
 	"WM_CHANGE_STATE",
 	"WM_TAKE_FOCUS",
@@ -44,8 +43,6 @@ char *atomnames[NATOMS] = {
 	"_NET_DESKTOP_LAYOUT",			/* TODO */
 	"_NET_WM_USER_TIME",			/* TODO */
 	"_NET_WM_USER_TIME_WINDOW",		/* TODO */
-	"_NET_WM_ICON_NAME",			/* TODO */
-	"_NET_WM_VISIBLE_ICON_NAME",		/* TODO */
 	"_NET_WM_SYNC_REQUEST_COUNTER",
 	"_KDE_NET_WM_WINDOW_TYPE_OVERRIDE",
 	/* _NET_SUPPORTED following */
@@ -97,6 +94,8 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_PID",
 	"_NET_WM_NAME",
 	"_NET_WM_VISIBLE_NAME",
+	"_NET_WM_ICON_NAME",
+	"_NET_WM_VISIBLE_ICON_NAME",
 
 	"_NET_WM_STATE",
 	"_NET_WM_STATE_MODAL",
@@ -738,7 +737,7 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 		}
 		DPRINT;
 		arrange(curmonitor());
-		DPRINTF("%s: x%d y%d w%d h%d\n", c->name, c->x, c->y, c->w, c->h);
+		DPRINTF("%s: x%d y%d w%d h%d\n", c->name ? c->name : "", c->x, c->y, c->w, c->h);
 	} else if (state == atom[WindowStateAbove]) {
 		if ((set == _NET_WM_STATE_ADD && !c->isabove) ||
 		    (set == _NET_WM_STATE_REMOVE && c->isabove) ||
@@ -806,10 +805,22 @@ ewmh_update_net_window_visible_name(Client *c) {
 	XTextProperty prop;
 
 	if (c->name) {
-		if (XmbTextListToTextProperty(dpy, (char **)&c->name, 1, XUTF8StringStyle, &prop) == Success)
+		if (XmbTextListToTextProperty(dpy, &c->name, 1, XUTF8StringStyle, &prop) == Success)
 			XSetTextProperty(dpy, c->win, &prop, atom[WindowNameVisible]);
 	} else {
 		XDeleteProperty(dpy, c->win, atom[WindowNameVisible]);
+	}
+}
+
+void
+ewmh_update_net_window_visible_icon_name(Client *c) {
+	XTextProperty prop;
+
+	if (c->icon_name) {
+		if (XmbTextListToTextProperty(dpy, &c->icon_name, 1, XUTF8StringStyle, &prop) == Success)
+			XSetTextProperty(dpy, c->win, &prop, atom[WindowIconNameVisible]);
+	} else {
+		XDeleteProperty(dpy, c->win, atom[WindowIconNameVisible]);
 	}
 }
 
@@ -1200,4 +1211,5 @@ void (*updateatom[]) (Client *) = {
 	[WindowActions] = ewmh_update_net_window_actions,
 	[WindowExtents] = ewmh_update_net_window_extents,
 	[WindowNameVisible] = ewmh_update_net_window_visible_name,
+	[WindowIconNameVisible] = ewmh_update_net_window_visible_icon_name,
 };
