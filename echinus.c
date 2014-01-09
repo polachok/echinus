@@ -117,9 +117,9 @@ void manage(Window w, XWindowAttributes * wa);
 void mappingnotify(XEvent * e);
 void monocle(Monitor * m);
 void maprequest(XEvent * e);
-void mousemove(Client * c);
-void mouseresize_from(Client *c, int from);
-void mouseresize(Client * c);
+void mousemove(Client *c, unsigned int button, int x_root, int y_root);
+void mouseresize_from(Client *c, int from, unsigned int button, int x_root, int y_root);
+void mouseresize(Client * c, unsigned int button, int x_root, int y_root);
 void moveresizekb(Client *c, int dx, int dy, int dw, int dh);
 Client *nexttiled(Client * c, Monitor * m);
 Client *prevtiled(Client * c, Monitor * m);
@@ -478,9 +478,9 @@ buttonpress(XEvent * e) {
 			return;
 		restack();
 		if (ev->button == Button1)
-			mousemove(c);
+			mousemove(c, ev->button, ev->x_root, ev->y_root);
 		else if (ev->button == Button3)
-			mouseresize(c);
+			mouseresize(c, ev->button, ev->x_root, ev->y_root);
 	} else if ((c = getclient(ev->window, ClientWindow))) {
 		DPRINTF("WINDOW %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
@@ -494,7 +494,7 @@ buttonpress(XEvent * e) {
 				togglefloating(c);
 			if (c->ismax)
 				togglemax(c);
-			mousemove(c);
+			mousemove(c, ev->button, ev->x_root, ev->y_root);
 		} else if (ev->button == Button2) {
 			if (!FEATURES(curlayout, OVERLAP) && c->isfloating)
 				togglefloating(c);
@@ -505,7 +505,7 @@ buttonpress(XEvent * e) {
 				togglefloating(c);
 			if (c->ismax)
 				togglemax(c);
-			mouseresize(c);
+			mouseresize(c, ev->button, ev->x_root, ev->y_root);
 		}
 	} else if ((c = getclient(ev->window, ClientFrame))) {
 		DPRINTF("FRAME %s: 0x%x\n", c->name, (int) ev->window);
@@ -1748,9 +1748,12 @@ curmonitor() {
 	return getmonitor(x, y);
 }
 
+/* TODO: add snapping to other windows */
+/* TODO: handle movement across EWMH desktops */
+
 void
-mousemove(Client * c) {
-	int x1, y1, ocx, ocy, nx, ny;
+mousemove(Client * c, unsigned int button, int x_root, int y_root) {
+	int ocx, ocy, nx, ny;
 	int wasmax, wasmaxv, wasmaxh, wasfill, wasshade;
 	unsigned int i;
 	XEvent ev;
@@ -1758,13 +1761,13 @@ mousemove(Client * c) {
 
 	if (c->isbastard)
 		return;
-	m = curmonitor();
+	if (!(m = getmonitor(x_root, y_root)))
+		m = curmonitor();
 	ocx = c->x;
 	ocy = c->y;
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 		GrabModeAsync, None, cursor[CurMove], CurrentTime) != GrabSuccess)
 		return;
-	getpointer(&x1, &y1);
 	if ((wasmax = c->ismax)) {
 		c->ismax = False;
 		updateframe(c);
@@ -1784,11 +1787,24 @@ mousemove(Client * c) {
 	for (;;) {
 		int wx, wy, ww, wh;
 
-		XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
+		XMaskEvent(dpy,
+			   MOUSEMASK | ExposureMask | SubstructureNotifyMask |
+			   SubstructureRedirectMask, &ev);
 		switch (ev.type) {
 		case ButtonRelease:
-			XUngrabPointer(dpy, CurrentTime);
 			break;
+		case ClientMessage:
+			if (ev.xclient.message_type == atom[WindowMoveResize]) {
+				if (ev.xclient.data.l[2] == 11) {
+					/* _NET_WM_MOVERESIZE_CANCEL */
+					resize(c, ocx, ocy, c->w, c->h, c->border);
+					save(c);
+					break;
+				}
+				continue;
+			}
+			handler[ev.type] (&ev);
+			continue;
 		case ConfigureRequest:
 		case Expose:
 		case MapRequest:
@@ -1797,11 +1813,11 @@ mousemove(Client * c) {
 		case MotionNotify:
 			XSync(dpy, False);
 			/* we are probably moving to a different monitor */
-			if (!(nm = curmonitor()))
+			if (!(nm = getmonitor(ev.xmotion.x_root, ev.xmotion.y_root)))
 				continue;
-			getworkarea(m, &wx, &wy, &ww, &wh);
-			nx = ocx + (ev.xmotion.x_root - x1);
-			ny = ocy + (ev.xmotion.y_root - y1);
+			getworkarea(nm, &wx, &wy, &ww, &wh);
+			nx = ocx + (ev.xmotion.x_root - x_root);
+			ny = ocy + (ev.xmotion.y_root - y_root);
 			if (abs(nx - wx) < options.snap)
 				nx = wx;
 			else if (abs((wx + ww) - (nx + c->w +
@@ -1826,8 +1842,12 @@ mousemove(Client * c) {
 			}
 			continue;
 		default:
+			if (handler[ev.type])
+				handler[ev.type](&ev);
 			continue;
 		}
+		XUngrabPointer(dpy, CurrentTime);
+		while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
 		break;
 	}
 	if (wasmax)
@@ -1843,20 +1863,20 @@ mousemove(Client * c) {
 	updateatom[WindowState] (c);
 }
 
-void
-mouseresize_from(Client * c, int from)
-{
-	int ocx, ocy, ocw, och, opx, opy, dx, dy, nx, ny, nw, nh;
-	int wasmax, wasmaxv, wasmaxh, wasshade, wasfill;
+/* TODO: add snapping to other windows */
 
-	/* Monitor *cm; */
+void
+mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_root)
+{
+	int ocx, ocy, ocw, och, dx, dy, nx, ny, nw, nh;
+	int wasmax, wasmaxv, wasmaxh, wasshade, wasfill;
 	XEvent ev;
+	Monitor *m, *nm;
 
 	if (c->isbastard || c->isfixed)
 		return;
-	/* cm = curmonitor(); */
-
-	getpointer(&opx, &opy);
+	if (!(m = getmonitor(x_root, y_root)))
+		m = curmonitor();
 
 	ocx = c->x;
 	ocy = c->y;
@@ -1881,19 +1901,20 @@ mouseresize_from(Client * c, int from)
 		resize(c, c->x, c->y, c->w, c->h, c->border);
 	}
 	for (;;) {
+		int wx, wy, ww, wh, rx, ry;
+
 		XMaskEvent(dpy,
 			   MOUSEMASK | ExposureMask | SubstructureNotifyMask |
 			   SubstructureRedirectMask, &ev);
 		switch (ev.type) {
 		case ButtonRelease:
-			XUngrabPointer(dpy, CurrentTime);
-			while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
 			break;
 		case ClientMessage:
 			if (ev.xclient.message_type == atom[WindowMoveResize]) {
 				if (ev.xclient.data.l[2] == 11) {
 					/* _NET_WM_MOVERESIZE_CANCEL */
 					resize(c, ocx, ocy, ocw, och, c->border);
+					save(c);
 					break;
 				}
 				continue;
@@ -1907,8 +1928,8 @@ mouseresize_from(Client * c, int from)
 			continue;
 		case MotionNotify:
 			XSync(dpy, False);
-			dx = (opx - ev.xmotion.x);
-			dy = (opy - ev.xmotion.y);
+			dx = (x_root - ev.xmotion.x_root);
+			dy = (y_root - ev.xmotion.y_root);
 			switch (from) {
 			case CurResizeTopLeft:
 				nw = ocw + dx;
@@ -1916,6 +1937,15 @@ mouseresize_from(Client * c, int from)
 				constrain(c, &nw, &nh);
 				nx = ocx + ocw - nw;
 				ny = ocy + och - nh;
+				rx = nx;
+				ry = ny;
+				if ((nm = getmonitor(rx, ry))) {
+					getworkarea(nm, &wx, &wy, &ww, &wh);
+					if (abs(rx - wx) < options.snap)
+						nx += wx - rx;
+					if (abs(ry - wy) < options.snap)
+						ny += wy - ry;
+				}
 				break;
 			case CurResizeTop:
 				nw = ocw;
@@ -1923,6 +1953,13 @@ mouseresize_from(Client * c, int from)
 				constrain(c, &nw, &nh);
 				nx = ocx;
 				ny = ocy + och - nh;
+				rx = nx + nw/2 + c->border;
+				ry = ny;
+				if ((nm = getmonitor(rx, ry))) {
+					getworkarea(nm, &wx, &wy, &ww, &wh);
+					if (abs(ry - wy) < options.snap)
+						ny += wy - ry;
+				}
 				break;
 			case CurResizeTopRight:
 				nw = ocw - dx;
@@ -1930,6 +1967,15 @@ mouseresize_from(Client * c, int from)
 				constrain(c, &nw, &nh);
 				nx = ocx;
 				ny = ocy + och - nh;
+				rx = nx + nw + 2 * c->border;
+				ry = ny;
+				if ((nm = getmonitor(rx, ry))) {
+					getworkarea(nm, &wx, &wy, &ww, &wh);
+					if (abs(rx - (wx + ww)) < options.snap)
+						nx += (wx + ww) - rx;
+					if (abs(ry - wy) < options.snap)
+						ny += wy - ry;
+				}
 				break;
 			case CurResizeRight:
 				nw = ocw - dx;
@@ -1937,6 +1983,13 @@ mouseresize_from(Client * c, int from)
 				constrain(c, &nw, &nh);
 				nx = ocx;
 				ny = ocy;
+				rx = nx + nw + 2 * c->border;
+				ry = ny + nh/2 + c->border;
+				if ((nm = getmonitor(rx, ry))) {
+					getworkarea(nm, &wx, &wy, &ww, &wh);
+					if (abs(rx - (wx + ww)) < options.snap)
+						nx += (wx + ww) - rx;
+				}
 				break;
 			default:
 			case CurResizeBottomRight:
@@ -1945,6 +1998,15 @@ mouseresize_from(Client * c, int from)
 				constrain(c, &nw, &nh);
 				nx = ocx;
 				ny = ocy;
+				rx = nx + nw + 2 * c->border;
+				ry = ny + nh + 2 * c->border;
+				if ((nm = getmonitor(rx, ry))) {
+					getworkarea(nm, &wx, &wy, &ww, &wh);
+					if (abs(rx - (wx + ww)) < options.snap)
+						nx += (wx + ww) - rx;
+					if (abs(ry - (wy + wh)) < options.snap)
+						ny += (wy + wh) - ry;
+				}
 				break;
 			case CurResizeBottom:
 				nw = ocw;
@@ -1952,6 +2014,13 @@ mouseresize_from(Client * c, int from)
 				constrain(c, &nw, &nh);
 				nx = ocx;
 				ny = ocy;
+				rx = nx + nw + 2 * c->border;
+				ry = ny + nh + 2 * c->border;
+				if ((nm = getmonitor(rx, ry))) {
+					getworkarea(nm, &wx, &wy, &ww, &wh);
+					if (abs(ry - (wy + wh)) < options.snap)
+						ny += (wy + wh) - ry;
+				}
 				break;
 			case CurResizeBottomLeft:
 				nw = ocw + dx;
@@ -1959,6 +2028,15 @@ mouseresize_from(Client * c, int from)
 				constrain(c, &nw, &nh);
 				nx = ocx + ocw - nw;
 				ny = ocy;
+				rx = nx;
+				ry = ny + nh + 2 * c->border;
+				if ((nm = getmonitor(rx, ry))) {
+					getworkarea(nm, &wx, &wy, &ww, &wh);
+					if (abs(rx - wx) < options.snap)
+						nx += wx - rx;
+					if (abs(ry - (wy + wh)) < options.snap)
+						ny += (wy + wh) - ry;
+				}
 				break;
 			case CurResizeLeft:
 				nw = ocw + dx;
@@ -1966,6 +2044,13 @@ mouseresize_from(Client * c, int from)
 				constrain(c, &nw, &nh);
 				nx = ocx + ocw - nw;
 				ny = ocy;
+				rx = nx;
+				ry = ny + nh/2 + c->border;
+				if ((nm = getmonitor(rx, ry))) {
+					getworkarea(nm, &wx, &wy, &ww, &wh);
+					if (abs(rx - wx) < options.snap)
+						nx += wx - rx;
+				}
 				break;
 			}
 			if (nw < MINWIDTH)
@@ -1976,8 +2061,12 @@ mouseresize_from(Client * c, int from)
 			save(c);
 			continue;
 		default:
+			if (handler[ev.type])
+				handler[ev.type](&ev);
 			continue;
 		}
+		XUngrabPointer(dpy, CurrentTime);
+		while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
 		break;
 	}
 	if (wasshade)
@@ -1986,19 +2075,18 @@ mouseresize_from(Client * c, int from)
 }
 
 void
-mouseresize(Client * c)
+mouseresize(Client * c, unsigned int button, int x_root, int y_root)
 {
-	int x, y, cx, cy, dx, dy, from;
+	int cx, cy, dx, dy, from;
 
-	getpointer(&x, &y);
 	cx = c->x + c->w / 2;
 	cy = c->y + c->h / 2;
-	dx = abs(cx - x);
-	dy = abs(cy - y);
+	dx = abs(cx - x_root);
+	dy = abs(cy - y_root);
 
-	if (y < cy) {
+	if (y_root < cy) {
 		/* top */
-		if (x < cx) {
+		if (x_root < cx) {
 			/* top-left */
 			if (dx < dy / 2) {
 				from = CurResizeTop;
@@ -2019,7 +2107,7 @@ mouseresize(Client * c)
 		}
 	} else {
 		/* bottom */
-		if (x < cx) {
+		if (x_root < cx) {
 			/* bottom-left */
 			if (dx < dy / 2) {
 				from = CurResizeBottom;
@@ -2039,7 +2127,7 @@ mouseresize(Client * c)
 			}
 		}
 	}
-	mouseresize_from(c, from);
+	mouseresize_from(c, from, button, x_root, y_root);
 }
 
 Client *
@@ -2248,6 +2336,9 @@ constrain(Client * c, int *wp, int *hp) {
 	}
 	return ret;
 }
+
+/* FIXME: this does not handle moving the window across monitor
+ * or desktop boundaries. */
 
 void
 resize(Client * c, int x, int y, int w, int h, int b) {

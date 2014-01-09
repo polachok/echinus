@@ -1025,18 +1025,9 @@ clientmessage(XEvent *e) {
 			if (gravity == 0)
 				gravity = c->gravity;
 			applygravity(c, &x, &y, &w, &h, c->border, gravity);
+			/* FIXME: this just resizes and moves the window, it does
+			 * handle changing monitors */
 			resize(c, x, y, w, h, c->border);
-		} else if (message_type == atom[RestackWindow]) {
-			unsigned source = ev->data.l[0];
-			Window sibling = ev->data.l[1];
-			unsigned detail = ev->data.l[2];
-			Client *o = NULL;
-			if (sibling)
-				if (!(o = getclient(sibling, ClientAny)))
-					return;
-			if (source == 1)
-				return;
-			restack_client(c, detail, o);
 		} else if (message_type == atom[WindowMoveResize]) {
 			int x_root = (int) ev->data.l[0];
 			int y_root = (int) ev->data.l[1];
@@ -1044,9 +1035,6 @@ clientmessage(XEvent *e) {
 			int button = (int) ev->data.l[3];
 			int source = (int) ev->data.l[4];
 
-			(void) y_root;
-			(void) x_root;
-			(void) button;
 			if (source != 0 && source != 1 && source != 2)
 				return;
 			if (direct < 0 || direct > 11)
@@ -1060,10 +1048,10 @@ clientmessage(XEvent *e) {
 			case 5: /* _NET_WM_MOVERESIZE_SIZE_BOTTOM */
 			case 6: /* _NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT */
 			case 7: /* _NET_WM_MOVERESIZE_SIZE_LEFT */
-				mouseresize_from(c, direct);
+				mouseresize_from(c, direct, button, x_root, y_root);
 				break;
 			case 8: /* _NET_WM_MOVERESIZE_MOVE */
-				mousemove(c);
+				mousemove(c, button, x_root, y_root);
 				break;
 			case 9: /* _NET_WM_MOVERESIZE_SIZE_KEYBOARD */
 				/* TODO */
@@ -1075,6 +1063,17 @@ clientmessage(XEvent *e) {
 				/* intercepted while moving or resizing */
 				break;
 			}
+		} else if (message_type == atom[RestackWindow]) {
+			unsigned source = ev->data.l[0];
+			Window sibling = ev->data.l[1];
+			unsigned detail = ev->data.l[2];
+			Client *o = NULL;
+			if (sibling)
+				if (!(o = getclient(sibling, ClientAny)))
+					return;
+			if (source == 1)
+				return;
+			restack_client(c, detail, o);
 		} else if (message_type == atom[RequestFrameExt]) {
 			ewmh_update_net_window_extents(c);
 		}
