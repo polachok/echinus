@@ -35,7 +35,6 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_FULLSCREEN_MONITORS",		/* TODO */
 	"_NET_RESTART",				/* TODO */
 	"_NET_SHUTDOWN",			/* TODO */
-	"_NET_RESTACK_WINDOW",			/* TODO */
 	"_NET_STARTUP_INFO_BEGIN",
 	"_NET_STARTUP_INFO",
 	"_NET_DESKTOP_LAYOUT",			/* TODO */
@@ -64,6 +63,7 @@ char *atomnames[NATOMS] = {
 	"_NET_CLIENT_LIST_STACKING",
 	"_NET_WM_WINDOW_OPACITY",
 	"_NET_MOVERESIZE_WINDOW",
+	"_NET_RESTACK_WINDOW",
 	"_NET_WM_MOVERESIZE",
 	"_NET_FRAME_EXTENTS",
 	"_NET_WM_HANDLED_ICONS",
@@ -177,90 +177,18 @@ update_echinus_layout_name(Client * c) {
 void
 ewmh_update_net_client_list_stacking(Client * c) {
 	Window *wl = NULL;
-	Client **cl = NULL;
-	int i, j, n;
+	int i, n;
 
 	DPRINTF("%s\n", "Updating _NET_CLIENT_LIST_STACKING");
-	for (n = 0, c = stack; c; c = c->snext)
-		n++;
-	if (n) {
+	for (n = 0, c = stack; c; n++, c = c->snext) ;
+	if (n)
 		wl = ecalloc(n, sizeof(Window));
-		cl = ecalloc(n, sizeof(Client *));
-	}
 	for (i = 0, c = stack; c && i < n; c = c->snext)
-		cl[i++] = c;
-
-	i = 0;
-	/* focused windows having state _NET_WM_STATE_FULLSCREEN */
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
-			continue;
-		if (sel == c && c->ismax) {
-			wl[i++] = c->win;
-			cl[j] = NULL;
-		}
-	}
-	/* windows of type _NET_WM_TYPE_DOCK (unless they have state _NET_WM_STATE_BELOW) 
-	   and windows having state _NET_WM_STATE_ABOVE */
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
-			continue;
-		if ((WTCHECK(c, WindowTypeDock) && !c->isbelow) || c->isabove) {
-			wl[i++] = c->win;
-			cl[j] = NULL;
-		}
-	}
-	/* windows not belonging in any other layer (but we put floating above special
-	   above tiled) */
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
-			continue;
-		if (!c->isbastard && c->isfloating && !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
-			wl[i++] = c->win;
-			cl[j] = NULL;
-		}
-	}
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
-			continue;
-		if (c->isbastard && !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
-			wl[i++] = c->win;
-			cl[j] = NULL;
-		}
-	}
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
-			continue;
-		if (!c->isbastard && !c->isfloating && !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
-			wl[i++] = c->win;
-			cl[j] = NULL;
-		}
-	}
-	/* windows having state _NET_WM_STATE_BELOW */
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
-			continue;
-		if (c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
-			wl[i++] = c->win;
-			cl[j] = NULL;
-		}
-	}
-	/* windows of type _NET_WM_TYPE_DESKTOP */
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
-			continue;
-		if (WTCHECK(c, WindowTypeDesk)) {
-			wl[i++] = c->win;
-			cl[j] = NULL;
-		}
-	}
+		wl[i++] = c->win;
 	assert(i == n);
 	XChangeProperty(dpy, root, atom[ClientListStacking], XA_WINDOW, 32,
 			PropModeReplace, (unsigned char *) wl, n);
-	if (n) {
-		free(wl);
-		free(cl);
-	}
+	free(wl);
 	XFlush(dpy);		/* XXX: caller's responsibility */
 }
 
@@ -790,21 +718,15 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 		if ((set == _NET_WM_STATE_ADD && !c->isabove) ||
 		    (set == _NET_WM_STATE_REMOVE && c->isabove) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
-			Monitor *cm = clientmonitor(c);
-
 			c->isabove = !c->isabove;
-			if (cm && cm == curmonitor())
-				restack(cm);
+			restack();
 		}
 	} else if (state == atom[WindowStateBelow]) {
 		if ((set == _NET_WM_STATE_ADD && !c->isbelow) ||
 		    (set == _NET_WM_STATE_REMOVE && c->isbelow) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
-			Monitor *cm = clientmonitor(c);
-
 			c->isbelow = !c->isbelow;
-			if (cm && cm == curmonitor())
-				restack(cm);
+			restack();
 		}
 	} else if (state == atom[WindowStateAttn]) {
 		if ((set == _NET_WM_STATE_ADD && !c->isattn) ||
@@ -1104,6 +1026,17 @@ clientmessage(XEvent *e) {
 				gravity = c->gravity;
 			applygravity(c, &x, &y, &w, &h, c->border, gravity);
 			resize(c, x, y, w, h, c->border);
+		} else if (message_type == atom[RestackWindow]) {
+			unsigned source = ev->data.l[0];
+			Window sibling = ev->data.l[1];
+			unsigned detail = ev->data.l[2];
+			Client *o = NULL;
+			if (sibling)
+				if (!(o = getclient(sibling, ClientAny)))
+					return;
+			if (source == 1)
+				return;
+			restack_client(c, detail, o);
 		} else if (message_type == atom[WindowMoveResize]) {
 			int x_root = (int) ev->data.l[0];
 			int y_root = (int) ev->data.l[1];

@@ -127,7 +127,8 @@ void quit(const char *arg);
 void restart(const char *arg);
 Bool constrain(Client *c, int *wp, int *hp);
 void resize(Client * c, int x, int y, int w, int h, int b);
-void restack(Monitor * m);
+void restack(void);
+void restack_client(Client *c, int stack_mode, Client *sibling);
 void run(void);
 void save(Client * c);
 void save_float(Client *c);
@@ -202,6 +203,7 @@ Monitor *monitors;
 Client *clients;
 Client *sel;
 Client *stack;
+Group window_stack = { NULL, 0 };
 XContext context[PartLast];
 Cursor cursor[CurLast];
 Style style;
@@ -345,14 +347,13 @@ arrangefloats(Monitor * m) {
 	}
 }
 
-void
+static void
 arrangemon(Monitor * m) {
 	Client *c;
 
 	if (views[m->curtag].layout->arrange)
 		views[m->curtag].layout->arrange(m);
 	arrangefloats(m);
-	restack(m);
 	for (c = stack; c; c = c->snext) {
 		if ((clientmonitor(c) == m) && ((!c->isbastard && !(c->isicon || c->ishidden)) ||
 			(c->isbastard && views[m->curtag].barpos == StrutsOn))) {
@@ -374,13 +375,12 @@ arrangemon(Monitor * m) {
 
 void
 arrange(Monitor * m) {
-	Monitor *i;
-
-	if (!m) {
-		for (i = monitors; i; i = i->next)
-			arrangemon(i);
-	} else
+	if (!m)
+		for (m = monitors; m; m = m->next)
+			arrangemon(m);
+	else
 		arrangemon(m);
+	restack();
 }
 
 void
@@ -431,8 +431,6 @@ buttonpress(XEvent * e) {
 	int i;
 	XButtonPressedEvent *ev = &e->xbutton;
 
-	if (!curmonitor())
-		return;
 	if (ev->window == root) {
 		if (ev->type != ButtonRelease)
 			return;
@@ -475,7 +473,7 @@ buttonpress(XEvent * e) {
 		drawclient(c);
 		if (ev->type == ButtonRelease)
 			return;
-		restack(curmonitor());
+		restack();
 		if (ev->button == Button1)
 			mousemove(c);
 		else if (ev->button == Button3)
@@ -483,7 +481,7 @@ buttonpress(XEvent * e) {
 	} else if ((c = getclient(ev->window, ClientWindow))) {
 		DPRINTF("WINDOW %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
-		restack(curmonitor());
+		restack();
 		if (CLEANMASK(ev->state) != modkey) {
 			XAllowEvents(dpy, ReplayPointer, CurrentTime);
 			return;
@@ -803,11 +801,13 @@ configurerequest(XEvent * e) {
 	XConfigureRequestEvent *ev = &e->xconfigurerequest;
 	XWindowChanges wc;
 
-	/* Monitor *cm; */
-
 	if ((c = getclient(ev->window, ClientWindow))) {
-		/* cm = clientmonitor(c); */
-		if (c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
+		Monitor *cm;
+
+		if (!(cm = clientmonitor(c)))
+			if (!(cm = curmonitor()))
+				cm = monitors;
+		if (c->isfixed || c->isfloating || MFEATURES(cm, OVERLAP)) {
 			int x = (ev->value_mask & CWX) ? ev->x : c->x;
 			int y = (ev->value_mask & CWY) ? ev->y : c->y;
 			int w = (ev->value_mask & CWWidth) ? ev->width : c->w;
@@ -825,6 +825,15 @@ configurerequest(XEvent * e) {
 			if (ev->value_mask & (CWBorderWidth))
 				c->sb = b;
 		}
+		if (ev->value_mask & CWStackMode) {
+			Client *s = NULL;
+
+			if (ev->value_mask & CWSibling)
+				if (!(s = getclient(ev->above, ClientAny)))
+					return;
+			/* might want to make this optional */
+			restack_client(c, ev->detail, s);
+		}
 	} else {
 		wc.x = ev->x;
 		wc.y = ev->y;
@@ -834,8 +843,8 @@ configurerequest(XEvent * e) {
 		wc.sibling = ev->above;
 		wc.stack_mode = ev->detail;
 		XConfigureWindow(dpy, ev->window, ev->value_mask, &wc);
+		XSync(dpy, False);
 	}
-	XSync(dpy, False);
 }
 
 void
@@ -904,6 +913,7 @@ enternotify(XEvent * e) {
 
 	if (ev->mode != NotifyNormal || ev->detail == NotifyInferior)
 		return;
+	/* FIXME: pointer could be in dead zone? */
 	if (!curmonitor())
 		return;
 	if ((c = getclient(ev->window, ClientFrame))) {
@@ -924,7 +934,7 @@ enternotify(XEvent * e) {
 			break;
 		case SloppyRaise:
 			focus(c);
-			restack(curmonitor());
+			restack();
 			break;
 		}
 	} else if (ev->window == root) {
@@ -998,7 +1008,6 @@ focus(Client * c) {
 	if (c) {
 		detachstack(c);
 		attachstack(c);
-		updateatom[ClientListStacking] (NULL);
 		/* unban(c); */
 	}
 	sel = c;
@@ -1054,7 +1063,7 @@ focusnext(Client *c) {
 			|| !isvisible(c, curmonitor())); c = c->next);
 	if (c) {
 		focus(c);
-		restack(curmonitor());
+		restack();
 	}
 }
 
@@ -1072,7 +1081,7 @@ focusprev(Client *c) {
 	}
 	if (c) {
 		focus(c);
-		restack(curmonitor());
+		restack();
 	}
 }
 
@@ -1365,7 +1374,6 @@ leavenotify(XEvent * e) {
 void
 manage(Window w, XWindowAttributes * wa) {
 	Client *c, *t = NULL;
-	Monitor *cm = NULL;
 	Window trans;
 	XWindowChanges wc;
 	XSetWindowAttributes twa;
@@ -1407,11 +1415,10 @@ manage(Window w, XWindowAttributes * wa) {
 	}
 	updateatom[WindowTypeOverride] (c);
 
-	cm = curmonitor();
 	c->isicon = False;
 	c->ishidden = False;
 	c->title = c->isbastard ? None : 1;
-	c->tags = ecalloc(ntags, sizeof(cm->seltags[0]));
+	c->tags = ecalloc(ntags, sizeof(*c->tags));
 	c->isfocusable = c->isbastard ? False : True;
 	c->rb = c->fb = c->border = c->isbastard ? 0 : style.border;
 	/*  XReparentWindow() unmaps *mapped* windows */
@@ -1468,7 +1475,7 @@ manage(Window w, XWindowAttributes * wa) {
 				}
 			}
 			if (t)
-				memcpy(c->tags, t->tags, ntags * sizeof(cm->seltags[0]));
+				memcpy(c->tags, t->tags, ntags * sizeof(*c->tags));
 		}
 		c->isfloating = True;
 	}
@@ -1490,20 +1497,16 @@ manage(Window w, XWindowAttributes * wa) {
 	if (!wa->x && !wa->y && !c->isbastard)
 		place(c);
 
-	cm = c->isbastard ? getmonitor(wa->x, wa->y) : clientmonitor(c);
-	if (!cm) {
-		DPRINTF("Cannot find monitor for window 0x%lx,"
-				"requested coordinates %d,%d\n", w, wa->x, wa->y);
-		cm = curmonitor();
-	}
-	c->hasstruts = getstruts(c); 
+	c->hasstruts = getstruts(c);
+
 	if (c->isbastard) {
-#if 0
-		free(c->tags);
-		c->tags = cm->seltags;
-#else
-		memcpy(c->tags, cm->seltags, ntags * sizeof(cm->seltags[0]));
-#endif
+		Monitor *cm;
+
+		/* TODO: refit with startup notification SCREEN= */
+		if (!(cm = getmonitor(wa->x, wa->y)))
+			if (!(cm = curmonitor()))
+				cm = monitors;
+		memcpy(c->tags, cm->seltags, ntags * sizeof(*c->tags));
 	}
 
 #if 0
@@ -1566,7 +1569,6 @@ manage(Window w, XWindowAttributes * wa) {
 	attach(c, options.attachaside);
 	updateatom[ClientList] (NULL);
 	attachstack(c);
-	updateatom[ClientListStacking] (NULL);
 
 	twa.event_mask = CLIENTMASK;
 	twa.do_not_propagate_mask = CLIENTNOPROPAGATEMASK;
@@ -1582,18 +1584,19 @@ manage(Window w, XWindowAttributes * wa) {
 	ban(c);
 	updateatom[WindowDesk] (c);
 	updateatom[WindowDeskMask] (c);
-	updateframe(c);
-	if (!cm)
-		return;
-	if (c->hasstruts)
-		updategeom(cm);
-	arrange(cm);
-	if (!WTCHECK(c, WindowTypeDesk) && focusnew)
-		focus(NULL);
 	ewmh_process_net_window_state(c);
 	c->ismanaged = True;
 	updateatom[WindowState](c);
 	updateatom[WindowActions](c);
+	updateframe(c);
+
+	if (c->hasstruts) {
+		updateatom[WorkArea] (NULL);
+		updategeom(NULL);
+	}
+	arrange(NULL);
+	if (!WTCHECK(c, WindowTypeDesk) && focusnew)
+		focus(NULL);
 }
 
 void
@@ -2155,25 +2158,185 @@ resize(Client * c, int x, int y, int w, int h, int b) {
 	XSync(dpy, False);
 }
 
+static Bool
+wind_overlap(int min1, int max1, int min2, int max2) {
+	int tmp;
+
+	if (min1 > max1) { tmp = min1; min1 = max1; max1 = tmp; }
+	if (min2 > max2) { tmp = min2; min2 = max2; max2 = tmp; }
+	if (min1 <= min2 && max1 >= min2)
+		return True;
+	if (min1 <= max2 && max1 >= max2)
+		return True;
+	if (min2 <= min1 && max2 >= min1)
+		return True;
+	if (min2 <= max1 && max2 >= max1)
+		return True;
+	return False;
+}
+
+static Bool
+client_overlap(Client *c, Client *o)
+{
+	if (wind_overlap(c->x, c->x + c->w, o->x, o->x + o->w) &&
+	    wind_overlap(c->y, c->y + c->h, o->y, o->y + o->h))
+		return True;
+	return False;
+}
+
+static Bool
+client_occludes(Client *c, Client *o)
+{
+	Client *s;
+
+	if (!client_overlap(c, o))
+		return False;
+	for (s = c->snext; s && s != o; s = s->snext) ;
+	return (s ? True : False);
+}
+
+static Bool
+client_occludes_any(Client *c)
+{
+	Client *s;
+
+	for (s = c->snext; s; s = s->snext)
+		if (client_overlap(c, s))
+			return True;
+	return False;
+}
+
+static Bool
+client_occluded_any(Client *c)
+{
+	Client *s;
+
+	for (s = stack; s && s != c; s = s->next)
+		if (client_overlap(c, s))
+			return True;
+	return False;
+}
+
 void
-restack(Monitor * m) {
-	Client *c, **cl;
+restack_client(Client *c, int stack_mode, Client *o)
+{
+	Client *s, **cp, **op, **lp;
+
+	for (lp = &stack, s = stack; s; lp = &s->snext, s = *lp) ;
+	for (cp = &stack, s = stack; s && s != c; cp = &s->snext, s = *cp) ;
+	assert(s == c);
+	for (op = &stack, s = stack; s && s != o; op = &s->snext, s = *op) ;
+	assert(s == o);
+
+	switch (stack_mode) {
+	case Above:
+		if (o) {
+			/* just above sibling */
+			*cp = c->snext;
+			*op = c;
+			c->snext = o;
+		} else {
+			/* top of stack */
+			*cp = c->snext;
+			c->snext = stack;
+			stack = c;
+		}
+		break;
+	case Below:
+		if (o) {
+			/* just below sibling */
+			*cp = c->snext;
+			c->snext = o->snext;
+			o->snext = c;
+		} else {
+			/* bottom of stack */
+			*cp = c->snext;
+			c->snext = *lp;
+			*lp = c;
+		}
+		break;
+	case TopIf:
+		if (o) {
+			if (!client_occludes(o, c))
+				return;
+		} else {
+			if (!client_occluded_any(c))
+				return;
+		}
+		/* top of stack */
+		*cp = c->snext;
+		c->snext = stack;
+		stack = c;
+		break;
+	case BottomIf:
+		if (o) {
+			if (!client_occludes(c, o))
+				return;
+		} else {
+			if (!client_occludes_any(c))
+				return;
+		}
+		/* bottom of stack */
+		*cp = c->snext;
+		c->snext = *lp;
+		*lp = c;
+		break;
+	case Opposite:
+		if (o) {
+			if (client_occludes(o, c)) {
+				/* top of stack */
+				*cp = c->snext;
+				c->snext = stack;
+				stack = c;
+			} else if (client_occludes(c, o)) {
+				/* bottom of stack */
+				*cp = c->snext;
+				c->snext = *lp;
+				*lp = c;
+			} else
+				return;
+		} else {
+			if (client_occluded_any(c)) {
+				/* top of stack */
+				*cp = c->snext;
+				c->snext = stack;
+				stack = c;
+			} else if (client_occludes_any(c)) {
+				/* bottom of stack */
+				*cp = c->snext;
+				c->snext = *lp;
+				*lp = c;
+			} else
+				return;
+		}
+		break;
+	default:
+		return;
+	}
+	restack();
+}
+
+void
+restack()
+{
+	Client *c, **ol, **cl, **sl;
 	XEvent ev;
 	Window *wl;
 	int i, j, n;
 
 	if (!sel)
 		return;
-	for (n = 0, c = stack; c; c = c->snext)
-		if (isvisible(c, m) && !(c->isicon || c->ishidden))
-			n++;
-	if (!n)
+	for (n = 0, c = stack; c; c = c->snext, n++) ;
+	if (!n) {
+		updateatom[ClientListStacking] (NULL);
 		return;
-	wl = ecalloc(n, sizeof(Window));
-	cl = ecalloc(n, sizeof(Client *));
-	i = 0;
-	/*
-	 * EWMH WM SPEC 1.5 Draft 2:
+	}
+	wl = ecalloc(n, sizeof(*wl));
+	ol = ecalloc(n, sizeof(*ol));
+	cl = ecalloc(n, sizeof(*cl));
+	sl = ecalloc(n, sizeof(*sl));
+	/* 
+	 * EWMH WM SPEC 1.5 Draft 1:
 	 *
 	 * Stacking order
 	 *
@@ -2189,79 +2352,90 @@ restack(Monitor * m) {
 	 *   _NET_WM_STATE_ABOVE
 	 * - focused windows having state _NET_WM_STATE_FULLSCREEN
 	 */
-	for (c = stack; c && i < n; c = c->snext)
-		if (isvisible(c, m) && !(c->isicon || c->ishidden))
-			cl[i++] = c;
-	i = 0;
+	for (i = 0, j = 0, c = stack; c; ol[i] = cl[i] = c, i++, c = c->snext) ;
 	/* focused windows having state _NET_WM_STATE_FULLSCREEN */
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
+	for (i = 0; i < n; i++) {
+		if (!(c = cl[i]))
 			continue;
 		if (sel == c && c->ismax) {
-			wl[i++] = c->frame;
-			cl[j] = NULL;
+			cl[i] = NULL; wl[j] = c->frame; sl[j] = c; j++;
 		}
 	}
-	/* windows of type _NET_WM_TYPE_DOCK (unless they have state
-	   _NET_WM_STATE_BELOW) and windows having state _NET_WM_STATE_ABOVE. */
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
+	/* windows of type _NET_WM_TYPE_DOCK (unless they have state _NET_WM_STATE_BELOW) and
+	   windows having state _NET_WM_STATE_ABOVE. */
+	for (i = 0; i < n; i++) {
+		if (!(c = cl[i]))
 			continue;
 		if ((WTCHECK(c, WindowTypeDock) && !c->isbelow) || c->isabove) {
-			wl[i++] = c->frame;
-			cl[j] = NULL;
+			cl[i] = NULL; wl[j] = c->frame; sl[j] = c; j++;
 		}
 	}
-	/* windows not belonging in any other layer (but we put
-	   floating above special above tiled) */
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
+	/* windows not belonging in any other layer (but we put floating above special above tiled) 
+	 */
+	for (i = 0; i < n; i++) {
+		if (!(c = cl[i]))
 			continue;
 		if (!c->isbastard && c->isfloating && !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
-			wl[i++] = c->frame;
-			cl[j] = NULL;
+			cl[i] = NULL; wl[j] = c->frame; sl[j] = c; j++;
 		}
 	}
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
+	for (i = 0; i < n; i++) {
+		if (!(c = cl[i]))
 			continue;
 		if (c->isbastard && !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
-			wl[i++] = c->frame;
-			cl[j] = NULL;
+			cl[i] = NULL; wl[j] = c->frame; sl[j] = c; j++;
 		}
 	}
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
+	for (i = 0; i < n; i++) {
+		if (!(c = cl[i]))
 			continue;
 		if (!c->isbastard && !c->isfloating && !c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
-			wl[i++] = c->frame;
-			cl[j] = NULL;
+			cl[i] = NULL; wl[j] = c->frame; sl[j] = c; j++;
 		}
 	}
 	/* windows having state _NET_WM_STATE_BELOW */
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
+	for (i = 0; i < n; i++) {
+		if (!(c = cl[i]))
 			continue;
 		if (c->isbelow && !WTCHECK(c, WindowTypeDesk)) {
-			wl[i++] = c->frame;
-			cl[j] = NULL;
+			cl[i] = NULL; wl[j] = c->frame; sl[j] = c; j++;
 		}
 	}
 	/* windows of type _NET_WM_TYPE_DESKTOP */
-	for (j = 0; j < n && i < n; j++) {
-		if (!(c = cl[j]))
+	for (i = 0; i < n; i++) {
+		if (!(c = cl[i]))
 			continue;
 		if (WTCHECK(c, WindowTypeDesk)) {
-			wl[i++] = c->frame;
-			cl[j] = NULL;
+			cl[i] = NULL; wl[j] = c->frame; sl[j] = c; j++;
 		}
 	}
-	assert(i == n);
-	XRestackWindows(dpy, wl, n);
-	free(wl);
+	assert(j == n);
 	free(cl);
-	XSync(dpy, False);
-	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+
+	if (bcmp(ol, sl, n * sizeof(*ol))) {
+		stack = sl[0];
+		for (i = 0; i < n - 1; i++)
+			sl[i]->snext = sl[i + 1];
+		sl[i]->snext = NULL;
+	}
+	free(ol);
+	free(sl);
+
+	if (!window_stack.members || (window_stack.count != n) ||
+			bcmp(window_stack.members, wl, n * sizeof(*wl))) {
+		free(window_stack.members);
+		window_stack.members = wl;
+		window_stack.count = n;
+
+		XRestackWindows(dpy, wl, n);
+		XFlush(dpy);
+
+		updateatom[ClientListStacking] (NULL);
+
+		XSync(dpy, False);
+		while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
+	} else
+		free(wl);
 }
 
 void
@@ -2886,6 +3060,9 @@ setup(char *conf) {
 	/* init EWMH atom */
 	initewmh(selwin);
 
+	updateatom[ClientList] (NULL);
+	updateatom[ClientListStacking] (NULL);
+
 	/* init tags */
 	inittags();
 	/* init geometry */
@@ -3337,7 +3514,8 @@ canresize(Client *c) {
 	if (!c)
 		return NULL;
 	if (!(m = clientmonitor(c)))
-		m = curmonitor();
+		if (!(m = curmonitor()))
+			m = monitors;
 	if (c->isfixed || !(c->isfloating || MFEATURES(m, OVERLAP)))
 		return NULL;
 	return m;
@@ -3612,7 +3790,7 @@ focusview(int index) {
 			break;
 		}
 	}
-	restack(curmonitor());
+	restack();
 }
 
 void
@@ -3681,7 +3859,6 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 	detach(c);
 	updateatom[ClientList] (NULL);
 	detachstack(c);
-	updateatom[ClientListStacking] (NULL);
 	if (sel == c)
 		focus(NULL);
 	if (!destroyed) {
@@ -3692,11 +3869,6 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 	XDestroyWindow(dpy, c->frame);
 	XDeleteContext(dpy, c->frame, context[ClientFrame]);
 	XDeleteContext(dpy, c->frame, context[ClientAny]);
-#if 0
-	/* c->tags points to monitor */
-	if (!c->isbastard)
-		free(c->tags);
-#endif
 	XDeleteContext(dpy, c->win, context[ClientWindow]);
 	XDeleteContext(dpy, c->win, context[ClientAny]);
 	ewmh_release_user_time_window(c);
@@ -3715,8 +3887,8 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 		arrange(NULL);
 }
 
-void
-updategeom(Monitor * m) {
+static void
+updategeommon(Monitor * m) {
 	m->wax = m->sx;
 	m->way = m->sy;
 	m->waw = m->sw;
@@ -3735,6 +3907,15 @@ updategeom(Monitor * m) {
 }
 
 void
+updategeom(Monitor *m) {
+	if (!m)
+		for (m = monitors; m; m = m->next)
+			updategeommon(m);
+	else
+		updategeommon(m);
+}
+
+void
 updatestruts() {
 	Client *c;
 	Monitor *m;
@@ -3748,8 +3929,7 @@ updatestruts() {
 		if (c->hasstruts)
 			getstruts(c);
 	updateatom[WorkArea] (NULL);
-	for (m = monitors; m; m = m->next)
-		updategeom(m);
+	updategeom(NULL);
 	arrange(NULL);
 }
 

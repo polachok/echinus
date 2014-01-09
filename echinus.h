@@ -4,14 +4,14 @@ enum {
 	Manager, Utf8String, WMProto, WMDelete, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors,
 	WMRestart, WMShutdown,
-	RestackWindow, StartupInfoBegin, StartupInfo, DeskLayout,
+	StartupInfoBegin, StartupInfo, DeskLayout,
 	WindowCounter,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
 	CurDesk, WorkArea, DeskViewport, ShowingDesktop, DeskGeometry,
 	DeskModes, DeskModeFloating, DeskModeTiled, DeskModeBottomTiled, DeskModeMonocle,
 	DeskModeTopTiled, DeskModeLeftTiled,
-	ClientListStacking, WindowOpacity, MoveResizeWindow, WindowMoveResize,
+	ClientListStacking, WindowOpacity, MoveResizeWindow, RestackWindow, WindowMoveResize,
 	WindowExtents, HandledIcons, RequestFrameExt, VirtualRoots,
 	WindowType, WindowTypeDesk, WindowTypeDock, WindowTypeToolbar, WindowTypeMenu,
 	WindowTypeUtil, WindowTypeSplash, WindowTypeDialog, WindowTypeDrop,
@@ -51,7 +51,6 @@ enum {
 #define _XA_NET_WM_FULLSCREEN_MONITORS		atom[WindowFsMonitors]
 #define _XA_NET_RESTART				atom[WMRestart]
 #define _XA_NET_SHUTDOWN			atom[WMShutdown]
-#define _XA_NET_RESTACK_WINDOW			atom[RestackWindow]
 #define _XA_NET_STARTUP_INFO_BEGIN		atom[StartupInfoBegin]
 #define _XA_NET_STARTUP_INFO			atom[StartupInfo]
 #define _XA_NET_DESKTOP_LAYOUT			atom[DeskLayout]
@@ -80,6 +79,7 @@ enum {
 #define _XA_NET_CLIENT_LIST_STACKING		atom[ClientListStacking]
 #define _XA_NET_WM_WINDOW_OPACITY		atom[WindowOpacity]
 #define _XA_NET_MOVERESIZE_WINDOW		atom[MoveResizeWindow]
+#define _XA_NET_RESTACK_WINDOW			atom[RestackWindow]
 #define _XA_NET_WM_MOVERESIZE			atom[WindowMoveResize]
 #define _XA_NET_FRAME_EXTENTS			atom[WindowExtents]
 #define _XA_NET_WM_HANDLED_ICONS		atom[HandledIcons]
@@ -319,7 +319,8 @@ void focusview(int index);
 void killclient(Client *c);
 void applygravity(Client *c, int *xp, int *yp, int *wp, int *hp, int bw, int gravity);
 void resize(Client * c, int x, int y, int w, int h, int b);
-void restack(Monitor * m);
+void restack(void);
+void restack_client(Client *c, int stack_mode, Client *sibling);
 void configurerequest(XEvent * e);
 void moveresizekb(Client *c, int dx, int dy, int dw, int dh);
 void mousemove(Client *c);
