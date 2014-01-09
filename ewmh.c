@@ -1060,9 +1060,7 @@ clientmessage(XEvent *e) {
 			case 5: /* _NET_WM_MOVERESIZE_SIZE_BOTTOM */
 			case 6: /* _NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT */
 			case 7: /* _NET_WM_MOVERESIZE_SIZE_LEFT */
-				/* this just warps the pointer to the bottom
-				   right corner of the window */
-				mouseresize(c);
+				mouseresize_from(c, direct);
 				break;
 			case 8: /* _NET_WM_MOVERESIZE_MOVE */
 				mousemove(c);
@@ -1074,6 +1072,7 @@ clientmessage(XEvent *e) {
 				/* TODO */
 				break;
 			case 11: /* _NET_WM_MOVERESIZE_CANCEL */
+				/* intercepted while moving or resizing */
 				break;
 			}
 		} else if (message_type == atom[RequestFrameExt]) {

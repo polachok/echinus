@@ -64,7 +64,9 @@
 
 /* enums */
 enum { StrutsOn, StrutsOff, StrutsHide };		    /* struts position */
-enum { CurNormal, CurResize, CurMove, CurLast };	    /* cursor */
+enum { CurResizeTopLeft, CurResizeTop, CurResizeTopRight, CurResizeRight,
+       CurResizeBottomRight, CurResizeBottom, CurResizeBottomLeft, CurResizeLeft,
+       CurMove, CurNormal, CurLast };	    /* cursor */
 enum { Clk2Focus, SloppyFloat, AllSloppy, SloppyRaise };    /* focus model */
 
 /* function declarations */
@@ -116,6 +118,7 @@ void mappingnotify(XEvent * e);
 void monocle(Monitor * m);
 void maprequest(XEvent * e);
 void mousemove(Client * c);
+void mouseresize_from(Client *c, int from);
 void mouseresize(Client * c);
 void moveresizekb(Client *c, int dx, int dy, int dw, int dh);
 Client *nexttiled(Client * c, Monitor * m);
@@ -647,9 +650,18 @@ cleanup(void) {
 	XrmDestroyDatabase(xrdb);
 	deinitstyle();
 	XUngrabKey(dpy, AnyKey, AnyModifier, root);
-	XFreeCursor(dpy, cursor[CurNormal]);
-	XFreeCursor(dpy, cursor[CurResize]);
+
+	XFreeCursor(dpy, cursor[CurResizeTopLeft]);
+	XFreeCursor(dpy, cursor[CurResizeTop]);
+	XFreeCursor(dpy, cursor[CurResizeTopRight]);
+	XFreeCursor(dpy, cursor[CurResizeRight]);
+	XFreeCursor(dpy, cursor[CurResizeBottomRight]);
+	XFreeCursor(dpy, cursor[CurResizeBottom]);
+	XFreeCursor(dpy, cursor[CurResizeBottomLeft]);
+	XFreeCursor(dpy, cursor[CurResizeLeft]);
 	XFreeCursor(dpy, cursor[CurMove]);
+	XFreeCursor(dpy, cursor[CurNormal]);
+
 	XSetInputFocus(dpy, PointerRoot, RevertToPointerRoot, CurrentTime);
 	XSync(dpy, False);
 }
@@ -1832,9 +1844,11 @@ mousemove(Client * c) {
 }
 
 void
-mouseresize(Client * c) {
-	int ocx, ocy, nw, nh;
+mouseresize_from(Client * c, int from)
+{
+	int ocx, ocy, ocw, och, opx, opy, dx, dy, nx, ny, nw, nh;
 	int wasmax, wasmaxv, wasmaxh, wasshade, wasfill;
+
 	/* Monitor *cm; */
 	XEvent ev;
 
@@ -1842,10 +1856,15 @@ mouseresize(Client * c) {
 		return;
 	/* cm = curmonitor(); */
 
+	getpointer(&opx, &opy);
+
 	ocx = c->x;
 	ocy = c->y;
+	ocw = c->w;
+	och = c->h;
+
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
-		GrabModeAsync, None, cursor[CurResize], CurrentTime) != GrabSuccess)
+			 GrabModeAsync, None, cursor[from], CurrentTime) != GrabSuccess)
 		return;
 	if ((wasmax = c->ismax)) {
 		c->ismax = False;
@@ -1861,17 +1880,26 @@ mouseresize(Client * c) {
 		c->isshade = False;
 		resize(c, c->x, c->y, c->w, c->h, c->border);
 	}
-	XWarpPointer(dpy, None, c->win, 0, 0, 0, 0, c->w + c->border - 1,
-	    c->h + c->border - 1);
 	for (;;) {
-		XMaskEvent(dpy, MOUSEMASK | ExposureMask | SubstructureRedirectMask, &ev);
+		XMaskEvent(dpy,
+			   MOUSEMASK | ExposureMask | SubstructureNotifyMask |
+			   SubstructureRedirectMask, &ev);
 		switch (ev.type) {
 		case ButtonRelease:
-			XWarpPointer(dpy, None, c->win, 0, 0, 0, 0,
-			    c->w + c->border - 1, c->h + c->border - 1);
 			XUngrabPointer(dpy, CurrentTime);
-			while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
+			while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
 			break;
+		case ClientMessage:
+			if (ev.xclient.message_type == atom[WindowMoveResize]) {
+				if (ev.xclient.data.l[2] == 11) {
+					/* _NET_WM_MOVERESIZE_CANCEL */
+					resize(c, ocx, ocy, ocw, och, c->border);
+					break;
+				}
+				continue;
+			}
+			handler[ev.type] (&ev);
+			continue;
 		case ConfigureRequest:
 		case Expose:
 		case MapRequest:
@@ -1879,12 +1907,72 @@ mouseresize(Client * c) {
 			continue;
 		case MotionNotify:
 			XSync(dpy, False);
-			if ((nw = ev.xmotion.x - ocx - 2 * c->border + 1) <= 0)
+			dx = (opx - ev.xmotion.x);
+			dy = (opy - ev.xmotion.y);
+			switch (from) {
+			case CurResizeTopLeft:
+				nw = ocw + dx;
+				nh = och + dy;
+				constrain(c, &nw, &nh);
+				nx = ocx + ocw - nw;
+				ny = ocy + och - nh;
+				break;
+			case CurResizeTop:
+				nw = ocw;
+				nh = och + dy;
+				constrain(c, &nw, &nh);
+				nx = ocx;
+				ny = ocy + och - nh;
+				break;
+			case CurResizeTopRight:
+				nw = ocw - dx;
+				nh = och + dy;
+				constrain(c, &nw, &nh);
+				nx = ocx;
+				ny = ocy + och - nh;
+				break;
+			case CurResizeRight:
+				nw = ocw - dx;
+				nh = och;
+				constrain(c, &nw, &nh);
+				nx = ocx;
+				ny = ocy;
+				break;
+			default:
+			case CurResizeBottomRight:
+				nw = ocw - dx;
+				nh = och - dy;
+				constrain(c, &nw, &nh);
+				nx = ocx;
+				ny = ocy;
+				break;
+			case CurResizeBottom:
+				nw = ocw;
+				nh = och - dy;
+				constrain(c, &nw, &nh);
+				nx = ocx;
+				ny = ocy;
+				break;
+			case CurResizeBottomLeft:
+				nw = ocw + dx;
+				nh = och - dy;
+				constrain(c, &nw, &nh);
+				nx = ocx + ocw - nw;
+				ny = ocy;
+				break;
+			case CurResizeLeft:
+				nw = ocw + dx;
+				nh = och;
+				constrain(c, &nw, &nh);
+				nx = ocx + ocw - nw;
+				ny = ocy;
+				break;
+			}
+			if (nw < MINWIDTH)
 				nw = MINWIDTH;
-			if ((nh = ev.xmotion.y - ocy - 2 * c->border + 1) <= 0)
+			if (nh < MINHEIGHT)
 				nh = MINHEIGHT;
-			constrain(c, &nw, &nh);
-			resize(c, c->x, c->y, nw, nh, c->border);
+			resize(c, nx, ny, nw, nh, c->border);
 			save(c);
 			continue;
 		default:
@@ -1895,6 +1983,63 @@ mouseresize(Client * c) {
 	if (wasshade)
 		toggleshade(c);
 	updateatom[WindowState] (c);
+}
+
+void
+mouseresize(Client * c)
+{
+	int x, y, cx, cy, dx, dy, from;
+
+	getpointer(&x, &y);
+	cx = c->x + c->w / 2;
+	cy = c->y + c->h / 2;
+	dx = abs(cx - x);
+	dy = abs(cy - y);
+
+	if (y < cy) {
+		/* top */
+		if (x < cx) {
+			/* top-left */
+			if (dx < dy / 2) {
+				from = CurResizeTop;
+			} else if (dy < dx / 2) {
+				from = CurResizeLeft;
+			} else {
+				from = CurResizeTopLeft;
+			}
+		} else {
+			/* top-right */
+			if (dx < dy / 2) {
+				from = CurResizeTop;
+			} else if (dy < dx / 2) {
+				from = CurResizeRight;
+			} else {
+				from = CurResizeTopRight;
+			}
+		}
+	} else {
+		/* bottom */
+		if (x < cx) {
+			/* bottom-left */
+			if (dx < dy / 2) {
+				from = CurResizeBottom;
+			} else if (dy < dx / 2) {
+				from = CurResizeLeft;
+			} else {
+				from = CurResizeBottomLeft;
+			}
+		} else {
+			/* bottom-right */
+			if (dx < dy / 2) {
+				from = CurResizeBottom;
+			} else if (dy < dx / 2) {
+				from = CurResizeRight;
+			} else {
+				from = CurResizeBottomRight;
+			}
+		}
+	}
+	mouseresize_from(c, from);
 }
 
 Client *
@@ -3008,9 +3153,16 @@ setup(char *conf) {
 	};
 
 	/* init cursors */
-	cursor[CurNormal] = XCreateFontCursor(dpy, XC_left_ptr);
-	cursor[CurResize] = XCreateFontCursor(dpy, XC_bottom_right_corner);
-	cursor[CurMove] = XCreateFontCursor(dpy, XC_fleur);
+	cursor[CurResizeTopLeft]	= XCreateFontCursor(dpy, XC_top_left_corner);
+	cursor[CurResizeTop]		= XCreateFontCursor(dpy, XC_top_side);
+	cursor[CurResizeTopRight]	= XCreateFontCursor(dpy, XC_top_right_corner);
+	cursor[CurResizeRight]		= XCreateFontCursor(dpy, XC_right_side);
+	cursor[CurResizeBottomRight]	= XCreateFontCursor(dpy, XC_bottom_right_corner);
+	cursor[CurResizeBottom]		= XCreateFontCursor(dpy, XC_bottom_side);
+	cursor[CurResizeBottomLeft]	= XCreateFontCursor(dpy, XC_bottom_left_corner);
+	cursor[CurResizeLeft]		= XCreateFontCursor(dpy, XC_left_side);
+	cursor[CurMove]			= XCreateFontCursor(dpy, XC_fleur);
+	cursor[CurNormal]		= XCreateFontCursor(dpy, XC_left_ptr);
 
 	/* init modifier map */
 	modmap = XGetModifierMapping(dpy);

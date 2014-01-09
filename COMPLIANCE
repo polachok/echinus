@@ -79,10 +79,7 @@ Section 4: Other Root Window Messages
 
 _NET_CLOSE_WINDOW:			supported
 _NET_MOVERESIZE_WINDOW:			supported
-_NET_WM_MOVERESIZE:			partial
-	No keyboard move or resize.  Mouse resize is always
-	from the bottom left.
-
+_NET_WM_MOVERESIZE:			supported
 _NET_RESTACK_WINDOW:			supported
 _NET_REQUEST_FRAME_EXTENTS:		supported
 

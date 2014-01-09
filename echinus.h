@@ -324,6 +324,7 @@ void restack_client(Client *c, int stack_mode, Client *sibling);
 void configurerequest(XEvent * e);
 void moveresizekb(Client *c, int dx, int dy, int dw, int dh);
 void mousemove(Client *c);
+void mouseresize_from(Client *c, int where);
 void mouseresize(Client *c);
 void quit(const char *arg);
 void restart(const char *arg);
