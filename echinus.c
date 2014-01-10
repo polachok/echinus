@@ -1788,6 +1788,7 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 	for (;;) {
 		int wx, wy, ww, wh;
 		int ox, oy, ox2, oy2;
+		unsigned int snap;
 		Client *s;
 
 		XMaskEvent(dpy,
@@ -1823,44 +1824,46 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 			ny = ocy + (ev.xmotion.y_root - y_root);
 			nx2 = nx + c->w + 2 * c->border;
 			ny2 = ny + c->h + 2 * c->border;
-			if (abs(nx - wx) < options.snap)
-				nx += wx - nx;
-			else if (abs(nx2 - (wx + ww)) < options.snap)
-				nx += (wx + ww) - nx2;
-			else
-				for (s = stack; s; s = s->snext) {
-					ox = s->x; oy = s->y;
-					ox2 = s->x + s->w + 2 * s->border;
-					oy2 = s->y + s->h + 2 * s->border;
-					if (wind_overlap(ny, ny2, oy, oy2)) {
-						if (abs(nx - ox) < options.snap)
-							nx += ox - nx;
-						else if (abs(nx2 - ox2) < options.snap)
-							nx += ox2 - nx2;
-						else
-							continue;
-						break;
+			if ((snap = (ev.xmotion.state & ControlMask) ? 0 : options.snap)) {
+				if (abs(nx - wx) < snap)
+					nx += wx - nx;
+				else if (abs(nx2 - (wx + ww)) < snap)
+					nx += (wx + ww) - nx2;
+				else
+					for (s = stack; s; s = s->snext) {
+						ox = s->x; oy = s->y;
+						ox2 = s->x + s->w + 2 * s->border;
+						oy2 = s->y + s->h + 2 * s->border;
+						if (wind_overlap(ny, ny2, oy, oy2)) {
+							if (abs(nx - ox) < snap)
+								nx += ox - nx;
+							else if (abs(nx2 - ox2) < snap)
+								nx += ox2 - nx2;
+							else
+								continue;
+							break;
+						}
 					}
-				}
-			if (abs(ny - wy) < options.snap)
-				ny += wy - ny;
-			else if (abs(ny2 - (wy + wh)) < options.snap)
-				ny += (wy + wh) - ny2;
-			else
-				for (s = stack; s; s = s->snext) {
-					ox = s->x; oy = s->y;
-					ox2 = s->x + s->w + 2 * s->border;
-					oy2 = s->y + s->h + 2 * s->border;
-					if (wind_overlap(nx, nx2, ox, ox2)) {
-						if (abs(ny - oy) < options.snap)
-							ny += oy - ny;
-						else if (abs(ny2 - oy2) < options.snap)
-							ny += oy2 - ny2;
-						else
-							continue;
-						break;
+				if (abs(ny - wy) < snap)
+					ny += wy - ny;
+				else if (abs(ny2 - (wy + wh)) < snap)
+					ny += (wy + wh) - ny2;
+				else
+					for (s = stack; s; s = s->snext) {
+						ox = s->x; oy = s->y;
+						ox2 = s->x + s->w + 2 * s->border;
+						oy2 = s->y + s->h + 2 * s->border;
+						if (wind_overlap(nx, nx2, ox, ox2)) {
+							if (abs(ny - oy) < snap)
+								ny += oy - ny;
+							else if (abs(ny2 - oy2) < snap)
+								ny += oy2 - ny2;
+							else
+								continue;
+							break;
+						}
 					}
-				}
+			}
 			resize(c, nx, ny, c->w, c->h, c->border);
 			save(c);
 			if (m != nm) {
@@ -1934,7 +1937,10 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 		resize(c, c->x, c->y, c->w, c->h, c->border);
 	}
 	for (;;) {
-		int wx, wy, ww, wh, rx, ry;
+		int wx, wy, ww, wh, rx, ry, nx2, ny2;
+		int ox, oy, ox2, oy2;
+		unsigned int snap;
+		Client *s;
 
 		XMaskEvent(dpy,
 			   MOUSEMASK | ExposureMask | SubstructureNotifyMask |
@@ -1970,15 +1976,10 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 				constrain(c, &nw, &nh);
 				nx = ocx + ocw - nw;
 				ny = ocy + och - nh;
+				nx2 = nx + nw + 2 * c->border;
+				ny2 = ny + nh + 2 * c->border;
 				rx = nx;
 				ry = ny;
-				if ((nm = getmonitor(rx, ry))) {
-					getworkarea(nm, &wx, &wy, &ww, &wh);
-					if (abs(rx - wx) < options.snap)
-						nx += wx - rx;
-					if (abs(ry - wy) < options.snap)
-						ny += wy - ry;
-				}
 				break;
 			case CurResizeTop:
 				nw = ocw;
@@ -1986,13 +1987,10 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 				constrain(c, &nw, &nh);
 				nx = ocx;
 				ny = ocy + och - nh;
+				nx2 = nx + nw + 2 * c->border;
+				ny2 = ny + nh + 2 * c->border;
 				rx = nx + nw/2 + c->border;
 				ry = ny;
-				if ((nm = getmonitor(rx, ry))) {
-					getworkarea(nm, &wx, &wy, &ww, &wh);
-					if (abs(ry - wy) < options.snap)
-						ny += wy - ry;
-				}
 				break;
 			case CurResizeTopRight:
 				nw = ocw - dx;
@@ -2000,15 +1998,10 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 				constrain(c, &nw, &nh);
 				nx = ocx;
 				ny = ocy + och - nh;
+				nx2 = nx + nw + 2 * c->border;
+				ny2 = ny + nh + 2 * c->border;
 				rx = nx + nw + 2 * c->border;
 				ry = ny;
-				if ((nm = getmonitor(rx, ry))) {
-					getworkarea(nm, &wx, &wy, &ww, &wh);
-					if (abs(rx - (wx + ww)) < options.snap)
-						nx += (wx + ww) - rx;
-					if (abs(ry - wy) < options.snap)
-						ny += wy - ry;
-				}
 				break;
 			case CurResizeRight:
 				nw = ocw - dx;
@@ -2016,13 +2009,10 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 				constrain(c, &nw, &nh);
 				nx = ocx;
 				ny = ocy;
+				nx2 = nx + nw + 2 * c->border;
+				ny2 = ny + nh + 2 * c->border;
 				rx = nx + nw + 2 * c->border;
 				ry = ny + nh/2 + c->border;
-				if ((nm = getmonitor(rx, ry))) {
-					getworkarea(nm, &wx, &wy, &ww, &wh);
-					if (abs(rx - (wx + ww)) < options.snap)
-						nx += (wx + ww) - rx;
-				}
 				break;
 			default:
 			case CurResizeBottomRight:
@@ -2031,15 +2021,10 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 				constrain(c, &nw, &nh);
 				nx = ocx;
 				ny = ocy;
+				nx2 = nx + nw + 2 * c->border;
+				ny2 = ny + nh + 2 * c->border;
 				rx = nx + nw + 2 * c->border;
 				ry = ny + nh + 2 * c->border;
-				if ((nm = getmonitor(rx, ry))) {
-					getworkarea(nm, &wx, &wy, &ww, &wh);
-					if (abs(rx - (wx + ww)) < options.snap)
-						nx += (wx + ww) - rx;
-					if (abs(ry - (wy + wh)) < options.snap)
-						ny += (wy + wh) - ry;
-				}
 				break;
 			case CurResizeBottom:
 				nw = ocw;
@@ -2047,13 +2032,10 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 				constrain(c, &nw, &nh);
 				nx = ocx;
 				ny = ocy;
+				nx2 = nx + nw + 2 * c->border;
+				ny2 = ny + nh + 2 * c->border;
 				rx = nx + nw + 2 * c->border;
 				ry = ny + nh + 2 * c->border;
-				if ((nm = getmonitor(rx, ry))) {
-					getworkarea(nm, &wx, &wy, &ww, &wh);
-					if (abs(ry - (wy + wh)) < options.snap)
-						ny += (wy + wh) - ry;
-				}
 				break;
 			case CurResizeBottomLeft:
 				nw = ocw + dx;
@@ -2061,15 +2043,10 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 				constrain(c, &nw, &nh);
 				nx = ocx + ocw - nw;
 				ny = ocy;
+				nx2 = nx + nw + 2 * c->border;
+				ny2 = ny + nh + 2 * c->border;
 				rx = nx;
 				ry = ny + nh + 2 * c->border;
-				if ((nm = getmonitor(rx, ry))) {
-					getworkarea(nm, &wx, &wy, &ww, &wh);
-					if (abs(rx - wx) < options.snap)
-						nx += wx - rx;
-					if (abs(ry - (wy + wh)) < options.snap)
-						ny += (wy + wh) - ry;
-				}
 				break;
 			case CurResizeLeft:
 				nw = ocw + dx;
@@ -2077,14 +2054,50 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 				constrain(c, &nw, &nh);
 				nx = ocx + ocw - nw;
 				ny = ocy;
+				nx2 = nx + nw + 2 * c->border;
+				ny2 = ny + nh + 2 * c->border;
 				rx = nx;
 				ry = ny + nh/2 + c->border;
+				break;
+			}
+			if ((snap = (ev.xmotion.state & ControlMask) ? 0 : options.snap)) {
 				if ((nm = getmonitor(rx, ry))) {
 					getworkarea(nm, &wx, &wy, &ww, &wh);
-					if (abs(rx - wx) < options.snap)
+					if (abs(rx - wx) < snap)
 						nx += wx - rx;
+					else
+						for (s = stack; s; s = s->next) {
+							ox = s->x; oy = s->y;
+							ox2 = s->x + s->w + 2 * s->border;
+							oy2 = s->y + s->h + 2 * s->border;
+							if (wind_overlap(ny, ny2, oy, oy2)) {
+								if (abs(rx - ox) < snap)
+									nx += ox - rx;
+								else if (abs(rx - ox2) < snap)
+									nx += ox2 - rx;
+								else
+									continue;
+								break;
+							}
+						}
+					if (abs(ry - wy) < snap)
+						ny += wy - ry;
+					else
+						for (s = stack; s; s = s->next) {
+							ox = s->x; oy = s->y;
+							ox2 = s->x + s->w + 2 * s->border;
+							oy2 = s->y + s->h + 2 * s->border;
+							if (wind_overlap(nx, nx2, ox, ox2)) {
+								if (abs(ry - oy) < snap)
+									ny += oy - ry;
+								else if (abs(ry - oy2) < snap)
+									ny += oy2 - ry;
+								else
+									continue;
+								break;
+							}
+						}
 				}
-				break;
 			}
 			if (nw < MINWIDTH)
 				nw = MINWIDTH;
