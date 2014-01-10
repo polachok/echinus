@@ -1748,12 +1748,13 @@ curmonitor() {
 	return getmonitor(x, y);
 }
 
-/* TODO: add snapping to other windows */
 /* TODO: handle movement across EWMH desktops */
+
+static Bool wind_overlap(int min1, int max1, int min2, int max2);
 
 void
 mousemove(Client * c, unsigned int button, int x_root, int y_root) {
-	int ocx, ocy, nx, ny;
+	int ocx, ocy, nx, ny, nx2, ny2;
 	int wasmax, wasmaxv, wasmaxh, wasfill, wasshade;
 	unsigned int i;
 	XEvent ev;
@@ -1786,6 +1787,8 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 		restore(c);
 	for (;;) {
 		int wx, wy, ww, wh;
+		int ox, oy, ox2, oy2;
+		Client *s;
 
 		XMaskEvent(dpy,
 			   MOUSEMASK | ExposureMask | SubstructureNotifyMask |
@@ -1818,16 +1821,46 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 			getworkarea(nm, &wx, &wy, &ww, &wh);
 			nx = ocx + (ev.xmotion.x_root - x_root);
 			ny = ocy + (ev.xmotion.y_root - y_root);
+			nx2 = nx + c->w + 2 * c->border;
+			ny2 = ny + c->h + 2 * c->border;
 			if (abs(nx - wx) < options.snap)
-				nx = wx;
-			else if (abs((wx + ww) - (nx + c->w +
-				    2 * c->border)) < options.snap)
-				nx = wx + ww - c->w - 2 * c->border;
+				nx += wx - nx;
+			else if (abs(nx2 - (wx + ww)) < options.snap)
+				nx += (wx + ww) - nx2;
+			else
+				for (s = stack; s; s = s->snext) {
+					ox = s->x; oy = s->y;
+					ox2 = s->x + s->w + 2 * s->border;
+					oy2 = s->y + s->h + 2 * s->border;
+					if (wind_overlap(ny, ny2, oy, oy2)) {
+						if (abs(nx - ox) < options.snap)
+							nx += ox - nx;
+						else if (abs(nx2 - ox2) < options.snap)
+							nx += ox2 - nx2;
+						else
+							continue;
+						break;
+					}
+				}
 			if (abs(ny - wy) < options.snap)
-				ny = wy;
-			else if (abs((wy + wh) - (ny + c->h +
-				    2 * c->border)) < options.snap)
-				ny = wy + wh - c->h - 2 * c->border;
+				ny += wy - ny;
+			else if (abs(ny2 - (wy + wh)) < options.snap)
+				ny += (wy + wh) - ny2;
+			else
+				for (s = stack; s; s = s->snext) {
+					ox = s->x; oy = s->y;
+					ox2 = s->x + s->w + 2 * s->border;
+					oy2 = s->y + s->h + 2 * s->border;
+					if (wind_overlap(nx, nx2, ox, ox2)) {
+						if (abs(ny - oy) < options.snap)
+							ny += oy - ny;
+						else if (abs(ny2 - oy2) < options.snap)
+							ny += oy2 - ny2;
+						else
+							continue;
+						break;
+					}
+				}
 			resize(c, nx, ny, c->w, c->h, c->border);
 			save(c);
 			if (m != nm) {
