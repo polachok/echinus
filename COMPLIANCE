@@ -148,8 +148,8 @@ _NET_WM_BYPASS_COMPOSITOR:		NOT supported (n/a)
 Section 6: Window Manager Protocols
 
 _NET_WM_PING:				NOT supported (TODO)
-_NET_WM_SYNC_REQUEST:			NOT supported (TODO)
-_NET_WM_SYNC_REQUEST_COUNTER:		NOT supported (TODO)
+_NET_WM_SYNC_REQUEST:			supported
+_NET_WM_SYNC_REQUEST_COUNTER:		supported
 _NET_WM_FULLSCREEN_MONITORS:		NOT supported (TODO)
 _NET_WM_FULL_PLACEMENT:			NOT supported (n/a)
 

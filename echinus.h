@@ -5,7 +5,6 @@ enum {
 	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors,
 	WMRestart, WMShutdown,
 	StartupInfoBegin, StartupInfo, DeskLayout,
-	WindowCounter,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
 	CurDesk, WorkArea, DeskViewport, ShowingDesktop, DeskGeometry,
@@ -19,6 +18,7 @@ enum {
 	WindowTypeDnd, WindowTypeNormal,
 	StrutPartial, Strut, WindowPid, WindowName, WindowNameVisible, WindowIconName,
 	WindowIconNameVisible, WindowUserTime, UserTimeWindow, NetStartupId,
+	WindowSync, WindowCounter,
 	WindowState, WindowStateModal, WindowStateSticky, WindowStateMaxV,
 	WindowStateMaxH, WindowStateShaded, WindowStateNoTaskbar, WindowStateNoPager,
 	WindowStateHidden, WindowStateFs, WindowStateAbove, WindowStateBelow,
@@ -54,7 +54,6 @@ enum {
 #define _XA_NET_STARTUP_INFO_BEGIN		atom[StartupInfoBegin]
 #define _XA_NET_STARTUP_INFO			atom[StartupInfo]
 #define _XA_NET_DESKTOP_LAYOUT			atom[DeskLayout]
-#define _XA_NET_WM_SYNC_REQUEST_COUNTER		atom[WindowCounter]
 /* _NET_SUPPORTED following */
 #define _XA_NET_CLIENT_LIST			atom[ClientList]
 #define _XA_NET_ACTIVE_WINDOW			atom[ActiveWindow]
@@ -112,6 +111,8 @@ enum {
 #define _XA_NET_WM_USER_TIME			atom[WindowUserTime]
 #define _XA_NET_WM_USER_TIME_WINDOW		atom[UserTimeWindow]
 #define _XA_NET_STARTUP_ID			atom[NetStartupId]
+#define _XA_NET_WM_SYNC_REQUEST			atom[WindowSync]
+#define _XA_NET_WM_SYNC_REQUEST_COUNTER		atom[WindowCounter]
 
 #define _XA_NET_WM_STATE			atom[WindowState]
 #define _XA_NET_WM_STATE_MODAL			atom[WindowStateModal]
@@ -223,6 +224,7 @@ struct Client {
 	Time user_time;
 	Pixmap drawable;
 	XftDraw *xftdraw;
+	XID sync;
 };
 
 typedef struct Group Group;

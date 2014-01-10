@@ -51,6 +51,12 @@
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/randr.h>
 #endif
+#ifdef XINERAMA
+#include <X11/extensions/Xinerama.h>
+#endif
+#ifdef SYNC
+#include <X11/extensions/sync.h>
+#endif
 #include "echinus.h"
 
 /* macros */
@@ -61,8 +67,10 @@
 #define CLIENTNOPROPAGATEMASK 	(BUTTONMASK | ButtonMotionMask)
 #define FRAMEMASK               (MOUSEMASK | SubstructureRedirectMask | SubstructureNotifyMask | EnterWindowMask | LeaveWindowMask)
 
+#define EXTRANGE    16		/* all X11 extension event must fit in this range */
 
 /* enums */
+enum { XrandrBase, XineramaBase, XsyncBase, BaseLast };  /* X11 extensions */
 enum { StrutsOn, StrutsOff, StrutsHide };		    /* struts position */
 enum { CurResizeTopLeft, CurResizeTop, CurResizeTopRight, CurResizeRight,
        CurResizeBottomRight, CurResizeBottom, CurResizeBottomLeft, CurResizeLeft,
@@ -94,6 +102,7 @@ void *erealloc(void *ptr, size_t size);
 void enternotify(XEvent * e);
 void eprint(const char *errstr, ...);
 void expose(XEvent * e);
+Bool handle_event(XEvent *ev);
 void iconify(Client *c);
 void incnmaster(const char *arg);
 void focus(Client * c);
@@ -209,6 +218,8 @@ Client *stack;
 Group window_stack = { NULL, 0 };
 XContext context[PartLast];
 Cursor cursor[CurLast];
+int ebase[BaseLast];
+Bool haveext[BaseLast];
 Style style;
 Button button[LastBtn];
 View *views;
@@ -247,7 +258,7 @@ Layout layouts[] = {
 	{  NULL,	'\0',	0 },
 };
 
-void (*handler[LASTEvent]) (XEvent *) = {
+void (*handler[LASTEvent+(EXTRANGE*BaseLast)]) (XEvent *) = {
 	[ButtonPress] = buttonpress,
 	[ButtonRelease] = buttonpress,
 	[ConfigureRequest] = configurerequest,
@@ -266,7 +277,7 @@ void (*handler[LASTEvent]) (XEvent *) = {
 	[ClientMessage] = clientmessage,
 	[SelectionClear] = selectionclear,
 #ifdef XRANDR
-	[RRScreenChangeNotify] = initmonitors,
+	[RRScreenChangeNotify + LASTEvent + EXTRANGE*XrandrBase] = initmonitors,
 #endif
 };
 
@@ -1596,6 +1607,7 @@ manage(Window w, XWindowAttributes * wa) {
 	ban(c);
 	updateatom[WindowDesk] (c);
 	updateatom[WindowDeskMask] (c);
+	updateatom[WindowCounter] (c);
 	ewmh_process_net_window_state(c);
 	c->ismanaged = True;
 	updateatom[WindowState](c);
@@ -1807,12 +1819,12 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 				}
 				continue;
 			}
-			handler[ev.type] (&ev);
+			handle_event(&ev);
 			continue;
 		case ConfigureRequest:
 		case Expose:
 		case MapRequest:
-			handler[ev.type] (&ev);
+			handle_event(&ev);
 			continue;
 		case MotionNotify:
 			XSync(dpy, False);
@@ -1878,8 +1890,7 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 			}
 			continue;
 		default:
-			if (handler[ev.type])
-				handler[ev.type](&ev);
+			handle_event(&ev);
 			continue;
 		}
 		XUngrabPointer(dpy, CurrentTime);
@@ -1899,8 +1910,30 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 	updateatom[WindowState] (c);
 }
 
-/* TODO: add snapping to other windows */
+#ifdef SYNC
+void
+sync_request(Client *c, XSyncValue *val, Time time) {
+	int overflow = 0;
+	XEvent ce;
+	XSyncValue inc;
 
+	XSyncIntToValue(&inc, 1);
+	XSyncValueAdd(val, *val, inc, &overflow);
+	if (overflow)
+		XSyncMinValue(val);
+	ce.xclient.type = ClientMessage;
+	ce.xclient.message_type = atom[WMProto];
+	ce.xclient.display = dpy;
+	ce.xclient.window = c->win;
+	ce.xclient.format = 32;
+	ce.xclient.data.l[0] = atom[WindowSync];
+	ce.xclient.data.l[1] = time;
+	ce.xclient.data.l[2] = XSyncValueLow32(*val);
+	ce.xclient.data.l[3] = XSyncValueHigh32(*val);
+	ce.xclient.data.l[4] = 0;
+	XSendEvent(dpy, c->win, False, NoEventMask, &ce);
+}
+#endif
 void
 mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_root)
 {
@@ -1908,16 +1941,39 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 	int wasmax, wasmaxv, wasmaxh, wasshade, wasfill;
 	XEvent ev;
 	Monitor *m, *nm;
+	int waiting = 0;
+#ifdef SYNC
+	Time event_time = CurrentTime;
+	XSyncValue val;
+	XSyncAlarmAttributes aa;
+	XSyncAlarm alarm = None;
+
+	if (c->sync) {
+		XSyncIntToValue(&val, 0);
+
+		aa.trigger.counter = c->sync;
+		aa.trigger.wait_value = val;
+		aa.trigger.value_type = XSyncAbsolute;
+		aa.trigger.test_type = XSyncPositiveTransition;
+		aa.events = True;
+		XSyncIntToValue(&aa.delta, 1);
+
+		XSyncIntToValue(&val, 1);
+		XSyncIntToValue(&val, 1);
+		alarm = XSyncCreateAlarm(dpy, XSyncCACounter | XSyncCAValue | XSyncCAValueType |
+				XSyncCATestType | XSyncCADelta | XSyncCAEvents, &aa);
+	}
+#endif
 
 	if (c->isbastard || c->isfixed)
 		return;
 	if (!(m = getmonitor(x_root, y_root)))
 		m = curmonitor();
 
-	ocx = c->x;
-	ocy = c->y;
-	ocw = c->w;
-	och = c->h;
+	nx = ocx = c->x;
+	ny = ocy = c->y;
+	nw = ocw = c->w;
+	nh = och = c->h;
 
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 			 GrabModeAsync, None, cursor[from], CurrentTime) != GrabSuccess)
@@ -1945,6 +2001,25 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 		XMaskEvent(dpy,
 			   MOUSEMASK | ExposureMask | SubstructureNotifyMask |
 			   SubstructureRedirectMask, &ev);
+#ifdef SYNC
+		if (ev.type == XSyncAlarmNotify + ebase[XsyncBase]) {
+			XSyncAlarmNotifyEvent *ae = (typeof(ae)) &ev;
+
+#if 0
+			if (ae->alarm == alarm)
+				if (XSyncValueEqual(ae->counter_value, val))
+					waiting = 0;
+#endif
+			waiting = 0;
+			if (nw != c->w && nh != c->h) {
+				sync_request(c, &val, event_time);
+				waiting = 1;
+				resize(c, nx, ny, nw, nh, c->border);
+				save(c);
+			}
+			continue;
+		}
+#endif
 		switch (ev.type) {
 		case ButtonRelease:
 			break;
@@ -1958,17 +2033,18 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 				}
 				continue;
 			}
-			handler[ev.type] (&ev);
+			handle_event(&ev);
 			continue;
 		case ConfigureRequest:
 		case Expose:
 		case MapRequest:
-			handler[ev.type] (&ev);
+			handle_event(&ev);
 			continue;
 		case MotionNotify:
 			XSync(dpy, False);
 			dx = (x_root - ev.xmotion.x_root);
 			dy = (y_root - ev.xmotion.y_root);
+			event_time = ev.xmotion.time;
 			switch (from) {
 			case CurResizeTopLeft:
 				nw = ocw + dx;
@@ -2103,14 +2179,26 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 				nw = MINWIDTH;
 			if (nh < MINHEIGHT)
 				nh = MINHEIGHT;
-			resize(c, nx, ny, nw, nh, c->border);
-			save(c);
+			if (!waiting) {
+#ifdef SYNC
+				if (c->sync && alarm && nw != c->rw && nh != c->rh) {
+					sync_request(c, &val, event_time);
+					waiting = 1;
+				}
+#endif
+				resize(c, nx, ny, nw, nh, c->border);
+				save(c);
+			}
 			continue;
 		default:
-			if (handler[ev.type])
-				handler[ev.type](&ev);
+			handle_event(&ev);
 			continue;
 		}
+#ifdef SYNC
+		if (c->sync && alarm)
+			XSyncDestroyAlarm(dpy, alarm);
+
+#endif
 		XUngrabPointer(dpy, CurrentTime);
 		while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
 		break;
@@ -2720,11 +2808,50 @@ restack()
 		free(wl);
 }
 
+Bool
+handle_event(XEvent *ev)
+{
+	int i;
+
+	if (ev->type <= LASTEvent) {
+		if (handler[ev->type]) {
+			(handler[ev->type]) (ev);
+			return True;
+		}
+	} else
+		for (i = BaseLast - 1; i >= 0; i--) {
+			if (!haveext[i])
+				continue;
+			if (ev->type >= ebase[i] && ev->type < ebase[i] + EXTRANGE) {
+				int slot = ev->type - ebase[i] + LASTEvent + EXTRANGE * i;
+
+				if (handler[slot]) {
+					(handler[slot]) (ev);
+					return True;
+				}
+			}
+		}
+	return False;
+}
+
 void
 run(void) {
 	fd_set rd;
-	int xfd;
+	int xfd, dummy;
 	XEvent ev;
+
+#ifdef XRANDR
+	haveext[XrandrBase]
+		= XRRQueryExtension(dpy, &ebase[XrandrBase], &dummy);
+#endif
+#ifdef XINERAMA
+	haveext[XineramaBase]
+		= XineramaQueryExtension(dpy, &ebase[XineramaBase], &dummy);
+#endif
+#ifdef SYNC
+	haveext[XsyncBase]
+		= XSyncQueryExtension(dpy, &ebase[XsyncBase], &dummy);
+#endif
 
 	/* main event loop */
 	XSync(dpy, False);
@@ -2739,8 +2866,7 @@ run(void) {
 		}
 		while (XPending(dpy)) {
 			XNextEvent(dpy, &ev);
-			if (handler[ev.type])
-				(handler[ev.type]) (&ev);	/* call handler */
+			handle_event(&ev);
 		}
 	}
 }
@@ -3025,6 +3151,13 @@ initlayouts() {
 }
 
 void
+initsync() {
+#ifdef SYNC
+
+#endif
+}
+
+void
 initmonitors(XEvent * e) {
 	Monitor *m;
 #ifdef XRANDR
@@ -3033,7 +3166,7 @@ initmonitors(XEvent * e) {
 	XRRScreenResources *sr;
 	int c, n;
 	int ncrtc = 0;
-	int dummy1, dummy2, major, minor;
+	int major, minor;
 
 	/* free */
 	if (monitors) {
@@ -3050,9 +3183,10 @@ initmonitors(XEvent * e) {
 	if (!running)
 	    return;
 	/* initial Xrandr setup */
-	if (XRRQueryExtension(dpy, &dummy1, &dummy2))
-		if (XRRQueryVersion(dpy, &major, &minor) && major < 1)
-			goto no_xrandr;
+	if (!haveext[XrandrBase])
+		goto no_xrandr;
+	if (XRRQueryVersion(dpy, &major, &minor) && major < 1)
+		goto no_xrandr;
 
 	/* map virtual screens onto physical screens */
 	sr = XRRGetScreenResources(dpy, root);

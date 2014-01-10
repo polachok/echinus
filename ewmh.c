@@ -15,6 +15,16 @@
 #include <X11/Xproto.h>
 #include <X11/Xutil.h>
 #include <X11/Xft/Xft.h>
+#ifdef XRANDR
+#include <X11/extensions/Xrandr.h>
+#include <X11/extensions/randr.h>
+#endif
+#ifdef XINERAMA
+#include <X11/extensions/Xinerama.h>
+#endif
+#ifdef SYNC
+#include <X11/extensions/sync.h>
+#endif
 #include "echinus.h"
 #include "config.h"
 
@@ -38,7 +48,6 @@ char *atomnames[NATOMS] = {
 	"_NET_STARTUP_INFO_BEGIN",
 	"_NET_STARTUP_INFO",
 	"_NET_DESKTOP_LAYOUT",			/* TODO */
-	"_NET_WM_SYNC_REQUEST_COUNTER",
 	/* _NET_SUPPORTED following */
 	"_NET_CLIENT_LIST",
 	"_NET_ACTIVE_WINDOW",
@@ -96,6 +105,8 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_USER_TIME",
 	"_NET_WM_USER_TIME_WINDOW",
 	"_NET_STARTUP_ID",
+	"_NET_WM_SYNC_REQUEST",
+	"_NET_WM_SYNC_REQUEST_COUNTER",
 
 	"_NET_WM_STATE",
 	"_NET_WM_STATE_MODAL",
@@ -914,6 +925,32 @@ ewmh_process_net_window_state(Client *c) {
 }
 
 void
+ewmh_update_net_window_sync_request_counter(Client *c) {
+	int format, status;
+	long *data = NULL;
+	unsigned long extra, nitems = 0;
+	Atom real;
+	
+
+	if (!checkatom(c->win, atom[WMProto], atom[WindowSync]))
+		return;
+	status = XGetWindowProperty(dpy, c->win, atom[WindowTypeOverride], 0L, 1L,
+			False, AnyPropertyType, &real, &format, &nitems, &extra,
+			(unsigned char **)&data);
+	if (status == Success && nitems > 0) {
+#ifdef SYNC
+		XSyncValue val;
+
+		XSyncIntToValue(&val, 0);
+		XSyncSetCounter(dpy, c->sync, val);
+#endif
+		c->sync = data[0];
+	}
+	if (data)
+		XFree(data);
+}
+
+void
 ewmh_update_kde_net_window_type_override(Client *c) {
 	int format, status;
 	long *data = NULL;
@@ -1356,4 +1393,5 @@ void (*updateatom[]) (Client *) = {
 	[NetStartupId] = ewmh_update_net_startup_id,
 	[WindowTypeOverride] = ewmh_update_kde_net_window_type_override,
 	[KdeSplashProgress] = ewmh_update_kde_splash_progress,
+	[WindowCounter] = ewmh_update_net_window_sync_request_counter,
 };
