@@ -345,15 +345,67 @@ islost(Client *c) {
 	return True;
 }
 
+Bool
+ewmh_process_net_window_desktop(Client * c) {
+	long desktop, *desktops = NULL;
+	unsigned long n = 0;
+	unsigned int i;
+
+	desktops = getcard(c->win, atom[WindowDesk], &n);
+	if (n > 0) {
+		desktop = desktops[0];
+		if ((desktop & 0xffffffff) == 0xffffffff) {
+			for (i = 0; i < ntags; i++)
+				c->tags[i] = True;
+			return True;
+		} else if (desktop > 0 && desktop <= ntags) {
+			for (i = 0; i < ntags; i++)
+				c->tags[i] = False;
+			c->tags[desktop] = True;
+			return True;
+		}
+	}
+	return False;
+}
+
 void
 ewmh_update_net_window_desktop(Client *c) {
 	long i = -1;
 
+	if (!c->ismanaged)
+		if (ewmh_process_net_window_desktop(c))
+			return;
 	DPRINTF("Updating _NET_WM_DESKTOP for 0x%lx\n", c->win);
 	if (!isomni(c))
 		for (i = 0; i < ntags && !c->tags[i]; i++);
 	XChangeProperty(dpy, c->win, atom[WindowDesk], XA_CARDINAL, 32,
 		PropModeReplace, (unsigned char *) &i, 1);
+}
+
+Bool
+ewmh_process_net_window_desktop_mask(Client *c) {
+	unsigned int i, j, k, l;
+	long *desktops = NULL;
+	unsigned long n = 0;
+	Bool *prev;
+
+	desktops = getcard(c->win, atom[WindowDeskMask], &n);
+	if (n > 0) {
+		prev = ecalloc(ntags, sizeof(*prev));
+		memcpy(prev, c->tags, ntags * sizeof(*prev));
+		for (j = 0, k = 0; j < n; j++, k += 32)
+			for (i = 0, l = k; i < 32 && l < ntags; i++, l++)
+				if (desktops[j] & (1<<i))
+					c->tags[l] = True;
+		for (i = 0; i < ntags && !c->tags[i]; i++) ;
+		if (i < ntags) {
+			free(prev);
+			return True;
+		}
+		memcpy(c->tags, prev, ntags * sizeof(*prev));
+		free(prev);
+	}
+	return False;
 }
 
 void
@@ -362,6 +414,9 @@ ewmh_update_net_window_desktop_mask(Client *c) {
 	unsigned long data[longs];
 	unsigned int i, j, k, l;
 
+	if (!c->ismanaged)
+		if (ewmh_process_net_window_desktop_mask(c))
+			return;
 	DPRINTF("Updating _NET_WM_DESKTOP_MASK for 0x%lx\n", c->win);
 	for (j = 0, k = 0; j < longs; j++, k += 32)
 		for (i = 0, l = k, data[j] = 0; i < 32 && l < ntags; i++, l++)
@@ -808,8 +863,120 @@ ewmh_update_net_window_visible_icon_name(Client *c) {
 	}
 }
 
+#ifdef STARTUP_NOTIFICATION
+SnStartupSequence *
+find_startup_seq(Client *c) {
+	Notify *n = NULL;
+	SnStartupSequence *seq = NULL;
+	XClassHint ch;
+	char **argv;
+	int argc;
+	const char *binary, *wmclass;
+
+
+	if ((seq = c->seq))
+		return seq;
+	if (c->startup_id) {
+		for (n = notifies; n; n = n->next)
+			if (!strcmp(c->startup_id, sn_startup_sequence_get_id(n->seq)))
+				break;
+		if (!n) {
+			DPRINTF("Cannot find startup id '%s'!\n", c->startup_id);
+			return NULL;
+		} 
+		goto found_it;
+	}
+	if (XGetClassHint(dpy, c->win, &ch)) {
+		for (n = notifies; n; n = n->next) {
+			if (n->assigned)
+				continue;
+			if (sn_startup_sequence_get_completed(n->seq))
+				continue;
+			if ((wmclass = sn_startup_sequence_get_wmclass(n->seq))) {
+				if (ch.res_name && !strcmp(wmclass, ch.res_name))
+					break;
+				if (ch.res_class && !strcmp(wmclass, ch.res_class))
+					break;
+			}
+		}
+		if (ch.res_class)
+			XFree(ch.res_class);
+		if (ch.res_name)
+			XFree(ch.res_name);
+		if (n)
+			goto found_it;
+	}
+	if (XGetCommand(dpy, c->win, &argv, &argc)) {
+		for (n = notifies; n; n = n->next) {
+			if (n->assigned)
+				continue;
+			if (sn_startup_sequence_get_completed(n->seq))
+				continue;
+			if ((binary = sn_startup_sequence_get_binary_name(n->seq))) {
+				if (argv[0] && !strcmp(binary, argv[0]))
+					break;
+			}
+		}
+		if (argv)
+			XFreeStringList(argv);
+		if (n)
+			goto found_it;
+	}
+	if (XGetClassHint(dpy, c->win, &ch)) {
+		/* try again, case insensitive */
+		for (n = notifies; n; n = n->next) {
+			if (n->assigned)
+				continue;
+			if (sn_startup_sequence_get_completed(n->seq))
+				continue;
+			if ((wmclass = sn_startup_sequence_get_wmclass(n->seq))) {
+				if (ch.res_name && !strcasecmp(wmclass, ch.res_name))
+					break;
+				if (ch.res_class && !strcasecmp(wmclass, ch.res_class))
+					break;
+			}
+		}
+		if (ch.res_class)
+			XFree(ch.res_class);
+		if (ch.res_name)
+			XFree(ch.res_name);
+		if (n)
+			goto found_it;
+	}
+	return NULL;
+found_it:
+	n->assigned = True;
+	seq = n->seq;
+	sn_startup_sequence_ref(seq);
+	sn_startup_sequence_complete(seq);
+	c->seq = seq;
+	return seq;
+}
+#endif
+
+void
+push_client_time(Client *c, Time time)
+{
+	if (!time)
+		return;
+	if (c->hastime) {
+		if ((c->user_time != CurrentTime) &&
+		    (int) ((int) time - (int) c->user_time) > 0)
+			c->user_time = time;
+	} else {
+		c->user_time = time;
+		c->hastime = True;
+	}
+	if ((user_time == CurrentTime) ||
+	    ((int) ((int) time - (int) user_time) > 0))
+		user_time = time;
+}
+
 void
 ewmh_update_net_startup_id(Client * c) {
+#ifdef STARTUP_NOTIFICATION
+	SnStartupSequence *seq;
+#endif
 	if (c->startup_id)
 		return;
 	if (!gettextprop(c->win, atom[NetStartupId], &c->startup_id))
@@ -818,24 +985,33 @@ ewmh_update_net_startup_id(Client * c) {
 	if (c->startup_id) {
 		char *pos;
 
-		if ((pos = strstr(c->startup_id, "_TIME"))) {
-			Time time;
-
-			if ((time = atol(pos + 5)) != CurrentTime) {
-				if (c->hastime) {
-					if ((c->user_time != CurrentTime) &&
-					    (int) ((int) time - (int) c->user_time) > 0)
-						c->user_time = time;
-				} else {
-					c->user_time = time;
-					c->hastime = True;
-				}
-				if ((user_time == CurrentTime) ||
-				    ((int) ((int) time - (int) user_time) > 0))
-					user_time = time;
-			}
-		}
+		if ((pos = strstr(c->startup_id, "_TIME")))
+			push_client_time(c, atol(pos + 5));
 	}
+#ifdef STARTUP_NOTIFICATION
+	if (c->ismanaged)
+		return;
+	if ((seq = find_startup_seq(c))) {
+		int i, workspace;
+
+		if (!c->startup_id) {
+			c->startup_id = strdup(sn_startup_sequence_get_id(seq));
+			XChangeProperty(dpy, c->win, atom[NetStartupId],
+					atom[Utf8String], 8, PropModeReplace,
+					(unsigned char *) c->startup_id,
+					strlen(c->startup_id)+1);
+		}
+		push_client_time(c, sn_startup_sequence_get_timestamp(seq));
+		/* NOTE: should not override _NET_WM_DESKTOP */
+		workspace = sn_startup_sequence_get_workspace(seq);
+		if (0 <= workspace && workspace < ntags) {
+			for (i = 0; i < ntags; i++)
+				c->tags[i] = False;
+			c->tags[workspace] = True;
+		}
+		/* TODO: use screen number to select monitor */
+	}
+#endif
 }
 
 void
@@ -1138,9 +1314,13 @@ clientmessage(XEvent *e) {
 		} else if (message_type == atom[Manager]) {
 			/* TODO */
 		} else if (message_type == atom[StartupInfoBegin]) {
-			/* TODO */
+#ifdef STARTUP_NOTIFICATION
+			sn_display_process_event(sn_dpy, e);
+#endif
 		} else if (message_type == atom[StartupInfo]) {
-			/* TODO */
+#ifdef STARTUP_NOTIFICATION
+			sn_display_process_event(sn_dpy, e);
+#endif
 		}
 	} else {
 		if (0) {

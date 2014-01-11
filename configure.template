@@ -77,6 +77,17 @@ fi
 AC_MSG_CHECKING([for XSYNC support])
 AC_MSG_RESULT([${enable_xsync:-yes}])
 
+AC_ARG_ENABLE([startup-notification],
+	AC_HELP_STRING([--disable-startup-notification],
+		[Disable startup notification support @<:@default=auto@:>@]))
+if test "x$enable_startup_notification" != xno ; then
+	PKG_CHECK_MODULES([SN],[libstartup-notification-1.0],
+		[AC_DEFINE([STARTUP_NOTIFICATION],[1], [Define to 1 to support startup notification.])],
+		[enable_startup_notification=no])
+fi
+AC_MSG_CHECKING([for startup notificiation support])
+AC_MSG_RESULT([${enable_startup_notification:-yes}])
+
 AC_ARG_ENABLE([debug],
 	AC_HELP_STRING([--enable-debug],
 		[Enable debugging support @<:@default=disabled@:>@]))

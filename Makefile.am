@@ -2,12 +2,12 @@
 SUBDIRS = tests
 
 AM_CPPFLAGS = -include autoconf.h -DSYSCONFPATH=\"$(pkgconfdir)\"
-AM_CFLAGS = $(X11_CFLAGS) $(XFT_CFLAGS) $(XRANDR_CFLAGS) $(XSYNC_CFLAGS) $(XINERAMA_CFLAGS)
+AM_CFLAGS = $(X11_CFLAGS) $(XFT_CFLAGS) $(XRANDR_CFLAGS) $(XSYNC_CFLAGS) $(XINERAMA_CFLAGS) $(SN_CFLAGS)
 
 bin_PROGRAMS = echinus
 
 echinus_SOURCES = draw.c echinus.c ewmh.c parse.c config.h echinus.h
-echinus_LDADD = $(XINERAMA_LIBS) $(XSYNC_LIBS) $(XRANDR_LIBS) $(XFT_LIBS) $(X11_LIBS)
+echinus_LDADD = $(SN_LIBS) $(XINERAMA_LIBS) $(XSYNC_LIBS) $(XRANDR_LIBS) $(XFT_LIBS) $(X11_LIBS)
 
 echinus.man: echinus.1
 	/bin/cp -f $< $@

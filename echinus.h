@@ -1,5 +1,10 @@
 /* enums */
 
+#ifdef STARTUP_NOTIFICATION
+#define SN_API_NOT_YET_FROZEN
+#include <libsn/sn.h>
+#endif
+
 enum {
 	Manager, Utf8String, WMProto, WMDelete, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors,
@@ -225,6 +230,9 @@ struct Client {
 	Pixmap drawable;
 	XftDraw *xftdraw;
 	XID sync;
+#ifdef STARTUP_NOTIFICATION
+	SnStartupSequence *seq;
+#endif
 };
 
 typedef struct Group Group;
@@ -278,6 +286,15 @@ typedef struct {
 	regex_t *propregex;
 	regex_t *tagregex;
 } Rule; /* window matching rules */
+
+#ifdef STARTUP_NOTIFICATION
+typedef struct Notify Notify;
+struct Notify {
+	Notify *next;
+	SnStartupSequence *seq;
+	Bool assigned;
+};
+#endif
 
 /* ewmh.c */
 Bool checkatom(Window win, Atom bigatom, Atom smallatom);
@@ -422,3 +439,8 @@ extern unsigned int modkey;
 extern View *views;
 extern XContext context[];
 extern Time user_time;
+#ifdef STARTUP_NOTIFICATION
+extern SnDisplay *sn_dpy;
+extern SnMonitorContext *sn_ctx;
+extern Notify *notifies;
+#endif

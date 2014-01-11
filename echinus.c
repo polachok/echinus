@@ -57,6 +57,10 @@
 #ifdef SYNC
 #include <X11/extensions/sync.h>
 #endif
+#ifdef STARTUP_NOTIFICATION
+#define SN_API_NOT_YET_FROZEN
+#include <libsn/sn.h>
+#endif
 #include "echinus.h"
 
 /* macros */
@@ -204,6 +208,11 @@ void delsystray(Window win);
 int cargc;
 char **cargv;
 Display *dpy;
+#ifdef STARTUP_NOTIFICATION
+SnDisplay *sn_dpy;
+SnMonitorContext *sn_ctx;
+Notify *notifies;
+#endif
 int screen;
 Window root;
 Window selwin;
@@ -1742,6 +1751,72 @@ getmonitor(int x, int y) {
 	return NULL;
 }
 
+static int
+segm_overlap(int min1, int max1, int min2, int max2) {
+	int tmp, res = 0;
+
+	if (min1 > max1) { tmp = min1; min1 = max1; max1 = tmp; }
+	if (min2 > max2) { tmp = min2; min2 = max2; max2 = tmp; }
+	     if (min1 <= min2 && max1 >= min2)
+		// min1 min2 (max2?) max1 (max2?)
+		res = (max2 <= max1) ? max2 - min2 : max1 - min2;
+	else if (min1 <= max2 && max1 >= max2)
+		// (min2?) min1 (min2?) max2 max1
+		res = (min2 >= min1) ? max2 - min2 : max2 - min1;
+	else if (min2 <= min1 && max2 >= min1)
+		// min2 min1 (max1?) max2 (max1?)
+		res = (max1 <= max2) ? max1 - min1 : max2 - min1;
+	else if (min2 <= max1 && max2 >= max1)
+		// (min1?) min2 (min1?) max1 max2
+		res = (min1 <= min2) ? max1 - min2 : max1 - min1;
+	return res;
+}
+
+static Bool
+wind_overlap(int min1, int max1, int min2, int max2) {
+	return segm_overlap(min1, max1, min2, max2) ? True : False;
+}
+
+static int
+area_overlap(int xmin1, int ymin1, int xmax1, int ymax1,
+	     int xmin2, int ymin2, int xmax2, int ymax2)
+{
+	int w = 0, h = 0;
+
+	w = segm_overlap(xmin1, xmax1, xmin2, xmax2);
+	h = segm_overlap(ymin1, ymax1, ymin2, ymax2);
+
+	return (w && h) ? (w*h) : 0;
+}
+
+Monitor *
+bestmonitor(int xmin, int ymin, int xmax, int ymax) {
+	int a, area = 0;
+	Monitor *m, *best = NULL;
+
+	for (m = monitors; m; m = m->next) {
+		if ((a = area_overlap(xmin, ymin, xmax, ymax,
+			m->sx, m->sy, m->sx + m->sw, m->sy + m->sh)) > area) {
+			area = a;
+			best = m;
+		}
+	}
+	return best;
+}
+
+Monitor *
+findmonitor(Client *c)
+{
+	int xmin, xmax, ymin, ymax;
+
+	xmin = c->x;
+	xmax = c->x + c->w + 2 * c->border;
+	ymin = c->y;
+	ymax = c->y + c->h + 2 * c->border;
+
+	return bestmonitor(xmin, ymin, xmax, ymax);
+}
+
 Monitor *
 clientmonitor(Client * c) {
 	Monitor *m;
@@ -2296,15 +2371,33 @@ place(Client *c) {
 	Monitor *m;
 	int d = style.titleheight;
 	int wx, wy, ww, wh;
+	int x1, x2, y1, y2;
 
+	/* original static geometry */
+	x1 = c->sx;
+	x2 = c->sx + c->sw + 2 * c->sb;
+	y1 = c->sy;
+	y2 = c->sy + c->sh + 2 * c->sb;
 
-	/* XXX: do something better */
-	getpointer(&x, &y);
-	DPRINTF("%d %d\n", x, y);
-	m = getmonitor(x, y);
+	/* unfortunately this is always monitor 0 */
+	if ((m = bestmonitor(x1, y1, x2, y2))) {
+		x = c->sx;
+		y = c->sy;
+	} else if ((m = clientmonitor(c))) {
+		x = m->sx;
+		y = m->sy;
+	} else if ((m = curmonitor())) {
+		getpointer(&x, &y);
+	} else {
+		m = monitors;
+		x = m->sx;
+		y = m->sy;
+	}
 	getworkarea(m, &wx, &wy, &ww, &wh);
+
 	x = x + rand()%d - c->w/2;
 	y = y + rand()%d - c->h/2;
+
 	if (x < wx)
 		x = wx;
 	DPRINTF("%d %d\n", x, y);
@@ -2526,23 +2619,6 @@ resize(Client * c, int x, int y, int w, int h, int b) {
 	XMoveResizeWindow(dpy, c->win, 0, c->th, w, h - c->th);
 	if (!(mask & (CWWidth | CWHeight))) configure(c, None);
 	XSync(dpy, False);
-}
-
-static Bool
-wind_overlap(int min1, int max1, int min2, int max2) {
-	int tmp;
-
-	if (min1 > max1) { tmp = min1; min1 = max1; max1 = tmp; }
-	if (min2 > max2) { tmp = min2; min2 = max2; max2 = tmp; }
-	if (min1 <= min2 && max1 >= min2)
-		return True;
-	if (min1 <= max2 && max1 >= max2)
-		return True;
-	if (min2 <= min1 && max2 >= min1)
-		return True;
-	if (min2 <= max1 && max2 >= max1)
-		return True;
-	return False;
 }
 
 static Bool
@@ -2834,6 +2910,42 @@ handle_event(XEvent *ev)
 	return False;
 }
 
+#ifdef STARTUP_NOTIFICATION
+void
+sn_handler(SnMonitorEvent *event, void *dummy) {
+	Notify *n, **np;
+	SnStartupSequence *seq = NULL;
+
+	seq = sn_monitor_event_get_startup_sequence(event);
+
+	switch (sn_monitor_event_get_type(event)) {
+	case SN_MONITOR_EVENT_INITIATED:
+		n = emallocz(sizeof(*n));
+		n->seq = sn_monitor_event_get_startup_sequence(event);
+		n->assigned = False;
+		n->next = notifies;
+		notifies = n;
+		break;
+	case SN_MONITOR_EVENT_CHANGED:
+		break;
+	case SN_MONITOR_EVENT_COMPLETED:
+	case SN_MONITOR_EVENT_CANCELED:
+		seq = sn_monitor_event_get_startup_sequence(event);
+		for (n = notifies, np = &notifies; n; np = &n->next, n = *np) {
+			if (n->seq == seq) {
+				sn_startup_sequence_unref(n->seq);
+				*np = n->next;
+				free(n);
+			}
+		}
+		break;
+	}
+	if (seq)
+		sn_startup_sequence_unref(seq);
+	sn_monitor_event_unref(event);
+}
+#endif
+
 void
 run(void) {
 	fd_set rd;
@@ -2851,6 +2963,10 @@ run(void) {
 #ifdef SYNC
 	haveext[XsyncBase]
 		= XSyncQueryExtension(dpy, &ebase[XsyncBase], &dummy);
+#endif
+#ifdef STARTUP_NOTIFICATION
+	sn_dpy = sn_display_new(dpy, NULL, NULL);
+	sn_ctx = sn_monitor_context_new(sn_dpy, screen, &sn_handler, NULL, NULL);
 #endif
 
 	/* main event loop */
@@ -4297,6 +4413,10 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 	ewmh_release_user_time_window(c);
 	removegroup(c, c->leader, ClientGroup);
 	removegroup(c, c->transfor, ClientTransFor);
+#ifdef STARTUP_NOTIFICATION
+	if (c->seq)
+		sn_startup_sequence_unref(c->seq);
+#endif
 	free(c->name);
 	free(c->icon_name);
 	free(c->startup_id);
