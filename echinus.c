@@ -233,6 +233,7 @@ Style style;
 Button button[LastBtn];
 View *views;
 Key **keys;
+XKeyEvent *key_event;
 Rule **rules;
 char **tags;
 unsigned int ntags;
@@ -1368,29 +1369,91 @@ keypress(XEvent * e) {
 	for (i = 0; i < nkeys; i++)
 		if (keysym == keys[i]->keysym
 		    && CLEANMASK(keys[i]->mod) == CLEANMASK(ev->state)) {
-			if (keys[i]->func)
+			if (keys[i]->func) {
+				key_event = ev;
 				keys[i]->func(keys[i]->arg);
+				key_event = NULL;
+			}
 			XUngrabKeyboard(dpy, CurrentTime);
 		}
 }
 
 void
-killclient(Client *c) {
-	XEvent ev;
+killclient(Client * c)
+{
+	int signal = SIGTERM;
 
 	if (!c)
 		return;
-	if (checkatom(c->win, atom[WMProto], atom[WMDelete])) {
-		ev.type = ClientMessage;
-		ev.xclient.window = c->win;
-		ev.xclient.message_type = atom[WMProto];
-		ev.xclient.format = 32;
-		ev.xclient.data.l[0] = atom[WMDelete];
-		ev.xclient.data.l[1] = CurrentTime;
-		XSendEvent(dpy, c->win, False, NoEventMask, &ev);
-	} else {
-		XKillClient(dpy, c->win);
+	if (!getclient(c->win, ClientDead)) {
+		if (!getclient(c->win, ClientPing)) {
+			Time time = key_event ? key_event->time : CurrentTime;
+
+			if (checkatom(c->win, atom[WMProto], atom[WindowPing])) {
+				XEvent ev;
+
+				/* Give me a ping: one ping only.... Red October */
+				ev.type = ClientMessage;
+				ev.xclient.display = dpy;
+				ev.xclient.window = c->win;
+				ev.xclient.message_type = atom[WMProto];
+				ev.xclient.format = 32;
+				ev.xclient.data.l[0] = atom[WindowPing];
+				ev.xclient.data.l[1] = time;
+				ev.xclient.data.l[2] = c->win;
+				ev.xclient.data.l[3] = 0;
+				ev.xclient.data.l[4] = 0;
+				XSendEvent(dpy, c->win, False, NoEventMask, &ev);
+
+				XSaveContext(dpy, c->win, context[ClientPing], (XPointer) c);
+			}
+
+			if (checkatom(c->win, atom[WMProto], atom[WMDelete])) {
+				XEvent ev;
+
+				ev.type = ClientMessage;
+				ev.xclient.window = c->win;
+				ev.xclient.message_type = atom[WMProto];
+				ev.xclient.format = 32;
+				ev.xclient.data.l[0] = atom[WMDelete];
+				ev.xclient.data.l[1] = time;
+				ev.xclient.data.l[2] = 0;
+				ev.xclient.data.l[3] = 0;
+				ev.xclient.data.l[4] = 0;
+				XSendEvent(dpy, c->win, False, NoEventMask, &ev);
+				return;
+			}
+		}
+	} else
+		signal = SIGKILL;
+	/* NOTE: Before killing the client we should attempt to kill the process
+	   using the _NET_WM_PID and WM_CLIENT_MACHINE because XKillClient might
+	   still leave the process hanging. Try using SIGTERM first, following
+	   up with SIGKILL */
+	{
+		long *pids;
+		unsigned long n = 0;
+
+		pids = getcard(c->win, atom[WindowPid], &n);
+		if (n == 0 && c->leader)
+			pids = getcard(c->win, atom[WindowPid], &n);
+		if (n > 0) {
+			char hostname[64], *machine;
+			pid_t pid = pids[0];
+
+			if (gettextprop(c->win, XA_WM_CLIENT_MACHINE, &machine) || (c->leader &&
+			    gettextprop(c->leader, XA_WM_CLIENT_MACHINE, &machine))) {
+				if (!strncmp(hostname, machine, 64)) {
+					XSaveContext(dpy, c->win, context[ClientDead], (XPointer)c);
+					kill(pid, signal);
+					free(machine);
+					return;
+				}
+				free(machine);
+			}
+		}
 	}
+	XKillClient(dpy, c->win);
 }
 
 void
@@ -4410,6 +4473,8 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 	XDeleteContext(dpy, c->frame, context[ClientAny]);
 	XDeleteContext(dpy, c->win, context[ClientWindow]);
 	XDeleteContext(dpy, c->win, context[ClientAny]);
+	XDeleteContext(dpy, c->win, context[ClientPing]);
+	XDeleteContext(dpy, c->win, context[ClientDead]);
 	ewmh_release_user_time_window(c);
 	removegroup(c, c->leader, ClientGroup);
 	removegroup(c, c->transfor, ClientTransFor);

@@ -45,8 +45,6 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_FULLSCREEN_MONITORS",		/* TODO */
 	"_NET_RESTART",				/* TODO */
 	"_NET_SHUTDOWN",			/* TODO */
-	"_NET_STARTUP_INFO_BEGIN",
-	"_NET_STARTUP_INFO",
 	"_NET_DESKTOP_LAYOUT",			/* TODO */
 	/* _NET_SUPPORTED following */
 	"_NET_CLIENT_LIST",
@@ -105,6 +103,8 @@ char *atomnames[NATOMS] = {
 	"_NET_WM_USER_TIME",
 	"_NET_WM_USER_TIME_WINDOW",
 	"_NET_STARTUP_ID",
+	"_NET_STARTUP_INFO",
+	"_NET_STARTUP_INFO_BEGIN",
 	"_NET_WM_SYNC_REQUEST",
 	"_NET_WM_SYNC_REQUEST_COUNTER",
 
@@ -144,6 +144,7 @@ char *atomnames[NATOMS] = {
 
 	"_NET_SUPPORTING_WM_CHECK",
 	"_NET_CLOSE_WINDOW",
+	"_NET_WM_PING",
 	"_NET_SUPPORTED",
 
 	"_KDE_NET_SYSTEM_TRAY_WINDOWS",
@@ -1321,6 +1322,14 @@ clientmessage(XEvent *e) {
 #ifdef STARTUP_NOTIFICATION
 			sn_display_process_event(sn_dpy, e);
 #endif
+		} else if (message_type == atom[WMProto]) {
+			if (0) {
+			} else if (ev->data.l[0] == atom[WindowPing]) {
+				if ((c = getclient(ev->data.l[2], ClientPing)))
+					XDeleteContext(dpy, c->win, context[ClientPing]);
+				if ((c = getclient(ev->data.l[2], ClientDead)))
+					XDeleteContext(dpy, c->win, context[ClientDead]);
+			}
 		}
 	} else {
 		if (0) {

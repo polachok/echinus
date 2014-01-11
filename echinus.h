@@ -9,7 +9,7 @@ enum {
 	Manager, Utf8String, WMProto, WMDelete, WMState, WMChangeState,
 	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors,
 	WMRestart, WMShutdown,
-	StartupInfoBegin, StartupInfo, DeskLayout,
+	DeskLayout,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
 	CurDesk, WorkArea, DeskViewport, ShowingDesktop, DeskGeometry,
@@ -23,6 +23,7 @@ enum {
 	WindowTypeDnd, WindowTypeNormal,
 	StrutPartial, Strut, WindowPid, WindowName, WindowNameVisible, WindowIconName,
 	WindowIconNameVisible, WindowUserTime, UserTimeWindow, NetStartupId,
+	StartupInfo, StartupInfoBegin,
 	WindowSync, WindowCounter,
 	WindowState, WindowStateModal, WindowStateSticky, WindowStateMaxV,
 	WindowStateMaxH, WindowStateShaded, WindowStateNoTaskbar, WindowStateNoPager,
@@ -33,7 +34,7 @@ enum {
 	WindowActionClose, WindowActionFs, WindowActionMaxH, WindowActionMaxV,
 	WindowActionMin, WindowActionMove, WindowActionResize, WindowActionShade,
 	WindowActionStick, WindowActionFloat, WindowActionFill,
-	WMCheck, CloseWindow, Supported,
+	WMCheck, CloseWindow, WindowPing, Supported,
 	SystemTrayWindows, WindowFrameStrut, WindowForSysTray, WindowTypeOverride,
 	KdeSplashProgress, WindowChangeState,
 	NATOMS
@@ -56,8 +57,6 @@ enum {
 #define _XA_NET_WM_FULLSCREEN_MONITORS		atom[WindowFsMonitors]
 #define _XA_NET_RESTART				atom[WMRestart]
 #define _XA_NET_SHUTDOWN			atom[WMShutdown]
-#define _XA_NET_STARTUP_INFO_BEGIN		atom[StartupInfoBegin]
-#define _XA_NET_STARTUP_INFO			atom[StartupInfo]
 #define _XA_NET_DESKTOP_LAYOUT			atom[DeskLayout]
 /* _NET_SUPPORTED following */
 #define _XA_NET_CLIENT_LIST			atom[ClientList]
@@ -116,6 +115,8 @@ enum {
 #define _XA_NET_WM_USER_TIME			atom[WindowUserTime]
 #define _XA_NET_WM_USER_TIME_WINDOW		atom[UserTimeWindow]
 #define _XA_NET_STARTUP_ID			atom[NetStartupId]
+#define _XA_NET_STARTUP_INFO			atom[StartupInfo]
+#define _XA_NET_STARTUP_INFO_BEGIN		atom[StartupInfoBegin]
 #define _XA_NET_WM_SYNC_REQUEST			atom[WindowSync]
 #define _XA_NET_WM_SYNC_REQUEST_COUNTER		atom[WindowCounter]
 
@@ -155,6 +156,7 @@ enum {
 
 #define _XA_NET_SUPPORTING_WM_CHECK		atom[WMCheck]
 #define _XA_NET_CLOSE_WINDOW			atom[CloseWindow]
+#define _XA_NET_WM_PING				atom[WindowPing]
 #define _XA_NET_SUPPORTED			atom[Supported]
 
 #define _XA_KDE_NET_SYSTEM_TRAY_WINDOWS		atom[SystemTrayWindows]
@@ -167,7 +169,8 @@ enum {
 enum { LeftStrut, RightStrut, TopStrut, BotStrut, LastStrut }; /* ewmh struts */
 enum { ColFG, ColBG, ColBorder, ColButton, ColLast };	/* colors */
 enum { ClientWindow, ClientTitle, ClientFrame, ClientTimeWindow, ClientGroup,
-       ClientTransFor, ClientLeader, ClientAny, SysTrayWindows, PartLast };	/* client parts */
+       ClientTransFor, ClientLeader, ClientAny, SysTrayWindows, ClientPing,
+       ClientDead, PartLast };	/* client parts */
 enum { Iconify, Maximize, Close, LastBtn }; /* window buttons */
 
 /* typedefs */
