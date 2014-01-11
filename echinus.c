@@ -122,6 +122,8 @@ Monitor *curmonitor();
 Monitor *clientmonitor(Client * c);
 Bool isvisible(Client * c, Monitor * m);
 void initmonitors(XEvent * e);
+void freemonitors(void);
+void updatemonitors(XEvent *e, int n, Bool size, Bool full);
 void keypress(XEvent * e);
 void killclient(Client *c);
 void leavenotify(XEvent * e);
@@ -236,6 +238,7 @@ Key **keys;
 XKeyEvent *key_event;
 Rule **rules;
 char **tags;
+unsigned int nmons;
 unsigned int ntags;
 unsigned int nkeys;
 unsigned int nrules;
@@ -666,7 +669,7 @@ cleanup(void) {
 	}
 	free(tags);
 	free(keys);
-	initmonitors(NULL);
+	freemonitors();
 	/* free resource database */
 	XrmDestroyDatabase(xrdb);
 	deinitstyle();
@@ -708,25 +711,9 @@ configure(Client * c, Window above) {
 void
 configurenotify(XEvent * e) {
 	XConfigureEvent *ev = &e->xconfigure;
-	Monitor *m;
-	Client *c;
 
-	if (ev->window == root) {
-#ifdef XRANDR
-		if (XRRUpdateConfiguration((XEvent *) ev)) {
-#endif
-			initmonitors(e);
-			for (c = clients; c; c = c->next) {
-				if (c->isbastard) {
-					m = getmonitor(c->x + c->w/2, c->y);
-					memcpy(c->tags, m->seltags, ntags * sizeof(c->tags[0]));
-				}
-			}
-			updatestruts();
-#ifdef XRANDR
-		}
-#endif
-	}
+	if (ev->window == root)
+		initmonitors(e);
 }
 
 void
@@ -3329,99 +3316,262 @@ initlayouts() {
 	updateatom[DeskModes] (NULL);
 }
 
-void
-initsync() {
-#ifdef SYNC
+static Bool
+isomni(Client *c) {
+	unsigned int i;
 
-#endif
+	if (!c->issticky)
+		for (i = 0; i < ntags; i++)
+			if (!c->tags[i])
+				return False;
+	return True;
 }
 
 void
-initmonitors(XEvent * e) {
-	Monitor *m;
-#ifdef XRANDR
-	Monitor *t;
-	XRRCrtcInfo *ci;
-	XRRScreenResources *sr;
-	int c, n;
-	int ncrtc = 0;
-	int major, minor;
+freemonitors() {
+	int i;
 
-	/* free */
-	if (monitors) {
-		m = monitors;
-		do {
-			t = m->next;
-			free(m->seltags);
-			free(m->prevtags);
-			free(m);
-			m = t;
-		} while (m);
-		monitors = NULL;
+	for (i = 0; i < nmons; i++) {
+		free(monitors[i].seltags);
+		free(monitors[i].prevtags);
 	}
-	if (!running)
-	    return;
-	/* initial Xrandr setup */
-	if (!haveext[XrandrBase])
-		goto no_xrandr;
-	if (XRRQueryVersion(dpy, &major, &minor) && major < 1)
-		goto no_xrandr;
+	free(monitors);
+}
 
-	/* map virtual screens onto physical screens */
-	sr = XRRGetScreenResources(dpy, root);
-	if (sr == NULL)
-		goto no_xrandr;
-	else
-		ncrtc = sr->ncrtc;
+void
+updatemonitors(XEvent *e, int n, Bool size_update, Bool full_update)
+{
+	int i, j;
+	Client *c;
+	Monitor *m;
 
-	for (c = 0, n = 0, ci = NULL; c < ncrtc; c++) {
-		ci = XRRGetCrtcInfo(dpy, sr, sr->crtcs[c]);
-		if (ci->noutput == 0)
-			continue;
+	for (i = 0; i < n; i++)
+		monitors[i].next = &monitors[i + 1];
+	monitors[n - 1].next = NULL;
+	if (nmons != n)
+		full_update = True;
+	if (full_update)
+		size_update = True;
+	nmons = n;
+	if (e) {
+		if (full_update) {
+			for (c = clients; c; c = c->next) {
+				if (isomni(c))
+					continue;
+				if (!(m = findmonitor(c)))
+					if (!(m = curmonitor()))
+						m = monitors;
+				memcpy(c->tags, m->seltags, ntags * sizeof(*c->tags));
+			}
+			for (i = 0; i < nmons; i++) {
+				m = &monitors[i];
+				m->curtag = i % ntags;
+				for (j = 0; j < ntags; j++)
+					m->seltags[j] = False;
+				m->seltags[i % ntags] = True;
+			}
+		}
+		if (size_update) {
+			updatestruts();
+		}
+	}
+	updateatom[DeskGeometry] (NULL);
+}
 
-		if (ci != NULL && ci->mode == None)
-			fprintf(stderr, "???\n");
-		else {
-			/* If monitor is a mirror, we don't care about it */
-			if (n && ci->x == monitors->sx && ci->y == monitors->sy)
+void
+initmonitors(XEvent *e)
+{
+	int n;
+	Monitor *m;
+	Bool size_update = False, full_update = False;
+
+#ifdef XRANDR
+	if (e)
+		XRRUpdateConfiguration(e);
+#endif
+
+#ifdef XINERAMA
+	if (haveext[XineramaBase]) {
+		int i;
+		XineramaScreenInfo *si;
+
+		if (!XineramaIsActive(dpy))
+			goto no_xinerama;
+		if (!(si = XineramaQueryScreens(dpy, &n)) || n < 2)
+			goto no_xinerama;
+		for (i = 0; i < n; i++) {
+			if (i < nmons) {
+				m = &monitors[i];
+				if (m->sx != si[i].x_org) {
+					m->sx = m->wax = si[i].x_org;
+					m->mx = m->sx + m->sw/2;
+					full_update = True;
+				}
+				if (m->sy != si[i].y_org) {
+					m->sy = m->way = si[i].y_org;
+					m->my = m->sy + m->sh/2;
+					full_update = True;
+				}
+				if (m->sw != si[i].width) {
+					m->sw = m->waw = si[i].width;
+					m->mx = m->sx + m->sw/2;
+					size_update = True;
+				}
+				if (m->sh != si[i].height) {
+					m->sh = m->wah = si[i].height;
+					m->my = m->sy + m->sh/2;
+					size_update = True;
+				}
+				if (m->num != si[i].screen_number) {
+					m->num = si[i].screen_number;
+					full_update = True;
+				}
+			} else {
+				monitors = erealloc(monitors, (i+1) * sizeof(*monitors));
+				m = &monitors[i];
+				full_update = True;
+				m->index = i;
+				m->sx = m->wax = si[i].x_org;
+				m->sy = m->way = si[i].y_org;
+				m->sw = m->waw = si[i].width;
+				m->sh = m->wah = si[i].height;
+				m->mx = m->sx + m->sw/2;
+				m->my = m->sy + m->sh/2;
+				m->num = si[i].screen_number;
+				m->prevtags = ecalloc(ntags, sizeof(*m->prevtags));
+				m->seltags = ecalloc(ntags, sizeof(*m->seltags));
+				m->prevtags[m->num % ntags] = True;
+				m->seltags[m->num % ntags] = True;
+				m->curtag = m->num % ntags;
+			}
+		}
+		updatemonitors(e, n, size_update, full_update);
+		return;
+
+	}
+      no_xinerama:
+#endif
+#ifdef XRANDR
+	if (haveext[XrandrBase]) {
+		XRRScreenResources *sr;
+		int i, j;
+
+		if (!(sr = XRRGetScreenResources(dpy, root)) || sr->ncrtc < 2)
+			goto no_xrandr;
+		for (i = 0, n = 0; i < sr->ncrtc; i++) {
+			XRRCrtcInfo *ci;
+
+			if (!(ci = XRRGetCrtcInfo(dpy, sr, sr->crtcs[i])))
 				continue;
-			m = emallocz(sizeof(Monitor));
-			m->sx = m->wax = ci->x;
-			m->sy = m->way = ci->y;
-			m->sw = m->waw = ci->width;
-			m->sh = m->wah = ci->height;
-			m->mx = m->sx + m->sw/2;
-			m->my = m->sy + m->sh/2;
-			m->curtag = n;
-			m->prevtags = ecalloc(ntags, sizeof(Bool));
-			m->seltags = ecalloc(ntags, sizeof(Bool));
-			m->seltags[n] = True;
-			m->next = monitors;
-			monitors = m;
+			if (!ci->width || !ci->height)
+				continue;
+			/* skip mirrors */
+			for (j = 0; j < n; j++)
+				if (monitors[j].sx == monitors[n].sx &&
+				    monitors[j].sy == monitors[n].sy)
+					break;
+			if (j < n)
+				continue;
+
+			if (n < nmons) {
+				m = &monitors[n];
+				if (m->sx != ci->x) {
+					m->sx = m->wax = ci->x;
+					m->mx = m->sx + m->sw/2;
+					full_update = True;
+				}
+				if (m->sy != ci->y) {
+					m->sy = m->way = ci->y;
+					m->my = m->sy + m->sh/2;
+					full_update = True;
+				}
+				if (m->sw != ci->width) {
+					m->sw = m->waw = ci->width;
+					m->mx = m->sx + m->sw/2;
+					size_update = True;
+				}
+				if (m->sh != ci->height) {
+					m->sh = m->wah = ci->height;
+					m->my = m->sy + m->sh/2;
+					size_update = True;
+				}
+				if (m->num != i) {
+					m->num = i;
+					full_update = True;
+				}
+			} else {
+				monitors = erealloc(monitors, (n+1) * sizeof(*monitors));
+				m = &monitors[n];
+				full_update = True;
+				m->index = n;
+				m->sx = m->wax = ci->x;
+				m->sy = m->way = ci->y;
+				m->sw = m->waw = ci->width;
+				m->sh = m->wah = ci->height;
+				m->mx = m->sx + m->sw/2;
+				m->my = m->sy + m->sh/2;
+				m->num = i;
+				m->prevtags = ecalloc(ntags, sizeof(*m->prevtags));
+				m->seltags = ecalloc(ntags, sizeof(*m->seltags));
+				m->prevtags[m->num % ntags] = True;
+				m->seltags[m->num % ntags] = True;
+				m->curtag = m->num % ntags;
+			}
 			n++;
 		}
-		DPRINTF("There are %d monitors.\n", n);
-		XRRFreeCrtcInfo(ci);
+		updatemonitors(e, n, size_update, full_update);
+		return;
+
 	}
-	XRRFreeScreenResources(sr);
-	updateatom[DeskGeometry] (NULL);
-	return;
       no_xrandr:
 #endif
-	m = emallocz(sizeof(Monitor));
-	m->sx = m->wax = 0;
-	m->sy = m->way = 0;
-	m->sw = m->waw = DisplayWidth(dpy, screen);
-	m->sh = m->wah = DisplayHeight(dpy, screen);
-	m->mx = m->sx + m->sw/2;
-	m->my = m->sy + m->sh/2;
-	m->curtag = 0;
-	m->prevtags = ecalloc(ntags, sizeof(Bool));
-	m->seltags = ecalloc(ntags, sizeof(Bool));
-	m->seltags[0] = True;
-	m->next = NULL;
-	monitors = m;
-	updateatom[DeskGeometry] (NULL);
+	n = 1;
+	if (n <= nmons) {
+		m = &monitors[0];
+		if (m->sx != 0) {
+			m->sx = m->wax = 0;
+			m->mx = m->sx + m->sw/2;
+			full_update = True;
+		}
+		if (m->sy != 0) {
+			m->sy = m->way = 0;
+			m->my = m->sy + m->sh/2;
+			full_update = True;
+		}
+		if (m->sw != DisplayWidth(dpy, screen)) {
+			m->sw = m->waw = DisplayWidth(dpy, screen);
+			m->mx = m->sx + m->sw/2;
+			size_update = True;
+		}
+		if (m->sh != DisplayHeight(dpy, screen)) {
+			m->sh = m->wah = DisplayHeight(dpy, screen);
+			m->my = m->sy + m->sh/2;
+			size_update = True;
+		}
+		if (m->num != 0) {
+			m->num = 0;
+			full_update = True;
+		}
+	} else {
+		monitors = erealloc(monitors, n * sizeof(*monitors));
+		m = &monitors[0];
+		full_update = True;
+		m->index = 0;
+		m->sx = m->wax = 0;
+		m->sy = m->way = 0;
+		m->sw = m->waw = DisplayWidth(dpy, screen);
+		m->sh = m->wah = DisplayHeight(dpy, screen);
+		m->mx = m->sx + m->sw/2;
+		m->my = m->sy + m->sh/2;
+		m->num = 0;
+		m->prevtags = ecalloc(ntags, sizeof(*m->prevtags));
+		m->seltags = ecalloc(ntags, sizeof(*m->seltags));
+		m->prevtags[m->num % ntags] = True;
+		m->seltags[m->num % ntags] = True;
+		m->curtag = m->num % ntags;
+	}
+	updatemonitors(e, n, size_update, full_update);
+	return;
 }
 
 void
@@ -3446,17 +3596,6 @@ inittags() {
 	views = ecalloc(ntags, sizeof(View));
 	tags = ecalloc(ntags, sizeof(char *));
 	ewmh_process_net_desktop_names();
-}
-
-static Bool
-isomni(Client *c) {
-	unsigned int i;
-
-	if (!c->issticky)
-		for (i = 0; i < ntags; i++)
-			if (!c->tags[i])
-				return False;
-	return True;
 }
 
 void

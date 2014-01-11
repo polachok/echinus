@@ -183,6 +183,7 @@ struct Monitor {
 	Monitor *next;
 	int mx, my;
 	unsigned int curtag;
+	unsigned int num, index;
 };
 
 typedef struct {
