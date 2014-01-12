@@ -227,6 +227,7 @@ Monitor *monitors;
 Client *clients;
 Client *sel;
 Client *stack;
+Client *clist;
 Group window_stack = { NULL, 0 };
 XContext context[PartLast];
 Cursor cursor[CurLast];
@@ -413,7 +414,15 @@ attach(Client * c, Bool attachaside) {
 }
 
 void
-attachstack(Client * c) {
+attachclist(Client *c) {
+	Client **cp;
+	for (cp = &clist; *cp; cp = &(*cp)->cnext) ;
+	*cp = c;
+	c->cnext = NULL;
+}
+
+void
+attachstack(Client *c) {
 	c->snext = stack;
 	stack = c;
 }
@@ -872,6 +881,15 @@ detach(Client * c) {
 	if (c == clients)
 		clients = c->next;
 	c->next = c->prev = NULL;
+}
+
+void
+detachclist(Client *c) {
+	Client **cp;
+	for (cp = &clist; *cp && *cp != c; cp = &(*cp)->cnext) ;
+	assert(*cp == c);
+	*cp = c->cnext;
+	c->cnext = NULL;
 }
 
 void
@@ -1641,6 +1659,7 @@ manage(Window w, XWindowAttributes * wa) {
 	}
 
 	attach(c, options.attachaside);
+	attachclist(c);
 	updateatom[ClientList] (NULL);
 	attachstack(c);
 
@@ -4592,6 +4611,7 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 		}
 	}
 	detach(c);
+	detachclist(c);
 	updateatom[ClientList] (NULL);
 	detachstack(c);
 	if (sel == c)
@@ -4960,7 +4980,6 @@ zoom(Client *c) {
 			return;
 	detach(c);
 	attach(c, False);
-	updateatom[ClientList] (NULL);
 	arrange(curmonitor());
 	focus(c);
 }

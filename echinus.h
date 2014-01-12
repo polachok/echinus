@@ -231,6 +231,7 @@ struct Client {
 	Client *next;
 	Client *prev;
 	Client *snext;
+	Client *cnext;
 	Window win;
 	Window title;
 	Window frame;
@@ -436,6 +437,7 @@ extern Client *clients;
 extern Monitor *monitors;
 extern Client *sel;
 extern Client *stack;
+extern Client *clist;
 extern unsigned int ntags;
 extern unsigned int nkeys;
 extern unsigned int nrules;

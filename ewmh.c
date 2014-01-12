@@ -210,10 +210,10 @@ ewmh_update_net_client_list(Client * c) {
 	int i, n;
 
 	DPRINTF("%s\n", "Updating _NET_CLIENT_LIST");
-	for (n = 0, c = clients; c; c = c->next)
+	for (n = 0, c = clist; c; c = c->cnext)
 		n++;
 	if (n && (wl = calloc(n, sizeof(Window))))
-		for (i = 0, c = clients; c; c = c->next)
+		for (i = 0, c = clist; c; c = c->cnext)
 			wl[i++] = c->win;
 	XChangeProperty(dpy, root, atom[ClientList], XA_WINDOW, 32,
 			PropModeReplace, (unsigned char *) wl, n);
