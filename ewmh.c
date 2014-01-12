@@ -42,7 +42,6 @@ char *atomnames[NATOMS] = {
 	"_MOTIF_WM_HINTS",
 	"_ECHINUS_LAYOUT",
 	"_ECHINUS_SELTAGS",
-	"_NET_WM_FULLSCREEN_MONITORS",		/* TODO */
 	"_NET_RESTART",				/* TODO */
 	"_NET_SHUTDOWN",			/* TODO */
 	"_NET_DESKTOP_LAYOUT",			/* TODO */
@@ -107,6 +106,7 @@ char *atomnames[NATOMS] = {
 	"_NET_STARTUP_INFO_BEGIN",
 	"_NET_WM_SYNC_REQUEST",
 	"_NET_WM_SYNC_REQUEST_COUNTER",
+	"_NET_WM_FULLSCREEN_MONITORS",
 
 	"_NET_WM_STATE",
 	"_NET_WM_STATE_MODAL",
@@ -1128,6 +1128,33 @@ ewmh_update_net_window_sync_request_counter(Client *c) {
 }
 
 void
+ewmh_update_net_window_fs_monitors(Client *c) {
+	Monitor *m;
+	long mons[4] = { 0, };
+
+	if (!c->ismax)
+		return;
+	for (m = monitors; m && c->y != m->sy; m = m->next) ;
+	if (!m)
+		return;
+	mons[0] = m->num;
+	for (m = monitors; m && c->y + c->h != m->sy + m->sh; m = m->next) ;
+	if (!m)
+		return;
+	mons[1] = m->num;
+	for (m = monitors; m && c->x != m->sx; m = m->next) ;
+	if (!m)
+		return;
+	mons[2] = m->num;
+	for (m = monitors; m && c->x + c->w != m->sx + m->sw; m = m->next) ;
+	if (!m)
+		return;
+	mons[3] = m->num;
+	XChangeProperty(dpy, c->win, atom[WindowFsMonitors], XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *)mons, 4L);
+}
+
+void
 ewmh_update_kde_net_window_type_override(Client *c) {
 	int format, status;
 	long *data = NULL;
@@ -1220,7 +1247,30 @@ clientmessage(XEvent *e) {
 		} else if (message_type == atom[WMProto]) {
 			/* TODO */
 		} else if (message_type == atom[WindowFsMonitors]) {
-			/* TODO */
+			if (c->ismax) {
+				Monitor *mt, *mb, *ml, *mr;
+				int t, b, l, r;
+
+				mt = findmonbynum(ev->data.l[0]);
+				mb = findmonbynum(ev->data.l[1]);
+				ml = findmonbynum(ev->data.l[2]);
+				mr = findmonbynum(ev->data.l[3]);
+				if (!mt || !mb || !ml || !mr) {
+					updateatom[WindowFsMonitors] (c);
+					return;
+				}
+				t = mt->sy;
+				b = mb->sy + mb->sh;
+				l = ml->sx;
+				r = mr->sx + mr->sw;
+				if (t >= b || r >= l) {
+					updateatom[WindowFsMonitors] (c);
+					return;
+				}
+				resize(c, l, t, r - l, b - t, 0);
+			}
+			XChangeProperty(dpy, c->win, atom[WindowFsMonitors], XA_CARDINAL, 32,
+					PropModeReplace, (unsigned char *)&ev->data.l[0], 4L);
 		} else if (message_type == atom[MoveResizeWindow]) {
 			unsigned flags = (unsigned) ev->data.l[0];
 			unsigned source = ((flags >> 12) & 0x0f);
@@ -1583,4 +1633,5 @@ void (*updateatom[]) (Client *) = {
 	[WindowTypeOverride] = ewmh_update_kde_net_window_type_override,
 	[KdeSplashProgress] = ewmh_update_kde_splash_progress,
 	[WindowCounter] = ewmh_update_net_window_sync_request_counter,
+	[WindowFsMonitors] = ewmh_update_net_window_fs_monitors,
 };

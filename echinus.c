@@ -109,6 +109,7 @@ void expose(XEvent * e);
 Bool handle_event(XEvent *ev);
 void iconify(Client *c);
 void incnmaster(const char *arg);
+Monitor *findcurmonitor(Client *c);
 void focus(Client * c);
 void focusnext(Client *c);
 void focusprev(Client *c);
@@ -149,7 +150,6 @@ void restack(void);
 void restack_client(Client *c, int stack_mode, Client *sibling);
 void run(void);
 void save(Client * c);
-void save_float(Client *c);
 void restore(Client *c);
 void restore_float(Client *c);
 void scan(void);
@@ -186,6 +186,7 @@ void updategroup(Client * c, Window leader, int group);
 Window *getgroup(Client *c, Window leader, int group, unsigned int *count);
 void removegroup(Client *c, Window leader, int group);
 void updateiconname(Client * c);
+void updatefloat(Client *c, Monitor *m);
 void view(int index);
 void viewprevtag(const char *arg);	/* views previous selected tags */
 void viewlefttag(const char *arg);
@@ -348,30 +349,10 @@ applyrules(Client * c) {
 void
 arrangefloats(Monitor * m) {
 	Client *c;
-	Monitor *om;
-	int dx, dy, w, h;
 
-	for (c = stack; c; c = c->snext) {
-		if (isvisible(c, m) && !c->isbastard &&
-				(c->isfloating || MFEATURES(m, OVERLAP))
-				&& !c->ismax && !(c->isicon || c->ishidden)) {
-			DPRINTF("%d %d\n", c->fx, c->fy);
-			if (!(om = getmonitor(c->fx + c->fw/2,
-					c->fy + c->fh/2)))
-				continue;
-			dx = om->sx + om->sw - c->fx;
-			dy = om->sy + om->sh - c->fy;
-			if (dx > m->sw) 
-				dx = m->sw;
-			if (dy > m->sh) 
-				dy = m->sh;
-			w = c->fw;
-			h = c->fh;
-			constrain(c, &w, &h);
-			resize(c, m->sx + m->sw - dx, m->sy + m->sh - dy, w, h, c->fb);
-			save(c);
-		}
-	}
+	for (c = stack; c; c = c->snext)
+		if (isvisible(c, m) && !c->isbastard)
+			updatefloat(c, m);
 }
 
 static void
@@ -516,19 +497,17 @@ buttonpress(XEvent * e) {
 		if (ev->button == Button1) {
 			if (!FEATURES(curlayout, OVERLAP) && !c->isfloating)
 				togglefloating(c);
-			if (c->ismax)
-				togglemax(c);
 			mousemove(c, ev->button, ev->x_root, ev->y_root);
 		} else if (ev->button == Button2) {
 			if (!FEATURES(curlayout, OVERLAP) && c->isfloating)
 				togglefloating(c);
 			else
 				zoom(c);
+			/* passive grab */
+			XUngrabPointer(dpy, CurrentTime); // ev->time ??
 		} else if (ev->button == Button3) {
 			if (!FEATURES(curlayout, OVERLAP) && !c->isfloating)
 				togglefloating(c);
-			if (c->ismax)
-				togglemax(c);
 			mouseresize(c, ev->button, ev->x_root, ev->y_root);
 		}
 	} else if ((c = getclient(ev->window, ClientFrame))) {
@@ -824,10 +803,10 @@ configurerequest(XEvent * e) {
 	if ((c = getclient(ev->window, ClientWindow))) {
 		Monitor *cm;
 
-		if (!(cm = clientmonitor(c)))
+		if (!(cm = findcurmonitor(c)))
 			if (!(cm = curmonitor()))
 				cm = monitors;
-		if (c->isfixed || c->isfloating || MFEATURES(cm, OVERLAP)) {
+		if (c->isfixed || (!c->ismax && (c->isfloating || MFEATURES(cm, OVERLAP)))) {
 			int x = (ev->value_mask & CWX) ? ev->x : c->x;
 			int y = (ev->value_mask & CWY) ? ev->y : c->y;
 			int w = (ev->value_mask & CWWidth) ? ev->width : c->w;
@@ -1015,6 +994,24 @@ givefocus(Client * c) {
 }
 
 void
+raiseclient(Client *c) {
+	detachstack(c);
+	attachstack(c);
+	restack();
+}
+
+void
+lowerclient(Client *c) {
+	Client **cp;
+
+	for (cp = &stack; *cp; cp = &(*cp)->snext) ;
+	detachstack(c);
+	*cp = c;
+	c->snext = NULL;
+	restack();
+}
+
+void
 focus(Client * c) {
 	Client *o;
 
@@ -1024,11 +1021,6 @@ focus(Client * c) {
 		    c && (c->isbastard || (c->isicon || c->ishidden) || !isvisible(c, curmonitor())); c = c->snext);
 	if (sel && sel != c) {
 		XSetWindowBorder(dpy, sel->frame, style.color.norm[ColBorder]);
-	}
-	if (c) {
-		detachstack(c);
-		attachstack(c);
-		/* unban(c); */
 	}
 	sel = c;
 	if (!selscreen)
@@ -1083,7 +1075,7 @@ focusnext(Client *c) {
 			|| !isvisible(c, curmonitor())); c = c->next);
 	if (c) {
 		focus(c);
-		restack();
+		raiseclient(c);
 	}
 }
 
@@ -1101,7 +1093,7 @@ focusprev(Client *c) {
 	}
 	if (c) {
 		focus(c);
-		restack();
+		raiseclient(c);
 	}
 }
 
@@ -1140,11 +1132,6 @@ _hide(Client *c) {
 	if (c == sel)
 		focusnext(c);
 	c->ishidden = True;
-	save_float(c);
-#if 0
-	if (!c->isbanned)
-		ban(c);
-#endif
 	updateatom[WindowState](c);
 }
 
@@ -1310,16 +1297,19 @@ gettextprop(Window w, Atom atom, char **text) {
 
 Bool
 isvisible(Client * c, Monitor * m) {
+	Monitor *cm;
 	unsigned int i;
 
 	if (!c)
 		return False;
+	cm = findcurmonitor(c);
+	if (!cm || (m && cm != m))
+		return False;
 	if (!m) {
-		for (m = monitors; m; m = m->next) {
+		for (m = monitors; m; m = m->next)
 			for (i = 0; i < ntags; i++)
 				if (c->tags[i] && m->seltags[i])
 					return True;
-		}
 	} else {
 		for (i = 0; i < ntags; i++)
 			if (c->tags[i] && m->seltags[i])
@@ -1502,7 +1492,7 @@ manage(Window w, XWindowAttributes * wa) {
 	c->title = c->isbastard ? None : 1;
 	c->tags = ecalloc(ntags, sizeof(*c->tags));
 	c->isfocusable = c->isbastard ? False : True;
-	c->rb = c->fb = c->border = c->isbastard ? 0 : style.border;
+	c->rb = c->border = c->isbastard ? 0 : style.border;
 	/*  XReparentWindow() unmaps *mapped* windows */
 	c->ignoreunmap = wa->map_state == IsViewable ? 1 : 0;
 	mwm_process_atom(c);
@@ -1565,10 +1555,12 @@ manage(Window w, XWindowAttributes * wa) {
 	if (!c->isfloating)
 		c->isfloating = c->isfixed;
 
-	c->x = c->rx = c->fx = wa->x;
-	c->y = c->ry = c->fy = wa->y;
-	c->w = c->rw = c->fw = wa->width;
-	c->h = c->rh = c->fh = wa->height + c->th;
+	c->wasfloating = c->isfloating;
+
+	c->x = c->rx = wa->x;
+	c->y = c->ry = wa->y;
+	c->w = c->rw = wa->width;
+	c->h = c->rh = wa->height + c->th;
 
 	c->sx = wa->x;
 	c->sy = wa->y;
@@ -1728,25 +1720,9 @@ monocle(Monitor * m) {
 }
 
 void
-moveresizekb(Client *c, int dx, int dy, int dw, int dh) {
-	int wasmax, wasmaxv, wasmaxh, wasfill, wasshade;
-
+moveresizekb(Client * c, int dx, int dy, int dw, int dh) {
 	if (!c || !c->isfloating || !(dx || dy || dw || dh))
 		return;
-	if ((wasmax = c->ismax)) {
-		c->ismax = False;
-		updateframe(c);
-	}
-	if ((wasmaxv = c->ismaxv))
-		c->ismaxv = False;
-	if ((wasmaxh = c->ismaxh))
-		c->ismaxh = False;
-	if ((wasfill = c->isfill))
-		c->isfill = False;
-	if ((wasshade = c->isshade)) {
-		c->isshade = False;
-		resize(c, c->x, c->y, c->w, c->h, c->border);
-	}
 	if (dw || dh) {
 		int w, h;
 
@@ -1757,27 +1733,22 @@ moveresizekb(Client *c, int dx, int dy, int dw, int dh) {
 		w = c->w + dw;
 		h = c->h + dh;
 		constrain(c, &w, &h);
-		resize(c, c->x + dx, c->y + dy, w, h, c->border);
-		save(c);
-
-	} else {
-		if (wasmax || wasmaxv || wasmaxh || wasfill)
-			restore(c);
-
-		resize(c, c->x + dx, c->y + dy, c->w, c->h, c->border);
-
-		if (wasmax)
-			togglemax(c);
-		if (wasmaxv)
-			togglemaxv(c);
-		if (wasmaxh)
-			togglemaxh(c);
-		if (wasfill)
-			togglefill(c);
+		if (w != c->w || h != c->h) {
+			c->ismax = False;
+			c->ismaxv = False;
+			c->ismaxh = False;
+			c->isfill = False;
+			updateatom[WindowState] (c);
+		}
+		c->rx = c->x + dx;
+		c->ry = c->y + dy;
+		c->rw = w;
+		c->rh = h;
+	} if (dx || dy) {
+		c->rx += dx;
+		c->ry += dy;
 	}
-	if (wasshade)
-		toggleshade(c);
-	updateatom[WindowState] (c);
+	updatefloat(c, NULL);
 }
 
 void
@@ -1859,6 +1830,19 @@ findmonitor(Client *c)
 {
 	int xmin, xmax, ymin, ymax;
 
+	xmin = c->rx;
+	xmax = c->rx + c->rw + 2 * c->rb;
+	ymin = c->ry;
+	ymax = c->ry + c->rh + 2 * c->rb;
+
+	return bestmonitor(xmin, ymin, xmax, ymax);
+}
+
+Monitor *
+findcurmonitor(Client *c)
+{
+	int xmin, xmax, ymin, ymax;
+
 	xmin = c->x;
 	xmax = c->x + c->w + 2 * c->border;
 	ymin = c->y;
@@ -1892,7 +1876,7 @@ static Bool wind_overlap(int min1, int max1, int min2, int max2);
 void
 mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 	int ocx, ocy, nx, ny, nx2, ny2;
-	int wasmax, wasmaxv, wasmaxh, wasfill, wasshade;
+	int wasmax, wasmaxv, wasmaxh, wasfill, wasshade, moved = 0;
 	unsigned int i;
 	XEvent ev;
 	Monitor *m, *nm;
@@ -1901,27 +1885,33 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 		return;
 	if (!(m = getmonitor(x_root, y_root)))
 		m = curmonitor();
-	ocx = c->x;
-	ocy = c->y;
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 		GrabModeAsync, None, cursor[CurMove], CurrentTime) != GrabSuccess)
 		return;
-	if ((wasmax = c->ismax)) {
+	if ((wasmax = c->ismax))
 		c->ismax = False;
-		updateframe(c);
-	}
 	if ((wasmaxv = c->ismaxv))
 		c->ismaxv = False;
 	if ((wasmaxh = c->ismaxh))
 		c->ismaxh = False;
 	if ((wasfill = c->isfill))
 		c->isfill = False;
-	if ((wasshade = c->isshade)) {
+	if ((wasshade = c->isshade))
 		c->isshade = False;
-		resize(c, c->x, c->y, c->w, c->h, c->border);
+	/* If the cursor is not over the window move the window under the curor
+	 * instead of warping the pointer. */
+	if (x_root < c->rx || c->rx + c->rw < x_root) {
+		c->rx = x_root - c->rw/2 - c->rb;
+		moved = 1;
 	}
-	if (wasmax || wasmaxv || wasmaxh || wasfill)
-		restore(c);
+	if (y_root < c->ry || c->ry + c->rh < y_root) {
+		c->ry = y_root - c->rh/2 - c->rb;
+		moved = 1;
+	}
+	if (wasmax || wasmaxv || wasmaxh || wasfill || wasshade || moved)
+		updatefloat(c, m);
+	ocx = c->x;
+	ocy = c->y;
 	for (;;) {
 		int wx, wy, ww, wh;
 		int ox, oy, ox2, oy2;
@@ -2022,16 +2012,19 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 		while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
 		break;
 	}
-	if (wasmax)
-		togglemax(c);
-	if (wasmaxv)
-		togglemaxv(c);
-	if (wasmaxh)
-		togglemaxh(c);
-	if (wasfill)
-		togglefill(c);
-	if (wasshade)
-		toggleshade(c);
+	if (wasmax || wasmaxv || wasmaxh || wasfill || wasshade) {
+		if (wasmax)
+			c->ismax = True;
+		if (wasmaxv)
+			c->ismaxv = True;
+		if (wasmaxh)
+			c->ismaxh = True;
+		if (wasfill)
+			c->isfill = True;
+		if (wasshade)
+			c->isshade = True;
+		updatefloat(c, m);
+	}
 	updateatom[WindowState] (c);
 }
 
@@ -2103,20 +2096,18 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 			 GrabModeAsync, None, cursor[from], CurrentTime) != GrabSuccess)
 		return;
-	if ((wasmax = c->ismax)) {
+	if ((wasmax = c->ismax))
 		c->ismax = False;
-		updateframe(c);
-	}
 	if ((wasmaxv = c->ismaxv))
 		c->ismaxv = False;
 	if ((wasmaxh = c->ismaxh))
 		c->ismaxh = False;
 	if ((wasfill = c->isfill))
 		c->isfill = False;
-	if ((wasshade = c->isshade)) {
+	if ((wasshade = c->isshade))
 		c->isshade = False;
-		resize(c, c->x, c->y, c->w, c->h, c->border);
-	}
+	if (wasmax || wasmaxv || wasmaxh || wasfill || wasshade)
+		updatefloat(c, m);
 	for (;;) {
 		int wx, wy, ww, wh, rx, ry, nx2, ny2;
 		int ox, oy, ox2, oy2;
@@ -2328,8 +2319,10 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 		while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
 		break;
 	}
-	if (wasshade)
-		toggleshade(c);
+	if (wasshade) {
+		c->isshade = True;
+		updatefloat(c, m);
+	}
 	updateatom[WindowState] (c);
 }
 
@@ -2461,8 +2454,8 @@ place(Client *c) {
 		y = wy + wh - c->h - rand()%d;
 	DPRINTF("%d %d\n", x, y);
 
-	c->rx = c->fx = c->x = x;
-	c->ry = c->fy = c->y = y;
+	c->rx = c->x = x;
+	c->ry = c->y = y;
 }
 
 void
@@ -2620,7 +2613,7 @@ constrain(Client * c, int *wp, int *hp) {
 void
 resize(Client * c, int x, int y, int w, int h, int b) {
 	XWindowChanges wc;
-	unsigned mask;
+	unsigned mask, mask2;
 
 	if (w <= 0 || h <= 0)
 		return;
@@ -2636,7 +2629,7 @@ resize(Client * c, int x, int y, int w, int h, int b) {
 		drawclient(c);
 	}
 	DPRINTF("x = %d y = %d w = %d h = %d b = %d\n", x, y, w, h, b);
-	mask = 0;
+	mask = mask2 = 0;
 	if (c->x != x) {
 		c->x = x;
 		wc.x = x;
@@ -2657,14 +2650,18 @@ resize(Client * c, int x, int y, int w, int h, int b) {
 		wc.height = h;
 		mask |= CWHeight;
 	}
+	if (c->th && c->isshade) {
+		wc.height = c->th;
+		mask2 |= CWHeight;
+	}
 	if (c->border != b) {
 		c->border = b;
 		wc.border_width = b;
 		mask |= CWBorderWidth;
 		updateatom[WindowExtents] (c);
 	}
-	if (mask)
-		XConfigureWindow(dpy, c->frame, mask, &wc);
+	if (mask|mask2)
+		XConfigureWindow(dpy, c->frame, mask|mask2, &wc);
 	/* ICCCM 2.0 4.1.5 */
 	XMoveResizeWindow(dpy, c->win, 0, c->th, w, h - c->th);
 	if (!(mask & (CWWidth | CWHeight))) configure(c, None);
@@ -3043,11 +3040,6 @@ save(Client *c) {
 }
 
 void
-save_float(Client *c) {
-	memcpy(&c->fx, &c->x, 5 * sizeof(int));
-}
-
-void
 restore(Client *c) {
 	int w, h;
 
@@ -3057,9 +3049,156 @@ restore(Client *c) {
 	resize(c, c->rx, c->ry, w, h, c->rb);
 }
 
+Monitor *
+findmonbynum(int num) {
+	Monitor *m;
+
+	for (m = monitors; m && m->num != num; m = m->next) ;
+	return m;
+}
+
 void
-restore_float(Client *c) {
-	resize(c, c->fx, c->fy, c->fw, c->fh, c->fb);
+calc_max(Client *c, Monitor *m, Geometry *g) {
+	Monitor *fsmons[4] = { m, m, m, m };
+	long *mons;
+	unsigned long n = 0;
+	int i;
+
+	mons = getcard(c->win, atom[WindowFsMonitors], &n);
+	if (n >= 4) {
+		for (i = 0; i < 4; i++)
+			if (!(fsmons[i] = findmonbynum(mons[i])))
+				break;
+		if (i < 4 || (fsmons[0]->sy >= fsmons[1]->sy + fsmons[1]->sh) ||
+			     (fsmons[1]->sx >= fsmons[3]->sx + fsmons[3]->sw))
+			fsmons[0] = fsmons[1] = fsmons[2] = fsmons[3] = m;
+	}
+	free(mons);
+	g->x = fsmons[2]->sx;
+	g->y = fsmons[0]->sy;
+	g->w = fsmons[3]->sx + fsmons[3]->sw - g->x;
+	g->h = fsmons[1]->sy + fsmons[1]->sh - g->y;
+	g->b = 0;
+	c->th = 0;
+}
+
+void
+calc_fill(Client *c, Monitor *m, Workarea *wa, Geometry *g) {
+	int x1, x2, y1, y2, w, h;
+	int overlap;
+	Client *o;
+
+	x1 = wa->x;
+	x2 = wa->x + wa->w;
+	y1 = wa->y;
+	y2 = wa->y + wa->h;
+
+	overlap = MFEATURES(m, OVERLAP);
+
+	for (o = clients; o; o = o->next) {
+		if (!(isvisible(o, m)))
+			continue;
+		if (o == c)
+			continue;
+		if (o->isbastard)
+			continue;
+		if (!(overlap || o->isfloating))
+			continue;
+		if (o->y + o->h > g->y && o->y < g->y + g->h) {
+			if (o->x < g->x)
+				x1 = max(x1, o->x + o->w + style.border);
+			else
+				x2 = min(x2, o->x - style.border);
+		}
+		if (o->x + o->w > g->x && o->x < g->x + g->w) {
+			if (o->y < g->y)
+				y1 = max(y1, o->y + o->h + style.border);
+			else
+				y2 = max(y2, o->y - style.border);
+		}
+		DPRINTF("x1 = %d x2 = %d y1 = %d y2 = %d\n", x1, x2, y1, y2);
+	}
+	w = x2 - x1;
+	h = y2 - y1;
+	DPRINTF("x1 = %d w = %d y1 = %d h = %d\n", x1, w, y1, h);
+	if (w > g->w) {
+		g->x = x1;
+		g->w = w;
+		g->b = style.border;
+	}
+	if (h > g->h) {
+		g->y = y1;
+		g->h = h;
+		g->b = style.border;
+	}
+}
+
+void
+calc_maxv(Client *c, Workarea *wa, Geometry *g) {
+	g->y = wa->y;
+	g->h = wa->h;
+	g->b = style.border;
+}
+
+void
+calc_maxh(Client *c, Workarea *wa, Geometry *g) {
+	g->x = wa->x;
+	g->w = wa->w;
+	g->b = style.border;
+}
+
+int
+get_th(Client *c)
+{
+	int i, f = 0;
+
+	if (!c->title)
+		return 0;
+
+	for (i = 0; i < ntags; i++)
+		if (c->tags[i])
+			f += FEATURES(views[i].layout, OVERLAP);
+
+	return (!c->ismax && (c->isfloating || options.dectiled || f) ?
+				style.titleheight : 0);
+}
+
+void
+updatefloat(Client *c, Monitor *m) {
+	XEvent ev;
+	Geometry g;
+	Workarea wa;
+
+	if (!(m) && !(m = findmonitor(c)) && !(m = curmonitor(c)))
+		m = monitors;
+	if (!(c->isfloating || MFEATURES(m, OVERLAP))) {
+		updateframe(c);
+		return;
+	}
+	getworkarea(m, &wa.x, &wa.y, &wa.w, &wa.h);
+	g.x = c->rx;
+	g.y = c->ry;
+	g.h = c->rh;
+	g.w = c->rw;
+	g.b = style.border;
+	if (c->ismax)
+		calc_max(c, m, &g);
+	else if (c->isfill)
+		calc_fill(c, m, &wa, &g);
+	if (c->ismaxv)
+		calc_maxv(c, &wa, &g);
+	if (c->ismaxh)
+		calc_maxh(c, &wa, &g);
+	if (!c->ismax) {
+		c->th = get_th(c);
+		/* TODO: more than just northwest gravity */
+		constrain(c, &g.w, &g.h);
+	}
+	updateframe(c);
+	resize(c, g.x, g.y, g.w, g.h, g.b);
+	if (c->ismax)
+		updateatom[WindowFsMonitors] (c);
+	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
 }
 
 void
@@ -3203,12 +3342,9 @@ setclientstate(Client * c, long state) {
 }
 
 void
-setlayout(const char *arg) {
+setlayout(const char *arg)
+{
 	unsigned int i;
-	Client *c;
-	Bool wasfloat, nowfloat;
-
-	wasfloat = FEATURES(curlayout, OVERLAP);
 
 	if (arg) {
 		for (i = 0; i < LENGTH(layouts); i++)
@@ -3218,26 +3354,7 @@ setlayout(const char *arg) {
 			return;
 		views[curmontag].layout = &layouts[i];
 	}
-
-	nowfloat = FEATURES(curlayout, OVERLAP);
-
-	if (sel) {
-		for (c = clients; c; c = c->next) {
-			if (isvisible(c, curmonitor())) {
-				if (wasfloat)
-					save_float(c);
-				if (wasfloat != nowfloat)
-					updateframe(c);
-#if 0
-				/* why not this? */
-				if (nowfloat)
-					restore_float(c);
-				/* arrange floats below does it? */
-#endif
-			}
-		}
-		arrange(curmonitor());
-	}
+	arrange(curmonitor());
 	updateatom[ELayout] (NULL);
 	updateatom[DeskModes] (NULL);
 }
@@ -4226,127 +4343,68 @@ togglestruts(const char *arg) {
 	arrange(curmonitor());
 }
 
+Monitor *
+cantile(Client *c) {
+	Monitor *m;
+
+	if (!c || c->wasfloating)
+		return NULL;
+	if (!(m = findmonitor(c)))
+		if (!(m = curmonitor()))
+			m = monitors;
+	if (MFEATURES(m, OVERLAP))
+		return NULL;
+	return m;
+}
+
 void
 togglefloating(Client *c) {
-	if (!c)
-		return;
+	Monitor *m;
 
-	if (FEATURES(curlayout, OVERLAP))
+	if (!(m = cantile(c)))
 		return;
 
 	c->isfloating = !c->isfloating;
-	updateframe(c);
-	if (c->isfloating) {
-		/* restore last known float dimensions */
-		restore_float(c);
-	} else {
-		/* save last known float dimensions */
-		save_float(c);
-	}
-	arrange(curmonitor());
 	updateatom[WindowState](c);
-	updateatom[WindowActions](c);
+	updatefloat(c, m);
+	arrange(m);
 }
 
 Monitor *
 canresize(Client *c) {
 	Monitor *m;
 
-	if (!c)
+	if (!c || c->isfixed)
 		return NULL;
-	if (!(m = clientmonitor(c)))
+	if (!(m = findmonitor(c)))
 		if (!(m = curmonitor()))
 			m = monitors;
-	if (c->isfixed || !(c->isfloating || MFEATURES(m, OVERLAP)))
-		return NULL;
 	return m;
 }
 
-
 void
 togglefill(Client * c) {
-	XEvent ev;
 	Monitor *m;
-	Client *o;
 
 	if (!(m = canresize(c)))
 		return;
 
-	if ((c->isfill = !c->isfill)) {
-		int x1, x2, y1, y2, w, h, b;
-		int wx, wy, ww, wh;
-
-		getworkarea(m, &wx, &wy, &ww, &wh);
-
-		x1 = wx;
-		x2 = wx + ww;
-		y1 = wy;
-		y2 = wy + wh;
-
-		for (o = clients; o; o = o->next) {
-			if (!isvisible(o, m) || (o == c) || o->isbastard
-			    || !(o->isfloating || MFEATURES(m, OVERLAP)))
-				continue;
-			if (o->y + o->h > c->y && o->y < c->y + c->h) {
-				if (o->x < c->x)
-					x1 = max(x1, o->x + o->w + style.border);
-				else
-					x2 = min(x2, o->x - style.border);
-			}
-			if (o->x + o->w > c->x && o->x < c->x + c->w) {
-				if (o->y < c->y)
-					y1 = max(y1, o->y + o->h + style.border);
-				else
-					y2 = max(y2, o->y - style.border);
-			}
-			DPRINTF("x1 = %d x2 = %d y1 = %d y2 = %d\n", x1, x2, y1, y2);
-		}
-		w = x2 - x1;
-		h = y2 - y1;
-		DPRINTF("x1 = %d w = %d y1 = %d h = %d\n", x1, w, y1, h);
-		if ((w < c->w) || (h < c->h)) {
-			c->isfill = False;
-			return;
-		}
-		if (!c->ismax && !c->ismaxv && !c->ismaxh)
-			save(c);
-		b = c->border;
-		if (c->ismax) {
-			c->ismax = False;
-			updateframe(c);
-			b = c->rb;
-		}
-		c->ismax = c->ismaxv = c->ismaxh = False;
-		constrain(c, &w, &h);
-		resize(c, x1, y1, w, h, b);
-	} else
-		restore(c);
+	c->isfill = !c->isfill;
 	updateatom[WindowState] (c);
-	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;	/* XXX */
+	updatefloat(c, m);
 }
 
 void
 togglemax(Client * c) {
-	XEvent ev;
 	Monitor *m;
 
 	if (!(m = canresize(c)))
 		return;
 
 	c->ismax = !c->ismax;
-	updateframe(c);
-	if (c->ismax) {
-		int wx, wy, ww, wh;
-
-		if (!c->ismaxh && !c->ismaxv && !c->isfill)
-			save(c);
-		c->isfill  = c->ismaxh = c->ismaxv = False;
-		getworkarea(m, &wx, &wy, &ww, &wh);
-		resize(c, wx, wy, ww, wh, 0);
-	} else
-		restore(c);
 	updateatom[WindowState] (c);
-	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ; /* XXX */
+	updatefloat(c, m);
+	restack();
 }
 
 void
@@ -4356,58 +4414,21 @@ togglemaxv(Client * c) {
 	if (!(m = canresize(c)))
 		return;
 
-	if ((c->ismaxv = !c->ismaxv)) {
-		/* maximize vertical */
-		int wx, wy, ww, wh;
-		int x, y, w, h, b;
-
-		getworkarea(m, &wx, &wy, &ww, &wh);
-		b = c->ismax ? c->rb : c->border;
-		x = (c->isfill || c->ismax) ? c->rx : c->x;
-		y = wy;
-		w = (c->isfill || c->ismax) ? c->rw : c->w;
-		h = wh - 2 * b;
-
-		if (!c->ismaxh && !c->isfill && !c->ismax)
-			save(c);
-		if (c->ismax) {
-			c->ismax = False;
-			updateframe(c);
-		}
-		c->isfill = False;
-		constrain(c, &w, &h);
-		resize(c, x, y, w, h, b);
-	} else {
-		if (c->ismaxh)
-			/* demaximized vertical, leave maximize horizontal */
-			resize(c, c->x, c->ry, c->w, c->rh, c->border);
-		else
-			restore(c);
-	}
+	c->ismaxv = !c->ismaxv;
 	updateatom[WindowState] (c);
+	updatefloat(c, m);
 }
 
 void
 toggleshade(Client * c) {
 	Monitor *m;
-	XWindowChanges wc;
 
 	if (!c->title || !(m = canresize(c)))
 		return;
-	if (c->ismax)
-		togglemax(c);
-	if ((c->isshade = !c->isshade)) {
-		wc.width = c->w;
-		wc.height = c->th;
-		wc.border_width = c->border;
-	} else {
-		wc.width = c->w;
-		wc.height = c->h;
-		wc.border_width = c->border;
-	}
-	XConfigureWindow(dpy, c->frame, CWWidth | CWHeight | CWBorderWidth, &wc);
-	XSync(dpy, False);
+
+	c->isshade = !c->isshade;
 	updateatom[WindowState] (c);
+	updatefloat(c, m);
 }
 
 void
@@ -4417,36 +4438,9 @@ togglemaxh(Client *c) {
 	if (!(m = canresize(c)))
 		return;
 
-	if ((c->ismaxh = !c->ismaxh)) {
-		/* maximize horizontal */
-		int wx, wy, ww, wh;
-		int x, y, w, h, b;
-
-		getworkarea(m, &wx, &wy, &ww, &wh);
-		b = c->ismax ? c->rb : c->border;
-		x = wx;
-		y = (c->isfill || c->ismax) ? c->ry : c->y;
-		w = ww - 2 * b;
-		h = (c->isfill || c->ismax) ? c->rh : c->h;
-
-		if (!c->ismaxv && !c->isfill && !c->ismax)
-			save(c);
-		if (c->ismax) {
-			c->ismax = False;
-			updateframe(c);
-		}
-		c->isfill = False;
-		constrain(c, &w, &h);
-		resize(c, x, y, w, h, b);
-	} else {
-		if (c->ismaxv)
-			/* demaximize horizontal, leave maximize vertical */
-			resize(c, c->rx, c->y, c->rw, c->h, c->border);
-		else
-			/* demaximize */
-			restore(c);
-	}
+	c->ismaxh = !c->ismaxh;
 	updateatom[WindowState] (c);
+	updatefloat(c, m);
 }
 
 void
@@ -4695,22 +4689,14 @@ unmapnotify(XEvent * e) {
 
 void
 updateframe(Client * c) {
-	int i, f = 0;
-
 	if (!c->title)
 		return;
 
-	for (i = 0; i < ntags; i++)
-		if (c->tags[i])
-			f += FEATURES(views[i].layout, OVERLAP);
-
-	c->th = !c->ismax && (c->isfloating || options.dectiled || f) ?
-				style.titleheight : 0;
-	if (!c->th)
+	if (!(c->th = get_th(c)))
 		XUnmapWindow(dpy, c->title);
 	else
 		XMapRaised(dpy, c->title);
-	updateatom[WindowExtents](c);
+	updateatom[WindowExtents] (c);
 }
 
 void

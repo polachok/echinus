@@ -7,7 +7,7 @@
 
 enum {
 	Manager, Utf8String, WMProto, WMDelete, WMState, WMChangeState,
-	WMTakeFocus, MWMHints, ELayout, ESelTags, WindowFsMonitors,
+	WMTakeFocus, MWMHints, ELayout, ESelTags,
 	WMRestart, WMShutdown,
 	DeskLayout,
 	/* _NET_SUPPORTED following */
@@ -24,7 +24,7 @@ enum {
 	StrutPartial, Strut, WindowPid, WindowName, WindowNameVisible, WindowIconName,
 	WindowIconNameVisible, WindowUserTime, UserTimeWindow, NetStartupId,
 	StartupInfo, StartupInfoBegin,
-	WindowSync, WindowCounter,
+	WindowSync, WindowCounter, WindowFsMonitors,
 	WindowState, WindowStateModal, WindowStateSticky, WindowStateMaxV,
 	WindowStateMaxH, WindowStateShaded, WindowStateNoTaskbar, WindowStateNoPager,
 	WindowStateHidden, WindowStateFs, WindowStateAbove, WindowStateBelow,
@@ -54,7 +54,6 @@ enum {
 #define _XA_MOTIF_WM_HINTS			atom[MWMHints]
 #define _XA_ECHINUS_LAYOUT			atom[ELayout]
 #define _XA_ECHINUS_SELTAGS			atom[ESelTags]
-#define _XA_NET_WM_FULLSCREEN_MONITORS		atom[WindowFsMonitors]
 #define _XA_NET_RESTART				atom[WMRestart]
 #define _XA_NET_SHUTDOWN			atom[WMShutdown]
 #define _XA_NET_DESKTOP_LAYOUT			atom[DeskLayout]
@@ -119,6 +118,7 @@ enum {
 #define _XA_NET_STARTUP_INFO_BEGIN		atom[StartupInfoBegin]
 #define _XA_NET_WM_SYNC_REQUEST			atom[WindowSync]
 #define _XA_NET_WM_SYNC_REQUEST_COUNTER		atom[WindowCounter]
+#define _XA_NET_WM_FULLSCREEN_MONITORS		atom[WindowFsMonitors]
 
 #define _XA_NET_WM_STATE			atom[WindowState]
 #define _XA_NET_WM_STATE_MODAL			atom[WindowStateModal]
@@ -173,6 +173,14 @@ enum { ClientWindow, ClientTitle, ClientFrame, ClientTimeWindow, ClientGroup,
        ClientDead, PartLast };	/* client parts */
 enum { Iconify, Maximize, Close, LastBtn }; /* window buttons */
 
+typedef struct {
+	int x, y, w, h, b;
+} Geometry;
+
+typedef struct {
+	int x, y, w, h;
+} Workarea;
+
 /* typedefs */
 typedef struct Monitor Monitor;
 struct Monitor {
@@ -209,7 +217,6 @@ struct Client {
 	int x, y, w, h, border;
 	int rx, ry, rw, rh, rb;	/* restore geometry */
 	int sx, sy, sw, sh, sb; /* static geometry */
-	int fx, fy, fw, fh, fb; /* floating geometry */
 	int th;			/* title height */
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
 	int minax, maxax, minay, maxay, gravity;
@@ -334,6 +341,7 @@ Bool gettextprop(Window w, Atom atom, char **text);
 void iconify(Client *c);
 void incnmaster(const char *arg);
 Bool isvisible(Client * c, Monitor * m);
+Monitor *findmonbynum(int num);
 void focus(Client * c);
 void focusicon(const char *arg);
 void focusnext(Client *c);
