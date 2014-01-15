@@ -10,9 +10,15 @@ enum {
 	WMTakeFocus, MWMHints, ELayout, ESelTags,
 	WMRestart, WMShutdown,
 	DeskLayout,
+	/* _WIN_PROTOCOLS following */
+	WinAppState, WinAreaCount, WinArea, WinClientList, WinClientMoving,
+	WinButtonProxy, WinExpandedSize, WinFocus, WinHints, WinIcons, WinLayer, WinMaxGeom,
+	WinProtocols, WinResize, WinState, WinCheck, WinWorkarea, WinWorkCount, WinWorkNames,
+	WinWorkspace, WinWorkspaces, SwmVroot,
 	/* _NET_SUPPORTED following */
 	ClientList, ActiveWindow, WindowDesk, WindowDeskMask, NumberOfDesk, DeskNames,
-	CurDesk, WorkArea, DeskViewport, ShowingDesktop, DeskGeometry,
+	CurDesk, WorkArea, DeskViewport, ShowingDesktop, DeskGeometry, DesksVisible,
+	MonitorGeometry,
 	DeskModes, DeskModeFloating, DeskModeTiled, DeskModeBottomTiled, DeskModeMonocle,
 	DeskModeTopTiled, DeskModeLeftTiled,
 	ClientListStacking, WindowOpacity, MoveResizeWindow, RestackWindow, WindowMoveResize,
@@ -57,6 +63,29 @@ enum {
 #define _XA_NET_RESTART				atom[WMRestart]
 #define _XA_NET_SHUTDOWN			atom[WMShutdown]
 #define _XA_NET_DESKTOP_LAYOUT			atom[DeskLayout]
+/* _WIN_PROTOCOLS following */
+#define _XA_WIN_APP_STATE			atom[WinAppState]
+#define _XA_WIN_AREA_COUNT			atom[WinAreaCount]
+#define _XA_WIN_AREA				atom[WinArea]
+#define _XA_WIN_CLIENT_LIST			atom[WinClientList]
+#define _XA_WIN_CLIENT_MOVING			atom[WinClientMoving]
+#define _XA_WIN_DESKTOP_BUTTON_PROXY		atom[WinButtonProxy]
+#define _XA_WIN_EXPANDED_SIZE			atom[WinExpandedSize]
+#define _XA_WIN_FOCUS				atom[WinFocus]
+#define _XA_WIN_HINTS				atom[WinHints]
+#define _XA_WIN_ICONS				atom[WinIcons]
+#define _XA_WIN_LAYER				atom[WinLayer]
+#define _XA_WIN_MAXIMIZED_GEOMETRY		atom[WinMaxGeom]
+#define _XA_WIN_PROTOCOLS			atom[WinProtocols]
+#define _XA_WIN_RESIZE				atom[WinResize]
+#define _XA_WIN_STATE				atom[WinState]
+#define _XA_WIN_SUPPORTING_WM_CHECK		atom[WinCheck]
+#define _XA_WIN_WORKAREA			atom[WinWorkarea]
+#define _XA_WIN_WORKSPACE_COUNT			atom[WinWorkCount]
+#define _XA_WIN_WORKSPACE_NAMES			atom[WinWorkNames]
+#define _XA_WIN_WORKSPACE			atom[WinWorkspace]
+#define _XA_WIN_WORKSPACES			atom[WinWorkspaces]
+#define _XA_SWM_VROOT				atom[SwmVroot]
 /* _NET_SUPPORTED following */
 #define _XA_NET_CLIENT_LIST			atom[ClientList]
 #define _XA_NET_ACTIVE_WINDOW			atom[ActiveWindow]
@@ -69,6 +98,8 @@ enum {
 #define _XA_NET_DESKTOP_VIEWPORT		atom[DeskViewport]
 #define _XA_NET_SHOWING_DESKTOP			atom[ShowingDesktop]
 #define _XA_NET_DESKTOP_GEOMETRY		atom[DeskGeometry]
+#define _XA_NET_VISIBLE_DESKTOPS		atom[DesksVisible]
+#define _XA_NET_MONITOR_GEOMETRY		atom[MonitorGeometry]
 
 #define _XA_NET_DESKTOP_MODES			atom[DeskModes]
 #define _XA_NET_DESKTOP_MODE_FLOATING		atom[DeskModeFloating]

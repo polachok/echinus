@@ -447,10 +447,24 @@ buttonpress(XEvent * e) {
 	Client *c;
 	int i;
 	XButtonPressedEvent *ev = &e->xbutton;
+	static int button_states[Button5+1] = { 0, };
 
 	if (ev->window == root) {
-		if (ev->type != ButtonRelease)
-			return;
+		/* _WIN_DESKTOP_BUTTON_PROXY */
+		/* modifiers or not interested in press */
+		if (ev->type == ButtonPress) {
+			if (ev->state || ev->button < Button3 || ev->button > Button5) {
+				button_states[ev->button] = ev->state;
+				XUngrabPointer(dpy, CurrentTime);
+				XSendEvent(dpy, selwin, False, SubstructureNotifyMask, e);
+				return;
+			}
+		} else if (ev->type == ButtonRelease) {
+			if (button_states[ev->button] || ev->button < Button3 || ev->button > Button5) {
+				XSendEvent(dpy, selwin, False, SubstructureNotifyMask, e);
+				return;
+			}
+		}
 		switch (ev->button) {
 		case Button3:
 			spawn(options.command);
@@ -826,6 +840,7 @@ configurerequest(XEvent * e) {
 			resize(c, x, y, w, h, b);
 			if (ev->value_mask & (CWX | CWY | CWWidth | CWHeight | CWBorderWidth))
 				save(c);
+			/* TODO: check _WIN_CLIENT_MOVING and handle moves between monitors */
 		} else {
 			int b = (ev->value_mask & CWBorderWidth) ? ev->border_width : c->border;
 
@@ -886,6 +901,7 @@ detach(Client * c) {
 void
 detachclist(Client *c) {
 	Client **cp;
+
 	for (cp = &clist; *cp && *cp != c; cp = &(*cp)->cnext) ;
 	assert(*cp == c);
 	*cp = c->cnext;
@@ -893,11 +909,13 @@ detachclist(Client *c) {
 }
 
 void
-detachstack(Client * c) {
-	Client **tc;
+detachstack(Client *c) {
+	Client **cp;
 
-	for (tc = &stack; *tc && *tc != c; tc = &(*tc)->snext);
-	*tc = c->snext;
+	for (cp = &stack; *cp && *cp != c; cp = &(*cp)->snext);
+	assert(*cp == c);
+	*cp = c->snext;
+	c->snext = NULL;
 }
 
 void *
@@ -1661,6 +1679,7 @@ manage(Window w, XWindowAttributes * wa) {
 	attach(c, options.attachaside);
 	attachclist(c);
 	updateatom[ClientList] (NULL);
+	updateatom[ClientListStacking] (NULL);
 	attachstack(c);
 
 	twa.event_mask = CLIENTMASK;
@@ -1689,8 +1708,14 @@ manage(Window w, XWindowAttributes * wa) {
 		updategeom(NULL);
 	}
 	arrange(NULL);
-	if (!WTCHECK(c, WindowTypeDesk) && focusnew)
-		focus(NULL);
+	if (!WTCHECK(c, WindowTypeDesk) && focusnew) {
+		focus(c);
+		raiseclient(c);
+	} else {
+		focus(sel);
+		if (sel)
+			raiseclient(sel);
+	}
 }
 
 void
@@ -2434,12 +2459,23 @@ place(Client *c) {
 	int d = style.titleheight;
 	int wx, wy, ww, wh;
 	int x1, x2, y1, y2;
+	unsigned long n;
+	long *s = NULL;
 
-	/* original static geometry */
-	x1 = c->sx;
-	x2 = c->sx + c->sw + 2 * c->sb;
-	y1 = c->sy;
-	y2 = c->sy + c->sh + 2 * c->sb;
+	s = getcard(c->win, atom[WinExpandedSize], &n);
+	if (n >= 4) {
+		/* _WIN_EXPANDED_SIZE: x, y, width, height */
+		x1 = s[0];
+		x2 = s[0] + s[2] + 2 * c->sb;
+		y1 = s[1];
+		y2 = s[1] + s[3] + 2 * c->sb;
+	} else {
+		/* original static geometry */
+		x1 = c->sx;
+		x2 = c->sx + c->sw + 2 * c->sb;
+		y1 = c->sy;
+		y2 = c->sy + c->sh + 2 * c->sb;
+	}
 
 	/* unfortunately this is always monitor 0 */
 	if ((m = bestmonitor(x1, y1, x2, y2))) {
@@ -2530,6 +2566,8 @@ propertynotify(XEvent * e) {
 				updateatom[WindowUserTime] (c);
 			} else if (ev->atom == atom[WindowCounter]) {
 				/* TODO */
+			} else if (ev->atom == atom[WinHints]) {
+				updateatom[WinHints] (c);
 			}
 		}
 	} else if ((c = getclient(ev->window, ClientTimeWindow))) {
@@ -2840,6 +2878,7 @@ restack()
 		return;
 	for (n = 0, c = stack; c; c = c->snext, n++) ;
 	if (!n) {
+		updateatom[ClientList] (NULL);
 		updateatom[ClientListStacking] (NULL);
 		return;
 	}
@@ -2942,6 +2981,7 @@ restack()
 		XRestackWindows(dpy, wl, n);
 		XFlush(dpy);
 
+		updateatom[ClientList] (NULL);
 		updateatom[ClientListStacking] (NULL);
 
 		XSync(dpy, False);
@@ -3581,6 +3621,7 @@ initmonitors(XEvent *e)
 				m->curtag = m->num % ntags;
 			}
 		}
+		XFree(si);
 		updatemonitors(e, n, size_update, full_update);
 		return;
 
@@ -4613,6 +4654,7 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 	detach(c);
 	detachclist(c);
 	updateatom[ClientList] (NULL);
+	updateatom[ClientListStacking] (NULL);
 	detachstack(c);
 	if (sel == c)
 		focus(NULL);

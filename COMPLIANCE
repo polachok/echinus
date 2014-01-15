@@ -54,7 +54,7 @@ Section 5: Session Management
 
 ------------------------------------------------------------------------
 
-EWMH Compliance: Version 1.5
+EWMH Compliance: Version 1.5 Draft 1
 See http://www.freedesktop.org/Standards/wm-spec
 
 Section 3: Root Window Properties (and Related Messages)
@@ -185,4 +185,65 @@ _KDE_WM_CHANGE_STATE:			supported
 
 ------------------------------------------------------------------------
 
+GNOME/WMH WinWM:
+
+1.1 Detection of GNOME compliant window manager
+
+_WIN_SUPPORTING_WM_CHECK		supported
+
+1.2 Listing GNOME window manager compliance
+
+_WIN_PROTOCOLS				supported
+
+1.3 Providing shortcuts managed clients
+
+_WIN_CLIENT_LIST			supported
+
+1.4 Providing multiple/virtual desktop information
+
+_WIN_WORKSPACE_COUNT			supported
+_WIN_WORKSPACE				supported
+_WIN_WORKSPACE_NAMES			supported
+
+2.1 Initial properties set on client window
+
+_WIN_LAYER				supported
+_WIN_STATE				supported
+_WIN_WORKSPACE				supported
+_WIN_EXPANDED_SIZE			supported
+_WIN_HINTS				supported
+
+2.2 State change requests
+
+_WIN_LAYER				supported
+_WIN_STATE				supported
+_WIN_WORKSPACE				supported
+
+3.1 Button press and release forwarding for the desktop window.
+
+_WIN_DESKTOP_BUTTON_PROXY		supported
+
+3.2 Desktop areas as opposed to multiple desktops.
+
+_WIN_AREA_COUNT				supported
+_WIN_AREA				supported
+
+mentioned but not defined by wm-comp
+
+_WIN_APP_STATE				supported
+_WIN_ICONS				supported (trivial)
+
+not mentioned by wm-comp but used by window managers, e.g. icewm
+
+_WIN_WORKAREA				supported
+_WIN_WORKSPACES				supported
+_WIN_CLIENT_MOVING			supported (trivial)
+
+others
+
+_WIN_MAXIMIZED_GEOMETRY			supported
+_WIN_RESIZE				NOT supported (todo)
+_WIN_FOCUS				supported
+
+------------------------------------------------------------------------
 

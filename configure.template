@@ -85,7 +85,7 @@ if test "x$enable_startup_notification" != xno ; then
 		[AC_DEFINE([STARTUP_NOTIFICATION],[1], [Define to 1 to support startup notification.])],
 		[enable_startup_notification=no])
 fi
-AC_MSG_CHECKING([for startup notificiation support])
+AC_MSG_CHECKING([for startup notification support])
 AC_MSG_RESULT([${enable_startup_notification:-yes}])
 
 AC_ARG_ENABLE([debug],
