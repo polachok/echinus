@@ -92,7 +92,7 @@ void buttonpress(XEvent * e);
 void bstack(Monitor * m);
 void tstack(Monitor * m);
 void checkotherwm(void);
-void cleanup(void);
+void cleanup(WithdrawCause cause);
 void compileregs(void);
 void configure(Client * c, Window above);
 void configurenotify(XEvent * e);
@@ -175,7 +175,7 @@ void toggleshowing(void);
 void togglehidden(Client *c);
 void focusview(int index);
 void unban(Client * c);
-void unmanage(Client * c, Bool reparented, Bool destroyed);
+void unmanage(Client * c, WithdrawCause cause);
 void updategeom(Monitor * m);
 void updatestruts(void);
 void unmapnotify(XEvent * e);
@@ -664,10 +664,10 @@ checkotherwm(void) {
 }
 
 void
-cleanup(void) {
+cleanup(WithdrawCause cause) {
 	while (stack) {
 		unban(stack);
-		unmanage(stack, False, False);
+		unmanage(stack, cause);
 	}
 	free(tags);
 	free(keys);
@@ -877,7 +877,7 @@ destroynotify(XEvent * e) {
 
 	if ((c = getclient(ev->window, ClientWindow))) {
 		DPRINTF("unmanage destroyed window (%s)\n", c->name);
-		unmanage(c, False, True);
+		unmanage(c, CauseDestroyed);
 		return;
 	}
 	if (XFindContext(dpy, ev->window, context[SysTrayWindows],
@@ -2448,7 +2448,7 @@ reparentnotify(XEvent * e) {
 	if ((c = getclient(ev->window, ClientWindow)))
 		if (ev->parent != c->frame) {
 			DPRINTF("unmanage reparented window (%s)\n", c->name);
-			unmanage(c, True, False);
+			unmanage(c, CauseReparented);
 		}
 }
 
@@ -2597,9 +2597,31 @@ void
 quit(const char *arg) {
 	running = False;
 	if (arg) {
-		cleanup();
-		execvp(cargv[0], cargv);
-		eprint("Can't exec: %s\n", strerror(errno));
+		cleanup(CauseSwitching);
+		execlp("sh", "sh", "-c", arg, NULL);
+		eprint("Can't exec '%s': %s\n", arg, strerror(errno));
+	}
+}
+
+void
+restart(const char *arg) {
+	running = False;
+	if (arg) {
+		cleanup(CauseSwitching);
+		execlp("sh", "sh", "-c", arg, NULL);
+		eprint("Can't exec '%s': %s\n", arg, strerror(errno));
+	} else {
+		char **argv;
+		int i;
+
+		/* argv must be NULL terminated and writable */
+		argv = calloc(cargc+1, sizeof(*argv));
+		for (i = 0; i < cargc; i++)
+			argv[i] = strdup(cargv[i]);
+
+		cleanup(CauseRestarting);
+		execvp(argv[0], argv);
+		eprint("Can't restart: %s\n", strerror(errno));
 	}
 }
 
@@ -4603,13 +4625,14 @@ unban(Client * c) {
 }
 
 void
-unmanage(Client * c, Bool reparented, Bool destroyed) {
+unmanage(Client * c, WithdrawCause cause) {
 	XWindowChanges wc;
 	Bool doarrange, dostruts;
 	Window trans = None;
 
 	doarrange = !(c->isfloating || c->isfixed ||
-		(!destroyed && XGetTransientForHint(dpy, c->win, &trans))) ||
+		(cause != CauseDestroyed &&
+		 XGetTransientForHint(dpy, c->win, &trans))) ||
 		c->isbastard;
 	dostruts = c->hasstruts;
 	/* The server grab construct avoids race conditions. */
@@ -4625,10 +4648,10 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 		XDeleteContext(dpy, c->title, context[ClientAny]);
 		c->title = None;
 	}
-	if (!destroyed) {
+	if (cause != CauseDestroyed) {
 		XSelectInput(dpy, c->win, CLIENTMASK & ~(StructureNotifyMask | EnterWindowMask));
 		XUngrabButton(dpy, AnyButton, AnyModifier, c->win);
-		if (!reparented) {
+		if (cause != CauseReparented) {
 			if (c->gravity == StaticGravity) {
 				/* restore static geometry */
 				wc.x = c->sx;
@@ -4653,16 +4676,10 @@ unmanage(Client * c, Bool reparented, Bool destroyed) {
 	}
 	detach(c);
 	detachclist(c);
-	updateatom[ClientList] (NULL);
-	updateatom[ClientListStacking] (NULL);
 	detachstack(c);
-	if (sel == c)
-		focus(NULL);
-	if (!destroyed) {
-		setclientstate(c, WithdrawnState);
-		/* sm-proxy thinks it needs to be restarted unless removed */
-		XDeleteProperty(dpy, c->win, atom[WMState]);
-	}
+
+	ewmh_del_client(c, cause);
+
 	XDestroyWindow(dpy, c->frame);
 	XDeleteContext(dpy, c->frame, context[ClientFrame]);
 	XDeleteContext(dpy, c->frame, context[ClientAny]);
@@ -4745,7 +4762,7 @@ unmapnotify(XEvent * e) {
 		if (c->ignoreunmap--)
 			return;
 		DPRINTF("unmanage self-unmapped window (%s)\n", c->name);
-		unmanage(c, False, False);
+		unmanage(c, CauseUnmapped);
 	}
 }
 
@@ -5055,7 +5072,7 @@ main(int argc, char *argv[]) {
 	updateatom[KdeSplashProgress] (NULL);
 	scan();
 	run();
-	cleanup();
+	cleanup(CauseQuitting);
 
 	XCloseDisplay(dpy);
 	return 0;

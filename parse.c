@@ -91,7 +91,7 @@ static KeyItem KeyItems[] = {
 	{ "viewlefttag",	viewlefttag	},
 	{ "viewrighttag",	viewrighttag	},
 	{ "quit",		quit		},
-	{ "restart", 		quit		},
+	{ "restart", 		restart		},
 	{ "killclient",		_killclient	},
 	{ "togglefloating", 	_togglefloating	},
 	{ "decmwfact", 		setmwfact	},

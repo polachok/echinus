@@ -219,6 +219,158 @@ initewmh(Window win)
 }
 
 void
+exitewmh(WithdrawCause cause)
+{
+	XDeleteProperty(dpy, root, _XA_WIN_SUPPORTING_WM_CHECK);
+	XDeleteProperty(dpy, root, _XA_NET_SUPPORTING_WM_CHECK);
+	XDeleteProperty(dpy, root, _XA_WIN_DESKTOP_BUTTON_PROXY);
+
+	XDeleteProperty(dpy, root, _XA_WIN_PROTOCOLS);
+	XDeleteProperty(dpy, root, _XA_NET_SUPPORTED);
+
+	switch (cause) {
+		int i;
+
+	default:
+	case CauseQuitting:
+	{
+		Atom props[] = {
+			_XA_WIN_AREA_COUNT,
+			_XA_WIN_AREA,
+			_XA_WIN_CLIENT_LIST,
+			_XA_WIN_FOCUS,
+			_XA_WIN_WORKSPACE_COUNT,
+			_XA_WIN_WORKSPACE_NAMES,
+			_XA_WIN_WORKSPACE,
+			_XA_WIN_WORKSPACES,
+
+			_XA_NET_ACTIVE_WINDOW,
+			_XA_NET_CLIENT_LIST,
+			_XA_NET_CLIENT_LIST_STACKING,
+			_XA_NET_NUMBER_OF_DESKTOPS,
+			_XA_NET_DESKTOP_NAMES,
+			_XA_NET_CURRENT_DESKTOP,
+			_XA_NET_DESKTOP_VIEWPORT,
+			_XA_NET_SHOWING_DESKTOP,
+			_XA_NET_VISIBLE_DESKTOPS,
+			_XA_NET_MONITOR_GEOMETRY,
+			_XA_NET_DESKTOP_MODES,
+			/* _XA_NET_DESKTOP_LAYOUT, */
+			/* _XA_NET_DESKTOP_STRUTS, */
+			_XA_NET_RESTART,
+			None
+		};
+
+		for (i = 0; props[i]; i++)
+			XDeleteProperty(dpy, root, props[i]);
+		/* fall through */
+	}
+	case CauseSwitching:
+	{
+		Atom props[] = {
+			_XA_ECHINUS_LAYOUT,
+			_XA_ECHINUS_SELTAGS,
+
+			_XA_WIN_WORKAREA,
+			_XA_NET_WORKAREA,
+
+			None
+		};
+
+		for (i = 0; props[i]; i++)
+			XDeleteProperty(dpy, root, props[i]);
+		/* fall through */
+	}
+	case CauseRestarting:
+	{
+		Atom props[] = {
+			_XA_SWM_VROOT,
+			_XA_NET_VIRTUAL_ROOTS,
+			_XA_NET_DESKTOP_GEOMETRY,
+			_XA_NET_RESTART,
+
+			None
+		};
+
+		for (i = 0; props[i]; i++)
+			XDeleteProperty(dpy, root, props[i]);
+		break;
+	}
+	}
+}
+
+void
+ewmh_add_client(Client *c)
+{
+}
+
+void
+ewmh_del_client(Client * c, WithdrawCause cause)
+{
+	switch (cause) {
+		int i;
+
+	default:
+	case CauseDestroyed:
+	case CauseReparented:
+	case CauseUnmapped:
+	{
+		updateatom[ClientList] (NULL);
+		updateatom[ClientListStacking] (NULL);
+		if (sel == c) {
+			focus(NULL);
+			updateatom[ActiveWindow] (NULL);
+		}
+		/* fall through */
+	}
+	case CauseQuitting:
+	{
+		Atom props[] = {
+			_XA_WM_STATE,
+
+			_XA_WIN_MAXIMIZED_GEOMETRY,
+
+			_XA_NET_WM_DESKTOP,
+			_XA_NET_WM_STATE,
+			_XA_NET_WM_ALLOWED_ACTIONS,
+
+			None
+		};
+		for (i = 0; props[i]; i++)
+			XDeleteProperty(dpy, root, props[i]);
+		/* fall through */
+	}
+	case CauseSwitching:
+	{
+		Atom props[] = {
+			_XA_NET_WM_DESKTOP_MASK,
+			_XA_NET_FRAME_EXTENTS,
+			_XA_NET_WM_VISIBLE_NAME,
+			_XA_NET_WM_VISIBLE_ICON_NAME,
+			_XA_NET_WM_FULLSCREEN_MONITORS,
+
+			None
+		};
+		for (i = 0; props[i]; i++)
+			XDeleteProperty(dpy, root, props[i]);
+		/* fall through */
+	}
+	case CauseRestarting:
+	{
+		Atom props[] = {
+			_XA_KDE_NET_WM_FRAME_STRUT,
+
+			None
+		};
+		for (i = 0; props[i]; i++)
+			XDeleteProperty(dpy, root, props[i]);
+		/* fall through */
+		break;
+	}
+	}
+}
+
+void
 update_echinus_layout_name(Client * c) {
 	XChangeProperty(dpy, root, atom[ELayout], XA_STRING, 8, PropModeReplace,
 			(const unsigned char *) &views[curmontag].layout->symbol, 1L);

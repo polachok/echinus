@@ -203,6 +203,8 @@ enum { ClientWindow, ClientTitle, ClientFrame, ClientTimeWindow, ClientGroup,
        ClientTransFor, ClientLeader, ClientAny, SysTrayWindows, ClientPing,
        ClientDead, PartLast };	/* client parts */
 enum { Iconify, Maximize, Close, LastBtn }; /* window buttons */
+typedef enum { CauseDestroyed, CauseUnmapped, CauseReparented,
+	       CauseQuitting, CauseSwitching, CauseRestarting } WithdrawCause;
 
 typedef struct {
 	int x, y, w, h, b;
@@ -352,6 +354,9 @@ void ewmh_release_user_time_window(Client *c);
 Atom *getatom(Window win, Atom atom, unsigned long *nitems);
 long *getcard(Window win, Atom atom, unsigned long *nitems);
 void initewmh(Window w);
+void exitewmh(WithdrawCause cause);
+void ewmh_add_client(Client *c);
+void ewmh_del_client(Client *c, WithdrawCause cause);
 void mwm_process_atom(Client * c);
 void setopacity(Client * c, unsigned int opacity);
 extern void (*updateatom[]) (Client *);
