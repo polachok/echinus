@@ -37,6 +37,7 @@
 #include <unistd.h>
 #include <regex.h>
 #include <signal.h>
+#include <math.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <X11/XKBlib.h>
@@ -139,7 +140,7 @@ void mouseresize(Client * c, unsigned int button, int x_root, int y_root);
 void moveresizekb(Client *c, int dx, int dy, int dw, int dh);
 Client *nexttiled(Client * c, Monitor * m);
 Client *prevtiled(Client * c, Monitor * m);
-void place(Client *c);
+void place(Client *c, WindowPlacement p);
 void propertynotify(XEvent * e);
 void reparentnotify(XEvent * e);
 void quit(const char *arg);
@@ -304,7 +305,7 @@ applyatoms(Client * c) {
 	unsigned int i, tag;
 
 	/* restore tag number from atom */
-	t = getcard(c->win, atom[WindowDesk], &n);
+	t = getcard(c->win, _XA_NET_WM_DESKTOP, &n);
 	if (n > 0) {
 		tag = *t;
 		XFree(t);
@@ -376,10 +377,8 @@ arrangemon(Monitor * m) {
 			ban(c);
 		}
 	}
-	for (c = stack; c; c = c->snext) {
-		updateatom[WindowState] (c); /* XXX: really necessary? */
-		updateatom[WindowActions](c);
-	}
+	for (c = stack; c; c = c->snext)
+		ewmh_update_net_window_state(c);
 }
 
 void
@@ -719,102 +718,118 @@ configurenotify(XEvent * e) {
 }
 
 void
+getreference(Client *c, int *xr, int *yr, int x, int y, int w, int h, int b, int gravity)
+{
+	switch (gravity) {
+	case UnmapGravity:
+	case NorthWestGravity:
+	default:
+		*xr = x;
+		*yr = y;
+		break;
+	case NorthGravity:
+		*xr = x + b + w / 2;
+		*yr = y;
+		break;
+	case NorthEastGravity:
+		*xr = x + 2 * b + w;
+		*yr = y;
+		break;
+	case WestGravity:
+		*xr = x;
+		*yr = y + b + h / 2;
+		break;
+	case CenterGravity:
+		*xr = x + b + w / 2;
+		*yr = y + b + h / 2;
+		break;
+	case EastGravity:
+		*xr = x + 2 * b + w;
+		*yr = y + b + h / 2;
+		break;
+	case SouthWestGravity:
+		*xr = x;
+		*yr = y + 2 * b + h;
+		break;
+	case SouthGravity:
+		*xr = x + b + w / 2;
+		*yr = y + 2 * b + h;
+		break;
+	case SouthEastGravity:
+		*xr = x + 2 * b + w;
+		*yr = y + 2 * b + h;
+		break;
+	case StaticGravity:
+		*xr = x + b;
+		*yr = y + b;
+		break;
+	}
+}
+void
+putreference(int *x, int *y, int xr, int yr, int w, int h, int b, int gravity)
+{
+	switch (gravity) {
+	case UnmapGravity:
+	case NorthWestGravity:
+	default:
+		*x = xr;
+		*y = yr;
+		break;
+	case NorthGravity:
+		*x = xr - b - w / 2;
+		*y = yr;
+		break;
+	case NorthEastGravity:
+		*x = xr - 2 * b - w;
+		*y = yr;
+		break;
+	case WestGravity:
+		*x = xr;
+		*y = yr - b - h / 2;
+		break;
+	case CenterGravity:
+		*x = xr - b - w / 2;
+		*y = yr - b - h / 2;
+		break;
+	case EastGravity:
+		*x = xr - 2 * b - w;
+		*y = yr - b - h / 2;
+		break;
+	case SouthWestGravity:
+		*x = xr;
+		*y = yr - 2 * b - h;
+		break;
+	case SouthGravity:
+		*x = xr - b - w / 2;
+		*y = yr - 2 * b - h;
+		break;
+	case SouthEastGravity:
+		*x = xr - 2 * b - w;
+		*y = yr - 2 * b - h;
+		break;
+	case StaticGravity:
+		*x = xr - b;
+		*y = yr - b;
+		break;
+	}
+}
+
+void
 applygravity(Client * c, int *xp, int *yp, int *wp, int *hp, int bw, int gravity) {
 	int xr, yr;
 
-	switch (gravity) {
-	case UnmapGravity:
-	case NorthWestGravity:
-	default:
-		xr = *xp;
-		yr = *yp;
-		break;
-	case NorthGravity:
-		xr = *xp + bw + *wp / 2;
-		yr = *yp;
-		break;
-	case NorthEastGravity:
-		xr = *xp + 2 * bw + *wp;
-		yr = *yp;
-		break;
-	case WestGravity:
-		xr = *xp;
-		yr = *yp + bw + *hp / 2;
-		break;
-	case CenterGravity:
-		xr = *xp + bw + *wp / 2;
-		yr = *yp + bw + *hp / 2;
-		break;
-	case EastGravity:
-		xr = *xp + 2 * bw + *wp;
-		yr = *yp + bw + *hp / 2;
-		break;
-	case SouthWestGravity:
-		xr = *xp;
-		yr = *yp + 2 * bw + *hp;
-		break;
-	case SouthGravity:
-		xr = *xp + bw + *wp / 2;
-		yr = *yp + 2 * bw + *hp;
-		break;
-	case SouthEastGravity:
-		xr = *xp + 2 * bw + *wp;
-		yr = *yp + 2 * bw + *hp;
-		break;
-	case StaticGravity:
-		xr = c->sx + c->sb;
-		yr = c->sy + c->sb;
+	if (gravity == StaticGravity) {
+		*xp = c->sx;
+		*yp = c->sy;
 		*wp = c->sw;
 		*hp = c->sh;
-		break;
+		bw = c->sb;
 	}
+	getreference(c, &xr, &yr, *xp, *yp, *wp, *hp, bw, gravity);
 	*hp += c->th;
 	if (gravity != StaticGravity)
 		constrain(c, wp, hp);
-	switch (gravity) {
-	case UnmapGravity:
-	case NorthWestGravity:
-	default:
-		*xp = xr;
-		*yp = yr;
-		break;
-	case NorthGravity:
-		*xp = xr - bw - *wp / 2;
-		*yp = yr;
-		break;
-	case NorthEastGravity:
-		*xp = xr - 2 * bw - *wp;
-		*yp = yr;
-		break;
-	case WestGravity:
-		*xp = xr;
-		*yp = yr - bw - *hp / 2;
-		break;
-	case CenterGravity:
-		*xp = xr - bw - *wp / 2;
-		*yp = yr - bw - *hp / 2;
-		break;
-	case EastGravity:
-		*xp = xr - 2 * bw - *wp;
-		*yp = yr - bw - *hp / 2;
-		break;
-	case SouthWestGravity:
-		*xp = xr;
-		*yp = yr - 2 * bw - *hp;
-		break;
-	case SouthGravity:
-		*xp = xr - bw - *wp / 2;
-		*yp = yr - 2 * bw - *hp;
-		break;
-	case SouthEastGravity:
-		*xp = xr - 2 * bw - *wp;
-		*yp = yr - 2 * bw - *hp;
-		break;
-	case StaticGravity:
-		*xp = xr - bw;
-		*yp = yr - bw;
-		break;
-	}
+	putreference(xp, yp, xr, yr, *wp, *hp, bw, gravity);
 }
 
 void
@@ -840,7 +855,7 @@ configurerequest(XEvent * e) {
 			resize(c, x, y, w, h, b);
 			if (ev->value_mask & (CWX | CWY | CWWidth | CWHeight | CWBorderWidth))
 				save(c);
-			/* TODO: check _WIN_CLIENT_MOVING and handle moves between monitors */
+			/* TODO: check _XA_WIN_CLIENT_MOVING and handle moves between monitors */
 		} else {
 			int b = (ev->value_mask & CWBorderWidth) ? ev->border_width : c->border;
 
@@ -1014,13 +1029,13 @@ expose(XEvent * e) {
 void
 givefocus(Client * c) {
 	XEvent ce;
-	if (checkatom(c->win, atom[WMProto], atom[WMTakeFocus])) {
+	if (checkatom(c->win, _XA_WM_PROTOCOLS, _XA_WM_TAKE_FOCUS)) {
 		ce.xclient.type = ClientMessage;
-		ce.xclient.message_type = atom[WMProto];
+		ce.xclient.message_type = _XA_WM_PROTOCOLS;
 		ce.xclient.display = dpy;
 		ce.xclient.window = c->win;
 		ce.xclient.format = 32;
-		ce.xclient.data.l[0] = atom[WMTakeFocus];
+		ce.xclient.data.l[0] = _XA_WM_TAKE_FOCUS;
 		ce.xclient.data.l[1] = CurrentTime;	/* incorrect */
 		ce.xclient.data.l[2] = 0l;
 		ce.xclient.data.l[3] = 0l;
@@ -1071,16 +1086,14 @@ focus(Client * c) {
 		}
 		XSetWindowBorder(dpy, sel->frame, style.color.sel[ColBorder]);
 		drawclient(c);
-		updateatom[WindowState](c);
+		ewmh_update_net_window_state(c);
 	} else {
 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
 	}
 	if (o)
 		drawclient(o);
-	updateatom[ActiveWindow] (sel);
-	updateatom[CurDesk] (NULL);
-	updateatom[ELayout] (NULL);
-	updateatom[ESelTags] (NULL);
+	ewmh_update_net_active_window();
+	ewmh_update_net_current_desktop();
 }
 
 void
@@ -1093,7 +1106,7 @@ focusicon(const char *arg) {
 	if (c->isicon) {
 		c->isicon = False;
 		c->ishidden = False;
-		updateatom[WindowState](c);
+		ewmh_update_net_window_state(c);
 	}
 	focus(c);
 	arrange(curmonitor());
@@ -1140,7 +1153,7 @@ _iconify(Client *c) {
 	ban(c);
 	if (!c->isicon) {
 		c->isicon = True;
-		updateatom[WindowState](c);
+		ewmh_update_net_window_state(c);
 	}
 	arrange(clientmonitor(c));
 }
@@ -1168,7 +1181,7 @@ _hide(Client *c) {
 	if (c == sel)
 		focusnext(c);
 	c->ishidden = True;
-	updateatom[WindowState](c);
+	ewmh_update_net_window_state(c);
 }
 
 void
@@ -1194,7 +1207,7 @@ _show(Client *c) {
 	c->ishidden = False;
 	if (!c->isicon)
 		unban(c);
-	updateatom[WindowState](c);
+	ewmh_update_net_window_state(c);
 }
 
 void
@@ -1245,7 +1258,7 @@ toggleshowing() {
 		hideall();
 	else
 		showall();
-	updateatom[ShowingDesktop] (NULL);
+	ewmh_update_net_showing_desktop();
 }
 
 void
@@ -1281,7 +1294,7 @@ getstate(Window w) {
 	long *p = NULL;
 	unsigned long n;
 
-	p = getcard(w, atom[WMState], &n);
+	p = getcard(w, _XA_WM_STATE, &n);
 	if (n != 0)
 		ret = *p;
 	if (p)
@@ -1332,24 +1345,33 @@ gettextprop(Window w, Atom atom, char **text) {
 }
 
 Bool
-isvisible(Client * c, Monitor * m) {
-	Monitor *cm;
+isonmonitor(Client *c, Monitor *m)
+{
+	int mx, my;
+
+	mx = c->x + c->w / 2 + c->border;
+	my = c->y + c->h / 2 + c->border;
+
+	return (m->sx <= mx && mx < m->sx + m->sw && m->sy <= my && my < m->sy + m->sh) ?
+	    True : False;
+}
+
+Bool
+isvisible(Client *c, Monitor *m)
+{
 	unsigned int i;
 
 	if (!c)
 		return False;
-	cm = findcurmonitor(c);
-	if (!cm || (m && cm != m))
-		return False;
 	if (!m) {
 		for (m = monitors; m; m = m->next)
+			if (isvisible(c, m))
+				return True;
+	} else {
+		if (isonmonitor(c, m))
 			for (i = 0; i < ntags; i++)
 				if (c->tags[i] && m->seltags[i])
 					return True;
-	} else {
-		for (i = 0; i < ntags; i++)
-			if (c->tags[i] && m->seltags[i])
-				return True;
 	}
 	return False;
 }
@@ -1402,16 +1424,16 @@ killclient(Client * c)
 		if (!getclient(c->win, ClientPing)) {
 			Time time = key_event ? key_event->time : CurrentTime;
 
-			if (checkatom(c->win, atom[WMProto], atom[WindowPing])) {
+			if (checkatom(c->win, _XA_WM_PROTOCOLS, _XA_NET_WM_PING)) {
 				XEvent ev;
 
 				/* Give me a ping: one ping only.... Red October */
 				ev.type = ClientMessage;
 				ev.xclient.display = dpy;
 				ev.xclient.window = c->win;
-				ev.xclient.message_type = atom[WMProto];
+				ev.xclient.message_type = _XA_WM_PROTOCOLS;
 				ev.xclient.format = 32;
-				ev.xclient.data.l[0] = atom[WindowPing];
+				ev.xclient.data.l[0] = _XA_NET_WM_PING;
 				ev.xclient.data.l[1] = time;
 				ev.xclient.data.l[2] = c->win;
 				ev.xclient.data.l[3] = 0;
@@ -1421,14 +1443,14 @@ killclient(Client * c)
 				XSaveContext(dpy, c->win, context[ClientPing], (XPointer) c);
 			}
 
-			if (checkatom(c->win, atom[WMProto], atom[WMDelete])) {
+			if (checkatom(c->win, _XA_WM_PROTOCOLS, _XA_WM_DELETE_WINDOW)) {
 				XEvent ev;
 
 				ev.type = ClientMessage;
 				ev.xclient.window = c->win;
-				ev.xclient.message_type = atom[WMProto];
+				ev.xclient.message_type = _XA_WM_PROTOCOLS;
 				ev.xclient.format = 32;
-				ev.xclient.data.l[0] = atom[WMDelete];
+				ev.xclient.data.l[0] = _XA_WM_DELETE_WINDOW;
 				ev.xclient.data.l[1] = time;
 				ev.xclient.data.l[2] = 0;
 				ev.xclient.data.l[3] = 0;
@@ -1447,9 +1469,9 @@ killclient(Client * c)
 		long *pids;
 		unsigned long n = 0;
 
-		pids = getcard(c->win, atom[WindowPid], &n);
+		pids = getcard(c->win, _XA_NET_WM_PID, &n);
 		if (n == 0 && c->leader)
-			pids = getcard(c->win, atom[WindowPid], &n);
+			pids = getcard(c->win, _XA_NET_WM_PID, &n);
 		if (n > 0) {
 			char hostname[64], *machine;
 			pid_t pid = pids[0];
@@ -1521,7 +1543,7 @@ manage(Window w, XWindowAttributes * wa) {
 			c->isfloating = True;
 		}
 	}
-	updateatom[WindowTypeOverride] (c);
+	ewmh_process_kde_net_window_type_override(c);
 
 	c->isicon = False;
 	c->ishidden = False;
@@ -1539,9 +1561,8 @@ manage(Window w, XWindowAttributes * wa) {
 	applyrules(c);
 	applyatoms(c);
 
-	updateatom[UserTimeWindow] (c);
-	updateatom[WindowUserTime] (c);
-	updateatom[NetStartupId] (c);
+	ewmh_process_net_window_user_time_window(c);
+	ewmh_process_net_startup_id(c);
 
 	if ((c->hastime) &&
 	    (c->user_time == CurrentTime ||
@@ -1605,7 +1626,7 @@ manage(Window w, XWindowAttributes * wa) {
 	c->sb = wa->border_width;
 
 	if (!wa->x && !wa->y && !c->isbastard)
-		place(c);
+		place(c, CascadePlacement);
 
 	c->hasstruts = getstruts(c);
 
@@ -1678,9 +1699,8 @@ manage(Window w, XWindowAttributes * wa) {
 
 	attach(c, options.attachaside);
 	attachclist(c);
-	updateatom[ClientList] (NULL);
-	updateatom[ClientListStacking] (NULL);
 	attachstack(c);
+	ewmh_update_net_client_list();
 
 	twa.event_mask = CLIENTMASK;
 	twa.do_not_propagate_mask = CLIENTNOPROPAGATEMASK;
@@ -1694,17 +1714,16 @@ manage(Window w, XWindowAttributes * wa) {
 	wc.border_width = 0;
 	XConfigureWindow(dpy, c->win, CWBorderWidth, &wc);
 	ban(c);
-	updateatom[WindowDesk] (c);
-	updateatom[WindowDeskMask] (c);
-	updateatom[WindowCounter] (c);
+	ewmh_process_net_window_desktop(c);
+	ewmh_process_net_window_desktop_mask(c);
+	ewmh_process_net_window_sync_request_counter(c);
 	ewmh_process_net_window_state(c);
 	c->ismanaged = True;
-	updateatom[WindowState](c);
-	updateatom[WindowActions](c);
+	ewmh_update_net_window_state(c);
 	updateframe(c);
 
 	if (c->hasstruts) {
-		updateatom[WorkArea] (NULL);
+		ewmh_update_net_work_area();
 		updategeom(NULL);
 	}
 	arrange(NULL);
@@ -1782,7 +1801,7 @@ moveresizekb(Client * c, int dx, int dy, int dw, int dh) {
 			c->ismaxv = False;
 			c->ismaxh = False;
 			c->isfill = False;
-			updateatom[WindowState] (c);
+			ewmh_update_net_window_state(c);
 		}
 		c->rx = c->x + dx;
 		c->ry = c->y + dy;
@@ -1913,6 +1932,34 @@ curmonitor() {
 	return getmonitor(x, y);
 }
 
+Monitor *
+closestmonitor(int x, int y)
+{
+	Monitor *m, *near = monitors;
+	float mind = hypotf(DisplayHeight(dpy, screen), DisplayWidth(dpy, screen));
+
+	for (m = monitors; m; m = m->next) {
+		float fd = hypotf(m->mx - x, m->my - y);
+
+		if (fd < mind) {
+			mind = fd;
+			near = m;
+		}
+	}
+	return near;
+}
+
+Monitor *
+nearmonitor() {
+	Monitor *m;
+	int x, y;
+
+	getpointer(&x, &y);
+	if (!(m = getmonitor(x, y)))
+		m = closestmonitor(x, y);
+	return m;
+}
+
 /* TODO: handle movement across EWMH desktops */
 
 static Bool wind_overlap(int min1, int max1, int min2, int max2);
@@ -1969,7 +2016,7 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 		case ButtonRelease:
 			break;
 		case ClientMessage:
-			if (ev.xclient.message_type == atom[WindowMoveResize]) {
+			if (ev.xclient.message_type == _XA_NET_WM_MOVERESIZE) {
 				if (ev.xclient.data.l[2] == 11) {
 					/* _NET_WM_MOVERESIZE_CANCEL */
 					resize(c, ocx, ocy, c->w, c->h, c->border);
@@ -2040,9 +2087,7 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 			if (m != nm) {
 				for (i = 0; i < ntags; i++)
 					c->tags[i] = nm->seltags[i];
-				updateatom[WindowDesk] (c);
-				updateatom[WindowDeskMask] (c);
-				updateatom[WindowState] (c);
+				ewmh_update_net_window_desktop(c);
 				drawclient(c);
 				arrange(NULL);
 				m = nm;
@@ -2069,7 +2114,7 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 			c->isshade = True;
 		updatefloat(c, m);
 	}
-	updateatom[WindowState] (c);
+	ewmh_update_net_window_state(c);
 }
 
 #ifdef SYNC
@@ -2084,11 +2129,11 @@ sync_request(Client *c, XSyncValue *val, Time time) {
 	if (overflow)
 		XSyncMinValue(val);
 	ce.xclient.type = ClientMessage;
-	ce.xclient.message_type = atom[WMProto];
+	ce.xclient.message_type = _XA_WM_PROTOCOLS;
 	ce.xclient.display = dpy;
 	ce.xclient.window = c->win;
 	ce.xclient.format = 32;
-	ce.xclient.data.l[0] = atom[WindowSync];
+	ce.xclient.data.l[0] = _XA_NET_WM_SYNC_REQUEST;
 	ce.xclient.data.l[1] = time;
 	ce.xclient.data.l[2] = XSyncValueLow32(*val);
 	ce.xclient.data.l[3] = XSyncValueHigh32(*val);
@@ -2184,7 +2229,7 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 		case ButtonRelease:
 			break;
 		case ClientMessage:
-			if (ev.xclient.message_type == atom[WindowMoveResize]) {
+			if (ev.xclient.message_type == _XA_NET_WM_MOVERESIZE) {
 				if (ev.xclient.data.l[2] == 11) {
 					/* _NET_WM_MOVERESIZE_CANCEL */
 					resize(c, ocx, ocy, ocw, och, c->border);
@@ -2367,7 +2412,7 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 		c->isshade = True;
 		updatefloat(c, m);
 	}
-	updateatom[WindowState] (c);
+	ewmh_update_net_window_state(c);
 }
 
 void
@@ -2453,64 +2498,241 @@ reparentnotify(XEvent * e) {
 }
 
 void
-place(Client *c) {
-	int x, y;
-	Monitor *m;
-	int d = style.titleheight;
-	int wx, wy, ww, wh;
-	int x1, x2, y1, y2;
-	unsigned long n;
+getplace(Client *c, Geometry *g)
+{
 	long *s = NULL;
+	unsigned long n;
 
-	s = getcard(c->win, atom[WinExpandedSize], &n);
+	s = getcard(c->win, _XA_WIN_EXPANDED_SIZE, &n);
 	if (n >= 4) {
-		/* _WIN_EXPANDED_SIZE: x, y, width, height */
-		x1 = s[0];
-		x2 = s[0] + s[2] + 2 * c->sb;
-		y1 = s[1];
-		y2 = s[1] + s[3] + 2 * c->sb;
+		g->x = s[0];
+		g->y = s[1];
+		g->w = s[2];
+		g->h = s[3];
 	} else {
 		/* original static geometry */
-		x1 = c->sx;
-		x2 = c->sx + c->sw + 2 * c->sb;
-		y1 = c->sy;
-		y2 = c->sy + c->sh + 2 * c->sb;
+		g->x = c->sx;
+		g->y = c->sy;
+		g->w = c->sw;
+		g->h = c->sh;
 	}
+	g->b = c->sb;
+}
 
-	/* unfortunately this is always monitor 0 */
-	if ((m = bestmonitor(x1, y1, x2, y2))) {
-		x = c->sx;
-		y = c->sy;
-	} else if ((m = clientmonitor(c))) {
-		x = m->sx;
-		y = m->sy;
-	} else if ((m = curmonitor())) {
-		getpointer(&x, &y);
+int
+total_overlap(Client *c, Monitor *m, Geometry *g) {
+	Client *o;
+	int x1, x2, y1, y2, a;
+
+	x1 = g->x;
+	x2 = g->x + g->w + 2 * g->b;
+	y1 = g->y;
+	y2 = g->y + g->h + 2 * g->b + c->th;
+	a = 0;
+
+	for (o = clients; o; o = o->next)
+		if (o != c && !o->isbastard && (o->isfloating || MFEATURES(m, OVERLAP)) && isvisible(o, m))
+			a += area_overlap(x1, y1, x2, y2,
+					  o->x, o->y,
+					  o->x + o->w + 2 * o->border,
+					  o->y + o->h + 2 * o->border);
+	return a;
+}
+
+void
+place_smart(Client *c, WindowPlacement p, Geometry *g, Monitor *m, Workarea *w)
+{
+	int t_b, l_r, xl, xr, yt, yb, x_beg, x_end, xd, y_beg, y_end, yd;
+	int best_x, best_y, best_a;
+	int d = style.titleheight;
+
+	/* XXX: this algorithm (borrowed from fluxbox) calculates an insane number of
+	   calculations: it basically tests every possible fully on screen position
+	   against every other window. Simulated anealing would work better, but, like a
+	   bubble sort, it is simple. */
+
+	t_b = 1;		/* top to bottom or bottom to top */
+	l_r = 1;		/* left to right or right to left */
+
+	xl = w->x;
+	xr = w->x + w->w - (g->w + 2 * g->b);
+	yt = w->y;
+	yb = w->y + w->h - (g->h + 2 * g->b + c->th);
+	DPRINTF("boundaries: xl %d xr %x yt %d yb %d\n", xl, xr, yt, yb);
+
+	if (l_r) {
+		x_beg = xl;
+		x_end = xr;
+		if (p == CascadePlacement) {
+			x_end -= x_end % d;
+			xd = d;
+		} else
+			xd = 1;
 	} else {
-		m = monitors;
-		x = m->sx;
-		y = m->sy;
+		x_beg = xr;
+		x_end = xl;
+		if (p == CascadePlacement) {
+			x_end += x_end % d;
+			xd = -d;
+		} else
+			xd = -1;
 	}
-	getworkarea(m, &wx, &wy, &ww, &wh);
+	DPRINTF("x range: x_beg %d x_end %d xd %d\n", x_beg, x_end, xd);
 
-	x = x + rand()%d - c->w/2;
-	y = y + rand()%d - c->h/2;
+	if (t_b) {
+		y_beg = yt;
+		y_end = yb;
+		if (p == CascadePlacement) {
+			y_end -= y_end % d;
+			yd = d;
+		} else
+			yd = 1;
+	} else {
+		y_beg = yb;
+		y_end = yt;
+		if (p == CascadePlacement) {
+			y_end += y_end % d;
+			yd = -d;
+		} else
+			yd = -1;
+	}
+	DPRINTF("y range: y_beg %d y_end %d yd %d\n", y_beg, y_end, yd);
 
-	if (x < wx)
-		x = wx;
-	DPRINTF("%d %d\n", x, y);
-	if (y < wy)
-		y = wy;
-	DPRINTF("%d+%d > %d+%d\n", x, c->w, wx, ww);
-	if (x + c->w > wx + ww)
-		x = wx + ww - c->w - rand()%d;
-	DPRINTF("%d %d\n", x, y);
-	if (y + c->h > wy + wh)
-		y = wy + wh - c->h - rand()%d;
-	DPRINTF("%d %d\n", x, y);
+	best_x = best_y = 0;
+	best_a = INT_MAX;
 
-	c->rx = c->x = x;
-	c->ry = c->y = y;
+	if (p == ColSmartPlacement || p == CascadePlacement) {
+		for (g->x = x_beg; l_r ? (g->x < x_end) : (g->x > x_end); g->x += xd) {
+			for (g->y = y_beg; t_b ? (g->y < y_end) : (g->y > y_end);
+			     g->y += yd) {
+				int a;
+
+				if ((a = total_overlap(c, m, g)) == 0)
+					return;
+				if (a < best_a) {
+					best_x = g->x;
+					best_y = g->y;
+					best_a = a;
+				}
+			}
+		}
+	} else {
+		for (g->y = y_beg; t_b ? (g->y < y_end) : (g->y > y_end); g->y += yd) {
+			for (g->x = x_beg; l_r ? (g->x < x_end) : (g->x > x_end);
+			     g->x += xd) {
+				int a;
+
+				if ((a = total_overlap(c, m, g)) == 0)
+					return;
+				if (a < best_a) {
+					best_x = g->x;
+					best_y = g->y;
+					best_a = a;
+				}
+			}
+		}
+	}
+	g->x = best_x;
+	g->y = best_y;
+}
+
+void
+place_minoverlap(Client *c, WindowPlacement p, Geometry *g, Monitor *m, Workarea *w)
+{
+}
+
+void
+place_undermouse(Client *c, WindowPlacement p, Geometry *g, Monitor *m, Workarea *w)
+{
+	int mx, my;
+
+	/* pick a different monitor than the default */
+	getpointer(&g->x, &g->y);
+	if (!(m = getmonitor(g->x, g->y))) {
+		m = closestmonitor(g->x, g->y);
+		g->x = m->mx;
+		g->y = m->my;
+	}
+	getworkarea(m, &w->x, &w->y, &w->w, &w->h);
+
+	putreference(&g->x, &g->y, g->x, g->y, g->w, g->h, g->b, c->gravity);
+
+	/* keep center of window inside work area, otherwise wnck task bars figure its on 
+	   a different monitor */
+
+	mx = g->x + g->w / 2 + g->b;
+	my = g->y + g->h / 2 + g->b;
+
+	if (mx < w->x)
+		g->x += w->x - mx;
+	if (mx > w->x + w->w)
+		g->x -= mx - (w->x + w->w);
+	if (my < w->y)
+		g->y += w->y - my;
+	if (my > w->y + w->h)
+		g->y -= my - (w->y + w->h);
+}
+
+void
+place_random(Client *c, WindowPlacement p, Geometry *g, Monitor *m, Workarea *w)
+{
+	int x_min, x_max, y_min, y_max, x_off, y_off;
+	int d = style.titleheight;
+
+	x_min = w->x;
+	x_max = w->x + w->w - (g->x + g->w + 2 * g->b);
+	x_max -= x_max % d;
+	y_min = w->y;
+	y_max = w->y + w->h - (g->y + g->h + 2 * g->b);
+	y_max -= y_max % d;
+
+	x_off = rand() % (x_max - x_min);
+	x_off -= x_off % d;
+	y_off = rand() % (y_max - y_min);
+	y_off -= y_off % d;
+
+	g->x = x_min + x_off;
+	g->y = y_min + y_off;
+}
+
+void
+place(Client * c, WindowPlacement p)
+{
+	Geometry g;
+	Workarea w;
+	Monitor *m;
+
+	getplace(c, &g);
+
+	if (!(m = clientmonitor(c)))
+		m = nearmonitor();
+	g.x += m->sx;
+	g.y += m->sy;
+
+	getworkarea(m, &w.x, &w.y, &w.w, &w.h);
+
+	switch (p) {
+	case ColSmartPlacement:
+		place_smart(c, p, &g, m, &w);
+		break;
+	case RowSmartPlacement:
+		place_smart(c, p, &g, m, &w);
+		break;
+	case MinOverlapPlacement:
+		place_minoverlap(c, p, &g, m, &w);
+		break;
+	case UnderMousePlacement:
+		place_undermouse(c, p, &g, m, &w);
+		break;
+	case CascadePlacement:
+		place_smart(c, p, &g, m, &w);
+		break;
+	case RandomPlacement:
+		place_random(c, p, &g, m, &w);
+		break;
+	}
+	c->rx = c->x = g.x;
+	c->ry = c->y = g.y;
 }
 
 void
@@ -2520,7 +2742,7 @@ propertynotify(XEvent * e) {
 	XPropertyEvent *ev = &e->xproperty;
 
 	if ((c = getclient(ev->window, ClientWindow))) {
-		if (ev->atom == atom[StrutPartial] || ev->atom == atom[Strut]) {
+		if (ev->atom == _XA_NET_WM_STRUT_PARTIAL || ev->atom == _XA_NET_WM_STRUT) {
 			c->hasstruts = getstruts(c);
 			updatestruts();
 		}
@@ -2535,8 +2757,7 @@ propertynotify(XEvent * e) {
 				if (!c->isfloating &&
 				    (c->isfloating = (trans != None))) {
 					arrange(NULL);
-					updateatom[WindowState] (c);
-					updateatom[WindowActions] (c);
+					ewmh_update_net_window_state(c);
 				}
 				return;
 			case XA_WM_NORMAL_HINTS:
@@ -2552,41 +2773,38 @@ propertynotify(XEvent * e) {
 			}
 		} else {
 			if (0) {
-			} else if (ev->atom == atom[WindowName]) {
+			} else if (ev->atom == _XA_NET_WM_NAME) {
 				updatetitle(c);
 				drawclient(c);
-			} else if (ev->atom == atom[WindowIconName]) {
+			} else if (ev->atom == _XA_NET_WM_ICON_NAME) {
 				updateiconname(c);
-			} else if (ev->atom == atom[WindowType]) {
+			} else if (ev->atom == _XA_NET_WM_WINDOW_TYPE) {
 				/* TODO */
-			} else if (ev->atom == atom[WindowUserTime]) {
-				updateatom[WindowUserTime] (c);
-			} else if (ev->atom == atom[UserTimeWindow]) {
-				updateatom[UserTimeWindow] (c);
-				updateatom[WindowUserTime] (c);
-			} else if (ev->atom == atom[WindowCounter]) {
+			} else if (ev->atom == _XA_NET_WM_USER_TIME) {
+				ewmh_process_net_window_user_time(c);
+			} else if (ev->atom == _XA_NET_WM_USER_TIME_WINDOW) {
+				ewmh_process_net_window_user_time_window(c);
+			} else if (ev->atom == _XA_NET_WM_SYNC_REQUEST_COUNTER) {
 				/* TODO */
-			} else if (ev->atom == atom[WinHints]) {
-				updateatom[WinHints] (c);
+			} else if (ev->atom == _XA_WIN_HINTS) {
+				wmh_process_win_window_hints(c);
 			}
 		}
 	} else if ((c = getclient(ev->window, ClientTimeWindow))) {
 		if (ev->atom > XA_LAST_PREDEFINED) {
 			if (0) {
-			} else if (ev->atom == atom[WindowUserTime]) {
-				updateatom[WindowUserTime] (c);
-			} else if (ev->atom == atom[UserTimeWindow]) {
-				updateatom[UserTimeWindow] (c);
-				updateatom[WindowUserTime] (c);
+			} else if (ev->atom == _XA_NET_WM_USER_TIME) {
+				ewmh_process_net_window_user_time(c);
+			} else if (ev->atom == _XA_NET_WM_USER_TIME_WINDOW) {
+				ewmh_process_net_window_user_time_window(c);
 			}
 		}
 	} else if (ev->window == root) {
 		if (ev->atom > XA_LAST_PREDEFINED) {
 			if (0) {
-			} else if (ev->atom == atom[DeskNames]) {
+			} else if (ev->atom == _XA_NET_DESKTOP_NAMES) {
 				ewmh_process_net_desktop_names();
-				updateatom[DeskNames] (NULL);
-			} else if (ev->atom == atom[DeskLayout]) {
+			} else if (ev->atom == _XA_NET_DESKTOP_LAYOUT) {
 				/* TODO */
 			}
 		}
@@ -2737,7 +2955,7 @@ resize(Client * c, int x, int y, int w, int h, int b) {
 		c->border = b;
 		wc.border_width = b;
 		mask |= CWBorderWidth;
-		updateatom[WindowExtents] (c);
+		ewmh_update_net_window_extents(c);
 	}
 	if (mask|mask2)
 		XConfigureWindow(dpy, c->frame, mask|mask2, &wc);
@@ -2900,8 +3118,7 @@ restack()
 		return;
 	for (n = 0, c = stack; c; c = c->snext, n++) ;
 	if (!n) {
-		updateatom[ClientList] (NULL);
-		updateatom[ClientListStacking] (NULL);
+		ewmh_update_net_client_list();
 		return;
 	}
 	wl = ecalloc(n, sizeof(*wl));
@@ -3003,8 +3220,7 @@ restack()
 		XRestackWindows(dpy, wl, n);
 		XFlush(dpy);
 
-		updateatom[ClientList] (NULL);
-		updateatom[ClientListStacking] (NULL);
+		ewmh_update_net_client_list();
 
 		XSync(dpy, False);
 		while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
@@ -3145,7 +3361,7 @@ calc_max(Client *c, Monitor *m, Geometry *g) {
 	unsigned long n = 0;
 	int i;
 
-	mons = getcard(c->win, atom[WindowFsMonitors], &n);
+	mons = getcard(c->win, _XA_NET_WM_FULLSCREEN_MONITORS, &n);
 	if (n >= 4) {
 		for (i = 0; i < 4; i++)
 			if (!(fsmons[i] = findmonbynum(mons[i])))
@@ -3278,7 +3494,7 @@ updatefloat(Client *c, Monitor *m) {
 	updateframe(c);
 	resize(c, g.x, g.y, g.w, g.h, g.b);
 	if (c->ismax)
-		updateatom[WindowFsMonitors] (c);
+		ewmh_update_net_window_fs_monitors(c);
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
 }
 
@@ -3293,7 +3509,7 @@ delsystray(Window win) {
 	}
 	if (j < systray.count) {
 		systray.count = j;
-		XChangeProperty(dpy, root, atom[SystemTrayWindows], XA_WINDOW, 32,
+		XChangeProperty(dpy, root, _XA_KDE_NET_SYSTEM_TRAY_WINDOWS, XA_WINDOW, 32,
 				PropModeReplace, (unsigned char *) systray.members,
 				systray.count);
 	}
@@ -3307,7 +3523,7 @@ setwmstate(Window win, long state) {
 	ev.xclient.display = dpy;
 	ev.xclient.type = ClientMessage;
 	ev.xclient.window = win;
-	ev.xclient.message_type = atom[WindowChangeState];
+	ev.xclient.message_type = _XA_KDE_WM_CHANGE_STATE;
 	ev.xclient.format = 32;
 	ev.xclient.data.l[0] = state;
 	ev.xclient.data.l[1] = ev.xclient.data.l[2] = 0;
@@ -3316,7 +3532,7 @@ setwmstate(Window win, long state) {
 	XSendEvent(dpy, root, False,
 		SubstructureRedirectMask | SubstructureNotifyMask, &ev);
 
-	XChangeProperty(dpy, win, atom[WMState], atom[WMState], 32,
+	XChangeProperty(dpy, win, _XA_WM_STATE, _XA_WM_STATE, 32,
 	    PropModeReplace, (unsigned char *) data, 2);
 }
 
@@ -3341,7 +3557,7 @@ issystray(Window win) {
 	unsigned int i;
 
 	status =
-	    XGetWindowProperty(dpy, win, atom[WindowForSysTray], 0L, 1L, False,
+	    XGetWindowProperty(dpy, win, _XA_KDE_NET_WM_SYSTEM_TRAY_WINDOW_FOR, 0L, 1L, False,
 			       AnyPropertyType, &real, &format, &nitems, &extra,
 			       (unsigned char **) &data);
 	if ((ret = (status == Success && real != None))) {
@@ -3354,7 +3570,7 @@ issystray(Window win) {
 			    erealloc(systray.members, (i + 1) * sizeof(Window));
 			systray.members[i] = win;
 			systray.count++;
-			XChangeProperty(dpy, root, atom[SysTrayWindows], XA_WINDOW,
+			XChangeProperty(dpy, root, _XA_KDE_NET_SYSTEM_TRAY_WINDOWS, XA_WINDOW,
 					32, PropModeReplace,
 					(unsigned char *) systray.members,
 					systray.count);
@@ -3417,8 +3633,7 @@ setclientstate(Client * c, long state) {
 	if (state == NormalState && (c->isicon || c->ishidden)) {
 		c->isicon = False;
 		c->ishidden = False;
-		updateatom[WindowState](c);
-		updateatom[WindowActions](c);
+		ewmh_update_net_window_state(c);
 	}
 }
 
@@ -3436,8 +3651,7 @@ setlayout(const char *arg)
 		views[curmontag].layout = &layouts[i];
 	}
 	arrange(curmonitor());
-	updateatom[ELayout] (NULL);
-	updateatom[DeskModes] (NULL);
+	ewmh_update_net_desktop_modes();
 }
 
 void
@@ -3510,8 +3724,7 @@ initlayouts() {
 		nmaster = 1;
 	for (i = 0; i < ntags; i++)
 		initview(i, mwfact, nmaster, deflayout);
-	updateatom[ELayout] (NULL);
-	updateatom[DeskModes] (NULL);
+	ewmh_update_net_desktop_modes();
 }
 
 static Bool
@@ -3573,7 +3786,7 @@ updatemonitors(XEvent *e, int n, Bool size_update, Bool full_update)
 			updatestruts();
 		}
 	}
-	updateatom[DeskGeometry] (NULL);
+	ewmh_update_net_desktop_geometry();
 }
 
 void
@@ -3791,7 +4004,7 @@ newtag(unsigned int i) {
 
 void
 inittags() {
-	ntags = ewmh_process_net_number_of_desktops();
+	ewmh_process_net_number_of_desktops();
 	views = ecalloc(ntags, sizeof(View));
 	tags = ecalloc(ntags, sizeof(char *));
 	ewmh_process_net_desktop_names();
@@ -3831,10 +4044,7 @@ deltag() {
 	--ntags;
 #if 0
 	/* caller's responsibility */
-	updateatom[NumberOfDesk] (NULL);
-	updateatom[DeskModes] (NULL);
-	updateatom[DeskViewport] (NULL);
-	updateatom[ESelTags] (NULL);
+	ewmh_update_net_number_of_desktops();
 #endif
 
 }
@@ -3843,10 +4053,7 @@ void
 rmlasttag(const char *arg) {
 	deltag();
 	ewmh_process_net_desktop_names();
-	updateatom[NumberOfDesk] (NULL);
-	updateatom[DeskModes] (NULL);
-	updateatom[DeskViewport] (NULL);
-	updateatom[ESelTags] (NULL);
+	ewmh_update_net_number_of_desktops();
 }
 
 void
@@ -3880,11 +4087,7 @@ addtag() {
 	ntags++;
 #if 0
 	/* caller's responsibility */
-	updateatom[NumberOfDesk] (NULL);
-	updateatom[DeskModes] (NULL);
-	updateatom[DeskViewport] (NULL);
-	updateatom[ESelTags] (NULL);
-	updateatom[DeskNames] (NULL);
+	ewmh_update_net_number_of_desktops();
 #endif
 }
 
@@ -3892,11 +4095,7 @@ void
 appendtag(const char *arg) {
 	addtag();
 	ewmh_process_net_desktop_names();
-	updateatom[NumberOfDesk] (NULL);
-	updateatom[DeskModes] (NULL);
-	updateatom[DeskViewport] (NULL);
-	updateatom[ESelTags] (NULL);
-	updateatom[DeskNames] (NULL);
+	ewmh_update_net_number_of_desktops();
 }
 
 void
@@ -3906,11 +4105,7 @@ settags(unsigned int numtags) {
 	while (ntags < numtags) { addtag(); }
 	while (ntags > numtags) { deltag(); }
 	ewmh_process_net_desktop_names();
-	updateatom[NumberOfDesk] (NULL);
-	updateatom[DeskModes] (NULL);
-	updateatom[DeskViewport] (NULL);
-	updateatom[ESelTags] (NULL);
-	updateatom[DeskNames] (NULL);
+	ewmh_update_net_number_of_desktops();
 }
 
 void
@@ -4000,9 +4195,6 @@ setup(char *conf) {
 	/* init EWMH atom */
 	initewmh(selwin);
 
-	updateatom[ClientList] (NULL);
-	updateatom[ClientListStacking] (NULL);
-
 	/* init tags */
 	inittags();
 	/* init geometry */
@@ -4012,13 +4204,10 @@ setup(char *conf) {
 	initrules();
 	initkeys();
 	initlayouts();
-	updateatom[NumberOfDesk] (NULL);
-	updateatom[DeskViewport] (NULL);
-	updateatom[DeskNames] (NULL);
-	updateatom[CurDesk] (NULL);
-	updateatom[ELayout] (NULL);
-	updateatom[ESelTags] (NULL);
-	updateatom[VirtualRoots] (NULL);
+
+	ewmh_update_net_number_of_desktops();
+	ewmh_update_net_current_desktop();
+	ewmh_update_net_virtual_roots();
 
 	grabkeys();
 
@@ -4037,9 +4226,9 @@ setup(char *conf) {
 		    m->struts[TopStrut] = m->struts[BotStrut] = 0;
 		updategeom(m);
 	}
-	updateatom[WorkArea] (NULL);
+	ewmh_update_net_work_area();
 	ewmh_process_net_showing_desktop();
-	updateatom[ShowingDesktop] (NULL);
+	ewmh_update_net_showing_desktop();
 
 	if (chdir(oldcwd) != 0)
 		fprintf(stderr, "echinus: cannot change directory\n");
@@ -4078,9 +4267,7 @@ _tag(Client *c, int index) {
 		c->tags[i] = (index == -1);
 	i = (index == -1) ? 0 : index;
 	c->tags[i] = True;
-	updateatom[WindowDesk] (c);
-	updateatom[WindowDeskMask] (c);
-	updateatom[WindowState] (c);
+	ewmh_update_net_window_desktop(c);
 	updateframe(c);
 	arrange(NULL);
 	focus(NULL);
@@ -4143,7 +4330,7 @@ bstack(Monitor * m) {
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
 			c->ismax = False;
-			updateatom[WindowState] (c);
+			ewmh_update_net_window_state(c);
 		}
 		nb = min(nb, c->border);
 		if (i < mn) {
@@ -4221,7 +4408,7 @@ tstack(Monitor * m) {
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
 			c->ismax = False;
-			updateatom[WindowState] (c);
+			ewmh_update_net_window_state(c);
 		}
 		nb = min(nb, c->border);
 		if (i < mn) {
@@ -4301,7 +4488,7 @@ rtile(Monitor * m) {
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
 			c->ismax = False;
-			updateatom[WindowState] (c);
+			ewmh_update_net_window_state(c);
 		}
 		nb = min(nb, c->border);
 		if (i < mn) {
@@ -4381,7 +4568,7 @@ ltile(Monitor * m) {
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
 		if (c->ismax) {
 			c->ismax = False;
-			updateatom[WindowState] (c);
+			ewmh_update_net_window_state(c);
 		}
 		nb = min(nb, c->border);
 		if (i < mn) {
@@ -4447,7 +4634,7 @@ togglefloating(Client *c) {
 		return;
 
 	c->isfloating = !c->isfloating;
-	updateatom[WindowState](c);
+	ewmh_update_net_window_state(c);
 	updatefloat(c, m);
 	arrange(m);
 }
@@ -4472,7 +4659,7 @@ togglefill(Client * c) {
 		return;
 
 	c->isfill = !c->isfill;
-	updateatom[WindowState] (c);
+	ewmh_update_net_window_state(c);
 	updatefloat(c, m);
 }
 
@@ -4484,7 +4671,7 @@ togglemax(Client * c) {
 		return;
 
 	c->ismax = !c->ismax;
-	updateatom[WindowState] (c);
+	ewmh_update_net_window_state(c);
 	updatefloat(c, m);
 	restack();
 }
@@ -4497,7 +4684,7 @@ togglemaxv(Client * c) {
 		return;
 
 	c->ismaxv = !c->ismaxv;
-	updateatom[WindowState] (c);
+	ewmh_update_net_window_state(c);
 	updatefloat(c, m);
 }
 
@@ -4509,7 +4696,7 @@ toggleshade(Client * c) {
 		return;
 
 	c->isshade = !c->isshade;
-	updateatom[WindowState] (c);
+	ewmh_update_net_window_state(c);
 	updatefloat(c, m);
 }
 
@@ -4521,7 +4708,7 @@ togglemaxh(Client *c) {
 		return;
 
 	c->ismaxh = !c->ismaxh;
-	updateatom[WindowState] (c);
+	ewmh_update_net_window_state(c);
 	updatefloat(c, m);
 }
 
@@ -4536,9 +4723,7 @@ toggletag(Client *c, int index) {
 	for (j = 0; j < ntags && !c->tags[j]; j++);
 	if (j == ntags)
 		c->tags[i] = True;	/* at least one tag must be enabled */
-	updateatom[WindowDesk] (c);
-	updateatom[WindowDeskMask] (c);
-	updateatom[WindowState] (c);
+	ewmh_update_net_window_desktop(c);
 	drawclient(c);
 	arrange(NULL);
 }
@@ -4587,9 +4772,7 @@ toggleview(int index) {
 	}
 	arrange(cm);
 	focus(NULL);
-	updateatom[CurDesk] (NULL);
-	updateatom[ELayout] (NULL);
-	updateatom[ESelTags] (NULL);
+	ewmh_update_net_current_desktop();
 }
 
 void
@@ -4748,7 +4931,7 @@ updatestruts() {
 	for (c = clients; c; c = c->next)
 		if (c->hasstruts)
 			getstruts(c);
-	updateatom[WorkArea] (NULL);
+	ewmh_update_net_work_area();
 	updategeom(NULL);
 	arrange(NULL);
 }
@@ -4775,7 +4958,7 @@ updateframe(Client * c) {
 		XUnmapWindow(dpy, c->title);
 	else
 		XMapRaised(dpy, c->title);
-	updateatom[WindowExtents] (c);
+	ewmh_update_net_window_extents(c);
 }
 
 void
@@ -4829,16 +5012,16 @@ updatesizehints(Client * c) {
 
 void
 updatetitle(Client * c) {
-	if (!gettextprop(c->win, atom[WindowName], &c->name))
+	if (!gettextprop(c->win, _XA_NET_WM_NAME, &c->name))
 		gettextprop(c->win, XA_WM_NAME, &c->name);
-	updateatom[WindowNameVisible] (c);
+	ewmh_update_net_window_visible_name(c);
 }
 
 void
 updateiconname(Client *c) {
-	if (!gettextprop(c->win, atom[WindowIconName], &c->icon_name))
+	if (!gettextprop(c->win, _XA_NET_WM_ICON_NAME, &c->icon_name))
 		gettextprop(c->win, XA_WM_ICON_NAME, &c->icon_name);
-	updateatom[WindowIconNameVisible] (c);
+	ewmh_update_net_window_visible_icon_name(c);
 }
 
 void
@@ -4968,9 +5151,7 @@ view(int index) {
 	updategeom(cm);
 	arrange(cm);
 	focus(NULL);
-	updateatom[CurDesk] (NULL);
-	updateatom[ELayout] (NULL);
-	updateatom[ESelTags] (NULL);
+	ewmh_update_net_current_desktop();
 }
 
 void
@@ -4991,9 +5172,7 @@ viewprevtag(const char *arg) {
 		updategeom(curmonitor());
 	arrange(NULL);
 	focus(NULL);
-	updateatom[CurDesk] (NULL);
-	updateatom[ELayout] (NULL);
-	updateatom[ESelTags] (NULL);
+	ewmh_update_net_current_desktop();
 }
 
 void
@@ -5069,7 +5248,7 @@ main(int argc, char *argv[]) {
 		context[i] = XUniqueContext();
 	checkotherwm();
 	setup(conf);
-	updateatom[KdeSplashProgress] (NULL);
+	ewmh_update_kde_splash_progress();
 	scan();
 	run();
 	cleanup(CauseQuitting);

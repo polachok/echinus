@@ -191,31 +191,33 @@ initewmh(Window win)
 	long data;
 
 	XInternAtoms(dpy, atomnames, NATOMS, False, atom);
-	XChangeProperty(dpy, root, atom[Supported], XA_ATOM, 32,
-			PropModeReplace, (unsigned char *) &atom[ClientList],
+	XChangeProperty(dpy, root, _XA_NET_SUPPORTED, XA_ATOM, 32,
+			PropModeReplace, (unsigned char *) &_XA_NET_CLIENT_LIST,
 			NATOMS - ClientList);
 
-	XChangeProperty(dpy, win, atom[WindowName], atom[Utf8String], 8,
+	XChangeProperty(dpy, win, _XA_NET_WM_NAME, _XA_UTF8_STRING, 8,
 			PropModeReplace, (unsigned char *) name, strlen(name));
 	data = getpid();
-	XChangeProperty(dpy, win, atom[WindowPid], XA_CARDINAL, 32,
+	XChangeProperty(dpy, win, _XA_NET_WM_PID, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) &data, 1);
-	XChangeProperty(dpy, root, atom[WMCheck], XA_WINDOW, 32,
+	XChangeProperty(dpy, root, _XA_NET_SUPPORTING_WM_CHECK, XA_WINDOW, 32,
 			PropModeReplace, (unsigned char *) &win, 1);
-	XChangeProperty(dpy, win, atom[WMCheck], XA_WINDOW, 32,
+	XChangeProperty(dpy, win, _XA_NET_SUPPORTING_WM_CHECK, XA_WINDOW, 32,
 			PropModeReplace, (unsigned char *) &win, 1);
 
-	XChangeProperty(dpy, root, atom[WinProtocols], XA_ATOM, 32,
-			PropModeReplace, (unsigned char *) &atom[WinAppState],
+	XChangeProperty(dpy, root, _XA_WIN_PROTOCOLS, XA_ATOM, 32,
+			PropModeReplace, (unsigned char *) &_XA_WIN_APP_STATE,
 			ClientList - WinAppState);
-	XChangeProperty(dpy, win, atom[WinCheck], XA_CARDINAL, 32,
+	XChangeProperty(dpy, win, _XA_WIN_SUPPORTING_WM_CHECK, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) &win, 1);
-	XChangeProperty(dpy, root, atom[WinCheck], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_WIN_SUPPORTING_WM_CHECK, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) &win, 1);
-	XChangeProperty(dpy, win, atom[WinButtonProxy], XA_CARDINAL, 32,
+	XChangeProperty(dpy, win, _XA_WIN_DESKTOP_BUTTON_PROXY, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) &win, 1);
-	XChangeProperty(dpy, root, atom[WinButtonProxy], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_WIN_DESKTOP_BUTTON_PROXY, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) &win, 1);
+
+	ewmh_update_net_client_list();
 }
 
 void
@@ -315,11 +317,10 @@ ewmh_del_client(Client * c, WithdrawCause cause)
 	case CauseReparented:
 	case CauseUnmapped:
 	{
-		updateatom[ClientList] (NULL);
-		updateatom[ClientListStacking] (NULL);
+		ewmh_update_net_client_list();
 		if (sel == c) {
 			focus(NULL);
-			updateatom[ActiveWindow] (NULL);
+			ewmh_update_net_active_window();
 		}
 		/* fall through */
 	}
@@ -371,13 +372,14 @@ ewmh_del_client(Client * c, WithdrawCause cause)
 }
 
 void
-update_echinus_layout_name(Client * c) {
-	XChangeProperty(dpy, root, atom[ELayout], XA_STRING, 8, PropModeReplace,
+ewmh_update_echinus_layout_name() {
+	XChangeProperty(dpy, root, _XA_ECHINUS_LAYOUT, XA_STRING, 8, PropModeReplace,
 			(const unsigned char *) &views[curmontag].layout->symbol, 1L);
 }
 
 void
-ewmh_update_net_client_list_stacking(Client * c) {
+ewmh_update_net_client_list_stacking() {
+	Client *c;
 	Window *wl = NULL;
 	int i, n;
 
@@ -388,14 +390,15 @@ ewmh_update_net_client_list_stacking(Client * c) {
 			wl[i++] = c->win;
 		assert(i == n);
 	}
-	XChangeProperty(dpy, root, atom[ClientListStacking], XA_WINDOW, 32,
+	XChangeProperty(dpy, root, _XA_NET_CLIENT_LIST_STACKING, XA_WINDOW, 32,
 			PropModeReplace, (unsigned char *) wl, n);
 	free(wl);
 	XFlush(dpy);		/* XXX: caller's responsibility */
 }
 
 void
-ewmh_update_net_client_list(Client * c) {
+ewmh_update_net_client_list() {
+	Client *c;
 	Window *wl = NULL;
 	int i, n;
 
@@ -406,50 +409,103 @@ ewmh_update_net_client_list(Client * c) {
 			wl[i++] = c->win;
 		assert(i == n);
 	}
-	XChangeProperty(dpy, root, atom[ClientList], XA_WINDOW, 32,
+	XChangeProperty(dpy, root, _XA_NET_CLIENT_LIST, XA_WINDOW, 32,
 			PropModeReplace, (unsigned char *) wl, n);
-	XChangeProperty(dpy, root, atom[WinClientList], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_WIN_CLIENT_LIST, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) wl, n);
 	free(wl);
+	ewmh_update_net_client_list_stacking();
 	XFlush(dpy);		/* XXX: caller's responsibility */
 }
 
 void
-ewmh_update_net_number_of_desktops(Client * c) {
-	long data = ntags;
-
-	DPRINTF("%s\n", "Updating _NET_NUMBER_OF_DESKTOPS");
-	XChangeProperty(dpy, root, atom[NumberOfDesk], XA_CARDINAL, 32,
-			PropModeReplace, (unsigned char *) &data, 1);
-	XChangeProperty(dpy, root, atom[WinWorkCount], XA_CARDINAL, 32,
-			PropModeReplace, (unsigned char *) &data, 1);
-}
-
-unsigned int
-ewmh_process_net_number_of_desktops() {
-	long *card;
-	unsigned long n = 0;
-	long numb = 0;
-
-	card = getcard(root, atom[NumberOfDesk], &n);
-	if (n > 0) {
-		numb = card[0];
-		XFree(card);
-	}
-	if (1 > numb || numb > 64)
-		numb = atoi(getresource("tags.number", "5"));
-	return (unsigned int) numb;
-}
-
-void
-ewmh_update_net_desktop_viewport(Client *c) {
+ewmh_update_net_desktop_viewport() {
 	long *data;
 
 	data = ecalloc(ntags * 2, sizeof(data[0]));
-	XChangeProperty(dpy, root, atom[DeskViewport], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_NET_DESKTOP_VIEWPORT, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *)data, ntags * 2);
-	XChangeProperty(dpy, root, atom[WinArea], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_WIN_AREA, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *)data, 2);
+}
+
+Bool names_synced = False;
+
+void
+ewmh_update_net_desktop_names() {
+	char *buf, *pos;
+	unsigned int i, len, slen;
+
+	if (names_synced) {
+		DPRINTF("%s\n", "Updating _NET_DESKTOP_NAMES: NOT!");
+		return;
+	}
+	DPRINTF("%s\n", "Updating _NET_DESKTOP_NAMES");
+	for (len = 0, i = 0; i < ntags; i++)
+		if (tags[i])
+			len += strlen(tags[i]);
+	len += ntags;
+	pos = buf = ecalloc(len, 1);
+	for (i = 0; i < ntags; i++) {
+		if (tags[i]) {
+			slen = strlen(tags[i]);
+			memcpy(pos, tags[i], slen);
+			pos += slen;
+		}
+		*(pos++) = '\0';
+	}
+	XChangeProperty(dpy, root, _XA_NET_DESKTOP_NAMES, _XA_UTF8_STRING, 8,
+			PropModeReplace, (unsigned char *) buf, len);
+	XChangeProperty(dpy, root, _XA_WIN_WORKSPACE_NAMES, XA_STRING, 8,
+			PropModeReplace, (unsigned char *) buf, len);
+	free(buf);
+	names_synced = True;
+}
+
+void
+ewmh_update_echinus_seltags() {
+	Monitor *m;
+	long *seltags;
+	unsigned int i;
+
+	DPRINTF("%s\n", "Updating _ECHINUS_SELTAGS");
+	seltags = ecalloc(ntags, sizeof(seltags[0]));
+	for (m = monitors; m != NULL; m = m->next)
+		for (i = 0; i < ntags; i++)
+			if (m->seltags[i])
+				seltags[i] = True;
+	XChangeProperty(dpy, root, _XA_ECHINUS_SELTAGS, XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *) seltags, ntags);
+	free(seltags);
+}
+
+void
+ewmh_update_net_number_of_desktops() {
+	long data = ntags;
+
+	DPRINTF("%s\n", "Updating _NET_NUMBER_OF_DESKTOPS");
+	XChangeProperty(dpy, root, _XA_NET_NUMBER_OF_DESKTOPS, XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *) &data, 1);
+	XChangeProperty(dpy, root, _XA_WIN_WORKSPACE_COUNT, XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *) &data, 1);
+	ewmh_update_net_desktop_modes();
+	ewmh_update_net_desktop_viewport();
+	ewmh_update_net_desktop_names();
+	ewmh_update_echinus_seltags();
+}
+
+void
+ewmh_process_net_number_of_desktops() {
+	long *card;
+	unsigned long n = 0;
+
+	card = getcard(root, _XA_NET_NUMBER_OF_DESKTOPS, &n);
+	if (n > 0) {
+		ntags = card[0];
+		XFree(card);
+	}
+	if (1 > ntags || ntags > 64)
+		ntags = atoi(getresource("tags.number", "5"));
 }
 
 void
@@ -458,7 +514,7 @@ ewmh_process_net_showing_desktop() {
 	unsigned long n = 0;
 
 	DPRINTF("%s\n", "Processing _NET_SHOWING_DESKTOP");
-	card = getcard(root, atom[ShowingDesktop], &n);
+	card = getcard(root, _XA_NET_SHOWING_DESKTOP, &n);
 	if (n > 0) {
 		Bool show = card[0];
 
@@ -470,26 +526,26 @@ ewmh_process_net_showing_desktop() {
 
 
 void
-ewmh_update_net_showing_desktop(Client *c) {
+ewmh_update_net_showing_desktop() {
 	long data = showing_desktop ? 1 : 0;
 
 	DPRINTF("%s\n", "Updating _NET_SHOWING_DESKTOP");
-	XChangeProperty(dpy, root, atom[ShowingDesktop], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_NET_SHOWING_DESKTOP, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *)&data, 1);
 }
 
 void
-ewmh_update_net_desktop_geometry(Client *c) {
+ewmh_update_net_desktop_geometry() {
 	long data[2];
 
 	DPRINTF("%s\n", "Updating _NET_DESKTOP_GEOMETRY");
 	data[0] = DisplayWidth(dpy, screen);
 	data[1] = DisplayHeight(dpy, screen);
-	XChangeProperty(dpy, root, atom[DeskGeometry], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_NET_DESKTOP_GEOMETRY, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *)data, 2);
 	data[0] = 1;
 	data[1] = 1;
-	XChangeProperty(dpy, root, atom[WinAreaCount], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_WIN_AREA_COUNT, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *)&data, 2);
 }
 
@@ -507,34 +563,17 @@ ewmh_update_net_monitor_geometry(Client *c) {
 		data[i++] = m->sw;
 		data[i++] = m->sh;
 	}
-	XChangeProperty(dpy, root, atom[MonitorGeometry], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_NET_MONITOR_GEOMETRY, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *)data, i);
 }
 
 void
-ewmh_update_net_virtual_roots(Client *c) {
-	XDeleteProperty(dpy, root, atom[VirtualRoots]);
+ewmh_update_net_virtual_roots() {
+	XDeleteProperty(dpy, root, _XA_NET_VIRTUAL_ROOTS);
 }
 
 void
-ewmh_update_echinus_seltags(Client *c) {
-	Monitor *m;
-	long *seltags;
-	unsigned int i;
-
-	DPRINTF("%s\n", "Updating _ECHINUS_SELTAGS");
-	seltags = ecalloc(ntags, sizeof(seltags[0]));
-	for (m = monitors; m != NULL; m = m->next)
-		for (i = 0; i < ntags; i++)
-			if (m->seltags[i])
-				seltags[i] = True;
-	XChangeProperty(dpy, root, atom[ESelTags], XA_CARDINAL, 32,
-			PropModeReplace, (unsigned char *) seltags, ntags);
-	free(seltags);
-}
-
-void
-ewmh_update_net_current_desktop(Client *c) {
+ewmh_update_net_current_desktop() {
 	long *data;
 	unsigned int i, n;
 	Monitor *m;
@@ -543,15 +582,17 @@ ewmh_update_net_current_desktop(Client *c) {
 	for (n = 0, m = monitors; m; m = m->next, n++) ;
 	data = ecalloc(n, sizeof(*data));
 	for (i = 0, m = monitors; m; data[i++] = m->curtag, m = m->next) ;
-	XChangeProperty(dpy, root, atom[CurDesk], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_NET_CURRENT_DESKTOP, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) data, n);
-	XChangeProperty(dpy, root, atom[WinWorkspace], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_WIN_WORKSPACE, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) data, n);
 	free(data);
+	ewmh_update_echinus_layout_name();
+	ewmh_update_echinus_seltags();
 }
 
 void
-ewmh_update_net_visible_desktops(Client *c) {
+ewmh_update_net_visible_desktops() {
 	long *data;
 	unsigned int i, n;
 	Monitor *m;
@@ -560,7 +601,7 @@ ewmh_update_net_visible_desktops(Client *c) {
 	for (n = 0, m = monitors; m; m = m->next, n++) ;
 	data = ecalloc(n, sizeof(*data));
 	for (i = 0, m = monitors; m; data[i++] = m->curtag, m = m->next) ;
-	XChangeProperty(dpy, root, atom[DesksVisible], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_NET_VISIBLE_DESKTOPS, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) data, n);
 	free(data);
 }
@@ -591,7 +632,7 @@ ewmh_process_net_window_desktop(Client * c) {
 	unsigned long n = 0;
 	unsigned int i;
 
-	desktops = getcard(c->win, atom[WindowDesk], &n);
+	desktops = getcard(c->win, _XA_NET_WM_DESKTOP, &n);
 	if (n > 0) {
 		desktop = desktops[0];
 		if ((desktop & 0xffffffff) == 0xffffffff) {
@@ -607,7 +648,7 @@ ewmh_process_net_window_desktop(Client * c) {
 	} else {
 		if (desktops)
 			XFree(desktops);
-		desktops = getcard(c->win, atom[WinWorkspace], &n);
+		desktops = getcard(c->win, _XA_WIN_WORKSPACE, &n);
 		if (n > 0) {
 			desktop = desktops[0];
 			if ((desktop & 0xffffffff) == 0xffffffff) {
@@ -628,19 +669,35 @@ ewmh_process_net_window_desktop(Client * c) {
 }
 
 void
+ewmh_update_net_window_desktop_mask(Client *c) {
+	unsigned int longs = (ntags+31)>>5;
+	unsigned long data[longs];
+	unsigned int i, j, k, l;
+
+	DPRINTF("Updating _NET_WM_DESKTOP_MASK for 0x%lx\n", c->win);
+	for (j = 0, k = 0; j < longs; j++, k += 32)
+		for (i = 0, l = k, data[j] = 0; i < 32 && l < ntags; i++, l++)
+			if (c->tags[l])
+				data[j] |= (1<<i);
+	XChangeProperty(dpy, c->win, _XA_WIN_WORKSPACES, XA_CARDINAL, 32,
+		PropModeReplace, (unsigned char *)data, longs);
+	XChangeProperty(dpy, c->win, _XA_NET_WM_DESKTOP_MASK, XA_CARDINAL, 32,
+		PropModeReplace, (unsigned char *)data, longs);
+}
+
+void
 ewmh_update_net_window_desktop(Client *c) {
 	long i = -1;
 
-	if (!c->ismanaged)
-		if (ewmh_process_net_window_desktop(c))
-			return;
 	DPRINTF("Updating _NET_WM_DESKTOP for 0x%lx\n", c->win);
 	if (!isomni(c))
 		for (i = 0; i < ntags && !c->tags[i]; i++);
-	XChangeProperty(dpy, c->win, atom[WindowDesk], XA_CARDINAL, 32,
+	XChangeProperty(dpy, c->win, _XA_NET_WM_DESKTOP, XA_CARDINAL, 32,
 		PropModeReplace, (unsigned char *) &i, 1);
-	XChangeProperty(dpy, c->win, atom[WinWorkspace], XA_CARDINAL, 32,
+	XChangeProperty(dpy, c->win, _XA_WIN_WORKSPACE, XA_CARDINAL, 32,
 		PropModeReplace, (unsigned char *) &i, 1);
+	ewmh_update_net_window_desktop_mask(c);
+	ewmh_update_net_window_state(c);
 }
 
 Bool
@@ -650,7 +707,7 @@ ewmh_process_net_window_desktop_mask(Client *c) {
 	unsigned long n = 0;
 	Bool *prev;
 
-	desktops = getcard(c->win, atom[WinWorkspaces], &n);
+	desktops = getcard(c->win, _XA_WIN_WORKSPACES, &n);
 	if (n > 0) {
 		prev = ecalloc(ntags, sizeof(*prev));
 		memcpy(prev, c->tags, ntags * sizeof(*prev));
@@ -668,7 +725,7 @@ ewmh_process_net_window_desktop_mask(Client *c) {
 	} else {
 		if (desktops)
 			XFree(desktops);
-		desktops = getcard(c->win, atom[WindowDeskMask], &n);
+		desktops = getcard(c->win, _XA_NET_WM_DESKTOP_MASK, &n);
 		if (n > 0) {
 			prev = ecalloc(ntags, sizeof(*prev));
 			memcpy(prev, c->tags, ntags * sizeof(*prev));
@@ -691,27 +748,7 @@ ewmh_process_net_window_desktop_mask(Client *c) {
 }
 
 void
-ewmh_update_net_window_desktop_mask(Client *c) {
-	unsigned int longs = (ntags+31)>>5;
-	unsigned long data[longs];
-	unsigned int i, j, k, l;
-
-	if (!c->ismanaged)
-		if (ewmh_process_net_window_desktop_mask(c))
-			return;
-	DPRINTF("Updating _NET_WM_DESKTOP_MASK for 0x%lx\n", c->win);
-	for (j = 0, k = 0; j < longs; j++, k += 32)
-		for (i = 0, l = k, data[j] = 0; i < 32 && l < ntags; i++, l++)
-			if (c->tags[l])
-				data[j] |= (1<<i);
-	XChangeProperty(dpy, c->win, atom[WinWorkspaces], XA_CARDINAL, 32,
-		PropModeReplace, (unsigned char *)data, longs);
-	XChangeProperty(dpy, c->win, atom[WindowDeskMask], XA_CARDINAL, 32,
-		PropModeReplace, (unsigned char *)data, longs);
-}
-
-void
-ewmh_update_net_work_area(Client * c) {
+ewmh_update_net_work_area() {
 	long *geoms, longs = ntags * 4;
 	int i, j, x, y, w, h, l = 0, r = 0, t = 0, b = 0;
 	Monitor *m;
@@ -736,48 +773,15 @@ ewmh_update_net_work_area(Client * c) {
 		geoms[j++] = w;
 		geoms[j++] = h;
 	}
-	XChangeProperty(dpy, root, atom[WorkArea], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_NET_WORKAREA, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) geoms, longs);
 	free(geoms);
 	workarea[0] = x;
 	workarea[1] = y;
 	workarea[2] = x + w;
 	workarea[3] = y + h;
-	XChangeProperty(dpy, root, atom[WinWorkarea], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_WIN_WORKAREA, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) workarea, 4L);
-}
-
-Bool names_synced = False;
-
-void
-ewmh_update_net_desktop_names(Client * c) {
-	char *buf, *pos;
-	unsigned int i, len, slen;
-
-	if (names_synced) {
-		DPRINTF("%s\n", "Updating _NET_DESKTOP_NAMES: NOT!");
-		return;
-	}
-	DPRINTF("%s\n", "Updating _NET_DESKTOP_NAMES");
-	for (len = 0, i = 0; i < ntags; i++)
-		if (tags[i])
-			len += strlen(tags[i]);
-	len += ntags;
-	pos = buf = ecalloc(len, 1);
-	for (i = 0; i < ntags; i++) {
-		if (tags[i]) {
-			slen = strlen(tags[i]);
-			memcpy(pos, tags[i], slen);
-			pos += slen;
-		}
-		*(pos++) = '\0';
-	}
-	XChangeProperty(dpy, root, atom[DeskNames], atom[Utf8String], 8,
-			PropModeReplace, (unsigned char *) buf, len);
-	XChangeProperty(dpy, root, atom[WinWorkNames], XA_STRING, 8,
-			PropModeReplace, (unsigned char *) buf, len);
-	free(buf);
-	names_synced = True;
 }
 
 void
@@ -793,8 +797,8 @@ ewmh_process_net_desktop_names() {
 		if (ret)
 			XFree((unsigned char *) ret);
 		bytes += 4 * extra;
-		status = XGetWindowProperty(dpy, root, atom[DeskNames], 0L, bytes, False,
-				       atom[Utf8String], &real, &format, &nitems, &extra,
+		status = XGetWindowProperty(dpy, root, _XA_NET_DESKTOP_NAMES, 0L, bytes, False,
+				       _XA_UTF8_STRING, &real, &format, &nitems, &extra,
 				       (unsigned char **) &ret);
 		if (status != Success) {
 			names_synced = False;
@@ -827,22 +831,23 @@ ewmh_process_net_desktop_names() {
 	}
 	if (ret)
 		XFree(ret);
+	ewmh_update_net_desktop_names();
 }
 
 void
-ewmh_update_net_active_window(Client * c) {
+ewmh_update_net_active_window() {
 	Window win;
 
 	DPRINTF("%s\n", "Updating _NET_ACTIVE_WINDOW");
 	win = sel ? sel->win : None;
-	XChangeProperty(dpy, root, atom[ActiveWindow], XA_WINDOW, 32,
+	XChangeProperty(dpy, root, _XA_NET_ACTIVE_WINDOW, XA_WINDOW, 32,
 			PropModeReplace, (unsigned char *) &win, 1);
-	XChangeProperty(dpy, root, atom[WinFocus], XA_CARDINAL, 32,
+	XChangeProperty(dpy, root, _XA_WIN_FOCUS, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) &win, 1);
 }
 
 void
-ewmh_update_net_desktop_modes(Client * c) {
+ewmh_update_net_desktop_modes() {
 	long *data;
 	unsigned int i;
 
@@ -852,31 +857,32 @@ ewmh_update_net_desktop_modes(Client * c) {
 		switch (views[i].layout->symbol) {
 		case 'i':
 		case 'f':
-			data[i] = atom[DeskModeFloating];
+			data[i] = _XA_NET_DESKTOP_MODE_FLOATING;
 			break;
 		case 't':
-			data[i] = atom[DeskModeTiled];
+			data[i] = _XA_NET_DESKTOP_MODE_TILED;
 			break;
 		case 'b':
-			data[i] = atom[DeskModeBottomTiled];
+			data[i] = _XA_NET_DESKTOP_MODE_BOTTOM_TILED;
 			break;
 		case 'm':
-			data[i] = atom[DeskModeMonocle];
+			data[i] = _XA_NET_DESKTOP_MODE_MONOCLE;
 			break;
 		case 'u':
-			data[i] = atom[DeskModeTopTiled];
+			data[i] = _XA_NET_DESKTOP_MODE_TOP_TILED;
 			break;
 		case 'l':
-			data[i] = atom[DeskModeLeftTiled];
+			data[i] = _XA_NET_DESKTOP_MODE_LEFT_TILED;
 			break;
 		default:
 			data[i] = None;
 			break;
 		}
 	}
-	XChangeProperty(dpy, root, atom[DeskModes], XA_ATOM, 32,
+	XChangeProperty(dpy, root, _XA_NET_DESKTOP_MODES, XA_ATOM, 32,
 			PropModeReplace, (unsigned char *) data, ntags);
 	free(data);
+	ewmh_update_echinus_layout_name();
 }
 
 void
@@ -891,8 +897,8 @@ getmwmhints(Window win, Window *title, int *border) {
 #define MWM_DECOR_TITLE(x) ((x) & (1L << 3))
 #define MWM_DECOR_BORDER(x) ((x) & (1L << 1))
 #define MWM_HINTS_DECOR(x) ((x) & (1L << 1))
-	if (XGetWindowProperty(dpy, win, atom[MWMHints], 0L, 20L, False,
-			       atom[MWMHints], &real, &format, &n, &extra,
+	if (XGetWindowProperty(dpy, win, _XA_MOTIF_WM_HINTS, 0L, 20L, False,
+			       _XA_MOTIF_WM_HINTS, &real, &format, &n, &extra,
 			       (unsigned char **) &hint) == Success && n >= MWM_HINTS_ELEMENTS) {
 		if (MWM_HINTS_DECOR(hint[0]) && !(MWM_DECOR_ALL(hint[2]))) {
 			*title = MWM_DECOR_TITLE(hint[2]) ? 1 : None;
@@ -937,8 +943,55 @@ wmh_update_win_layer(Client * c)
 		layer = 13;
 	else
 		layer = WIN_LAYER_NORMAL;
-	XChangeProperty(dpy, c->win, atom[WinLayer], XA_CARDINAL, 32,
+	XChangeProperty(dpy, c->win, _XA_WIN_LAYER, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) &layer, 1L);
+}
+
+void
+ewmh_update_net_window_actions(Client *c) {
+	long action[32];
+	int actions = 0;
+
+	DPRINTF("Updating _NET_WM_ALLOWED_ACTIONS for 0x%lx\n", c->win);
+	action[actions++] = _XA_NET_WM_ACTION_ABOVE;
+	action[actions++] = _XA_NET_WM_ACTION_BELOW;
+	if (!c->isbastard) {
+		action[actions++] = _XA_NET_WM_ACTION_CHANGE_DESKTOP;
+	}
+	action[actions++] = _XA_NET_WM_ACTION_CLOSE;
+	if (!c->isbastard) {
+		if (c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
+			action[actions++] = _XA_NET_WM_ACTION_FULLSCREEN;
+			action[actions++] = _XA_NET_WM_ACTION_MAXIMIZE_HORZ;
+			action[actions++] = _XA_NET_WM_ACTION_MAXIMIZE_VERT;
+		}
+		action[actions++] = _XA_NET_WM_ACTION_MINIMIZE;
+		if (c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
+			action[actions++] = _XA_NET_WM_ACTION_MOVE;
+			if (!c->isfixed)
+				action[actions++] = _XA_NET_WM_ACTION_RESIZE;
+		} else {
+			if (!c->isfixed) {
+				DPRINTF("Cannot moveresize 0x%lx: %s\n", c->win, "not fixed");
+			}
+			if (!c->isfloating) {
+				DPRINTF("Cannot moveresize 0x%lx: %s\n", c->win, "not floating");
+			}
+			if (!MFEATURES(clientmonitor(c), OVERLAP)) {
+				DPRINTF("Cannot moveresize 0x%lx: %s\n", c->win, "not in overlap mode");
+			}
+		}
+		action[actions++] = _XA_NET_WM_ACTION_STICK;
+		action[actions++] = _XA_NET_WM_ACTION_FLOAT;
+		if (c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
+			if (c->title)
+				action[actions++] = _XA_NET_WM_ACTION_SHADE;
+			action[actions++] = _XA_NET_WM_ACTION_FILL;
+		}
+	}
+
+	XChangeProperty(dpy, c->win, _XA_NET_WM_ALLOWED_ACTIONS, XA_ATOM, 32,
+		PropModeReplace, (unsigned char *) action, actions);
 }
 
 #define WIN_STATE_STICKY          (1<<0) /* everyone knows sticky */
@@ -965,17 +1018,17 @@ ewmh_update_net_window_state(Client *c) {
 
 	DPRINTF("Updating _NET_WM_STATE for 0x%lx\n", c->win);
 	if (c->ismodal)
-		winstate[states++] = atom[WindowStateModal];
+		winstate[states++] = _XA_NET_WM_STATE_MODAL;
 	if (c->issticky) {
-		winstate[states++] = atom[WindowStateSticky];
+		winstate[states++] = _XA_NET_WM_STATE_STICKY;
 		state |= WIN_STATE_STICKY;
 	}
 	if (c->notaskbar)
-		winstate[states++] = atom[WindowStateNoTaskbar];
+		winstate[states++] = _XA_NET_WM_STATE_SKIP_TASKBAR;
 	if (c->nopager)
-		winstate[states++] = atom[WindowStateNoPager];
+		winstate[states++] = _XA_NET_WM_STATE_SKIP_PAGER;
 	if (c->isicon || c->ishidden)
-		winstate[states++] = atom[WindowStateHidden];
+		winstate[states++] = _XA_NET_WM_STATE_HIDDEN;
 	if (c->isicon)
 		state |= WIN_STATE_MINIMIZED;
 	if (c->isicon && c->transfor)
@@ -988,84 +1041,38 @@ ewmh_update_net_window_state(Client *c) {
 	if (!m)
 		state |= WIN_STATE_HID_WORKSPACE;
 	if (c->ismax)
-		winstate[states++] = atom[WindowStateFs];
+		winstate[states++] = _XA_NET_WM_STATE_FULLSCREEN;
 	if (c->isabove)
-		winstate[states++] = atom[WindowStateAbove];
+		winstate[states++] = _XA_NET_WM_STATE_ABOVE;
 	if (c->isbelow)
-		winstate[states++] = atom[WindowStateBelow];
+		winstate[states++] = _XA_NET_WM_STATE_BELOW;
 	if (c->isattn)
-		winstate[states++] = atom[WindowStateAttn];
+		winstate[states++] = _XA_NET_WM_STATE_DEMANDS_ATTENTION;
 	if (c == sel)
-		winstate[states++] = atom[WindowStateFocused];
+		winstate[states++] = _XA_NET_WM_STATE_FOCUSED;
 	if (c->isfixed)
-		winstate[states++] = atom[WindowStateFixed];
+		winstate[states++] = _XA_NET_WM_STATE_FIXED;
 	if (c->isfloating) {
-		winstate[states++] = atom[WindowStateFloating];
+		winstate[states++] = _XA_NET_WM_STATE_FLOATING;
 		state |= WIN_STATE_ARRANGE_IGNORE;
 	}
 	if (c->isfill)
-		winstate[states++] = atom[WindowStateFilled];
+		winstate[states++] = _XA_NET_WM_STATE_FILLED;
 	if (c->ismaxv) {
-		winstate[states++] = atom[WindowStateMaxV];
+		winstate[states++] = _XA_NET_WM_STATE_MAXIMIZED_VERT;
 		state |= WIN_STATE_MAXIMIZED_VERT;
 	}
 	if (c->ismaxh) {
-		winstate[states++] = atom[WindowStateMaxH];
+		winstate[states++] = _XA_NET_WM_STATE_MAXIMIZED_HORZ;
 		state |= WIN_STATE_MAXIMIZED_HORIZ;
 	}
 
-	XChangeProperty(dpy, c->win, atom[WindowState], XA_ATOM, 32,
+	XChangeProperty(dpy, c->win, _XA_NET_WM_STATE, XA_ATOM, 32,
 		PropModeReplace, (unsigned char *) winstate, states);
-	XChangeProperty(dpy, c->win, atom[WinState], XA_CARDINAL, 32,
+	XChangeProperty(dpy, c->win, _XA_WIN_STATE, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) &state, 1);
 	wmh_update_win_layer(c);
-}
-
-void
-ewmh_update_net_window_actions(Client *c) {
-	long action[32];
-	int actions = 0;
-
-	DPRINTF("Updating _NET_WM_ALLOWED_ACTIONS for 0x%lx\n", c->win);
-	action[actions++] = atom[WindowActionAbove];
-	action[actions++] = atom[WindowActionBelow];
-	if (!c->isbastard) {
-		action[actions++] = atom[WindowActionChangeDesk];
-	}
-	action[actions++] = atom[WindowActionClose];
-	if (!c->isbastard) {
-		if (c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
-			action[actions++] = atom[WindowActionFs];
-			action[actions++] = atom[WindowActionMaxH];
-			action[actions++] = atom[WindowActionMaxV];
-		}
-		action[actions++] = atom[WindowActionMin];
-		if (c->isfixed || c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
-			action[actions++] = atom[WindowActionMove];
-			if (!c->isfixed)
-				action[actions++] = atom[WindowActionResize];
-		} else {
-			if (!c->isfixed) {
-				DPRINTF("Cannot moveresize 0x%lx: %s\n", c->win, "not fixed");
-			}
-			if (!c->isfloating) {
-				DPRINTF("Cannot moveresize 0x%lx: %s\n", c->win, "not floating");
-			}
-			if (!MFEATURES(clientmonitor(c), OVERLAP)) {
-				DPRINTF("Cannot moveresize 0x%lx: %s\n", c->win, "not in overlap mode");
-			}
-		}
-		action[actions++] = atom[WindowActionStick];
-		action[actions++] = atom[WindowActionFloat];
-		if (c->isfloating || MFEATURES(clientmonitor(c), OVERLAP)) {
-			if (c->title)
-				action[actions++] = atom[WindowActionShade];
-			action[actions++] = atom[WindowActionFill];
-		}
-	}
-
-	XChangeProperty(dpy, c->win, atom[WindowActions], XA_ATOM, 32,
-		PropModeReplace, (unsigned char *) action, actions);
+	ewmh_update_net_window_actions(c);
 }
 
 void
@@ -1128,7 +1135,7 @@ wmh_process_state_mask(Client *c, unsigned int mask, unsigned int change)
 void
 ewmh_process_state_atom(Client *c, Atom state, int set) {
 	if (0) {
-	} else if (state == atom[WindowStateModal]) {
+	} else if (state == _XA_NET_WM_STATE_MODAL) {
 		if ((set == _NET_WM_STATE_ADD && !c->ismodal) ||
 		    (set == _NET_WM_STATE_REMOVE && c->ismodal) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
@@ -1136,7 +1143,7 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 			if (c->ismodal)
 				focus(c);
 		}
-	} else if (state == atom[WindowStateSticky]) {
+	} else if (state == _XA_NET_WM_STATE_STICKY) {
 		if ((set == _NET_WM_STATE_ADD && !c->issticky) ||
 		    (set == _NET_WM_STATE_REMOVE && c->issticky) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
@@ -1146,34 +1153,34 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 			else
 				tag(c, curmontag);
 		}
-	} else if (state == atom[WindowStateMaxV]) {
+	} else if (state == _XA_NET_WM_STATE_MAXIMIZED_VERT) {
 		if ((set == _NET_WM_STATE_ADD && !c->ismaxv) ||
 		    (set == _NET_WM_STATE_REMOVE && c->ismaxv) ||
 		    (set == _NET_WM_STATE_TOGGLE))
 			togglemaxv(c);
-	} else if (state == atom[WindowStateMaxH]) {
+	} else if (state == _XA_NET_WM_STATE_MAXIMIZED_HORZ) {
 		if ((set == _NET_WM_STATE_ADD && !c->ismaxh) ||
 		    (set == _NET_WM_STATE_REMOVE && c->ismaxh) ||
 		    (set == _NET_WM_STATE_TOGGLE))
 			togglemaxh(c);
-	} else if (state == atom[WindowStateShaded]) {
+	} else if (state == _XA_NET_WM_STATE_SHADED) {
 		if ((set == _NET_WM_STATE_ADD && !c->isshade) ||
 		    (set == _NET_WM_STATE_REMOVE && c->isshade) ||
 		    (set == _NET_WM_STATE_TOGGLE))
 			toggleshade(c);
-	} else if (state == atom[WindowStateNoTaskbar]) {
+	} else if (state == _XA_NET_WM_STATE_SKIP_TASKBAR) {
 		if ((set == _NET_WM_STATE_ADD && !c->notaskbar) ||
 		    (set == _NET_WM_STATE_REMOVE && c->notaskbar) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
 			c->notaskbar = !c->notaskbar;
 		}
-	} else if (state == atom[WindowStateNoPager]) {
+	} else if (state == _XA_NET_WM_STATE_SKIP_PAGER) {
 		if ((set == _NET_WM_STATE_ADD && !c->nopager) ||
 		    (set == _NET_WM_STATE_REMOVE && c->nopager) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
 			c->nopager = !c->nopager;
 		}
-	} else if (state == atom[WindowStateHidden]) {
+	} else if (state == _XA_NET_WM_STATE_HIDDEN) {
 		/* Implementation note: if an Application asks to toggle
 		   _NET_WM_STATE_HIDDEN the Window Manager should probably just ignore
 		   the request, since _NET_WM_STATE_HIDDEN is a function of some other
@@ -1183,7 +1190,7 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 		    (set == _NET_WM_STATE_REMOVE && c->ishidden) ||
 		    (set == _NET_WM_STATE_TOGGLE))
 			togglehidden(c);
-	} else if (state == atom[WindowStateFs]) {
+	} else if (state == _XA_NET_WM_STATE_FULLSCREEN) {
 		if ((set == _NET_WM_STATE_ADD || set == _NET_WM_STATE_TOGGLE)
 				&& !c->ismax) {
 			c->wasfloating = c->isfloating;
@@ -1199,40 +1206,40 @@ ewmh_process_state_atom(Client *c, Atom state, int set) {
 		DPRINT;
 		arrange(curmonitor());
 		DPRINTF("%s: x%d y%d w%d h%d\n", c->name, c->x, c->y, c->w, c->h);
-	} else if (state == atom[WindowStateAbove]) {
+	} else if (state == _XA_NET_WM_STATE_ABOVE) {
 		if ((set == _NET_WM_STATE_ADD && !c->isabove) ||
 		    (set == _NET_WM_STATE_REMOVE && c->isabove) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
 			c->isabove = !c->isabove;
 			restack();
 		}
-	} else if (state == atom[WindowStateBelow]) {
+	} else if (state == _XA_NET_WM_STATE_BELOW) {
 		if ((set == _NET_WM_STATE_ADD && !c->isbelow) ||
 		    (set == _NET_WM_STATE_REMOVE && c->isbelow) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
 			c->isbelow = !c->isbelow;
 			restack();
 		}
-	} else if (state == atom[WindowStateAttn]) {
+	} else if (state == _XA_NET_WM_STATE_DEMANDS_ATTENTION) {
 		if ((set == _NET_WM_STATE_ADD && !c->isattn) ||
 		    (set == _NET_WM_STATE_REMOVE && c->isattn) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
 			c->isattn = !c->isattn;
 		}
-	} else if (state == atom[WindowStateFocused]) {
+	} else if (state == _XA_NET_WM_STATE_FOCUSED) {
 		/* _NET_WM_STATE_FOCUSED indicates whether the window's decorations are
 		   drawn in an active state.  Clients MUST regard it as a read-only hint. 
 		   It cannot be set at map time or changed via a _NET_WM_STATE client
 		   message. */
-	} else if (state == atom[WindowStateFixed]) {
+	} else if (state == _XA_NET_WM_STATE_FIXED) {
 		/* _NET_WM_STATE_FIXED is a read-only state. */
-	} else if (state == atom[WindowStateFloating]) {
+	} else if (state == _XA_NET_WM_STATE_FLOATING) {
 		if ((set == _NET_WM_STATE_ADD && !c->isfloating) ||
 		    (set == _NET_WM_STATE_REMOVE && c->isfloating) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
 			togglefloating(c);
 		}
-	} else if (state == atom[WindowStateFilled]) {
+	} else if (state == _XA_NET_WM_STATE_FILLED) {
 		if ((set == _NET_WM_STATE_ADD && !c->isfill) ||
 		    (set == _NET_WM_STATE_REMOVE && c->isfill) ||
 		    (set == _NET_WM_STATE_TOGGLE)) {
@@ -1251,10 +1258,10 @@ ewmh_update_net_window_extents(Client *c) {
 	};
 
 	DPRINTF("Updating _NET_WM_FRAME_EXTENTS for 0x%lx\n", c->win);
-	XChangeProperty(dpy, c->win, atom[WindowExtents], XA_CARDINAL, 32,
+	XChangeProperty(dpy, c->win, _XA_NET_FRAME_EXTENTS, XA_CARDINAL, 32,
 		PropModeReplace, (unsigned char *) data, 4L);
 	DPRINTF("Updating _KDE_NET_WM_FRAME_STRUT for 0x%lx\n", c->win);
-	XChangeProperty(dpy, c->win, atom[WindowFrameStrut], XA_CARDINAL, 32,
+	XChangeProperty(dpy, c->win, _XA_KDE_NET_WM_FRAME_STRUT, XA_CARDINAL, 32,
 		PropModeReplace, (unsigned char *) data, 4L);
 }
 
@@ -1263,7 +1270,7 @@ wmh_update_win_maximized_geometry(Client *c)
 {
 	long data[4] = { c->x, c->y, c->w, c->h };
 
-	XChangeProperty(dpy, c->win, atom[WinMaxGeom], XA_CARDINAL, 32,
+	XChangeProperty(dpy, c->win, _XA_WIN_MAXIMIZED_GEOMETRY, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *) data, 4L);
 }
 
@@ -1273,9 +1280,9 @@ ewmh_update_net_window_visible_name(Client *c) {
 
 	if (c->name) {
 		if (XmbTextListToTextProperty(dpy, &c->name, 1, XUTF8StringStyle, &prop) == Success)
-			XSetTextProperty(dpy, c->win, &prop, atom[WindowNameVisible]);
+			XSetTextProperty(dpy, c->win, &prop, _XA_NET_WM_VISIBLE_NAME);
 	} else {
-		XDeleteProperty(dpy, c->win, atom[WindowNameVisible]);
+		XDeleteProperty(dpy, c->win, _XA_NET_WM_VISIBLE_NAME);
 	}
 }
 
@@ -1285,9 +1292,9 @@ ewmh_update_net_window_visible_icon_name(Client *c) {
 
 	if (c->icon_name) {
 		if (XmbTextListToTextProperty(dpy, &c->icon_name, 1, XUTF8StringStyle, &prop) == Success)
-			XSetTextProperty(dpy, c->win, &prop, atom[WindowIconNameVisible]);
+			XSetTextProperty(dpy, c->win, &prop, _XA_NET_WM_VISIBLE_ICON_NAME);
 	} else {
-		XDeleteProperty(dpy, c->win, atom[WindowIconNameVisible]);
+		XDeleteProperty(dpy, c->win, _XA_NET_WM_VISIBLE_ICON_NAME);
 	}
 }
 
@@ -1401,31 +1408,35 @@ push_client_time(Client *c, Time time)
 }
 
 void
-ewmh_update_net_startup_id(Client * c) {
+ewmh_process_net_startup_id(Client * c) {
 #ifdef STARTUP_NOTIFICATION
 	SnStartupSequence *seq;
 #endif
 	if (c->startup_id)
 		return;
-	if (!gettextprop(c->win, atom[NetStartupId], &c->startup_id))
+	if (!gettextprop(c->win, _XA_NET_STARTUP_ID, &c->startup_id))
 		if (c->leader != None && c->leader != c->win)
-			gettextprop(c->leader, atom[NetStartupId], &c->startup_id);
+			gettextprop(c->leader, _XA_NET_STARTUP_ID, &c->startup_id);
 	if (c->startup_id) {
 		char *pos;
 
 		if ((pos = strstr(c->startup_id, "_TIME")))
 			push_client_time(c, atol(pos + 5));
+		/*
+		 * TODO: there are three other things to get from the ID:
+		 *   launcher: argv[0] of launcher
+		 *   launchee: argv[0] of launchee
+		 *   pid:      pid of launchee
+		 */
 	}
 #ifdef STARTUP_NOTIFICATION
-	if (c->ismanaged)
-		return;
 	if ((seq = find_startup_seq(c))) {
 		int i, workspace;
 
 		if (!c->startup_id) {
 			c->startup_id = strdup(sn_startup_sequence_get_id(seq));
-			XChangeProperty(dpy, c->win, atom[NetStartupId],
-					atom[Utf8String], 8, PropModeReplace,
+			XChangeProperty(dpy, c->win, _XA_NET_STARTUP_ID,
+					_XA_UTF8_STRING, 8, PropModeReplace,
 					(unsigned char *) c->startup_id,
 					strlen(c->startup_id)+1);
 		}
@@ -1443,7 +1454,7 @@ ewmh_update_net_startup_id(Client * c) {
 }
 
 void
-ewmh_update_net_window_user_time(Client *c) {
+ewmh_process_net_window_user_time(Client *c) {
 	long *time = NULL;
 	unsigned long n = 0;
 	Window win;
@@ -1451,7 +1462,7 @@ ewmh_update_net_window_user_time(Client *c) {
 	if ((win = c->time_window) == None)
 		win = c->win;
 
-	time = getcard(win, atom[WindowUserTime], &n);
+	time = getcard(win, _XA_NET_WM_USER_TIME, &n);
 	if (n > 0) {
 		c->hastime = True;
 		c->user_time = time[0];
@@ -1484,17 +1495,17 @@ ewmh_release_user_time_window(Client *c) {
 Window *getwind(Window win, Atom atom, unsigned long *nitems);
 
 void
-ewmh_update_net_window_user_time_window(Client * c) {
+ewmh_process_net_window_user_time_window(Client * c) {
 	Window *wins = NULL, win = None;
 	unsigned long n = 0;
 
-	wins = getwind(c->win, atom[UserTimeWindow], &n);
+	wins = getwind(c->win, _XA_NET_WM_USER_TIME_WINDOW, &n);
 	if (n > 0) {
 		Window other = wins[0];
 
 		XFree(wins);
 		/* check recursive */
-		wins = getwind(other, atom[UserTimeWindow], &n);
+		wins = getwind(other, _XA_NET_WM_USER_TIME_WINDOW, &n);
 		if (n > 0) {
 			Window again = wins[0];
 
@@ -1512,6 +1523,8 @@ ewmh_update_net_window_user_time_window(Client * c) {
 	XSelectInput(dpy, win, PropertyChangeMask);
 	XSaveContext(dpy, win, context[ClientTimeWindow], (XPointer)c);
 	XSaveContext(dpy, win, context[ClientAny], (XPointer)c);
+
+	ewmh_process_net_window_user_time(c);
 }
 
 Atom *getatom(Window win, Atom atom, unsigned long *nitems);
@@ -1527,7 +1540,7 @@ wmh_process_win_window_hints(Client * c) {
 	long *state;
 	unsigned long n = 0;
 
-	state = getcard(c->win, atom[WinHints], &n);
+	state = getcard(c->win, _XA_WIN_HINTS, &n);
 	if (n > 0) {
 		c->isfocusable = (state[0] & WIN_HINTS_SKIP_FOCUS) ? False : True;
 		c->nopager = (state[0] & WIN_HINTS_SKIP_WINLIST) ? True : False;
@@ -1591,7 +1604,7 @@ wmh_process_win_layer(Client * c)
 	long *layer;
 	unsigned long n;
 
-	layer = getcard(c->win, atom[WinLayer], &n);
+	layer = getcard(c->win, _XA_WIN_LAYER, &n);
 	if (n)
 		wmh_process_layer(c, layer[0]);
 	if (layer)
@@ -1603,7 +1616,7 @@ wmh_process_win_state(Client *c) {
 	long *state = NULL;
 	unsigned long n = 0;
 
-	state = getcard(c->win, atom[WinState], &n);
+	state = getcard(c->win, _XA_WIN_STATE, &n);
 	if (n)
 		wmh_process_state_mask(c, 0xffffffff, state[0]);
 	if (state)
@@ -1625,7 +1638,7 @@ ewmh_process_net_window_state(Client *c) {
 
 	wmh_process_win_window_state(c);
 
-	state = getatom(c->win, atom[WindowState], &n);
+	state = getatom(c->win, _XA_NET_WM_STATE, &n);
 	for (i = 0; i < n; i++)
 		ewmh_process_state_atom(c, state[i], _NET_WM_STATE_ADD);
 	if (state)
@@ -1633,16 +1646,16 @@ ewmh_process_net_window_state(Client *c) {
 }
 
 void
-ewmh_update_net_window_sync_request_counter(Client *c) {
+ewmh_process_net_window_sync_request_counter(Client *c) {
 	int format, status;
 	long *data = NULL;
 	unsigned long extra, nitems = 0;
 	Atom real;
 	
 
-	if (!checkatom(c->win, atom[WMProto], atom[WindowSync]))
+	if (!checkatom(c->win, _XA_WM_PROTOCOLS, _XA_NET_WM_SYNC_REQUEST))
 		return;
-	status = XGetWindowProperty(dpy, c->win, atom[WindowTypeOverride], 0L, 1L,
+	status = XGetWindowProperty(dpy, c->win, _XA_KDE_NET_WM_WINDOW_TYPE_OVERRIDE, 0L, 1L,
 			False, AnyPropertyType, &real, &format, &nitems, &extra,
 			(unsigned char **)&data);
 	if (status == Success && nitems > 0) {
@@ -1681,18 +1694,18 @@ ewmh_update_net_window_fs_monitors(Client *c) {
 	if (!m)
 		return;
 	mons[3] = m->num;
-	XChangeProperty(dpy, c->win, atom[WindowFsMonitors], XA_CARDINAL, 32,
+	XChangeProperty(dpy, c->win, _XA_NET_WM_FULLSCREEN_MONITORS, XA_CARDINAL, 32,
 			PropModeReplace, (unsigned char *)mons, 4L);
 }
 
 void
-ewmh_update_kde_net_window_type_override(Client *c) {
+ewmh_process_kde_net_window_type_override(Client *c) {
 	int format, status;
 	long *data = NULL;
 	unsigned long extra, nitems = 0;
 	Atom real;
 
-	status = XGetWindowProperty(dpy, c->win, atom[WindowTypeOverride], 0L, 1L,
+	status = XGetWindowProperty(dpy, c->win, _XA_KDE_NET_WM_WINDOW_TYPE_OVERRIDE, 0L, 1L,
 			False, AnyPropertyType, &real, &format, &nitems, &extra,
 			(unsigned char **)&data);
 	if (status == Success && real != None) {
@@ -1706,13 +1719,13 @@ ewmh_update_kde_net_window_type_override(Client *c) {
 }
 
 void
-ewmh_update_kde_splash_progress(Client *c) {
+ewmh_update_kde_splash_progress() {
 	XEvent ev;
 
 	ev.xclient.display = dpy;
 	ev.xclient.type = ClientMessage;
 	ev.xclient.window = root;
-	ev.xclient.message_type = atom[KdeSplashProgress];
+	ev.xclient.message_type = _XA_KDE_SPLASH_PROGRESS;
 	ev.xclient.format = 8;
 	strcpy(ev.xclient.data.b, "wm started");
 	XSendEvent(dpy, root, False, SubstructureNotifyMask, &ev);
@@ -1726,37 +1739,37 @@ clientmessage(XEvent *e) {
 
 	if ((c = getclient(ev->window, ClientWindow))) {
 		if (0) {
-		} else if (message_type == atom[CloseWindow]) {
+		} else if (message_type == _XA_NET_CLOSE_WINDOW) {
 			killclient(c);
-		} else if (message_type == atom[ActiveWindow] ||
-			   message_type == atom[WinFocus]) {
+		} else if (message_type == _XA_NET_ACTIVE_WINDOW ||
+			   message_type == _XA_WIN_FOCUS) {
 			c->isicon = False;
 			c->ishidden = False;
 			focus(c);
 			arrange(clientmonitor(c));
-		} else if (message_type == atom[WindowState]) {
+		} else if (message_type == _XA_NET_WM_STATE) {
 			ewmh_process_state_atom(c, (Atom) ev->data.l[1], ev->data.l[0]);
 			if (ev->data.l[2])
 				ewmh_process_state_atom(c,
 				    (Atom) ev->data.l[2], ev->data.l[0]);
 			ewmh_update_net_window_state(c);
-		} else if (message_type == atom[WinLayer]) {
+		} else if (message_type == _XA_WIN_LAYER) {
 			wmh_process_layer(c, ev->data.l[0]);
 			ewmh_update_net_window_state(c);
-		} else if (message_type == atom[WinState]) {
+		} else if (message_type == _XA_WIN_STATE) {
 			wmh_process_state_mask(c, ev->data.l[0], ev->data.l[1]);
 			ewmh_update_net_window_state(c);
-		} else if (message_type == atom[WMChangeState]) {
+		} else if (message_type == _XA_WM_CHANGE_STATE) {
 			if (ev->data.l[0] == IconicState)
 				iconify(c);
-		} else if (message_type == atom[WindowDesk] ||
-			   message_type == atom[WinWorkspace]) {
+		} else if (message_type == _XA_NET_WM_DESKTOP ||
+			   message_type == _XA_WIN_WORKSPACE) {
 			int index = ev->data.l[0];
 
 			if (-1 <= index && index < ntags)
 				tag(c, index);
-		} else if (message_type == atom[WindowDeskMask] ||
-			   message_type == atom[WinWorkspaces]) {
+		} else if (message_type == _XA_NET_WM_DESKTOP_MASK ||
+			   message_type == _XA_WIN_WORKSPACES) {
 			unsigned index = ev->data.l[0];
 			unsigned mask = ev->data.l[1], oldmask = 0;
 			unsigned num = (ntags+31)>>5;
@@ -1774,16 +1787,14 @@ clientmessage(XEvent *e) {
 					c->tags[j] = (oldmask & (1<<i)) ? True : False;
 			else {
 				/* what toggletag does */
-				updateatom[WindowDesk] (c);
-				updateatom[WindowDeskMask] (c);
-				updateatom[WindowState] (c);
+				ewmh_update_net_window_desktop(c);
 				drawclient(c);
 				arrange(NULL);
 			}
 			/* TODO */
-		} else if (message_type == atom[WMProto]) {
+		} else if (message_type == _XA_WM_PROTOCOLS) {
 			/* TODO */
-		} else if (message_type == atom[WindowFsMonitors]) {
+		} else if (message_type == _XA_NET_WM_FULLSCREEN_MONITORS) {
 			if (c->ismax) {
 				Monitor *mt, *mb, *ml, *mr;
 				int t, b, l, r;
@@ -1793,7 +1804,7 @@ clientmessage(XEvent *e) {
 				ml = findmonbynum(ev->data.l[2]);
 				mr = findmonbynum(ev->data.l[3]);
 				if (!mt || !mb || !ml || !mr) {
-					updateatom[WindowFsMonitors] (c);
+					ewmh_update_net_window_fs_monitors(c);
 					return;
 				}
 				t = mt->sy;
@@ -1801,14 +1812,14 @@ clientmessage(XEvent *e) {
 				l = ml->sx;
 				r = mr->sx + mr->sw;
 				if (t >= b || r >= l) {
-					updateatom[WindowFsMonitors] (c);
+					ewmh_update_net_window_fs_monitors(c);
 					return;
 				}
 				resize(c, l, t, r - l, b - t, 0);
 			}
-			XChangeProperty(dpy, c->win, atom[WindowFsMonitors], XA_CARDINAL, 32,
+			XChangeProperty(dpy, c->win, _XA_NET_WM_FULLSCREEN_MONITORS, XA_CARDINAL, 32,
 					PropModeReplace, (unsigned char *)&ev->data.l[0], 4L);
-		} else if (message_type == atom[MoveResizeWindow]) {
+		} else if (message_type == _XA_NET_MOVERESIZE_WINDOW) {
 			unsigned flags = (unsigned) ev->data.l[0];
 			unsigned source = ((flags >> 12) & 0x0f);
 			unsigned gravity = flags & 0xff;
@@ -1829,7 +1840,7 @@ clientmessage(XEvent *e) {
 			/* FIXME: this just resizes and moves the window, it does
 			 * handle changing monitors */
 			resize(c, x, y, w, h, c->border);
-		} else if (message_type == atom[WindowMoveResize]) {
+		} else if (message_type == _XA_NET_WM_MOVERESIZE) {
 			int x_root = (int) ev->data.l[0];
 			int y_root = (int) ev->data.l[1];
 			int direct = (int) ev->data.l[2];
@@ -1864,7 +1875,7 @@ clientmessage(XEvent *e) {
 				/* intercepted while moving or resizing */
 				break;
 			}
-		} else if (message_type == atom[RestackWindow]) {
+		} else if (message_type == _XA_NET_RESTACK_WINDOW) {
 			unsigned source = ev->data.l[0];
 			Window sibling = ev->data.l[1];
 			unsigned detail = ev->data.l[2];
@@ -1875,46 +1886,46 @@ clientmessage(XEvent *e) {
 			if (source == 1)
 				return;
 			restack_client(c, detail, o);
-		} else if (message_type == atom[RequestFrameExt]) {
+		} else if (message_type == _XA_NET_REQUEST_FRAME_EXTENTS) {
 			ewmh_update_net_window_extents(c);
 		}
 	} else if (ev->window == root) {
 		if (0) {
-		} else if (message_type == atom[NumberOfDesk]) {
+		} else if (message_type == _XA_NET_NUMBER_OF_DESKTOPS) {
 			settags(ev->data.l[0]);
-		} else if (message_type == atom[DeskGeometry] ||
-			   message_type == atom[WinAreaCount]) {
+		} else if (message_type == _XA_NET_DESKTOP_GEOMETRY ||
+			   message_type == _XA_WIN_AREA_COUNT) {
 			/* Ignore desktop geometry changes but change the property in response */
-			updateatom[DeskGeometry] (NULL);
-		} else if (message_type == atom[DeskViewport] ||
-			   message_type == atom[WinArea]) {
+			ewmh_update_net_desktop_geometry();
+		} else if (message_type == _XA_NET_DESKTOP_VIEWPORT ||
+			   message_type == _XA_WIN_AREA) {
 			/* Ignore viewport changes but change the property in response. */
-			updateatom[DeskViewport] (NULL);
-		} else if (message_type == atom[CurDesk] ||
-			   message_type == atom[WinWorkspace]) {
+			ewmh_update_net_desktop_viewport();
+		} else if (message_type == _XA_NET_CURRENT_DESKTOP ||
+			   message_type == _XA_WIN_WORKSPACE) {
 			int tag = ev->data.l[0];
 			if (0 <= tag && tag < ntags)
 				view(tag);
-		} else if (message_type == atom[ShowingDesktop]) {
+		} else if (message_type == _XA_NET_SHOWING_DESKTOP) {
 			if (!ev->data.l[0] != !showing_desktop)
 				toggleshowing();
-		} else if (message_type == atom[WMRestart]) {
+		} else if (message_type == _XA_NET_RESTART) {
 			/* TODO */
-		} else if (message_type == atom[WMShutdown]) {
+		} else if (message_type == _XA_NET_SHUTDOWN) {
 			/* TODO */
-		} else if (message_type == atom[Manager]) {
+		} else if (message_type == _XA_MANAGER) {
 			/* TODO */
-		} else if (message_type == atom[StartupInfoBegin]) {
+		} else if (message_type == _XA_NET_STARTUP_INFO_BEGIN) {
 #ifdef STARTUP_NOTIFICATION
 			sn_display_process_event(sn_dpy, e);
 #endif
-		} else if (message_type == atom[StartupInfo]) {
+		} else if (message_type == _XA_NET_STARTUP_INFO) {
 #ifdef STARTUP_NOTIFICATION
 			sn_display_process_event(sn_dpy, e);
 #endif
-		} else if (message_type == atom[WMProto]) {
+		} else if (message_type == _XA_WM_PROTOCOLS) {
 			if (0) {
-			} else if (ev->data.l[0] == atom[WindowPing]) {
+			} else if (ev->data.l[0] == _XA_NET_WM_PING) {
 				if ((c = getclient(ev->data.l[2], ClientPing)))
 					XDeleteContext(dpy, c->win, context[ClientPing]);
 				if ((c = getclient(ev->data.l[2], ClientDead)))
@@ -1923,7 +1934,7 @@ clientmessage(XEvent *e) {
 		}
 	} else {
 		if (0) {
-		} else if (message_type == atom[RequestFrameExt]) {
+		} else if (message_type == _XA_NET_REQUEST_FRAME_EXTENTS) {
 			Window win = ev->window;
 			unsigned int wintype;
 			Window title = 1;
@@ -1951,7 +1962,7 @@ clientmessage(XEvent *e) {
 			data[1] = border;
 			data[2] = border + th;
 			data[3] = border;
-			XChangeProperty(dpy, win, atom[WindowExtents], XA_CARDINAL, 32,
+			XChangeProperty(dpy, win, _XA_NET_FRAME_EXTENTS, XA_CARDINAL, 32,
 					PropModeReplace, (unsigned char *) &data, 4L);
 		}
 	}
@@ -1963,14 +1974,14 @@ setopacity(Client * c, unsigned int opacity) {
 	   opacity on the client window, the WM should only propagate that
 	   opacity to the frame. */
 	if (opacity == OPAQUE) {
-		XDeleteProperty(dpy, c->win, atom[WindowOpacity]);
-		XDeleteProperty(dpy, c->frame, atom[WindowOpacity]);
+		XDeleteProperty(dpy, c->win, _XA_NET_WM_WINDOW_OPACITY);
+		XDeleteProperty(dpy, c->frame, _XA_NET_WM_WINDOW_OPACITY);
 	} else {
 		long data = opacity;
 
-		XChangeProperty(dpy, c->win, atom[WindowOpacity], XA_CARDINAL, 32,
+		XChangeProperty(dpy, c->win, _XA_NET_WM_WINDOW_OPACITY, XA_CARDINAL, 32,
 				PropModeReplace, (unsigned char *) &data, 1L);
-		XChangeProperty(dpy, c->frame, atom[WindowOpacity], XA_CARDINAL, 32,
+		XChangeProperty(dpy, c->frame, _XA_NET_WM_WINDOW_OPACITY, XA_CARDINAL, 32,
 				PropModeReplace, (unsigned char *) &data, 1L);
 	}
 }
@@ -2048,12 +2059,12 @@ getwintype(Window win) {
 	unsigned int ret = 0;
 	long *layer;
 
-	state = getatom(win, atom[WindowType], &n);
+	state = getatom(win, _XA_NET_WM_WINDOW_TYPE, &n);
 	for (i = 0; i < n; i++)
 		for (j = WindowTypeDesk; j <= WindowTypeNormal; j++)
 			if (state[i] == atom[j])
 				ret |= WTFLAG(j);
-	layer = getcard(win, atom[WinLayer], &n);
+	layer = getcard(win, _XA_WIN_LAYER, &n);
 	if (n) {
 		switch ((unsigned int)layer[0]) {
 		case WIN_LAYER_DESKTOP:
@@ -2098,7 +2109,7 @@ checkwintype(Window win, int wintype) {
 	unsigned long i, n = 0;
 	Bool ret = False;
 
-	state = getatom(win, atom[WindowType], &n);
+	state = getatom(win, _XA_NET_WM_WINDOW_TYPE, &n);
 	if (n == 0) {
 		if (wintype == WindowTypeNormal)
 			ret = True;
@@ -2175,39 +2186,6 @@ getstrut(Client * c, Atom atom) {
 }
 
 int getstruts(Client *c) {
-	return (getstrut(c, atom[StrutPartial]) || getstrut(c, atom[Strut]));
+	return (getstrut(c, _XA_NET_WM_STRUT_PARTIAL) || getstrut(c, _XA_NET_WM_STRUT));
 }
 
-void (*updateatom[]) (Client *) = {
-	[ClientList] = ewmh_update_net_client_list,
-	[ClientListStacking] = ewmh_update_net_client_list_stacking,
-	[ActiveWindow] = ewmh_update_net_active_window,
-	[WindowDesk] = ewmh_update_net_window_desktop,
-	[WindowDeskMask] = ewmh_update_net_window_desktop_mask,
-	[NumberOfDesk] = ewmh_update_net_number_of_desktops,
-	[DeskViewport] = ewmh_update_net_desktop_viewport,
-	[ShowingDesktop] = ewmh_update_net_showing_desktop,
-	[DeskGeometry] = ewmh_update_net_desktop_geometry,
-	[VirtualRoots] = ewmh_update_net_virtual_roots,
-	[DeskNames] = ewmh_update_net_desktop_names,
-	[CurDesk] = ewmh_update_net_current_desktop,
-	[DesksVisible] = ewmh_update_net_visible_desktops,
-	[ELayout] = update_echinus_layout_name,
-	[ESelTags] = ewmh_update_echinus_seltags,
-	[WorkArea] = ewmh_update_net_work_area,
-	[DeskModes] = ewmh_update_net_desktop_modes,
-	[WindowState] = ewmh_update_net_window_state,
-	[WindowActions] = ewmh_update_net_window_actions,
-	[WindowExtents] = ewmh_update_net_window_extents,
-	[WinMaxGeom] = wmh_update_win_maximized_geometry, /* TODO: call me */
-	[WindowNameVisible] = ewmh_update_net_window_visible_name,
-	[WindowIconNameVisible] = ewmh_update_net_window_visible_icon_name,
-	[WindowUserTime] = ewmh_update_net_window_user_time,
-	[UserTimeWindow] = ewmh_update_net_window_user_time_window,
-	[NetStartupId] = ewmh_update_net_startup_id,
-	[WindowTypeOverride] = ewmh_update_kde_net_window_type_override,
-	[KdeSplashProgress] = ewmh_update_kde_splash_progress,
-	[WindowCounter] = ewmh_update_net_window_sync_request_counter,
-	[WindowFsMonitors] = ewmh_update_net_window_fs_monitors,
-	[WinHints] = wmh_process_win_window_hints,
-};
