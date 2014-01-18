@@ -1,5 +1,6 @@
 /* See LICENSE file for copyright and license details. */
 #define BORDERPX		1
+#define MARGINPX		0
 #define NF_OPACITY		0.9
 #define FONT			"fixed-9"
 #define NORMBORDERCOLOR		"#cccccc"

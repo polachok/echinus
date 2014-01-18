@@ -314,6 +314,7 @@ initstyle() {
 		eprint("error, cannot allocate colors\n");
 	initfont(getresource("font", FONT));
 	style.border = atoi(getresource("border", STR(BORDERPX)));
+	style.margin = atoi(getresource("margin", STR(MARGINPX)));
 	style.opacity = OPAQUE * atof(getresource("opacity", STR(NF_OPACITY)));
 	style.outline = atoi(getresource("outline", "0"));
 	strncpy(style.titlelayout, getresource("titlelayout", "N  IMC"),

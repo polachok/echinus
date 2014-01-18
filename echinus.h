@@ -307,6 +307,7 @@ typedef struct {
 
 typedef struct {
 	unsigned int border;
+	unsigned int margin;
 	unsigned int outline;
 	unsigned int titleheight;
 	unsigned int opacity;

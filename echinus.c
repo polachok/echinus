@@ -467,6 +467,7 @@ buttonpress(XEvent * e) {
 				XSendEvent(dpy, selwin, False, SubstructureNotifyMask, e);
 				return;
 			}
+			return;
 		} else if (ev->type == ButtonRelease) {
 			if (button_states[ev->button] || ev->button < Button3 || ev->button > Button5) {
 				XSendEvent(dpy, selwin, False, SubstructureNotifyMask, e);
@@ -4384,6 +4385,9 @@ bstack(Monitor * m) {
 	nb = 0;
 
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
+		int gap = style.margin > c->border ? style.margin - c->border : 0;
+		// int gap = style.margin ? style.margin + c->border : 0;
+
 		if (c->ismax) {
 			c->ismax = False;
 			ewmh_update_net_window_state(c);
@@ -4416,9 +4420,9 @@ bstack(Monitor * m) {
 				nb = c->border;
 			tx = nx + nw;
 		}
-	      nw -= 2 * c->border;
-	      nh -= 2 * c->border;
-	      resize(c, nx, ny, nw, nh, c->border);
+		nw -= 2 * c->border;
+		nh -= 2 * c->border;
+		resize(c, nx + gap, ny + gap, nw - 2 * gap, nh - 2 * gap, c->border);
 	}
 }
 
@@ -4462,6 +4466,9 @@ tstack(Monitor * m) {
 	nb = 0;
 
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
+		int gap = style.margin > c->border ? style.margin - c->border : 0;
+		// int gap = style.margin ? style.margin + c->border : 0;
+
 		if (c->ismax) {
 			c->ismax = False;
 			ewmh_update_net_window_state(c);
@@ -4494,9 +4501,9 @@ tstack(Monitor * m) {
 				nb = c->border;
 			tx = nx + nw;
 		}
-	      nw -= 2 * c->border;
-	      nh -= 2 * c->border;
-	      resize(c, nx, ny, nw, nh, c->border);
+		nw -= 2 * c->border;
+		nh -= 2 * c->border;
+		resize(c, nx + gap, ny + gap, nw - 2 * gap, nh - 2 * gap, c->border);
 	}
 }
 
@@ -4542,6 +4549,9 @@ rtile(Monitor * m) {
 	nb = 0;
 
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
+		int gap = style.margin > c->border ? style.margin - c->border : 0;
+		// int gap = style.margin ? style.margin + c->border : 0;
+
 		if (c->ismax) {
 			c->ismax = False;
 			ewmh_update_net_window_state(c);
@@ -4576,7 +4586,7 @@ rtile(Monitor * m) {
 		}
 		nw -= 2 * c->border;
 		nh -= 2 * c->border;
-		resize(c, nx, ny, nw, nh, c->border);
+		resize(c, nx + gap, ny + gap, nw - 2 * gap, nh - 2 * gap, c->border);
 	}
 }
 
@@ -4622,6 +4632,9 @@ ltile(Monitor * m) {
 	nb = 0;
 
 	for (i = 0, c = mc = nexttiled(clients, m); c && i < n; c = nexttiled(c->next, m), i++) {
+		int gap = style.margin > c->border ? style.margin - c->border : 0;
+		// int gap = style.margin ? style.margin + c->border : 0;
+
 		if (c->ismax) {
 			c->ismax = False;
 			ewmh_update_net_window_state(c);
@@ -4656,7 +4669,7 @@ ltile(Monitor * m) {
 		}
 		nw -= 2 * c->border;
 		nh -= 2 * c->border;
-		resize(c, nx, ny, nw, nh, c->border);
+		resize(c, nx + gap, ny + gap, nw - 2 * gap, nh - 2 * gap, c->border);
 	}
 }
 

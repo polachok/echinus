@@ -687,15 +687,30 @@ ewmh_update_net_window_desktop_mask(Client *c) {
 
 void
 ewmh_update_net_window_desktop(Client *c) {
-	long i = -1;
-
 	DPRINTF("Updating _NET_WM_DESKTOP for 0x%lx\n", c->win);
-	if (!isomni(c))
-		for (i = 0; i < ntags && !c->tags[i]; i++);
-	XChangeProperty(dpy, c->win, _XA_NET_WM_DESKTOP, XA_CARDINAL, 32,
-		PropModeReplace, (unsigned char *) &i, 1);
-	XChangeProperty(dpy, c->win, _XA_WIN_WORKSPACE, XA_CARDINAL, 32,
-		PropModeReplace, (unsigned char *) &i, 1);
+	if (isomni(c)) {
+		long i = -1;
+
+		XChangeProperty(dpy, c->win, _XA_NET_WM_DESKTOP, XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *) &i, 1);
+		XChangeProperty(dpy, c->win, _XA_WIN_WORKSPACE, XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *) &i, 1);
+	} else {
+		unsigned int i, j, n;
+		long *data;
+
+		for (n = 0, i = 0; i < ntags; i++)
+			if (c->tags[i])
+				n++;
+		data = calloc(n, sizeof(*data));
+		for (j = 0, i = 0; i < ntags; i++)
+			if (c->tags[i])
+				data[j++] = i;
+		XChangeProperty(dpy, c->win, _XA_NET_WM_DESKTOP, XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *) data, n);
+		XChangeProperty(dpy, c->win, _XA_WIN_WORKSPACE, XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *) data, n);
+	}
 	ewmh_update_net_window_desktop_mask(c);
 	ewmh_update_net_window_state(c);
 }
