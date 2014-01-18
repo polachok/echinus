@@ -361,6 +361,8 @@ static void
 arrangemon(Monitor * m) {
 	Client *c;
 
+	XRaiseWindow(dpy, m->veil);
+	XMapWindow(dpy, m->veil);
 	if (views[m->curtag].layout->arrange)
 		views[m->curtag].layout->arrange(m);
 	arrangefloats(m);
@@ -382,13 +384,20 @@ arrangemon(Monitor * m) {
 }
 
 void
-arrange(Monitor * m) {
-	if (!m)
+arrange(Monitor *om) {
+	Monitor *m;
+	
+	if (!om)
 		for (m = monitors; m; m = m->next)
 			arrangemon(m);
 	else
-		arrangemon(m);
+		arrangemon(om);
 	restack();
+	if (!om)
+		for (m = monitors; m; m = m->next)
+			XUnmapWindow(dpy, m->veil);
+	else
+		XUnmapWindow(dpy, om->veil);
 }
 
 void
@@ -1368,10 +1377,9 @@ isvisible(Client *c, Monitor *m)
 			if (isvisible(c, m))
 				return True;
 	} else {
-		if (isonmonitor(c, m))
-			for (i = 0; i < ntags; i++)
-				if (c->tags[i] && m->seltags[i])
-					return True;
+		for (i = 0; i < ntags; i++)
+			if (c->tags[i] && m->seltags[i])
+				return True;
 	}
 	return False;
 }
@@ -1719,7 +1727,7 @@ manage(Window w, XWindowAttributes * wa) {
 	ewmh_process_net_window_sync_request_counter(c);
 	ewmh_process_net_window_state(c);
 	c->ismanaged = True;
-	ewmh_update_net_window_state(c);
+	ewmh_update_net_window_desktop(c);
 	updateframe(c);
 
 	if (c->hasstruts) {
@@ -1972,13 +1980,20 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 	XEvent ev;
 	Monitor *m, *nm;
 
-	if (c->isbastard)
+	if (c->isbastard) {
+		XUngrabPointer(dpy, CurrentTime);
 		return;
+	}
 	if (!(m = getmonitor(x_root, y_root)))
 		m = curmonitor();
 	if (XGrabPointer(dpy, root, False, MOUSEMASK, GrabModeAsync,
 		GrabModeAsync, None, cursor[CurMove], CurrentTime) != GrabSuccess)
 		return;
+	if (m) {
+		XRaiseWindow(dpy, m->veil);
+		// XRaiseWindow(dpy, c->frame);
+		// XMapWindow(dpy, m->veil);
+	}
 	if ((wasmax = c->ismax))
 		c->ismax = False;
 	if ((wasmaxv = c->ismaxv))
@@ -2090,6 +2105,13 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 				ewmh_update_net_window_desktop(c);
 				drawclient(c);
 				arrange(NULL);
+				if (m)
+					XUnmapWindow(dpy, m->veil);
+				if (nm) {
+					XRaiseWindow(dpy, nm->veil);
+					// XRaiseWindow(dpy, c->frame);
+					// XMapWindow(dpy, nm->veil);
+				}
 				m = nm;
 			}
 			continue;
@@ -2101,6 +2123,8 @@ mousemove(Client * c, unsigned int button, int x_root, int y_root) {
 		while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
 		break;
 	}
+	if (m)
+		XUnmapWindow(dpy, m->veil);
 	if (wasmax || wasmaxv || wasmaxh || wasfill || wasshade) {
 		if (wasmax)
 			c->ismax = True;
@@ -2172,10 +2196,18 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 	}
 #endif
 
-	if (c->isbastard || c->isfixed)
+	if (c->isbastard || c->isfixed) {
+		XUngrabPointer(dpy, CurrentTime);
 		return;
+	}
 	if (!(m = getmonitor(x_root, y_root)))
 		m = curmonitor();
+
+	if (m) {
+		XRaiseWindow(dpy, m->veil);
+		// XRaiseWindow(dpy, c->frame);
+		// XMapWindow(dpy, m->veil);
+	}
 
 	nx = ocx = c->x;
 	ny = ocy = c->y;
@@ -2408,6 +2440,8 @@ mouseresize_from(Client * c, int from, unsigned int button, int x_root, int y_ro
 		while (XCheckMaskEvent(dpy, EnterWindowMask, &ev)) ;
 		break;
 	}
+	if (m)
+		XUnmapWindow(dpy, m->veil);
 	if (wasshade) {
 		c->isshade = True;
 		updatefloat(c, m);
@@ -2601,7 +2635,7 @@ place_smart(Client *c, WindowPlacement p, Geometry *g, Monitor *m, Workarea *w)
 	best_x = best_y = 0;
 	best_a = INT_MAX;
 
-	if (p == ColSmartPlacement || p == CascadePlacement) {
+	if (p == ColSmartPlacement) {
 		for (g->x = x_beg; l_r ? (g->x < x_end) : (g->x > x_end); g->x += xd) {
 			for (g->y = y_beg; t_b ? (g->y < y_end) : (g->y > y_end);
 			     g->y += yd) {
@@ -3745,6 +3779,7 @@ freemonitors() {
 	for (i = 0; i < nmons; i++) {
 		free(monitors[i].seltags);
 		free(monitors[i].prevtags);
+		XDestroyWindow(dpy, monitors[i].veil);
 	}
 	free(monitors);
 }
@@ -3838,6 +3873,8 @@ initmonitors(XEvent *e)
 					full_update = True;
 				}
 			} else {
+				XSetWindowAttributes wa;
+
 				monitors = erealloc(monitors, (i+1) * sizeof(*monitors));
 				m = &monitors[i];
 				full_update = True;
@@ -3854,6 +3891,11 @@ initmonitors(XEvent *e)
 				m->prevtags[m->num % ntags] = True;
 				m->seltags[m->num % ntags] = True;
 				m->curtag = m->num % ntags;
+				m->veil = XCreateSimpleWindow(dpy, root, m->wax, m->way,
+						m->waw, m->wah, 0, 0, 0);
+				wa.background_pixmap = None;
+				wa.override_redirect = True;
+				XChangeWindowAttributes(dpy, m->veil, CWBackPixmap|CWOverrideRedirect, &wa);
 			}
 		}
 		XFree(si);
@@ -3912,6 +3954,8 @@ initmonitors(XEvent *e)
 					full_update = True;
 				}
 			} else {
+				XSetWindowAttributes wa;
+
 				monitors = erealloc(monitors, (n+1) * sizeof(*monitors));
 				m = &monitors[n];
 				full_update = True;
@@ -3928,6 +3972,11 @@ initmonitors(XEvent *e)
 				m->prevtags[m->num % ntags] = True;
 				m->seltags[m->num % ntags] = True;
 				m->curtag = m->num % ntags;
+				m->veil = XCreateSimpleWindow(dpy, root, m->wax, m->way,
+						m->waw, m->wah, 0, 0, 0);
+				wa.background_pixmap = None;
+				wa.override_redirect = True;
+				XChangeWindowAttributes(dpy, m->veil, CWBackPixmap|CWOverrideRedirect, &wa);
 			}
 			n++;
 		}
@@ -3965,6 +4014,8 @@ initmonitors(XEvent *e)
 			full_update = True;
 		}
 	} else {
+		XSetWindowAttributes wa;
+
 		monitors = erealloc(monitors, n * sizeof(*monitors));
 		m = &monitors[0];
 		full_update = True;
@@ -3981,6 +4032,11 @@ initmonitors(XEvent *e)
 		m->prevtags[m->num % ntags] = True;
 		m->seltags[m->num % ntags] = True;
 		m->curtag = m->num % ntags;
+		m->veil = XCreateSimpleWindow(dpy, root, m->wax, m->way,
+				m->waw, m->wah, 0, 0, 0);
+		wa.background_pixmap = None;
+		wa.override_redirect = True;
+		XChangeWindowAttributes(dpy, m->veil, CWBackPixmap|CWOverrideRedirect, &wa);
 	}
 	updatemonitors(e, n, size_update, full_update);
 	return;
@@ -4907,6 +4963,8 @@ updategeommon(Monitor * m) {
 	case StrutsOff:
 		break;
 	}
+	XMoveWindow(dpy, m->veil, m->wax, m->way);
+	XResizeWindow(dpy, m->veil, m->waw, m->wah);
 }
 
 void

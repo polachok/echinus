@@ -227,6 +227,7 @@ struct Monitor {
 	int mx, my;
 	unsigned int curtag;
 	unsigned int num, index;
+	Window veil;
 };
 
 typedef struct {
