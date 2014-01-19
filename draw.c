@@ -245,10 +245,23 @@ initpixmap(const char *file, Button *b) {
 }
 
 static void
+_iconify(const char *arg) {
+	if (sel) iconify(sel);
+}
+static void
+_togglemax(const char *arg) {
+	if (sel) togglemax(sel);
+}
+static void
+_killclient(const char *arg) {
+	if (sel) killclient(sel);
+}
+
+static void
 initbuttons() {
-	button[Iconify].action = iconify;
-	button[Maximize].action = togglemax;
-	button[Close].action = killclient;
+	button[Iconify].action = _iconify;
+	button[Maximize].action = _togglemax;
+	button[Close].action = _killclient;
 	button[Iconify].x = button[Close].x = button[Maximize].x = -1;
 	XSetForeground(dpy, dc.gc, style.color.norm[ColButton]);
 	XSetBackground(dpy, dc.gc, style.color.norm[ColBG]);
@@ -301,6 +314,7 @@ initstyle() {
 		eprint("error, cannot allocate colors\n");
 	initfont(getresource("font", FONT));
 	style.border = atoi(getresource("border", STR(BORDERPX)));
+	style.margin = atoi(getresource("margin", STR(MARGINPX)));
 	style.opacity = OPAQUE * atof(getresource("opacity", STR(NF_OPACITY)));
 	style.outline = atoi(getresource("outline", "0"));
 	strncpy(style.titlelayout, getresource("titlelayout", "N  IMC"),

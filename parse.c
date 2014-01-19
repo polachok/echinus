@@ -12,6 +12,71 @@
 #include "echinus.h"
 #include "config.h"
 
+static void
+_togglefloating(const char *arg) {
+	if (sel) togglefloating(sel);
+}
+
+static void
+_togglefill(const char *arg) {
+	if (sel) togglefill(sel);
+}
+
+static void
+_togglemaxv(const char *arg) {
+	if (sel) togglemaxv(sel);
+}
+
+static void
+_togglemaxh(const char *arg) {
+	if (sel) togglemaxh(sel);
+}
+
+static void
+_toggleshade(const char *arg) {
+	if (sel) toggleshade(sel);
+}
+
+static void
+_togglehidden(const char *arg) {
+	if (sel) togglehidden(sel);
+}
+
+static void
+_zoom(const char *arg) {
+	if (sel) zoom(sel);
+}
+
+static void
+_focusnext(const char *arg) {
+	if (sel) focusnext(sel);
+}
+
+static void
+_iconify(const char *arg) {
+	if (sel) iconify(sel);
+}
+
+static void
+_focusprev(const char *arg) {
+	if (sel) focusprev(sel);
+}
+
+static void
+_killclient(const char *arg) {
+	if (sel) killclient(sel);
+}
+
+static void
+_moveresizekb(const char *arg) {
+	if (sel) {
+		int dw = 0, dh = 0, dx = 0, dy = 0;
+
+		sscanf(arg, "%d %d %d %d", &dx, &dy, &dw, &dh);
+		moveresizekb(sel, dx, dy, dw, dh);
+	}
+}
+
 typedef struct {
 	const char *name;
 	void (*action) (const char *arg);
@@ -20,39 +85,80 @@ typedef struct {
 static KeyItem KeyItems[] = {
 	{ "togglestruts",	togglestruts	},
 	{ "focusicon",		focusicon	},
-	{ "focusnext",		focusnext	},
-	{ "focusprev",		focusprev	},
+	{ "focusnext",		_focusnext	},
+	{ "focusprev",		_focusprev	},
 	{ "viewprevtag",	viewprevtag	},
 	{ "viewlefttag",	viewlefttag	},
 	{ "viewrighttag",	viewrighttag	},
 	{ "quit",		quit		},
-	{ "restart", 		quit		},
-	{ "killclient",		killclient	},
-	{ "togglefloating", 	togglefloating	},
+	{ "restart", 		restart		},
+	{ "killclient",		_killclient	},
+	{ "togglefloating", 	_togglefloating	},
 	{ "decmwfact", 		setmwfact	},
 	{ "incmwfact", 		setmwfact	},
 	{ "incnmaster", 	incnmaster	},
 	{ "decnmaster", 	incnmaster	},
-	{ "iconify", 		iconify		},
-	{ "zoom", 		zoom		},
-	{ "moveright", 		moveresizekb	},
-	{ "moveleft", 		moveresizekb	},
-	{ "moveup", 		moveresizekb	},
-	{ "movedown", 		moveresizekb	},
-	{ "resizedecx", 	moveresizekb	},
-	{ "resizeincx", 	moveresizekb	},
-	{ "resizedecy", 	moveresizekb	},
-	{ "resizeincy", 	moveresizekb	},
+	{ "iconify", 		_iconify	},
+	{ "zoom", 		_zoom		},
+	{ "moveright", 		_moveresizekb	},
+	{ "moveleft", 		_moveresizekb	},
+	{ "moveup", 		_moveresizekb	},
+	{ "movedown", 		_moveresizekb	},
+	{ "resizedecx", 	_moveresizekb	},
+	{ "resizeincx", 	_moveresizekb	},
+	{ "resizedecy", 	_moveresizekb	},
+	{ "resizeincy", 	_moveresizekb	},
 	{ "togglemonitor", 	togglemonitor	},
-	{ "togglefill", 	togglefill	},
+	{ "togglefill", 	_togglefill	},
+	{ "togglemaxv", 	_togglemaxv	},
+	{ "togglemaxh", 	_togglemaxh	},
+	{ "toggleshade", 	_toggleshade	},
+	{ "togglehidden", 	_togglehidden	},
+	{ "appendtag",		appendtag	},
+	{ "rmlasttag",		rmlasttag	},
 };
 
+static int
+idxoftag(const char *tag) {
+	unsigned int i;
+
+	if (tag == NULL)
+		return -1;
+	for (i = 0; (i < ntags) && strcmp(tag, tags[i]); i++);
+	return (i < ntags) ? i : 0;
+}
+
+static void
+_toggletag(const char *arg) {
+	if (sel) toggletag(sel, idxoftag(arg));
+}
+
+static void
+_tag(const char *arg) {
+	if (sel) tag(sel, idxoftag(arg));
+}
+
+static void
+_focusview(const char *arg) {
+	focusview(idxoftag(arg));
+}
+
+static void
+_toggleview(const char *arg) {
+	toggleview(idxoftag(arg));
+}
+
+static void
+_view(const char *arg) {
+	view(idxoftag(arg));
+}
+
 static KeyItem KeyItemsByTag[] = {
-	{ "view",		view		},
-	{ "toggleview",		toggleview	},
-	{ "focusview",		focusview	},
-	{ "tag", 		tag		},
-	{ "toggletag", 		toggletag	},
+	{ "view",		_view		},
+	{ "toggleview",		_toggleview	},
+	{ "focusview",		_focusview	},
+	{ "tag", 		_tag		},
+	{ "toggletag", 		_toggletag	},
 };
 
 static void
@@ -226,7 +332,7 @@ initrules() {
 	int i;
 	char t[64];
 	const char *tmp;
-	rules = emallocz(64 * sizeof(Rule *));
+	rules = ecalloc(64, sizeof(Rule *));
 	for (i = 0; i < 64; i++) {
 		snprintf(t, sizeof(t), "rule%d", i);
 		tmp = getresource(t, NULL);

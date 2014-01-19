@@ -23,3 +23,4 @@ unsigned int textw(const char *text);
 extern Display *dpy;
 extern int screen;
 extern Window root;
+extern void *emallocz(unsigned int size);
