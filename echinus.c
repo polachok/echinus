@@ -144,6 +144,7 @@ void place(Client *c, WindowPlacement p);
 void propertynotify(XEvent * e);
 void reparentnotify(XEvent * e);
 void quit(const char *arg);
+void raiseclient(Client *c);
 void restart(const char *arg);
 Bool constrain(Client *c, int *wp, int *hp);
 void resize(Client * c, int x, int y, int w, int h, int b);
@@ -490,6 +491,7 @@ buttonpress(XEvent * e) {
 	if ((c = getclient(ev->window, ClientTitle))) {
 		DPRINTF("TITLE %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
+		raiseclient(c);
 		for (i = 0; i < LastBtn; i++) {
 			if (button[i].action == NULL)
 				continue;
@@ -521,6 +523,7 @@ buttonpress(XEvent * e) {
 	} else if ((c = getclient(ev->window, ClientWindow))) {
 		DPRINTF("WINDOW %s: 0x%x\n", c->name, (int) ev->window);
 		focus(c);
+		raiseclient(c);
 		restack();
 		if (CLEANMASK(ev->state) != modkey) {
 			XAllowEvents(dpy, ReplayPointer, CurrentTime);
