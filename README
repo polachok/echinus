@@ -12,9 +12,9 @@ echinus wm.
 
 You need X11 and Xft headers to compile echinus wm and the pkg-config tool.
 Packages containing this stuff are probably named libx11-dev and libxft-dev
-(note "-dev" suffix). You need libxrandr for multihead support (can be 
-disabled in config.mk if not needed). XRandr-enabled binary still works
-with single monitor configurations.
+(note "-dev" suffix). You need libxrandr for multihead support (disabled by 
+default, pass MULTIHEAD=1 to make in order to enable it). XRandr-enabled 
+binary still works with single monitor configurations.
 
 # make
 # make install
@@ -34,6 +34,10 @@ Main settings
     Echinus*deflayout
         Layout applied to tag if not explicitly set by tags.layout later.
         One of: i - ifloating, f - floating, t - tiled, b - bottomstack, m - maximized. 
+
+    Echinus*gap
+
+        Gap size between tiling windows in pixels.
 
     Echinus*mwfact
 

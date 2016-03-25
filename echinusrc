@@ -27,6 +27,8 @@ Echinus*modkey: A
 
 Echinus*deflayout: i
 
+Echinus*gap: 16
+
 Echinus*tags.number: 7
 Echinus*tags.name0: main
 Echinus*tags.name1: web
